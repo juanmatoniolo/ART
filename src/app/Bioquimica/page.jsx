@@ -37,23 +37,21 @@ export default function NomencladorBioquimica() {
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
                 <div>
                     <h1 className="fw-bold">
-                        {data.metadata?.nomenclador || "Nomenclador Bioquímico"}
+                        {"Nomenclador Bioquímico"}
                     </h1>
-                    <p className="text-muted mb-0">
-                        Versión: {data.metadata?.version || "-"}
-                    </p>
+
                 </div>
             </div>
 
             {/* Panel de filtros */}
             <div
                 className="card shadow-sm mb-4 border-0"
-                style={{ backgroundColor: "var(--primary-light)" }}
+
             >
                 <div className="card-body row gy-3 gx-4 align-items-center">
                     {/* Input editable de UB */}
                     <div className="col-md-4">
-                        <label className="form-label fw-semibold text-success">
+                        <label className="form-label fw-semibold ">
                             Valor de la Unidad Bioquímica (UB)
                         </label>
                         <input
@@ -74,7 +72,7 @@ export default function NomencladorBioquimica() {
 
                     {/* Buscador */}
                     <div className="col-md-8">
-                        <label className="form-label fw-semibold text-success">
+                        <label className="form-label fw-semibold">
                             Buscar práctica bioquímica
                         </label>
                         <div className="input-group">
