@@ -9,9 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
+    "classnames": "^2.5.1",
+    "fuse.js": "^7.1.0",
+    "next": "16.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "next": "16.0.0"
+    "react-hook-form": "^7.65.0",
+    "react-icons": "^5.5.0",
+    "react-toastify": "^11.0.5"
   },
   "devDependencies": {
     "eslint": "^9",

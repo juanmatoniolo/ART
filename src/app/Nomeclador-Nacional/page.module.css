@@ -1,0 +1,23 @@
+/* app/Nomeclador-Nacional/page.module.css */
+
+.wrapper {
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.05);
+}
+
+.title {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.subtitle {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.exactCard {
+    border-left: 6px solid var(--primary);
+}

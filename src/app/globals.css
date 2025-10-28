@@ -1,42 +1,91 @@
+/* globals.css */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  --primary: #499c42;
+  --primary-light: #DFF0D8;
+  --background: #F8FAF9;
+  --text: #212529;
+  --accent: #61B15A;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
+  padding: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.navbar {
+  background-color: var(--primary) !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.3rem;
+
+  color: #fff !important;
+}
+
+.nav-link {
+  color: #ffffffc7 !important;
+  font-size: 1.05rem;
+}
+
+.nav-link:hover {
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
+/* Botones */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Formularios */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+/* Tablas */
+.table {
+  background-color: #fff;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table th {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.table td,
+.table th {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Títulos */
+h1,
+h2,
+h3,
+h4 {
+  color: var(--primary);
 }
