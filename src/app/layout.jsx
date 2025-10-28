@@ -25,6 +25,8 @@ export default function RootLayout({ children }) {
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" href="/AOTER">AOTER</Link>
+                </li>    <li className="nav-item">
+                  <Link className="nav-link" href="/Bioquimica">Bioquimica</Link>
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" href="/Facturacion">Facturación</Link>

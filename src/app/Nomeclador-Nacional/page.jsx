@@ -11,7 +11,7 @@ export default function NomecladorNacional() {
   const [modoBusqueda, setModoBusqueda] = useState(true);
   const [capituloQueries, setCapituloQueries] = useState({});
 
-  // Cargar JSON
+  // --- 📂 Cargar JSON ---
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then(res => res.json())
@@ -19,7 +19,7 @@ export default function NomecladorNacional() {
       .catch(err => console.error('Error cargando JSON:', err));
   }, []);
 
-  // --- 🔍 Búsqueda global (exacta) ---
+  // --- 🔍 Búsqueda global exacta ---
   useEffect(() => {
     if (!query.trim()) {
       setFilteredResults([]);
@@ -29,34 +29,43 @@ export default function NomecladorNacional() {
     const fuse = new Fuse(data, {
       keys: ['descripcion', 'codigo', 'capitulo'],
       includeMatches: true,
-      threshold: 0.0, // coincidencia exacta
+      threshold: 0.0,
       useExtendedSearch: true,
+      ignoreLocation: true,
+      isCaseSensitive: false,
     });
 
-    // Palabra exacta
     const results = fuse.search(`'${query.trim()}`);
     setFilteredResults(results);
   }, [query, data]);
 
-  // --- 🪄 Resaltado de coincidencias ---
-  const highlightMatch = (text, matchData) => {
-    if (!matchData || !matchData.indices) return text;
+  // --- ✨ Resaltado de coincidencias mejorado ---
+const highlightMatch = (text, matchData) => {
+  if (!matchData || !matchData.indices) return text;
 
-    const matches = matchData.indices;
-    let parts = [];
-    let lastIndex = 0;
+  let parts = [];
+  let lastIndex = 0;
 
-    matches.forEach(([start, end]) => {
-      parts.push(text.slice(lastIndex, start));
-      parts.push(<mark key={start}>{text.slice(start, end + 1)}</mark>);
-      lastIndex = end + 1;
-    });
+  matchData.indices.forEach(([start, end], i) => {
+    // Expande hasta límites de palabra
+    while (start > 0 && /\w/.test(text[start - 1])) start--;
+    while (end + 1 < text.length && /\w/.test(text[end + 1])) end++;
 
-    parts.push(text.slice(lastIndex));
-    return parts;
-  };
+    parts.push(<span key={`pre-${i}`}>{text.slice(lastIndex, start)}</span>);
+    parts.push(
+      <mark key={`mark-${i}`} style={{ backgroundColor: '#fff3b0' }}>
+        {text.slice(start, end + 1)}
+      </mark>
+    );
+    lastIndex = end + 1;
+  });
 
-  // --- 📚 Agrupar por capítulo ---
+  parts.push(<span key="last">{text.slice(lastIndex)}</span>);
+  return parts;
+};
+
+
+  // --- 📘 Agrupar por capítulo ---
   const agrupadosPorCapitulo = data.reduce((acc, item) => {
     if (!acc[item.capitulo]) acc[item.capitulo] = [];
     acc[item.capitulo].push(item);
@@ -73,6 +82,8 @@ export default function NomecladorNacional() {
       includeMatches: true,
       threshold: 0.0,
       useExtendedSearch: true,
+      ignoreLocation: true,
+      isCaseSensitive: false,
     });
 
     return fuse.search(`'${term}`);
@@ -123,7 +134,7 @@ export default function NomecladorNacional() {
   return (
     <div className={styles.wrapper}>
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className={styles.title}>Nomeclador Nacional</h2>
+        <h2 className={styles.title}>Nomenclador Nacional</h2>
         <button
           className="btn btn-outline-primary"
           onClick={() => setModoBusqueda(prev => !prev)}
@@ -138,7 +149,7 @@ export default function NomecladorNacional() {
           <input
             type="text"
             className="form-control mb-4"
-            placeholder="Buscar por código, descripción o capítulo (palabra exacta)..."
+            placeholder="Buscar por código, descripción o capítulo (palabra completa)..."
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -198,7 +209,7 @@ export default function NomecladorNacional() {
           )}
         </>
       ) : (
-        // 📂 Modo capítulos con búsqueda local
+        // 📂 Modo capítulos
         <div className="accordion" id="accordionNomenclador">
           {Object.entries(agrupadosPorCapitulo).map(([capitulo, items], index) => {
             const filtrados = filtrarCapitulo(capitulo, items);
