@@ -7,7 +7,7 @@ export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [soloUrgencia, setSoloUrgencia] = useState(false);
-    const [valorUB, setValorUB] = useState(1224.11); // editable por el usuario
+    const [valorUB, setValorUB] = useState(1224.11); // editable
 
     useEffect(() => {
         fetch("archivos/NomecladorBioquimica.json")
@@ -16,18 +16,11 @@ export default function NomencladorBioquimica() {
             .catch((err) => console.error("Error cargando JSON:", err));
     }, []);
 
-    if (!data) {
-        return (
-            <div className="container text-center mt-5 text-secondary">
-                <div className="spinner-border text-primary mb-3" role="status"></div>
-                <p>Cargando nomenclador bioquímico...</p>
-            </div>
-        );
-    }
+    // Si todavía no hay datos, devolvemos null → Next.js mostrará el loading.jsx
+    if (!data) return null;
 
     const practicas = data.practicas || [];
 
-    // Filtro dinámico
     const practicasFiltradas = practicas.filter((p) => {
         const texto = `${p.codigo} ${p.practica_bioquimica}`.toLowerCase();
         const coincide = texto.includes(filtro.toLowerCase());
@@ -40,21 +33,27 @@ export default function NomencladorBioquimica() {
 
     return (
         <div className="container py-5">
-            {/* Header */}
+            {/* Encabezado */}
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
                 <div>
-                    <h1 className="fw-bold text-success mb-1">
-                        { "Nomenclador Bioquímico"}
+                    <h1 className="fw-bold">
+                        {data.metadata?.nomenclador || "Nomenclador Bioquímico"}
                     </h1>
-                
+                    <p className="text-muted mb-0">
+                        Versión: {data.metadata?.version || "-"}
+                    </p>
                 </div>
             </div>
 
-            {/* Valor de UB editable */}
-            <div className="card shadow-sm mb-4">
-                <div className="card-body row gy-2 gx-3 align-items-center">
-                    <div className="col-sm-4">
-                        <label className="form-label fw-semibold text-secondary">
+            {/* Panel de filtros */}
+            <div
+                className="card shadow-sm mb-4 border-0"
+                style={{ backgroundColor: "var(--primary-light)" }}
+            >
+                <div className="card-body row gy-3 gx-4 align-items-center">
+                    {/* Input editable de UB */}
+                    <div className="col-md-4">
+                        <label className="form-label fw-semibold text-success">
                             Valor de la Unidad Bioquímica (UB)
                         </label>
                         <input
@@ -69,13 +68,14 @@ export default function NomencladorBioquimica() {
                             }
                         />
                         <small className="text-muted">
-                            Usá punto como separador decimal.
+                            Ingresá el valor actualizado de la UB (por ejemplo: 1300.50)
                         </small>
                     </div>
 
-                    <div className="col-sm-8">
-                        <label className="form-label fw-semibold text-secondary">
-                            Búsqueda de práctica
+                    {/* Buscador */}
+                    <div className="col-md-8">
+                        <label className="form-label fw-semibold text-success">
+                            Buscar práctica bioquímica
                         </label>
                         <div className="input-group">
                             <input
@@ -86,7 +86,7 @@ export default function NomencladorBioquimica() {
                                 onChange={(e) => setFiltro(e.target.value)}
                             />
                             <button
-                                className="btn btn-outline-secondary"
+                                className="btn btn-primary"
                                 onClick={() => {
                                     setFiltro("");
                                     setSoloUrgencia(false);
@@ -113,8 +113,8 @@ export default function NomencladorBioquimica() {
 
             {/* Tabla */}
             <div className="table-responsive shadow-sm">
-                <table className="table table-striped align-middle">
-                    <thead className="table-primary">
+                <table className="table table-hover align-middle">
+                    <thead>
                         <tr>
                             <th style={{ width: "8%" }}>Código</th>
                             <th>Práctica Bioquímica</th>
@@ -144,7 +144,7 @@ export default function NomencladorBioquimica() {
 
                                 return (
                                     <tr key={p.codigo}>
-                                        <td className="fw-semibold">{p.codigo}</td>
+                                        <td className="fw-semibold text-success">{p.codigo}</td>
                                         <td>{p.practica_bioquimica}</td>
                                         <td className="text-center">
                                             {p.urgencia ? (
@@ -157,7 +157,9 @@ export default function NomencladorBioquimica() {
                                         <td className="text-center">
                                             {p.unidad_bioquimica || "-"}
                                         </td>
-                                        <td className="text-end fw-bold">${valor}</td>
+                                        <td className="text-end fw-bold text-success">
+                                            {valor !== "-" ? `$${valor}` : "-"}
+                                        </td>
                                     </tr>
                                 );
                             })
@@ -167,10 +169,10 @@ export default function NomencladorBioquimica() {
             </div>
 
             <p className="text-muted small mt-3">
-                * Valor calculado según la Unidad Bioquímica ingresada (${valorUB.toLocaleString(
-                    "es-AR",
-                    { minimumFractionDigits: 2 }
-                )}).
+                * Valor calculado según la Unidad Bioquímica ingresada:{" "}
+                <strong>
+                    ${valorUB.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                </strong>
             </p>
         </div>
     );
