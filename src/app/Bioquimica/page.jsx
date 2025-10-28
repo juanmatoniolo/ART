@@ -1,183 +1,177 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Fuse from 'fuse.js';
-import styles from './page.module.css';
+import { useEffect, useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-export default function NomecladorBioquimica() {
-    const [data, setData] = useState([]);
-    const [query, setQuery] = useState('');
-    const [filteredResults, setFilteredResults] = useState([]);
-    const [modoBusqueda, setModoBusqueda] = useState(true);
-    const [unidadBioquimica, setUnidadBioquimica] = useState(1224.11); // 💰 editable
-    const [editingUB, setEditingUB] = useState(false);
+export default function NomencladorBioquimica() {
+    const [data, setData] = useState(null);
+    const [filtro, setFiltro] = useState("");
+    const [soloUrgencia, setSoloUrgencia] = useState(false);
+    const [valorUB, setValorUB] = useState(1224.11); // editable por el usuario
 
-    // 🔄 Cargar JSON
     useEffect(() => {
-        fetch('/archivos/NomecladorBioquimica.json')
-            .then(res => res.json())
-            .then(json => {
-                setData(json.nomenclador || []);
-                if (json.unidad_bioquimica_valor && !isNaN(json.unidad_bioquimica_valor))
-                    setUnidadBioquimica(parseFloat(json.unidad_bioquimica_valor));
-            })
-            .catch(err => console.error('Error cargando JSON:', err));
+        fetch("archivos/NomecladorBioquimica.json")
+            .then((res) => res.json())
+            .then(setData)
+            .catch((err) => console.error("Error cargando JSON:", err));
     }, []);
 
-    // 🔍 Búsqueda con Fuse (exacta)
-    useEffect(() => {
-        if (!query.trim()) {
-            setFilteredResults([]);
-            return;
-        }
+    if (!data) {
+        return (
+            <div className="container text-center mt-5 text-secondary">
+                <div className="spinner-border text-primary mb-3" role="status"></div>
+                <p>Cargando nomenclador bioquímico...</p>
+            </div>
+        );
+    }
 
-        const fuse = new Fuse(data, {
-            keys: ['codigo', 'practica_bioquimica'],
-            includeMatches: true,
-            threshold: 0.0,
-            useExtendedSearch: true,
-        });
+    const practicas = data.practicas || [];
 
-        const results = fuse.search(`'${query.trim()}`);
-        setFilteredResults(results);
-    }, [query, data]);
+    // Filtro dinámico
+    const practicasFiltradas = practicas.filter((p) => {
+        const texto = `${p.codigo} ${p.practica_bioquimica}`.toLowerCase();
+        const coincide = texto.includes(filtro.toLowerCase());
+        const urg = !soloUrgencia || p.urgencia === true || p.urgencia === "U";
+        return coincide && urg;
+    });
 
-    // ✨ Resaltado de coincidencias
-    const highlightMatch = (text, matchData) => {
-        if (!matchData || !matchData.indices) return text;
-
-        const matches = matchData.indices;
-        let parts = [];
-        let lastIndex = 0;
-
-        matches.forEach(([start, end], idx) => {
-            parts.push(<span key={`pre-${idx}`}>{text.slice(lastIndex, start)}</span>);
-            parts.push(<mark key={`mark-${idx}`}>{text.slice(start, end + 1)}</mark>);
-            lastIndex = end + 1;
-        });
-
-        parts.push(<span key="final">{text.slice(lastIndex)}</span>);
-        return parts;
-    };
-
-    // 📊 Recalcular valor dinámico
-    const calcularValor = (unidad) => {
-        if (!unidad || isNaN(unidad)) return '-';
-        return (unidad * unidadBioquimica).toFixed(2);
-    };
-
-    // 💬 Placeholder dinámico
-    const placeholderUB = editingUB
-        ? `Unidad Bioquímica actual: ${unidadBioquimica} (editable)`
-        : `Buscar código o práctica — UB: ${unidadBioquimica}`;
+    const valorPorDefecto =
+        data.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
 
     return (
-        <div className={styles.wrapper}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h2 className={styles.title}>Nomeclador de Bioquímica</h2>
-                <button
-                    className="btn btn-outline-primary"
-                    onClick={() => setModoBusqueda(prev => !prev)}
-                >
-                    {modoBusqueda ? 'Ver todas las prácticas' : 'Modo búsqueda'}
-                </button>
+        <div className="container py-5">
+            {/* Header */}
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <div>
+                    <h1 className="fw-bold text-success mb-1">
+                        { "Nomenclador Bioquímico"}
+                    </h1>
+                
+                </div>
             </div>
 
-            {modoBusqueda ? (
-                <>
-                    <div className="d-flex gap-2 align-items-center mb-3">
+            {/* Valor de UB editable */}
+            <div className="card shadow-sm mb-4">
+                <div className="card-body row gy-2 gx-3 align-items-center">
+                    <div className="col-sm-4">
+                        <label className="form-label fw-semibold text-secondary">
+                            Valor de la Unidad Bioquímica (UB)
+                        </label>
                         <input
                             type="number"
+                            className="form-control"
+                            placeholder="1224.11"
                             step="0.01"
-                            className="form-control w-auto"
-                            value={unidadBioquimica}
-                            onFocus={() => setEditingUB(true)}
-                            onBlur={() => setEditingUB(false)}
-                            onChange={e => setUnidadBioquimica(parseFloat(e.target.value) || 0)}
-                            title="Modificar valor de la Unidad Bioquímica"
+                            min="0"
+                            value={valorUB}
+                            onChange={(e) =>
+                                setValorUB(parseFloat(e.target.value) || valorPorDefecto)
+                            }
                         />
-                        <span className="text-muted small">
-                            Valor base UB (editable)
-                        </span>
+                        <small className="text-muted">
+                            Usá punto como separador decimal.
+                        </small>
                     </div>
 
-                    <input
-                        type="text"
-                        className="form-control mb-4"
-                        placeholder={placeholderUB}
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                    />
-
-                    {filteredResults.length > 0 ? (
-                        <div className="table-responsive">
-                            <table className="table table-striped table-hover">
-                                <thead className="table-success">
-                                    <tr>
-                                        <th>Código</th>
-                                        <th>Práctica Bioquímica</th>
-                                        <th>Urgencia</th>
-                                        <th>N/I</th>
-                                        <th>U.B.</th>
-                                        <th>Valor Calculado</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredResults.map((res, i) => (
-                                        <tr key={i}>
-                                            <td>{highlightMatch(res.item.codigo, res.matches?.find(m => m.key === 'codigo'))}</td>
-                                            <td>{highlightMatch(res.item.practica_bioquimica, res.matches?.find(m => m.key === 'practica_bioquimica'))}</td>
-                                            <td>{res.item.urgencia ? '✅' : ''}</td>
-                                            <td>{res.item["N/I"] || '-'}</td>
-                                            <td>{res.item.unidad_bioquimica ?? '-'}</td>
-                                            <td>
-                                                {res.item.unidad_bioquimica
-                                                    ? calcularValor(res.item.unidad_bioquimica)
-                                                    : '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    <div className="col-sm-8">
+                        <label className="form-label fw-semibold text-secondary">
+                            Búsqueda de práctica
+                        </label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Buscar por código o nombre..."
+                                value={filtro}
+                                onChange={(e) => setFiltro(e.target.value)}
+                            />
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={() => {
+                                    setFiltro("");
+                                    setSoloUrgencia(false);
+                                }}
+                            >
+                                Limpiar
+                            </button>
                         </div>
-                    ) : (
-                        query.trim() && (
-                            <p className="text-center text-muted mt-3">No se encontraron coincidencias exactas.</p>
-                        )
-                    )}
-                </>
-            ) : (
-                <div className="table-responsive mt-4">
-                    <table className="table table-striped table-hover">
-                        <thead className="table-success">
-                            <tr>
-                                <th>Código</th>
-                                <th>Práctica Bioquímica</th>
-                                <th>Urgencia</th>
-                                <th>N/I</th>
-                                <th>U.B.</th>
-                                <th>Valor Calculado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.map((item, i) => (
-                                <tr key={i}>
-                                    <td>{item.codigo}</td>
-                                    <td>{item.practica_bioquimica}</td>
-                                    <td>{item.urgencia ? '✅' : ''}</td>
-                                    <td>{item["N/I"] || '-'}</td>
-                                    <td>{item.unidad_bioquimica ?? '-'}</td>
-                                    <td>
-                                        {item.unidad_bioquimica
-                                            ? calcularValor(item.unidad_bioquimica)
-                                            : '-'}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                        <div className="form-check mt-2">
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                checked={soloUrgencia}
+                                onChange={(e) => setSoloUrgencia(e.target.checked)}
+                                id="checkUrgencia"
+                            />
+                            <label className="form-check-label" htmlFor="checkUrgencia">
+                                Solo urgencias
+                            </label>
+                        </div>
+                    </div>
                 </div>
-            )}
+            </div>
+
+            {/* Tabla */}
+            <div className="table-responsive shadow-sm">
+                <table className="table table-striped align-middle">
+                    <thead className="table-primary">
+                        <tr>
+                            <th style={{ width: "8%" }}>Código</th>
+                            <th>Práctica Bioquímica</th>
+                            <th style={{ width: "10%" }}>Urgencia</th>
+                            <th style={{ width: "8%" }}>N/I</th>
+                            <th style={{ width: "10%" }}>U.B.</th>
+                            <th style={{ width: "15%" }} className="text-end">
+                                Valor Estimado
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {practicasFiltradas.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="text-center text-muted py-4">
+                                    No se encontraron resultados.
+                                </td>
+                            </tr>
+                        ) : (
+                            practicasFiltradas.map((p) => {
+                                const valor =
+                                    p.unidad_bioquimica && valorUB
+                                        ? (p.unidad_bioquimica * valorUB).toLocaleString("es-AR", {
+                                            minimumFractionDigits: 2,
+                                        })
+                                        : "-";
+
+                                return (
+                                    <tr key={p.codigo}>
+                                        <td className="fw-semibold">{p.codigo}</td>
+                                        <td>{p.practica_bioquimica}</td>
+                                        <td className="text-center">
+                                            {p.urgencia ? (
+                                                <span className="badge bg-danger">U</span>
+                                            ) : (
+                                                ""
+                                            )}
+                                        </td>
+                                        <td className="text-center">{p.nota_N_I || ""}</td>
+                                        <td className="text-center">
+                                            {p.unidad_bioquimica || "-"}
+                                        </td>
+                                        <td className="text-end fw-bold">${valor}</td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <p className="text-muted small mt-3">
+                * Valor calculado según la Unidad Bioquímica ingresada (${valorUB.toLocaleString(
+                    "es-AR",
+                    { minimumFractionDigits: 2 }
+                )}).
+            </p>
         </div>
     );
 }
