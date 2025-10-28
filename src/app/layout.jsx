@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
         <BootstrapClient />
         <nav className="navbar navbar-expand-lg navbar-dark px-3">
           <div className="container-fluid">
-            <a className="navbar-brand" href="#">Clínica de la Unión S.A.</a>
+            <Link className="navbar-brand" href="/">Clínica de la Unión S.A.</Link>
             <div className="collapse navbar-collapse justify-content-end">
               <ul className="navbar-nav mb-2 mb-lg-0">
                 <li className="nav-item">
