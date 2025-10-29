@@ -2,29 +2,27 @@
 	"titulo": "Valores Junio 2025 - Red Prestadoras ART",
 	"vigencia": "a partir del 01-06-2025",
 	"valores_generales": {
-		"Gto_Op": 2734,
+		"Gastos_Operatorio": 2734,
 		"Pension": 2365,
-		"Gto_Rx": 1373,
-		"Galeno_Rx_Practica": 1176,
+		"Gastos_Rx": 1373,
+		"Galeno_Rx_y_Practica": 1176,
 		"Galeno_Quir": 1305,
-		"Otros_Gtos": 292,
+		"Otros_Gastos": 292,
 		"Medicación_Valor_Kairos": null,
-		"Curaciones": 350,
+		"Curaciones": 7350,
 		"Curaciones_Quemados": 12950,
-		"Lig_Cruzado_Gtos_Sanatoriales": 936000,
-		"Artroscopia_Simple_Gtos_Sanatoriales": 750000,
-		"Art_Hombro": 936000,
-		"Laboratorios": {
-			"NBU_T": 1430
-		},
-		"KTS": 12260,
-		"S": 17500,
+		"Lig_Cruzado_Gastos_Sanatoriales": 936000,
+		"Artroscopia_Simple_Gastoss_Sanatoriales": 750000,
+		"Artroscopia_Hombro": 936000,
+		"Laboratorios_NBU_T": 1430,
+		"FKT": 12260,
+		"FKT + MGT": 17500,
 		"Consulta": 31500
 	},
 	"anestesistas": "por A.E.A.",
 	"ecografias": {
 		"partes_blandas_no_moduladas": 34740,
-		"codificadas": "según NN + valor unidad"
+		"codificadas": "según NN * valor unidad"
 	},
 	"ECG_y_EX_CV": 57900,
 	"honorarios_medicos": {
@@ -38,7 +36,7 @@
 			},
 			{
 				"nivel": 2,
-				"cirujano": 123000,
+				"cirujano": 124000,
 				"ayudante_1": 37000,
 				"ayudante_2": "no"
 			},

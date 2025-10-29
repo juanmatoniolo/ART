@@ -2,31 +2,30 @@
 	"titulo": "Valores Octubre 2025 - Red Prestadoras ART",
 	"vigencia": "a partir del 01-10-2025",
 	"valores_generales": {
-		"Gto_Op": 8281,
+		"Gasto_Operatorio": 3281,
 		"Pension": 2838,
-		"Gto_Rx": 1648,
+		"Gasto_Rx": 1648,
 		"Galeno_Rx_Practica": 1411,
 		"Galeno_Quir": 1435.5,
-		"Otros_Gtos": 350.4,
+		"Otros_Gastos": 350.4,
 		"Medicación_Valor_Kairos": null,
-		"Curaciones_R": 820,
+		"Curaciones_R": 8820,
 		"Curaciones_Quemados": 15540,
 		"Der_Transfusion": 28000,
-		"Lig_Cruzado_Gtos_Sanatoriales": 1123200,
-		"Artroscopia_Simple_Gtos_Sanatoriales": 900000,
-		"Art_Hombro": 1232200,
-		"Laboratorios": {
-			"NBU_T153_ModPrepSangre_sinTransf": 66490,
-			"PrepSangre_Transf": 129770
-		},
-		"KTS": 13486,
-		"S": 19250,
+		"Lig_Cruzado_Gastos_Sanatoriales": 1123200,
+		"Artroscopia_Simple_Gastos_Sanatoriales": 900000,
+		"Artroscopia_Hombro": 1232200,
+		"Laboratorios_NBU": 1573,
+		"Mod_Prep_Sangre_sin_Transf": 66490,
+		"Mod_Prep_Sangre_Transf": 129770,
+		"FKT": 13486,
+		"FKT + MGT" : 19250,
 		"Consulta": 34650
 	},
 	"anestesistas": "por A.E.A.",
 	"ecografias": {
 		"partes_blandas_no_moduladas": 42000,
-		"codificadas": "según NN + valor unidad"
+		"codificadas": "según NN * valor unidad"
 	},
 	"ECG_y_EX_CV": 63690,
 	"honorarios_medicos": {
@@ -76,7 +75,7 @@
 			},
 			{
 				"nivel": 8,
-				"cirujano": 1963300,
+				"cirujano": 1906300,
 				"ayudante_1": "30%",
 				"ayudante_2": "20% c/u"
 			},
