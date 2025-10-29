@@ -1,4 +1,5 @@
 // src/app/layout.jsx
+import 'bootstrap/dist/css/bootstrap.min.css';
 import BootstrapClient from '@/components/BootstrapClient.jsx';
 
 export const metadata = {
