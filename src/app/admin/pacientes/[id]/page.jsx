@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getSession } from '@/utils/session';
+import BootstrapWrapper from '@/components/BootstrapClient';
 
 export default function FichaPaciente() {
   const { id } = useParams();
@@ -208,6 +209,7 @@ if (!id) return null
   // 🧠 Render principal
   return (
     <div className="container py-4">
+      <BootstrapWrapper/>
       <h2 className="mb-4">
         Ficha de {paciente.Nombre} {paciente.Apellido}
       </h2>
