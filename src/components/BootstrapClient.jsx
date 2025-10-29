@@ -1,14 +1,11 @@
 'use client';
 import { useEffect } from 'react';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
-/**
- * Este componente se encarga de cargar los scripts de Bootstrap
- * únicamente en el cliente, evitando errores SSR.
- */
-export default function BootstrapClient() {
+export default function BootstrapWrapper() {
 	useEffect(() => {
-		// Podés agregar lógica si necesitás inicializar algo de Bootstrap
+		import('bootstrap/dist/js/bootstrap.bundle.min.js')
+			.then(() => console.log('✅ Bootstrap cargado en cliente'))
+			.catch(err => console.error('❌ Error al cargar Bootstrap:', err));
 	}, []);
 
 	return null;

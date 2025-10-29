@@ -1,136 +1,111 @@
+// src/app/login/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { getSession } from '@/utils/session';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
+import { setSession } from '@/utils/session';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-export default function FichaPaciente() {
-    const { id } = useParams();
-    const [paciente, setPaciente] = useState(null);
-    const [evoluciones, setEvoluciones] = useState([]);
-    const [pedidos, setPedidos] = useState([]);
-    const [nuevaEvolucion, setNuevaEvolucion] = useState('');
-    const [mostrarPedido, setMostrarPedido] = useState(false);
-    const [practica, setPractica] = useState('');
-    const [firmante, setFirmante] = useState('');
-    const [tipoEmpleado, setTipoEmpleado] = useState(null);
+export default function LoginPage() {
+    const [user, setUser] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const router = useRouter();
 
-    useEffect(() => {
-        const session = getSession();
-        if (session) setTipoEmpleado(session.TipoEmpleado);
-    }, []);
-
-    useEffect(() => {
-        const obtenerPaciente = async () => {
-            const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`);
-            const data = await res.json();
-            setPaciente(data);
-        };
-
-        const obtenerEvoluciones = async () => {
-            const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`);
-            const data = await res.json();
-            if (data) {
-                const lista = Object.entries(data).map(([eid, ev]) => ({ id: eid, ...ev }));
-                setEvoluciones(lista);
-            }
-        };
-
-        const obtenerPedidos = async () => {
-            const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos.json`);
-            const data = await res.json();
-            if (data) {
-                const lista = Object.entries(data).map(([pid, val]) => ({ id: pid, ...val }));
-                setPedidos(lista);
-            }
-        };
-
-        if (id) {
-            obtenerPaciente();
-            obtenerEvoluciones();
-            obtenerPedidos();
-        }
-    }, [id]);
-
-    const agregarEvolucion = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!nuevaEvolucion.trim()) return;
+        setError('');
 
-        const session = getSession();
-        const nueva = {
-            texto: nuevaEvolucion,
-            fecha: new Date().toISOString(),
-            firmante: session?.user || 'Sin firmante'
-        };
+        const inputUser = user.trim().toLowerCase();
+        const inputPass = password.trim();
 
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nueva)
-        });
+        try {
+            const snapshot = await get(ref(db, 'users'));
+            const users = snapshot.val();
 
-        setEvoluciones(prev => [...prev, nueva]);
-        setNuevaEvolucion('');
+            if (!users) {
+                setError('No se encontraron usuarios en la base de datos.');
+                return;
+            }
+
+            const found = Object.entries(users).find(
+                ([, u]) =>
+                    u.user.trim().toLowerCase() === inputUser &&
+                    u.password.trim() === inputPass
+            );
+
+            if (!found) {
+                setError('Usuario o contraseña incorrectos');
+                return;
+            }
+
+            const [id, userData] = found;
+            setSession({ ...userData, id });
+
+            // redirección según tipo
+            const routes = {
+                ADM: '/admin',
+                DR: '/doctores',
+                MDE: '/mesa-de-entrada',
+            };
+
+            router.push(routes[userData.TipoEmpleado] || '/admin');
+        } catch (err) {
+            console.error('Error en login:', err);
+            setError('Error al conectarse al servidor');
+        }
     };
 
-    const realizarPedido = async () => {
-        if (!practica.trim() || !firmante.trim()) return;
-        const pedido = {
-            practica,
-            firmante,
-            fecha: new Date().toISOString(),
-            estado: 'Pendiente'
-        };
+    return (
+        <div
+            className="d-flex align-items-center justify-content-center vh-100"
+            style={{ backgroundColor: '#f0f4f0' }}
+        >
+            <div className="card shadow-lg p-4" style={{ width: '100%', maxWidth: '400px' }}>
+                <h3 className="text-center mb-4 text-success">
+                    Clínica de la Unión S.A.
+                </h3>
 
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos.json`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(pedido)
-        });
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-3">
+                        <label className="form-label">Usuario</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            value={user}
+                            onChange={(e) => setUser(e.target.value)}
+                            placeholder="Ingrese su usuario"
+                            required
+                        />
+                    </div>
 
-        setMostrarPedido(false);
-        setPractica('');
-        setFirmante('');
-        setPedidos(prev => [...prev, pedido]);
-        alert('Pedido registrado correctamente');
-    };
+                    <div className="mb-3">
+                        <label className="form-label">Contraseña</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Ingrese su contraseña"
+                            required
+                        />
+                    </div>
 
-    const cambiarEstadoPedido = async (pedidoId, nuevoEstado) => {
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos/${pedidoId}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ estado: nuevoEstado })
-        });
+                    {error && <div className="alert alert-danger">{error}</div>}
 
-        setPedidos(pedidos.map(p => p.id === pedidoId ? { ...p, estado: nuevoEstado } : p));
-    };
+                    <button type="submit" className="btn btn-success w-100">
+                        Ingresar
+                    </button>
+                </form>
 
-    const darAltaMedica = async () => {
-        if (!confirm('¿Está seguro de dar el alta médica al paciente?')) return;
-
-        const evolucion = {
-            texto: 'Alta médica otorgada.',
-            fecha: new Date().toISOString(),
-            firmante: getSession()?.user || 'Sin firmante'
-        };
-
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(evolucion)
-        });
-
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ estado: 'Alta médica' })
-        });
-
-        setEvoluciones(prev => [...prev, evolucion]);
-        alert('Paciente dado de alta médica.');
-    };
-
-    if (!paciente) return <p className="text-center mt-4">Cargando ficha...</p>;
-
-    return <>{/* TODO: Render completo con tipoEmpleado real */}</>;
+                <div className="text-center mt-3">
+                    <small className="text-muted">
+                        ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getSession } from '@/utils/session';
 
 export default function FichaPaciente() {
   const { id } = useParams();
+  const router = useRouter();
+
   const [paciente, setPaciente] = useState(null);
   const [evoluciones, setEvoluciones] = useState([]);
   const [pedidos, setPedidos] = useState([]);
@@ -15,24 +17,35 @@ export default function FichaPaciente() {
   const [firmante, setFirmante] = useState('');
   const [tipoEmpleado, setTipoEmpleado] = useState('');
 
+  // 🧠 Verifica sesión al montar
   useEffect(() => {
     const session = getSession();
-    if (session) {
-      setTipoEmpleado(session.TipoEmpleado);
-      setFirmante(`${session.Nombre} ${session.Apellido}`);
-    }
-  }, []);
+    console.log('🔑 Sesión cargada en FichaPaciente:', session);
 
+    if (!session) {
+      console.warn('🚫 No hay sesión activa, redirigiendo a login...');
+      router.push('/login');
+      return;
+    }
+
+    setTipoEmpleado(session.TipoEmpleado);
+    setFirmante(`${session.Nombre} ${session.Apellido}`);
+  }, [router]);
+if (!id) return null
+  // 🧩 Carga los datos del paciente y sus pedidos/evoluciones
   useEffect(() => {
     if (!id) return;
+
+    console.log('🩺 Cargando datos para paciente ID:', id);
 
     const obtenerPaciente = async () => {
       try {
         const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`);
         const data = await res.json();
+        console.log('📦 Paciente:', data);
         setPaciente(data);
       } catch (error) {
-        console.error('Error al cargar el paciente:', error);
+        console.error('❌ Error al cargar el paciente:', error);
       }
     };
 
@@ -45,7 +58,7 @@ export default function FichaPaciente() {
           setEvoluciones(lista);
         } else setEvoluciones([]);
       } catch (err) {
-        console.error('Error al obtener evoluciones:', err);
+        console.error('❌ Error al obtener evoluciones:', err);
       }
     };
 
@@ -58,7 +71,7 @@ export default function FichaPaciente() {
           setPedidos(lista);
         } else setPedidos([]);
       } catch (err) {
-        console.error('Error al obtener pedidos:', err);
+        console.error('❌ Error al obtener pedidos:', err);
       }
     };
 
@@ -67,6 +80,7 @@ export default function FichaPaciente() {
     obtenerPedidos();
   }, [id]);
 
+  // 🩹 Guardar nueva evolución
   const agregarEvolucion = async (e) => {
     e.preventDefault();
     if (!nuevaEvolucion.trim()) return;
@@ -83,13 +97,14 @@ export default function FichaPaciente() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nueva),
       });
-      setEvoluciones(prev => [...prev, nueva]);
+      setEvoluciones((prev) => [...prev, nueva]);
       setNuevaEvolucion('');
     } catch (err) {
-      console.error('Error al guardar evolución:', err);
+      console.error('❌ Error al guardar evolución:', err);
     }
   };
 
+  // 🧾 Realizar pedido
   const realizarPedido = async () => {
     if (!practica.trim()) return;
     const pedido = {
@@ -106,14 +121,15 @@ export default function FichaPaciente() {
         body: JSON.stringify(pedido),
       });
       const data = await res.json();
-      setPedidos(prev => [...prev, { id: data.name, ...pedido }]);
+      setPedidos((prev) => [...prev, { id: data.name, ...pedido }]);
       setMostrarPedido(false);
       setPractica('');
     } catch (error) {
-      console.error('Error al registrar pedido:', error);
+      console.error('❌ Error al registrar pedido:', error);
     }
   };
 
+  // 🔄 Actualizar estado del pedido
   const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
     try {
       await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos/${pedidoId}.json`, {
@@ -121,14 +137,15 @@ export default function FichaPaciente() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: nuevoEstado }),
       });
-      setPedidos(prev =>
-        prev.map(p => (p.id === pedidoId ? { ...p, estado: nuevoEstado } : p))
+      setPedidos((prev) =>
+        prev.map((p) => (p.id === pedidoId ? { ...p, estado: nuevoEstado } : p))
       );
     } catch (err) {
-      console.error('Error al actualizar estado:', err);
+      console.error('❌ Error al actualizar estado:', err);
     }
   };
 
+  // 🎨 Colores de estado
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'Pendiente':
@@ -142,6 +159,7 @@ export default function FichaPaciente() {
     }
   };
 
+  // 🏥 Alta médica
   const darAltaMedica = async () => {
     if (!confirm('¿Está seguro de dar el alta médica al paciente?')) return;
 
@@ -157,23 +175,42 @@ export default function FichaPaciente() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(evolucion),
       });
+
       await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: 'Alta médica' }),
       });
-      setEvoluciones(prev => [...prev, evolucion]);
-      alert('Paciente dado de alta médica.');
+
+      setEvoluciones((prev) => [...prev, evolucion]);
+      alert('✅ Paciente dado de alta médica.');
     } catch (error) {
-      console.error('Error al dar alta médica:', error);
+      console.error('❌ Error al dar alta médica:', error);
     }
   };
 
-  if (!paciente) return <p className="text-center mt-4">Cargando ficha...</p>;
+  // 🚫 No renderizar si no hay id
+  if (!id) {
+    console.warn('⚠️ No hay ID de paciente en la URL');
+    return null;
+  }
 
+  // ⏳ Loading visual
+  if (!paciente)
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Cargando ficha...</span>
+        </div>
+      </div>
+    );
+
+  // 🧠 Render principal
   return (
     <div className="container py-4">
-      <h2 className="mb-4">Ficha de {paciente.Nombre} {paciente.Apellido}</h2>
+      <h2 className="mb-4">
+        Ficha de {paciente.Nombre} {paciente.Apellido}
+      </h2>
 
       <div className="row mb-4">
         <div className="col-md-6">
@@ -216,7 +253,7 @@ export default function FichaPaciente() {
           <p className="text-muted">Sin evoluciones registradas.</p>
         ) : (
           <ul className="list-group">
-            {[...evoluciones].reverse().map(ev => (
+            {[...evoluciones].reverse().map((ev) => (
               <li key={ev.id} className="list-group-item">
                 <p className="mb-1">{ev.texto}</p>
                 <small className="text-muted">
@@ -235,7 +272,7 @@ export default function FichaPaciente() {
           <p className="text-muted">Sin pedidos registrados.</p>
         ) : (
           <ul className="list-group">
-            {[...pedidos].reverse().map(p => (
+            {[...pedidos].reverse().map((p) => (
               <li key={p.id} className="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                   <strong>{p.practica}</strong><br />
@@ -246,7 +283,6 @@ export default function FichaPaciente() {
                 <div className="text-end">
                   <span className={`badge ${getEstadoColor(p.estado)} p-2`}>{p.estado}</span>
 
-                  {/* 🔽 Tooltip/Dropdown solo visible para ADM */}
                   {tipoEmpleado === 'ADM' && (
                     <div className="dropdown mt-2">
                       <button
