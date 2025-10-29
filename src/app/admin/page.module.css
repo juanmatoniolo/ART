@@ -1,0 +1,72 @@
+
+
+/* ===== NAVBAR ===== */
+.navbar {
+    transition: background 0.3s ease;
+}
+
+.brand {
+    font-size: 1.15rem;
+}
+
+.navLink {
+    color: #fff !important;
+    font-weight: 500;
+    transition: background 0.3s, transform 0.2s;
+    border-radius: 8px;
+}
+
+.navLink:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main {
+    background-color: var(--background);
+    min-height: calc(100vh - 120px);
+}
+
+.content {
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+    font-size: 0.85rem;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.75rem 1rem;
+    }
+
+    .brand {
+        font-size: 1rem;
+    }
+
+    .navLink {
+        display: block;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+        border-radius: 0;
+    }
+
+    .content {
+        padding: 1rem !important;
+        border-radius: 1rem;
+    }
+
+    .footer {
+        font-size: 0.8rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .navLink {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+}

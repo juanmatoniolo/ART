@@ -1,26 +1,59 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [soloUrgencia, setSoloUrgencia] = useState(false);
     const [valorUB, setValorUB] = useState(1224.11); // editable
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetch("archivos/NomecladorBioquimica.json")
-            .then((res) => res.json())
-            .then(setData)
-            .catch((err) => console.error("Error cargando JSON:", err));
+        const loadData = async () => {
+            try {
+                // ✅ Ruta absoluta desde el origen del sitio
+                const res = await fetch(
+                    `${window.location.origin}/archivos/NomecladorBioquimica.json`
+                );
+
+                if (!res.ok) {
+                    throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
+                }
+
+                // Intentamos parsear el JSON
+                const json = await res.json();
+                setData(json);
+            } catch (err) {
+                console.error("❌ Error cargando JSON:", err);
+                setError("No se pudo cargar el nomenclador de Bioquímica.");
+            }
+        };
+
+        loadData();
     }, []);
 
-    // Si todavía no hay datos, devolvemos null → Next.js mostrará el loading.jsx
-    if (!data) return null;
+    // 🌀 Estado de carga
+    if (error) {
+        return (
+            <div className="container py-5 text-center text-danger">
+                <h5>{error}</h5>
+                <p className="text-muted">Verificá que el archivo esté en /public/archivos/</p>
+            </div>
+        );
+    }
 
+    if (!data) {
+        return (
+            <div className="container py-5 text-center">
+                <div className="spinner-border text-success" role="status" />
+                <p className="mt-3 text-muted">Cargando nomenclador bioquímico...</p>
+            </div>
+        );
+    }
+
+    // ✅ Si llegamos acá, ya hay datos
     const practicas = data.practicas || [];
-
     const practicasFiltradas = practicas.filter((p) => {
         const texto = `${p.codigo} ${p.practica_bioquimica}`.toLowerCase();
         const coincide = texto.includes(filtro.toLowerCase());
@@ -36,22 +69,16 @@ export default function NomencladorBioquimica() {
             {/* Encabezado */}
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
                 <div>
-                    <h1 className="fw-bold">
-                        {"Nomenclador Bioquímico"}
-                    </h1>
-
+                    <h1 className="fw-bold">Nomenclador Bioquímico</h1>
                 </div>
             </div>
 
             {/* Panel de filtros */}
-            <div
-                className="card shadow-sm mb-4 border-0"
-
-            >
+            <div className="card shadow-sm mb-4 border-0">
                 <div className="card-body row gy-3 gx-4 align-items-center">
                     {/* Input editable de UB */}
                     <div className="col-md-4">
-                        <label className="form-label fw-semibold ">
+                        <label className="form-label fw-semibold">
                             Valor de la Unidad Bioquímica (UB)
                         </label>
                         <input
@@ -152,9 +179,7 @@ export default function NomencladorBioquimica() {
                                             )}
                                         </td>
                                         <td className="text-center">{p.nota_N_I || ""}</td>
-                                        <td className="text-center">
-                                            {p.unidad_bioquimica || "-"}
-                                        </td>
+                                        <td className="text-center">{p.unidad_bioquimica || "-"}</td>
                                         <td className="text-end fw-bold text-success">
                                             {valor !== "-" ? `$${valor}` : "-"}
                                         </td>

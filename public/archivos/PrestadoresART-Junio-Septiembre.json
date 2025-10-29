@@ -1,0 +1,105 @@
+{
+	"titulo": "Valores Junio 2025 - Red Prestadoras ART",
+	"vigencia": "a partir del 01-06-2025",
+	"valores_generales": {
+		"Gto_Op": 2734,
+		"Pension": 2365,
+		"Gto_Rx": 1373,
+		"Galeno_Rx_Practica": 1176,
+		"Galeno_Quir": 1305,
+		"Otros_Gtos": 292,
+		"Medicación_Valor_Kairos": null,
+		"Curaciones": 350,
+		"Curaciones_Quemados": 12950,
+		"Lig_Cruzado_Gtos_Sanatoriales": 936000,
+		"Artroscopia_Simple_Gtos_Sanatoriales": 750000,
+		"Art_Hombro": 936000,
+		"Laboratorios": {
+			"NBU_T": 1430
+		},
+		"KTS": 12260,
+		"S": 17500,
+		"Consulta": 31500
+	},
+	"anestesistas": "por A.E.A.",
+	"ecografias": {
+		"partes_blandas_no_moduladas": 34740,
+		"codificadas": "según NN + valor unidad"
+	},
+	"ECG_y_EX_CV": 57900,
+	"honorarios_medicos": {
+		"descripcion": "Honorarios médicos según nivel de complejidad",
+		"niveles": [
+			{
+				"nivel": 1,
+				"cirujano": 99000,
+				"ayudante_1": 29700,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 2,
+				"cirujano": 123000,
+				"ayudante_1": 37000,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 3,
+				"cirujano": 310000,
+				"ayudante_1": 92800,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 4,
+				"cirujano": 495000,
+				"ayudante_1": 148500,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 5,
+				"cirujano": 754000,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 6,
+				"cirujano": 1120000,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 7,
+				"cirujano": 1237500,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 8,
+				"cirujano": 1733000,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 9,
+				"cirujano": 2227500,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 10,
+				"cirujano": 3093750,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			}
+		]
+	},
+	"condiciones": {
+		"confirmacion": "Confirmar valores al 01-06-2025 o se procede a rescindir convenio.",
+		"contrapropuestas": "No se aceptarán contrapropuestas, no insistir.",
+		"aceptacion": "En caso de aceptar aranceles enviar grilla debidamente firmada y sellada.",
+		"siniestros": "Los siniestros en curso pasan a incrementar en un 12.5% el valor de facturación y prestaciones seguimiento a partir del 01-06-2025 para continuar la atención. Caso contrario nos avisan para derivar."
+	},
+	"firma": {
+		"entidad": "Clínica de la Unión",
+		"CUIT": "30-70754530-1"
+	}
+}

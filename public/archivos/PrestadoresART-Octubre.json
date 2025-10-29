@@ -1,0 +1,107 @@
+{
+	"titulo": "Valores Octubre 2025 - Red Prestadoras ART",
+	"vigencia": "a partir del 01-10-2025",
+	"valores_generales": {
+		"Gto_Op": 8281,
+		"Pension": 2838,
+		"Gto_Rx": 1648,
+		"Galeno_Rx_Practica": 1411,
+		"Galeno_Quir": 1435.5,
+		"Otros_Gtos": 350.4,
+		"Medicación_Valor_Kairos": null,
+		"Curaciones_R": 820,
+		"Curaciones_Quemados": 15540,
+		"Der_Transfusion": 28000,
+		"Lig_Cruzado_Gtos_Sanatoriales": 1123200,
+		"Artroscopia_Simple_Gtos_Sanatoriales": 900000,
+		"Art_Hombro": 1232200,
+		"Laboratorios": {
+			"NBU_T153_ModPrepSangre_sinTransf": 66490,
+			"PrepSangre_Transf": 129770
+		},
+		"KTS": 13486,
+		"S": 19250,
+		"Consulta": 54000
+	},
+	"anestesistas": "por A.E.A.",
+	"ecografias": {
+		"partes_blandas_no_moduladas": 42000,
+		"codificadas": "según NN + valor unidad"
+	},
+	"ECG_y_EX_CV": 63690,
+	"honorarios_medicos": {
+		"descripcion": "Honorarios médicos según nivel de complejidad",
+		"niveles": [
+			{
+				"nivel": 1,
+				"cirujano": 108900,
+				"ayudante_1": 32670,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 2,
+				"cirujano": 136400,
+				"ayudante_1": 40700,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 3,
+				"cirujano": 341000,
+				"ayudante_1": 102800,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 4,
+				"cirujano": 544500,
+				"ayudante_1": 163350,
+				"ayudante_2": "no"
+			},
+			{
+				"nivel": 5,
+				"cirujano": 829400,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 6,
+				"cirujano": 1232000,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 7,
+				"cirujano": 1361250,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 8,
+				"cirujano": 1963300,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 9,
+				"cirujano": 2450250,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			},
+			{
+				"nivel": 10,
+				"cirujano": 3403125,
+				"ayudante_1": "30%",
+				"ayudante_2": "20% c/u"
+			}
+		]
+	},
+	"condiciones": {
+		"confirmacion": "Confirmar valores al 01-10-2025 o se procede a rescindir convenio.",
+		"contrapropuestas": "No se aceptarán contrapropuestas, no insistir.",
+		"aceptacion": "En caso de aceptar aranceles enviar grilla debidamente firmada y sellada.",
+		"siniestros": "Los siniestros en curso pasan a incrementar en un 10% el valor en Honorarios y 20% en gastos de facturación prestaciones seguimiento a partir del 01-10-2025 para continuar la atención. Caso contrario nos avisan para derivar."
+	},
+	"firma": {
+		"entidad": "Clínica DE LA UNION",
+		"CUIT": "30707545301"
+	}
+}
