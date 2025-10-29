@@ -6,22 +6,22 @@ export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [soloUrgencia, setSoloUrgencia] = useState(false);
-    const [valorUB, setValorUB] = useState(1224.11); // editable
+    const [valorUB, setValorUB] = useState(1224.11);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                // ✅ Ruta absoluta desde el origen del sitio
-                const res = await fetch(
-                    `${window.location.origin}/archivos/NomecladorBioquimica.json`
-                );
+                // ✅ Evitamos usar window en SSR
+                if (typeof window === "undefined") return;
+
+                const baseUrl = window.location.origin;
+                const res = await fetch(`${baseUrl}/archivos/NomecladorBioquimica.json`);
 
                 if (!res.ok) {
                     throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
                 }
 
-                // Intentamos parsear el JSON
                 const json = await res.json();
                 setData(json);
             } catch (err) {
@@ -32,6 +32,7 @@ export default function NomencladorBioquimica() {
 
         loadData();
     }, []);
+
 
     // 🌀 Estado de carga
     if (error) {

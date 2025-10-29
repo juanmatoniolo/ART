@@ -9,6 +9,7 @@ export default function withAuth(Component, allowedRoles = []) {
         const [authorized, setAuthorized] = useState(false);
 
         useEffect(() => {
+            // ✅ Solo se ejecuta en cliente
             const session = getSession();
             if (!session) {
                 router.push('/login');
@@ -24,9 +25,17 @@ export default function withAuth(Component, allowedRoles = []) {
             }
 
             setAuthorized(true);
-        }, []);
+        }, [router]);
 
-        if (!authorized) return null;
+        if (!authorized) {
+            return (
+                <div className="d-flex justify-content-center align-items-center vh-100">
+                    <div className="spinner-border text-success" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            );
+        }
 
         return <Component {...props} />;
     };

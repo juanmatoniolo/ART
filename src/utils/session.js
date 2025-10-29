@@ -1,28 +1,48 @@
 // utils/session.js
+
 const SESSION_KEY = "userSession";
 const EXPIRATION_MS = 4 * 60 * 60 * 1000; // 4 horas
 
 export function setSession(userData) {
+	if (typeof window === "undefined") return; // ✅ Previene errores SSR
+
 	const data = {
 		...userData,
 		expiresAt: Date.now() + EXPIRATION_MS,
 	};
-	localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+
+	try {
+		localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+	} catch (err) {
+		console.error("❌ Error al guardar sesión:", err);
+	}
 }
 
 export function getSession() {
-	const session = localStorage.getItem(SESSION_KEY);
-	if (!session) return null;
+	if (typeof window === "undefined") return null; // ✅ Previene ReferenceError
 
-	const data = JSON.parse(session);
-	if (Date.now() > data.expiresAt) {
-		localStorage.removeItem(SESSION_KEY);
+	try {
+		const session = localStorage.getItem(SESSION_KEY);
+		if (!session) return null;
+
+		const data = JSON.parse(session);
+		if (Date.now() > data.expiresAt) {
+			localStorage.removeItem(SESSION_KEY);
+			return null;
+		}
+
+		return data;
+	} catch (err) {
+		console.error("❌ Error al obtener sesión:", err);
 		return null;
 	}
-
-	return data;
 }
 
 export function clearSession() {
-	localStorage.removeItem(SESSION_KEY);
+	if (typeof window === "undefined") return; // ✅ Previene errores SSR
+	try {
+		localStorage.removeItem(SESSION_KEY);
+	} catch (err) {
+		console.error("❌ Error al limpiar sesión:", err);
+	}
 }
