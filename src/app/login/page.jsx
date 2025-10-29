@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { setSession } from '@/utils/session';
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function LoginPage() {
     const [user, setUser] = useState('');
