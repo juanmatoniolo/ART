@@ -6,7 +6,7 @@ export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState("");
     const [soloUrgencia, setSoloUrgencia] = useState(false);
-    const [valorUB, setValorUB] = useState(1224.11);
+    const [valorUB, setValorUB] = useState(1430);
     const [error, setError] = useState(null);
 
     useEffect(() => {

@@ -1,10 +1,24 @@
-/* ===== Variables globales ===== */
-:root {
-  --primary: #499c42;
-  --primary-light: #dff0d8;
-  --background: #f8faf9;
-  --text: #212529;
-  --accent: #61b15a;
+/* === THEMES === */
+:root[data-theme='dark'] {
+    --navbar-bg: #14532d;
+    --sidebar-bg: #1e293b;
+    --text-color: #e2e8f0;
+    --hover-bg: rgba(255, 255, 255, 0.08);
+    --active-bg: rgba(34, 197, 94, 0.25);
+    --main-bg: #0f172a;
+    --content-bg: #1e293b;
+    --footer-text: #94a3b8;
+}
+
+:root[data-theme='light'] {
+    --navbar-bg: #198754;
+    --sidebar-bg: #f8fafc;
+    --text-color: #1e293b;
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --active-bg: rgba(25, 135, 84, 0.2);
+    --main-bg: #f8fafc;
+    --content-bg: #ffffff;
+    --footer-text: #475569;
 }
 
 body {

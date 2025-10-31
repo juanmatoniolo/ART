@@ -1,72 +1,67 @@
 
-
-/* ===== NAVBAR ===== */
+/* === NAVBAR === */
 .navbar {
-    transition: background 0.3s ease;
+    background-color: var(--navbar-bg) !important;
+    color: var(--text-color);
 }
 
-.brand {
-    font-size: 1.15rem;
+/* === SIDEBAR === */
+.sidebar .list-group-item {
+    color: var(--text-color);
+    background: transparent;
+    border: 0;
+    padding: .75rem 1rem;
+    transition: background .2s, color .2s;
 }
 
-.navLink {
+.sidebar .list-group-item:hover {
+    background: var(--hover-bg);
+}
+
+.active {
+    background: var(--active-bg) !important;
     color: #fff !important;
-    font-weight: 500;
-    transition: background 0.3s, transform 0.2s;
-    border-radius: 8px;
+    font-weight: 600;
 }
 
-.navLink:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    transform: scale(1.05);
+.aside {
+    background-color: var(--sidebar-bg);
+    color: var(--text-color);
 }
 
-/* ===== MAIN CONTENT ===== */
+/* === AVATAR === */
+.avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    background: rgba(255, 255, 255, .2);
+}
+
+/* === MAIN === */
 .main {
-    background-color: var(--background);
-    min-height: calc(100vh - 120px);
+    background-color: var(--main-bg);
+    min-height: calc(100vh - 72px);
 }
 
 .content {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: auto;
+    background-color: var(--content-bg);
+    border-radius: 16px;
+    color: var(--text-color);
 }
 
-/* ===== FOOTER ===== */
+/* === FOOTER === */
 .footer {
-    font-size: 0.85rem;
+    color: var(--footer-text);
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-    .navbar {
-        padding: 0.75rem 1rem;
-    }
-
-    .brand {
-        font-size: 1rem;
-    }
-
-    .navLink {
-        display: block;
-        padding: 0.5rem 1rem;
-        font-size: 0.95rem;
-        border-radius: 0;
-    }
-
+/* === RESPONSIVE === */
+@media (max-width: 991.98px) {
     .content {
-        padding: 1rem !important;
         border-radius: 1rem;
-    }
-
-    .footer {
-        font-size: 0.8rem;
-    }
-}
-
-@media (min-width: 992px) {
-    .navLink {
-        margin-left: 0.5rem;
-        margin-right: 0.5rem;
     }
 }
