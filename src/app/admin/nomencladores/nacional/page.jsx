@@ -173,7 +173,7 @@ export default function NomencladorNacional() {
                 </thead>
                 <tbody>
                   {filteredResults.map((res, i) => {
-                    const capKey = res.item.capitulo?.toString().padStart(2, '0');
+                    const capKey = res.item.capitulo
                     const capInfo = capitulosInfo[capKey] || { nombre: 'Sin asignar' };
                     return (
                       <tr key={i}>
@@ -185,7 +185,7 @@ export default function NomencladorNacional() {
                           )}
                         </td>
                         <td>
-                          <span className={styles.capBadge}>{capInfo.nombre}</span>
+                          <span className={styles.capBadge}>{res.item.capitulo}</span>
                         </td>
                         <td>{res.item.q_gal}</td>
                         <td>{res.item.gto}</td>

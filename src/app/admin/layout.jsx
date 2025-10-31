@@ -70,10 +70,10 @@ export default function AdminLayout({ children }) {
 
           <Link href="/admin" className="navbar-brand d-flex align-items-center gap-2 text-light">
             <Image
-              src="/assets/Clinica-Union-SA.png"
+              src="/logo.png"
               alt="Clínica de la Unión S.A."
-              width={32}
-              height={32}
+              width={42}
+              height={42}
               className="rounded-2"
               priority
             />

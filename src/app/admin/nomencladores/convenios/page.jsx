@@ -1,203 +1,206 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
+import styles from './page.module.css';
 
-export default function NomencladorBioquimica() {
+export default function PrestadoresART() {
+    const archivos = {
+        junio: '/archivos/PrestadoresART-Junio-Septiembre.json',
+        octubre: '/archivos/PrestadoresART-Octubre.json',
+    };
+
+    const periodos = Object.keys(archivos);
+    const ultimoPeriodo = periodos[periodos.length - 1];
+
+    const [periodo, setPeriodo] = useState(ultimoPeriodo);
     const [data, setData] = useState(null);
-    const [filtro, setFiltro] = useState("");
-    const [soloUrgencia, setSoloUrgencia] = useState(false);
-    const [valorUB, setValorUB] = useState(1430);
-    const [error, setError] = useState(null);
+    const [filteredData, setFilteredData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [query, setQuery] = useState('');
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                // ✅ Evitamos usar window en SSR
-                if (typeof window === "undefined") return;
-
-                const baseUrl = window.location.origin;
-                const res = await fetch(`${baseUrl}/archivos/NomecladorBioquimica.json`);
-
-                if (!res.ok) {
-                    throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
-                }
-
-                const json = await res.json();
+        setLoading(true);
+        fetch(archivos[periodo])
+            .then((res) => {
+                if (!res.ok) throw new Error('Error al cargar el archivo JSON');
+                return res.json();
+            })
+            .then((json) => {
                 setData(json);
-            } catch (err) {
-                console.error("❌ Error cargando JSON:", err);
-                setError("No se pudo cargar el nomenclador de Bioquímica.");
+                setFilteredData(json);
+            })
+            .catch((err) => console.error(err))
+            .finally(() => setLoading(false));
+    }, [periodo]);
+
+    useEffect(() => {
+        if (!data) return;
+        if (!query.trim()) {
+            setFilteredData(data);
+            return;
+        }
+
+        const lowerQuery = query.toLowerCase();
+        const valoresFiltrados = Object.entries(data.valores_generales).filter(
+            ([key, value]) =>
+                key.toLowerCase().includes(lowerQuery) ||
+                value?.toString().toLowerCase().includes(lowerQuery)
+        );
+
+        setFilteredData({
+            ...data,
+            valores_generales: Object.fromEntries(valoresFiltrados),
+        });
+    }, [query, data]);
+
+    // 🧮 Función para calcular porcentajes
+    const calcularValor = (base, expresion) => {
+        if (typeof base !== 'number') return expresion;
+        if (typeof expresion === 'number') return `$${expresion.toLocaleString('es-AR')}`;
+
+        const valorBase = base;
+
+        if (typeof expresion === 'string') {
+            const match = expresion.match(/(\d+)%/);
+            if (match) {
+                const porcentaje = parseFloat(match[1]);
+                const valor = (valorBase * porcentaje) / 100;
+                return `$${valor.toLocaleString('es-AR')} (${porcentaje}%)`;
             }
-        };
 
-        loadData();
-    }, []);
+            if (expresion.includes('20%')) {
+                const valor = (valorBase * 0.2).toFixed(0);
+                return `$${parseInt(valor).toLocaleString('es-AR')} (20% c/u)`;
+            }
+        }
 
+        return expresion;
+    };
 
-    // 🌀 Estado de carga
-    if (error) {
+    if (loading)
         return (
-            <div className="container py-5 text-center text-danger">
-                <h5>{error}</h5>
-                <p className="text-muted">Verificá que el archivo esté en /public/archivos/</p>
+            <div className={styles.wrapper}>
+                <p className="text-muted">Cargando datos...</p>
             </div>
         );
-    }
 
-    if (!data) {
+    if (!data)
         return (
-            <div className="container py-5 text-center">
-                <div className="spinner-border text-success" role="status" />
-                <p className="mt-3 text-muted">Cargando nomenclador bioquímico...</p>
+            <div className={styles.wrapper}>
+                <p className="text-danger">No se encontraron datos para este período.</p>
             </div>
         );
-    }
-
-    // ✅ Si llegamos acá, ya hay datos
-    const practicas = data.practicas || [];
-    const practicasFiltradas = practicas.filter((p) => {
-        const texto = `${p.codigo} ${p.practica_bioquimica}`.toLowerCase();
-        const coincide = texto.includes(filtro.toLowerCase());
-        const urg = !soloUrgencia || p.urgencia === true || p.urgencia === "U";
-        return coincide && urg;
-    });
-
-    const valorPorDefecto =
-        data.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
 
     return (
-        <div className="container py-5">
-            {/* Encabezado */}
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-                <div>
-                    <h1 className="fw-bold">Nomenclador Bioquímico</h1>
-                </div>
+        <div className={styles.wrapper}>
+            {/* === ENCABEZADO === */}
+            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <h2 className={styles.title}>{data.titulo}</h2>
+
+                <select
+                    className={styles.select}
+                    value={periodo}
+                    onChange={(e) => setPeriodo(e.target.value)}
+                >
+                    {periodos.map((p) => (
+                        <option key={p} value={p}>
+                            {p === 'junio' ? '🗓️ Junio – Septiembre 2025' : '🆕 Octubre 2025'}
+                        </option>
+                    ))}
+                </select>
             </div>
 
-            {/* Panel de filtros */}
-            <div className="card shadow-sm mb-4 border-0">
-                <div className="card-body row gy-3 gx-4 align-items-center">
-                    {/* Input editable de UB */}
-                    <div className="col-md-4">
-                        <label className="form-label fw-semibold">
-                            Valor de la Unidad Bioquímica (UB)
-                        </label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            placeholder="1224.11"
-                            step="0.01"
-                            min="0"
-                            value={valorUB}
-                            onChange={(e) =>
-                                setValorUB(parseFloat(e.target.value) || valorPorDefecto)
-                            }
-                        />
-                        <small className="text-muted">
-                            Ingresá el valor actualizado de la UB (por ejemplo: 1300.50)
-                        </small>
-                    </div>
+            <p className={styles.subtitle}>Vigencia: {data.vigencia}</p>
 
-                    {/* Buscador */}
-                    <div className="col-md-8">
-                        <label className="form-label fw-semibold">
-                            Buscar práctica bioquímica
-                        </label>
-                        <div className="input-group">
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Buscar por código o nombre..."
-                                value={filtro}
-                                onChange={(e) => setFiltro(e.target.value)}
-                            />
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => {
-                                    setFiltro("");
-                                    setSoloUrgencia(false);
-                                }}
-                            >
-                                Limpiar
-                            </button>
-                        </div>
-                        <div className="form-check mt-2">
-                            <input
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={soloUrgencia}
-                                onChange={(e) => setSoloUrgencia(e.target.checked)}
-                                id="checkUrgencia"
-                            />
-                            <label className="form-check-label" htmlFor="checkUrgencia">
-                                Solo urgencias
-                            </label>
-                        </div>
-                    </div>
-                </div>
+            {/* === BUSCADOR === */}
+            <div className={styles.searchContainer}>
+                <input
+                    type="text"
+                    className={styles.search}
+                    placeholder="🔍 Buscar concepto o valor..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
             </div>
 
-            {/* Tabla */}
-            <div className="table-responsive shadow-sm">
-                <table className="table table-hover align-middle">
+            {/* === TABLA PRINCIPAL === */}
+            <div className="table-responsive">
+                <table className={`table ${styles.table}`}>
                     <thead>
                         <tr>
-                            <th style={{ width: "8%" }}>Código</th>
-                            <th>Práctica Bioquímica</th>
-                            <th style={{ width: "10%" }}>Urgencia</th>
-                            <th style={{ width: "8%" }}>N/I</th>
-                            <th style={{ width: "10%" }}>U.B.</th>
-                            <th style={{ width: "15%" }} className="text-end">
-                                Valor Estimado
-                            </th>
+                            <th>Concepto</th>
+                            <th className="text-end">Valor ($)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {practicasFiltradas.length === 0 ? (
+                        {Object.entries(filteredData.valores_generales).length > 0 ? (
+                            Object.entries(filteredData.valores_generales).map(([key, value], i) => (
+                                <tr key={key} className={i % 2 === 0 ? styles.rowDark : styles.rowLight}>
+                                    <td>{key.replaceAll('_', ' ')}</td>
+                                    <td className="text-end">
+                                        {value ? value.toLocaleString('es-AR') : '-'}
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
                             <tr>
-                                <td colSpan="6" className="text-center text-muted py-4">
-                                    No se encontraron resultados.
+                                <td colSpan="2" className="text-center text-muted">
+                                    No se encontraron coincidencias.
                                 </td>
                             </tr>
-                        ) : (
-                            practicasFiltradas.map((p) => {
-                                const valor =
-                                    p.unidad_bioquimica && valorUB
-                                        ? (p.unidad_bioquimica * valorUB).toLocaleString("es-AR", {
-                                            minimumFractionDigits: 2,
-                                        })
-                                        : "-";
-
-                                return (
-                                    <tr key={p.codigo}>
-                                        <td className="fw-semibold text-success">{p.codigo}</td>
-                                        <td>{p.practica_bioquimica}</td>
-                                        <td className="text-center">
-                                            {p.urgencia ? (
-                                                <span className="badge bg-danger">U</span>
-                                            ) : (
-                                                ""
-                                            )}
-                                        </td>
-                                        <td className="text-center">{p.nota_N_I || ""}</td>
-                                        <td className="text-center">{p.unidad_bioquimica || "-"}</td>
-                                        <td className="text-end fw-bold text-success">
-                                            {valor !== "-" ? `$${valor}` : "-"}
-                                        </td>
-                                    </tr>
-                                );
-                            })
                         )}
                     </tbody>
                 </table>
             </div>
 
-            <p className="text-muted small mt-3">
-                * Valor calculado según la Unidad Bioquímica ingresada:{" "}
-                <strong>
-                    ${valorUB.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-                </strong>
-            </p>
+            {/* === HONORARIOS MÉDICOS === */}
+            <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
+            <div className="table-responsive">
+                <table className={`table ${styles.table}`}>
+                    <thead>
+                        <tr>
+                            <th>Nivel</th>
+                            <th>Cirujano</th>
+                            <th>Ayudante 1</th>
+                            <th>Ayudante 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.honorarios_medicos?.niveles?.map((nivel, i) => (
+                            <tr key={i} className={i % 2 === 0 ? styles.rowDark : styles.rowLight}>
+                                <td>{nivel.nivel}</td>
+                                <td>
+                                    {typeof nivel.cirujano === 'number'
+                                        ? `$${nivel.cirujano.toLocaleString('es-AR')}`
+                                        : nivel.cirujano}
+                                </td>
+                                <td>{calcularValor(nivel.cirujano, nivel.ayudante_1)}</td>
+                                <td>{calcularValor(nivel.cirujano, nivel.ayudante_2)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* === CONDICIONES === */}
+            <h5 className={styles.sectionTitle}>📋 Condiciones del Convenio</h5>
+            <ul className={styles.condiciones}>
+                {Object.entries(data.condiciones || {}).map(([key, value]) => (
+                    <li key={key}>
+                        <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
+                    </li>
+                ))}
+            </ul>
+
+            {/* === FIRMA === */}
+            <footer className={styles.footer}>
+                <p>
+                    <span className="fw-semibold text-light">
+                        {data.firma?.entidad || 'Clínica de la Unión'}
+                    </span>{' '}
+                    — CUIT: {data.firma?.CUIT || '30-70754530-1'}
+                </p>
+            </footer>
         </div>
     );
 }

@@ -1,0 +1,152 @@
+/* === CONTENEDOR PRINCIPAL === */
+.wrapper {
+    background-color: #0b1220;
+    color: #f1f5f9;
+    padding: 2rem 3rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    min-height: 90vh;
+    width: 100%;
+}
+
+.title {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.6rem;
+}
+
+.subtitle {
+    color: #9ca3af;
+    margin-bottom: 2rem;
+}
+
+/* === SELECT === */
+.select {
+    background-color: #1e293b;
+    color: #fff;
+    border: 1px solid #198754;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.select:hover {
+    background-color: #19875444;
+}
+
+/* === BUSCADOR === */
+.searchContainer {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.search {
+    width: 60%;
+    background-color: #111827;
+    color: #fff;
+    border: 1px solid #198754;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+.search:focus {
+    border-color: #34d399;
+    box-shadow: 0 0 8px #19875440;
+}
+
+.search::placeholder {
+    color: #94a3b8;
+}
+
+/* === TABLA PRINCIPAL === */
+.table {
+    width: 80%;
+    margin: auto;
+    border-collapse: collapse;
+    color: #e5e7eb;
+    margin-bottom: 2rem;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table thead {
+    background-color: #198754;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.table th,
+.table td {
+    padding: 0.9rem 1.2rem;
+    text-align: left;
+    border: none;
+}
+
+/* === FILAS INTERCALADAS === */
+.table tbody tr:nth-child(odd) {
+    background-color: #f8fafc;
+    /* blanco */
+    color: #0f172a;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #1e293b;
+    /* gris oscuro */
+    color: #f1f5f9;
+}
+
+/* Hover con sutil brillo verde */
+.table tbody tr:hover {
+    background-color: #2b3748;
+    transition: background 0.2s ease-in-out;
+}
+
+/* Ajustes responsive */
+@media (max-width: 992px) {
+    .table {
+        width: 100%;
+    }
+}
+
+/* === TITULOS DE SECCION === */
+.sectionTitle {
+    color: #ffffff;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-left: 4px solid #198754;
+    padding-left: 0.5rem;
+}
+
+/* === CONDICIONES === */
+.condiciones {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.condiciones li {
+    margin-bottom: 0.8rem;
+    background-color: #111827;
+    border-left: 4px solid #198754;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+}
+
+/* === FOOTER === */
+.footer {
+    border-top: 1px solid #2d3748;
+    margin-top: 3rem;
+    padding-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
