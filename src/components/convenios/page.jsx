@@ -1,90 +1,160 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { ref, onValue } from 'firebase/database';
+import { db } from '@/lib/firebase';
+import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
+/* ===== Utils ===== */
+const normalize = (s) =>
+    (s ?? '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+function highlight(text, query) {
+    if (!query) return text;
+    const normalizedText = normalize(text);
+    const normalizedQuery = normalize(query);
+    const idx = normalizedText.indexOf(normalizedQuery);
+    if (idx === -1) return text;
+
+    const before = text.slice(0, idx);
+    const match = text.slice(idx, idx + query.length);
+    const after = text.slice(idx + query.length);
+
+    return (
+        <>
+            {before}
+            <mark style={{ backgroundColor: '#19875466', borderRadius: '4px' }}>{match}</mark>
+            {after}
+        </>
+    );
+}
+
+/** 💰 Formateador de dinero con separador de miles **/
+const money = (n) => {
+    if (n == null || n === '' || n === '-') return '-';
+    const num = parseFloat(n.toString().replace(',', '.'));
+    if (isNaN(num)) return n;
+    return num.toLocaleString('es-AR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+};
+
+/* ===== COMPONENTE PRINCIPAL ===== */
 export default function PrestadoresART() {
-    const archivos = {
-        junio: '/archivos/PrestadoresART-Junio-Septiembre.json',
-        octubre: '/archivos/PrestadoresART-Octubre.json',
-    };
-
-    const periodos = Object.keys(archivos);
-    const ultimoPeriodo = periodos[periodos.length - 1];
-
-    const [periodo, setPeriodo] = useState(ultimoPeriodo);
+    const [convenios, setConvenios] = useState({});
+    const [convenioSel, setConvenioSel] = useState('');
     const [data, setData] = useState(null);
-    const [filteredData, setFilteredData] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState('');
+    const [loading, setLoading] = useState(true);
 
+    /* === 1️⃣ Escuchar convenios desde Realtime DB === */
     useEffect(() => {
-        setLoading(true);
-        fetch(archivos[periodo])
-            .then((res) => {
-                if (!res.ok) throw new Error('Error al cargar el archivo JSON');
-                return res.json();
-            })
-            .then((json) => {
-                setData(json);
-                setFilteredData(json);
-            })
-            .catch((err) => console.error(err))
-            .finally(() => setLoading(false));
-    }, [periodo]);
+        const conveniosRef = ref(db, 'convenios');
+        const unsubscribe = onValue(conveniosRef, (snapshot) => {
+            const val = snapshot.exists() ? snapshot.val() : {};
+            setConvenios(val);
 
+            const stored = localStorage.getItem('convenioActivo');
+            const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
+            setConvenioSel(elegir);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    /* === 2️⃣ Cargar convenio seleccionado === */
     useEffect(() => {
-        if (!data) return;
-        if (!query.trim()) {
-            setFilteredData(data);
+        if (!convenioSel || !convenios[convenioSel]) {
+            setData(null);
             return;
         }
+        const convenio = convenios[convenioSel];
+        setData(convenio);
+        localStorage.setItem('convenioActivo', convenioSel);
+    }, [convenioSel, convenios]);
 
-        const lowerQuery = query.toLowerCase();
-        const valoresFiltrados = Object.entries(data.valores_generales).filter(
-            ([key, value]) =>
-                key.toLowerCase().includes(lowerQuery) ||
-                value?.toString().toLowerCase().includes(lowerQuery)
-        );
-
-        setFilteredData({
-            ...data,
-            valores_generales: Object.fromEntries(valoresFiltrados),
-        });
-    }, [query, data]);
-
+    /* === 3️⃣ Calcular porcentajes === */
     const calcularValor = (base, expresion) => {
         if (typeof base !== 'number') return expresion;
-        if (typeof expresion === 'number') return `$${expresion.toLocaleString('es-AR')}`;
+        if (typeof expresion === 'number') return `$${money(expresion)}`;
 
         if (typeof expresion === 'string') {
             const match = expresion.match(/(\d+)%/);
             if (match) {
                 const porcentaje = parseFloat(match[1]);
                 const valor = (base * porcentaje) / 100;
-                return `$${valor.toLocaleString('es-AR')} (${porcentaje}%)`;
+                return `$${money(valor)} (${porcentaje}%)`;
             }
-
             if (expresion.includes('20%')) {
                 const valor = (base * 0.2).toFixed(0);
-                return `$${parseInt(valor).toLocaleString('es-AR')} (20% c/u)`;
+                return `$${money(valor)} (20% c/u)`;
             }
         }
-
         return expresion;
     };
 
+    /* === 4️⃣ Búsqueda combinada (exacta + Fuse.js) === */
+    const resultados = useMemo(() => {
+        if (!data?.valores_generales) return [];
+
+        const valores = Object.entries(data.valores_generales);
+        const q = query.trim();
+        if (!q) {
+            return valores.map(([key, val]) => ({ key, val, exact: false }));
+        }
+
+        // --- Exact matches first ---
+        const exactMatches = valores
+            .filter(
+                ([key, value]) =>
+                    normalize(key).includes(normalize(q)) ||
+                    normalize(value?.toString() || '').includes(normalize(q))
+            )
+            .map(([key, val]) => ({ key, val, exact: true }));
+
+        // --- Fuse fuzzy search for similar terms ---
+        const fuse = new Fuse(valores.map(([key, val]) => ({ key, val })), {
+            keys: ['key', 'val'],
+            threshold: 0.3,
+            ignoreLocation: true,
+        });
+
+        const fuzzyResults = fuse.search(q).map((r) => ({
+            key: r.item.key,
+            val: r.item.val,
+            exact: false,
+        }));
+
+        // --- Merge and remove duplicates ---
+        const seen = new Set();
+        const combined = [...exactMatches, ...fuzzyResults].filter((item) => {
+            if (seen.has(item.key)) return false;
+            seen.add(item.key);
+            return true;
+        });
+
+        return combined;
+    }, [query, data]);
+
+    /* === 5️⃣ Render === */
     if (loading)
         return (
             <div className={styles.wrapper}>
-                <p className="text-muted">Cargando datos...</p>
+                <p className="text-muted">Cargando convenios...</p>
             </div>
         );
 
     if (!data)
         return (
             <div className={styles.wrapper}>
-                <p className="text-danger">No se encontraron datos para este período.</p>
+                <p className="text-danger">No se encontraron convenios.</p>
             </div>
         );
 
@@ -92,22 +162,19 @@ export default function PrestadoresART() {
         <div className={styles.wrapper}>
             {/* === ENCABEZADO === */}
             <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-                <h2 className={styles.title}>{data.titulo}</h2>
-
+                <h2 className={styles.title}>🩺 Convenios ART</h2>
                 <select
                     className={styles.select}
-                    value={periodo}
-                    onChange={(e) => setPeriodo(e.target.value)}
+                    value={convenioSel}
+                    onChange={(e) => setConvenioSel(e.target.value)}
                 >
-                    {periodos.map((p) => (
-                        <option key={p} value={p}>
-                            {p === 'junio' ? '🗓️ Junio – Septiembre 2025' : '🆕 Octubre 2025'}
+                    {Object.keys(convenios).map((k) => (
+                        <option key={k} value={k}>
+                            {k}
                         </option>
                     ))}
                 </select>
             </div>
-
-            <p className={styles.subtitle}>Vigencia: {data.vigencia}</p>
 
             {/* === BUSCADOR === */}
             <div className={styles.searchContainer}>
@@ -130,12 +197,12 @@ export default function PrestadoresART() {
                         </tr>
                     </thead>
                     <tbody>
-                        {Object.entries(filteredData.valores_generales).length > 0 ? (
-                            Object.entries(filteredData.valores_generales).map(([key, value]) => (
-                                <tr key={key}>
-                                    <td>{key.replaceAll('_', ' ')}</td>
+                        {resultados.length > 0 ? (
+                            resultados.map(({ key, val, exact }, i) => (
+                                <tr key={i} className={exact ? 'fw-bold text-success' : ''}>
+                                    <td>{highlight(key.replaceAll('_', ' '), query)}</td>
                                     <td className="text-end">
-                                        {value ? value.toLocaleString('es-AR') : '-'}
+                                        {highlight(money(val?.toString() || '-'), query)}
                                     </td>
                                 </tr>
                             ))
@@ -151,43 +218,47 @@ export default function PrestadoresART() {
             </div>
 
             {/* === HONORARIOS MÉDICOS === */}
-            <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
-            <div className="table-responsive">
-                <table className={`table table-dark table-striped ${styles.table}`}>
-                    <thead>
-                        <tr>
-                            <th>Nivel</th>
-                            <th>Cirujano</th>
-                            <th>Ayudante 1</th>
-                            <th>Ayudante 2</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.honorarios_medicos?.niveles?.map((nivel, i) => (
-                            <tr key={i}>
-                                <td>{nivel.nivel}</td>
-                                <td>
-                                    {typeof nivel.cirujano === 'number'
-                                        ? `$${nivel.cirujano.toLocaleString('es-AR')}`
-                                        : nivel.cirujano}
-                                </td>
-                                <td>{calcularValor(nivel.cirujano, nivel.ayudante_1)}</td>
-                                <td>{calcularValor(nivel.cirujano, nivel.ayudante_2)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            {data.honorarios_medicos && (
+                <>
+                    <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
+                    <div className="table-responsive">
+                        <table className={`table table-dark table-striped ${styles.table}`}>
+                            <thead>
+                                <tr>
+                                    <th>Nivel</th>
+                                    <th>Cirujano</th>
+                                    <th>Ayudante 1</th>
+                                    <th>Ayudante 2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(data.honorarios_medicos).map(([nivel, h], i) => (
+                                    <tr key={i}>
+                                        <td>{nivel}</td>
+                                        <td>{money(h.Cirujano)}</td>
+                                        <td>{calcularValor(h.Cirujano, h['Ayudante 1'])}</td>
+                                        <td>{calcularValor(h.Cirujano, h['Ayudante 2'])}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
 
             {/* === CONDICIONES === */}
-            <h5 className={styles.sectionTitle}>📋 Condiciones del Convenio</h5>
-            <ul className={styles.condiciones}>
-                {Object.entries(data.condiciones || {}).map(([key, value]) => (
-                    <li key={key}>
-                        <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
-                    </li>
-                ))}
-            </ul>
+            {data.condiciones && (
+                <>
+                    <h5 className={styles.sectionTitle}>📋 Condiciones del Convenio</h5>
+                    <ul className={styles.condiciones}>
+                        {Object.entries(data.condiciones).map(([key, value]) => (
+                            <li key={key}>
+                                <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
 
             {/* === FIRMA === */}
             <footer className={styles.footer}>
