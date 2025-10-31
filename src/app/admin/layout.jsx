@@ -16,9 +16,6 @@ import {
   Briefcase,
   FileText,
   Library,
-  FileSpreadsheet,
-  FileSignature,
-  Beaker,
   LogOut,
   UserCircle,
   Settings,
@@ -107,7 +104,10 @@ export default function AdminLayout({ children }) {
               </li>
               <li><hr className="dropdown-divider" /></li>
               <li>
-                <button className="dropdown-item text-danger d-flex align-items-center gap-2" onClick={cerrarSesion}>
+                <button
+                  className="dropdown-item text-danger d-flex align-items-center gap-2"
+                  onClick={cerrarSesion}
+                >
                   <LogOut size={16} /> Cerrar sesión
                 </button>
               </li>
@@ -151,28 +151,19 @@ export default function AdminLayout({ children }) {
                 </Link>
 
                 {/* === SECCIÓN NOMENCLADORES === */}
-                <div className={styles.sectionTitle}>Nomencladores</div>
+              
                 <Link
                   href="/admin/nomencladores"
                   className={`list-group-item d-flex align-items-center gap-2 ${isActive('/admin/nomencladores') ? styles.active : ''}`}
                 >
-                  <Library size={18} /> Unificado
+                  <Library size={18} /> NOMECLADORES
                 </Link>
-
-                <div className="d-grid gap-1 p-3 pt-2">
-                  <Link href="/admin/nomencladores/nacional" className="btn btn-outline-light btn-sm d-flex align-items-center justify-content-center gap-1">
-                    <FileSpreadsheet size={16} /> Nacional
-                  </Link>
-                  <Link href="/admin/nomencladores/aoter" className="btn btn-outline-light btn-sm d-flex align-items-center justify-content-center gap-1">
-                    <FileSignature size={16} /> AOTER
-                  </Link>
-                  <Link href="/admin/nomencladores/bioquimica" className="btn btn-outline-light btn-sm d-flex align-items-center justify-content-center gap-1">
-                    <Beaker size={16} /> Bioquímica
-                  </Link>
-                  <Link href="/admin/nomencladores/convenios" className="btn btn-outline-light btn-sm d-flex align-items-center justify-content-center gap-1">
-                    <FileText size={16} /> Convenios ART
-                  </Link>
-                </div>
+                  <Link
+                  href="/admin/nomencladores/editar"
+                  className={`${styles.menuButton} d-flex align-items-center gap-2 ${isActive('/admin/nomencladores/editar') ? styles.active : ''}`}
+                >
+                  <Users size={18} /> Crear Convenios
+                </Link>
               </nav>
             </div>
           </aside>
