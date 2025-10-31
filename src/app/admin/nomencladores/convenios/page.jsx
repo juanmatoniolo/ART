@@ -53,23 +53,20 @@ export default function PrestadoresART() {
         });
     }, [query, data]);
 
-    // 🧮 Función para calcular porcentajes
     const calcularValor = (base, expresion) => {
         if (typeof base !== 'number') return expresion;
         if (typeof expresion === 'number') return `$${expresion.toLocaleString('es-AR')}`;
-
-        const valorBase = base;
 
         if (typeof expresion === 'string') {
             const match = expresion.match(/(\d+)%/);
             if (match) {
                 const porcentaje = parseFloat(match[1]);
-                const valor = (valorBase * porcentaje) / 100;
+                const valor = (base * porcentaje) / 100;
                 return `$${valor.toLocaleString('es-AR')} (${porcentaje}%)`;
             }
 
             if (expresion.includes('20%')) {
-                const valor = (valorBase * 0.2).toFixed(0);
+                const valor = (base * 0.2).toFixed(0);
                 return `$${parseInt(valor).toLocaleString('es-AR')} (20% c/u)`;
             }
         }
@@ -125,7 +122,7 @@ export default function PrestadoresART() {
 
             {/* === TABLA PRINCIPAL === */}
             <div className="table-responsive">
-                <table className={`table ${styles.table}`}>
+                <table className={`table table-dark table-striped ${styles.table}`}>
                     <thead>
                         <tr>
                             <th>Concepto</th>
@@ -134,8 +131,8 @@ export default function PrestadoresART() {
                     </thead>
                     <tbody>
                         {Object.entries(filteredData.valores_generales).length > 0 ? (
-                            Object.entries(filteredData.valores_generales).map(([key, value], i) => (
-                                <tr key={key} className={i % 2 === 0 ? styles.rowDark : styles.rowLight}>
+                            Object.entries(filteredData.valores_generales).map(([key, value]) => (
+                                <tr key={key}>
                                     <td>{key.replaceAll('_', ' ')}</td>
                                     <td className="text-end">
                                         {value ? value.toLocaleString('es-AR') : '-'}
@@ -156,7 +153,7 @@ export default function PrestadoresART() {
             {/* === HONORARIOS MÉDICOS === */}
             <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
             <div className="table-responsive">
-                <table className={`table ${styles.table}`}>
+                <table className={`table table-dark table-striped ${styles.table}`}>
                     <thead>
                         <tr>
                             <th>Nivel</th>
@@ -167,7 +164,7 @@ export default function PrestadoresART() {
                     </thead>
                     <tbody>
                         {data.honorarios_medicos?.niveles?.map((nivel, i) => (
-                            <tr key={i} className={i % 2 === 0 ? styles.rowDark : styles.rowLight}>
+                            <tr key={i}>
                                 <td>{nivel.nivel}</td>
                                 <td>
                                     {typeof nivel.cirujano === 'number'

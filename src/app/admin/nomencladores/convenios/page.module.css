@@ -69,7 +69,7 @@
     width: 80%;
     margin: auto;
     border-collapse: collapse;
-    color: #e5e7eb;
+    color: #0f172a;
     margin-bottom: 2rem;
     border-radius: 10px;
     overflow: hidden;
@@ -89,20 +89,19 @@
     border: none;
 }
 
-/* === FILAS INTERCALADAS === */
+/* === FILAS INTERCALADAS CON CONTRASTE === */
 .table tbody tr:nth-child(odd) {
-    background-color: #f8fafc;
-    /* blanco */
-    color: #0f172a;
-}
-
-.table tbody tr:nth-child(even) {
-    background-color: #1e293b;
+    background-color: #1f2937 !important;
     /* gris oscuro */
     color: #f1f5f9;
 }
 
-/* Hover con sutil brillo verde */
+.table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+    /* blanco */
+    color: #0f172a;
+}
+
 .table tbody tr:hover {
     background-color: #2b3748;
     transition: background 0.2s ease-in-out;
