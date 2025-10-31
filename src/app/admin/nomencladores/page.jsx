@@ -26,7 +26,7 @@ const normalize = (s) =>
     .toLowerCase();
 
 const safeReplaceAll = (str, find, rep) =>
-  (str ?? '').toString().replaceAll ? str.replaceAll(find, rep) : str.split(find).join(rep);
+  (str ?? '').toString().replaceAll ? str.replaceAll(find, rep) : (str ?? '').toString().split(find).join(rep);
 
 function pickARTNumbers(valoresGenerales = {}) {
   const entries = Object.entries(valoresGenerales);
@@ -64,6 +64,56 @@ const money = (n, opts = {}) =>
   typeof n === 'number'
     ? n.toLocaleString('es-AR', { minimumFractionDigits: 2, ...opts })
     : null;
+
+/* === Highlight exacto (case/acentos-insensible) === */
+function highlightExact(text, query, markClass) {
+  const raw = (text ?? '').toString();
+  const q = (query ?? '').trim();
+  if (!q) return raw;
+
+  const tNorm = normalize(raw);
+  const qNorm = normalize(q);
+  if (!qNorm) return raw;
+
+  // mapa índice-normalizado -> índice-original
+  const normToOrig = [];
+  let normPos = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    const n = normalize(ch);
+    if (n.length > 0) {
+      for (let k = 0; k < n.length; k++) normToOrig[normPos++] = i;
+    }
+  }
+
+  // localizar todas las apariciones exactas en el string normalizado
+  const ranges = [];
+  let from = 0;
+  while (true) {
+    const idx = tNorm.indexOf(qNorm, from);
+    if (idx === -1) break;
+    const start = normToOrig[idx] ?? 0;
+    const end = (normToOrig[idx + qNorm.length - 1] ?? raw.length - 1) + 1; // slice end-exclusive
+    ranges.push([start, end]);
+    from = idx + qNorm.length;
+  }
+  if (ranges.length === 0) return raw;
+
+  // construir fragment con <mark>
+  const parts = [];
+  let cursor = 0;
+  ranges.forEach(([a, b], i) => {
+    if (a > cursor) parts.push(<span key={`t-${i}-${cursor}`}>{raw.slice(cursor, a)}</span>);
+    parts.push(
+      <mark className={markClass} key={`m-${i}-${a}-${b}`}>
+        {raw.slice(a, b)}
+      </mark>
+    );
+    cursor = b;
+  });
+  if (cursor < raw.length) parts.push(<span key={`t-end-${cursor}`}>{raw.slice(cursor)}</span>);
+  return <>{parts}</>;
+}
 
 /* ========================
    Componente
@@ -403,7 +453,7 @@ export default function NomencladorGlobal() {
               <input
                 type="text"
                 className={`form-control ${styles.darkInput}`}
-                placeholder="Código o descripción… (fuzzy ranking)"
+                placeholder="Código o descripción… (fuzzy ranking + resaltado exacto)"
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
               />
@@ -478,8 +528,12 @@ export default function NomencladorGlobal() {
 
                 return (
                   <tr key={`${it.origen}-${it.codigo}-${idx}`}>
-                    <td className="fw-bold text-white">{it.codigo}</td>
-                    <td>{it.descripcion}</td>
+                    <td className="fw-bold text-white">
+                      {highlightExact(it.codigo, filtro, styles.markExact)}
+                    </td>
+                    <td>
+                      {highlightExact(it.descripcion, filtro, styles.markExact)}
+                    </td>
 
                     <td className="text-end">
                       {typeof it.q_gal === 'number' ? (
