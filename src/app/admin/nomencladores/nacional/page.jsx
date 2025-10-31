@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
-export default function NomecladorNacional() {
+export default function NomencladorNacional() {
   const [data, setData] = useState([]);
   const [query, setQuery] = useState('');
   const [filteredResults, setFilteredResults] = useState([]);
   const [modoBusqueda, setModoBusqueda] = useState(true);
   const [capituloQueries, setCapituloQueries] = useState({});
+  const [filtroCapitulo, setFiltroCapitulo] = useState('');
 
   // --- 📂 Cargar JSON ---
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function NomecladorNacional() {
       .catch(err => console.error('Error cargando JSON:', err));
   }, []);
 
-  // --- 🔍 Búsqueda global exacta ---
+  // --- 🔍 Búsqueda global ---
   useEffect(() => {
     if (!query.trim()) {
       setFilteredResults([]);
@@ -32,47 +33,96 @@ export default function NomecladorNacional() {
       threshold: 0.0,
       useExtendedSearch: true,
       ignoreLocation: true,
-      isCaseSensitive: false,
     });
 
     const results = fuse.search(`'${query.trim()}`);
-    setFilteredResults(results);
+    const enrichedResults = [];
+
+    // 👇 Incluir códigos subsiguientes
+    results.forEach(res => {
+      enrichedResults.push(res);
+      const currentIndex = data.findIndex(
+        d => d.codigo === res.item.codigo && d.capitulo === res.item.capitulo
+      );
+      const nextItem = data[currentIndex + 1];
+      if (
+        nextItem &&
+        nextItem.descripcion?.toLowerCase().includes('por exposición subsiguiente')
+      ) {
+        enrichedResults.push({ item: nextItem, matches: [] });
+      }
+    });
+
+    setFilteredResults(enrichedResults);
   }, [query, data]);
 
-  // --- ✨ Resaltado de coincidencias mejorado ---
-const highlightMatch = (text, matchData) => {
-  if (!matchData || !matchData.indices) return text;
-
-  let parts = [];
-  let lastIndex = 0;
-
-  matchData.indices.forEach(([start, end], i) => {
-    // Expande hasta límites de palabra
-    while (start > 0 && /\w/.test(text[start - 1])) start--;
-    while (end + 1 < text.length && /\w/.test(text[end + 1])) end++;
-
-    parts.push(<span key={`pre-${i}`}>{text.slice(lastIndex, start)}</span>);
-    parts.push(
-      <mark key={`mark-${i}`} style={{ backgroundColor: '#fff3b0' }}>
-        {text.slice(start, end + 1)}
-      </mark>
-    );
-    lastIndex = end + 1;
-  });
-
-  parts.push(<span key="last">{text.slice(lastIndex)}</span>);
-  return parts;
-};
-
+  // --- ✨ Resaltado de coincidencias ---
+  const highlightMatch = (text, matchData) => {
+    if (!matchData || !matchData.indices) return text;
+    let parts = [];
+    let lastIndex = 0;
+    matchData.indices.forEach(([start, end], i) => {
+      parts.push(<span key={`pre-${i}`}>{text.slice(lastIndex, start)}</span>);
+      parts.push(
+        <mark key={`mark-${i}`} style={{ backgroundColor: '#19875455', borderRadius: '4px' }}>
+          {text.slice(start, end + 1)}
+        </mark>
+      );
+      lastIndex = end + 1;
+    });
+    parts.push(<span key="last">{text.slice(lastIndex)}</span>);
+    return parts;
+  };
 
   // --- 📘 Agrupar por capítulo ---
   const agrupadosPorCapitulo = data.reduce((acc, item) => {
-    if (!acc[item.capitulo]) acc[item.capitulo] = [];
-    acc[item.capitulo].push(item);
+    const key = item.capitulo?.toString().padStart(2, '0') || '00';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
     return acc;
   }, {});
 
-  // --- 🔍 Filtro dentro de cada capítulo ---
+  // --- 🧭 Map oficial de capítulos ---
+  const capitulosInfo = {
+    '01': { nombre: 'Sistema Nervioso' },
+    '02': { nombre: 'Aparato de la Visión' },
+    '03': { nombre: 'Aparato del Oído, Nariz y Garganta' },
+    '04': { nombre: 'Sistema Endocrinológico' },
+    '05': { nombre: 'Operaciones en el Tórax' },
+    '06': { nombre: 'Operaciones en la Mama' },
+    '07': { nombre: 'Sistema Cardiovascular' },
+    '08': { nombre: 'Aparato Digestivo y Abdomen' },
+    '09': { nombre: 'Vasos y Ganglios Linfáticos' },
+    '10': { nombre: 'Aparato Urinario y Genital Masculino' },
+    '11': { nombre: 'Aparato Genital Femenino y Obstetricia' },
+    '12': { nombre: 'Sistema Músculo Esquelético' },
+    '13': { nombre: 'Piel y Tejido Celular Subcutáneo' },
+    '14': { nombre: 'Alergia' },
+    '15': { nombre: 'Anatomía Patológica' },
+    '16': { nombre: 'Anestesiología' },
+    '17': { nombre: 'Cardiología' },
+    '18': { nombre: 'Ecografía y Ecodoppler' },
+    '19': { nombre: 'Gastroenterología' },
+    '20': { nombre: 'Genética Humana' },
+    '21': { nombre: 'Discapacidad' },
+    '22': { nombre: 'Plan Especial Oncológico (POE01)' },
+    '23': { nombre: 'Terapia del Dolor' },
+    '24': { nombre: 'Rehabilitación (Kinesiología, RPG, etc.)' },
+    '25': { nombre: 'Medicina Nuclear' },
+    '26': { nombre: 'Diálisis y Trasplante Renal' },
+    '27': { nombre: 'Neumonología' },
+    '28': { nombre: 'Neurología' },
+    '29': { nombre: 'Oftalmología' },
+    '30': { nombre: 'Ginecología – Programa Materno Infantil' },
+    '31': { nombre: 'Oncología' },
+    '32': { nombre: 'Hemoterapia' },
+    '33': { nombre: 'Radiología / Diagnóstico por Imágenes' },
+    '34': { nombre: 'Terapia Intensiva' },
+    '35': { nombre: 'Terapia Intermedia' },
+    '36': { nombre: 'Consultas Médicas' },
+    '37': { nombre: 'Salud Mental / Psiquiatría' },
+  };
+
   const filtrarCapitulo = (capitulo, items) => {
     const term = capituloQueries[capitulo]?.trim();
     if (!term) return items;
@@ -82,53 +132,9 @@ const highlightMatch = (text, matchData) => {
       includeMatches: true,
       threshold: 0.0,
       useExtendedSearch: true,
-      ignoreLocation: true,
-      isCaseSensitive: false,
     });
 
     return fuse.search(`'${term}`);
-  };
-
-  // --- 🧭 Mapa de capítulos oficiales ---
-  const capitulosInfo = {
-    '01': { nombre: 'Sistema Nervioso', rango: '01.06.54 – 01.06.91' },
-    '02': { nombre: 'Aparato de la Visión', rango: '02.01.06 – 02.02.08' },
-    '03': { nombre: 'Aparato del Oído, Nariz y Garganta', rango: '03.07.01 – 03.13.06' },
-    '04': { nombre: 'Sistema Endocrinológico (Tiroides y Paratiroides)', rango: '04.01.06 – 04.01.07' },
-    '05': { nombre: 'Operaciones en el Tórax', rango: '05.04.03 – 05.05.01' },
-    '06': { nombre: 'Operaciones en la Mama', rango: '06.01.08 – 06.01.11' },
-    '07': { nombre: 'Sistema Cardiovascular', rango: '07.06.09 – 07.06.17' },
-    '08': { nombre: 'Aparato Digestivo y Abdomen', rango: '08.05.26 – 08.07.60' },
-    '09': { nombre: 'Vasos y Ganglios Linfáticos', rango: '09.01.07 – 09.01.08' },
-    '10': { nombre: 'Aparato Urinario y Genital Masculino', rango: '10.01.09 – 10.07.11' },
-    '11': { nombre: 'Aparato Genital Femenino y Obstetricia', rango: '11.02.15 – 11.06.01' },
-    '12': { nombre: 'Sistema Músculo Esquelético', rango: '12.03.01 – 12.19.37' },
-    '13': { nombre: 'Piel y Tejido Celular Subcutáneo', rango: '13.01.03 – 13.03.01' },
-    '14': { nombre: 'Alergia', rango: '14.01.01 – 14.01.51' },
-    '15': { nombre: 'Anatomía Patológica', rango: '15.01.51 – 15.01.58' },
-    '16': { nombre: 'Anestesiología', rango: '16.01.01 – 16.01.60' },
-    '17': { nombre: 'Cardiología', rango: '17.01.09 – 17.02.11' },
-    '18': { nombre: 'Ecografía y Ecodoppler', rango: '18.01.09 – 18.01.51' },
-    '19': { nombre: 'Gastroenterología', rango: '20.01.65 – 20.02.50' },
-    '21': { nombre: 'Genética Humana', rango: '21.01.60 – 21.01.61' },
-    '22': { nombre: 'Discapacidad', rango: '22.01.01 – 22.02.02' },
-    '23': { nombre: 'Plan Especial Oncológico (POE01)', rango: '23.03.01 – 23.03.05' },
-    '24': { nombre: 'Terapia del Dolor', rango: '24.01.50 – 24.01.60' },
-    '25': { nombre: 'Rehabilitación (Kinesiología, RPG, etc.)', rango: '25.01.82 – 25.02.01' },
-    '26': { nombre: 'Medicina Nuclear', rango: '26.01.08 – 26.06.01' },
-    '27': { nombre: 'Diálisis y Trasplante Renal', rango: '27.01.01 – 27.01.04' },
-    '28': { nombre: 'Neumonología', rango: '28.01.51 – 28.01.77' },
-    '29': { nombre: 'Neurología', rango: '29.01.04 – 29.01.05' },
-    '30': { nombre: 'Oftalmología', rango: '30.01.51 – 30.01.65' },
-    '31': { nombre: 'Ginecología – Programa Materno Infantil', rango: '31.01.23 – 31.01.61' },
-    '32': { nombre: 'Oncología', rango: '32.01.04' },
-    '33': { nombre: 'Hemoterapia', rango: '33.01.01 – 33.01.05' },
-    '34': { nombre: 'Radiología / Diagnóstico por Imágenes', rango: '34.02.01 – 34.08.53' },
-    '35': { nombre: 'Plan Especial Oncológico (Procedimientos POE01)', rango: '35.01.60 – 35.01.65' },
-    '40': { nombre: 'Terapia Intensiva', rango: '40.01.01 – 40.01.05' },
-    '41': { nombre: 'Terapia Intermedia', rango: '41.01.01' },
-    '42': { nombre: 'Consultas Médicas', rango: '42.03.01 – 42.03.03' },
-    '43': { nombre: 'Salud Mental / Psiquiatría', rango: '43.01.01 – 43.34.02' },
   };
 
   return (
@@ -136,10 +142,10 @@ const highlightMatch = (text, matchData) => {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2 className={styles.title}>Nomenclador Nacional</h2>
         <button
-          className="btn btn-outline-primary"
-          onClick={() => setModoBusqueda(prev => !prev)}
+          className={styles.btnSuccess}
+          onClick={() => setModoBusqueda((prev) => !prev)}
         >
-          {modoBusqueda ? 'Ver por capítulos' : 'Modo búsqueda global'}
+          {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
         </button>
       </div>
 
@@ -148,150 +154,135 @@ const highlightMatch = (text, matchData) => {
         <>
           <input
             type="text"
-            className="form-control mb-4"
-            placeholder="Buscar por código, descripción o capítulo (palabra completa)..."
+            className={`form-control mb-4 ${styles.inputDark}`}
+            placeholder="Buscar por código, descripción o capítulo..."
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
           />
-
           {filteredResults.length > 0 ? (
-            (() => {
-              const agrupados = filteredResults.reduce((acc, res) => {
-                const capKey = res.item.capitulo?.toString().padStart(2, '0') || 'SinCap';
-                if (!acc[capKey]) acc[capKey] = [];
-                acc[capKey].push(res);
-                return acc;
-              }, {});
-
-              return Object.entries(agrupados).map(([capKey, resultados]) => {
-                const info = capitulosInfo[capKey] || { nombre: 'Capítulo desconocido', rango: '' };
-                return (
-                  <div key={capKey} className="mb-5">
-                    <div className="d-flex align-items-center justify-content-between bg-light p-2 rounded border mb-2">
-                      <h5 className="fw-bold m-0">
-                        <span className="text-primary">*{capKey}*</span> — {info.nombre}
-                      </h5>
-                      {info.rango && (
-                        <span className="text-muted small">{info.rango}</span>
-                      )}
-                    </div>
-
-                    <div className="table-responsive">
-                      <table className="table table-striped">
-                        <thead>
-                          <tr className="table-success">
-                            <th>Código</th>
-                            <th>Descripción</th>
-                            <th>Q GAL</th>
-                            <th>Gto</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {resultados.map((res, index) => (
-                            <tr key={index}>
-                              <td>{highlightMatch(res.item.codigo.toString(), res.matches?.find(m => m.key === 'codigo'))}</td>
-                              <td>{highlightMatch(res.item.descripcion, res.matches?.find(m => m.key === 'descripcion'))}</td>
-                              <td>{res.item.q_gal}</td>
-                              <td>{res.item.gto}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              });
-            })()
+            <div className={styles.results}>
+              <table className={`table table-dark table-hover table-striped ${styles.table}`}>
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Capítulo</th>
+                    <th>Q GAL</th>
+                    <th>Gto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredResults.map((res, i) => {
+                    const capKey = res.item.capitulo?.toString().padStart(2, '0');
+                    const capInfo = capitulosInfo[capKey] || { nombre: 'Sin asignar' };
+                    return (
+                      <tr key={i}>
+                        <td>{res.item.codigo}</td>
+                        <td>
+                          {highlightMatch(
+                            res.item.descripcion,
+                            res.matches?.find((m) => m.key === 'descripcion')
+                          )}
+                        </td>
+                        <td>
+                          <span className={styles.capBadge}>{capInfo.nombre}</span>
+                        </td>
+                        <td>{res.item.q_gal}</td>
+                        <td>{res.item.gto}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            query.trim() && (
-              <p className="text-center text-muted mt-3">No se encontraron coincidencias exactas.</p>
-            )
+            query.trim() && <p className="text-center text-muted">Sin resultados exactos.</p>
           )}
         </>
       ) : (
-        // 📂 Modo capítulos
-        <div className="accordion" id="accordionNomenclador">
-          {Object.entries(agrupadosPorCapitulo).map(([capitulo, items], index) => {
-            const filtrados = filtrarCapitulo(capitulo, items);
-            return (
-              <div className="accordion-item" key={index}>
-                <h2 className="accordion-header" id={`heading-${index}`}>
-                  <button
-                    className="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target={`#collapse-${index}`}
-                    aria-expanded="false"
-                    aria-controls={`collapse-${index}`}
-                  >
-                    {capitulo} ({items.length})
-                  </button>
-                </h2>
-                <div
-                  id={`collapse-${index}`}
-                  className="accordion-collapse collapse"
-                  aria-labelledby={`heading-${index}`}
-                  data-bs-parent="#accordionNomenclador"
-                >
-                  <div className="accordion-body">
-                    <input
-                      type="text"
-                      className="form-control mb-3"
-                      placeholder={`Buscar práctica exacta en ${capitulo}...`}
-                      value={capituloQueries[capitulo] || ''}
-                      onChange={e =>
-                        setCapituloQueries(prev => ({
-                          ...prev,
-                          [capitulo]: e.target.value,
-                        }))
-                      }
-                    />
+        // 📚 Modo capítulos con buscador
+        <>
+          <input
+            type="text"
+            className={`form-control mb-4 ${styles.inputDark}`}
+            placeholder="🔎 Buscar capítulo..."
+            value={filtroCapitulo}
+            onChange={(e) => setFiltroCapitulo(e.target.value)}
+          />
+          <div className="accordion" id="accordionNomenclador">
+            {Object.entries(agrupadosPorCapitulo)
+              .filter(([key]) => {
+                const info = capitulosInfo[key];
+                return (
+                  !filtroCapitulo ||
+                  info?.nombre.toLowerCase().includes(filtroCapitulo.toLowerCase()) ||
+                  key.includes(filtroCapitulo)
+                );
+              })
+              .map(([capitulo, items], i) => {
+                const info = capitulosInfo[capitulo] || { nombre: `Capítulo ${capitulo}` };
+                const filtrados = filtrarCapitulo(capitulo, items);
 
-                    <div className="table-responsive">
-                      <table className="table table-striped mb-0">
-                        <thead>
-                          <tr>
-                            <th>Código</th>
-                            <th>Descripción</th>
-                            <th>Q GAL</th>
-                            <th>Gto</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {capituloQueries[capitulo]?.trim()
-                            ? filtrados.length > 0
-                              ? filtrados.map((res, i) => (
-                                  <tr key={i}>
-                                    <td>{highlightMatch(res.item.codigo.toString(), res.matches?.find(m => m.key === 'codigo'))}</td>
-                                    <td>{highlightMatch(res.item.descripcion, res.matches?.find(m => m.key === 'descripcion'))}</td>
-                                    <td>{res.item.q_gal}</td>
-                                    <td>{res.item.gto}</td>
-                                  </tr>
-                                ))
-                              : (
-                                <tr>
-                                  <td colSpan="4" className="text-center text-muted">
-                                    No se encontraron coincidencias exactas.
-                                  </td>
-                                </tr>
-                              )
-                            : items.map((item, i) => (
-                                <tr key={i}>
+                return (
+                  <div className="accordion-item bg-dark text-light border-0 mb-2" key={i}>
+                    <h2 className="accordion-header">
+                      <button
+                        className="accordion-button collapsed bg-dark text-light fw-bold"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target={`#collapse-${i}`}
+                      >
+                        {capitulo} — {info.nombre}
+                      </button>
+                    </h2>
+                    <div id={`collapse-${i}`} className="accordion-collapse collapse">
+                      <div className="accordion-body bg-dark text-light">
+                        <input
+                          type="text"
+                          className={`form-control mb-3 ${styles.inputDark}`}
+                          placeholder={`Buscar en ${info.nombre}...`}
+                          value={capituloQueries[capitulo] || ''}
+                          onChange={(e) =>
+                            setCapituloQueries((prev) => ({
+                              ...prev,
+                              [capitulo]: e.target.value,
+                            }))
+                          }
+                        />
+                        <div className="table-responsive">
+                          <table
+                            className={`table table-dark table-hover table-striped ${styles.table}`}
+                          >
+                            <thead>
+                              <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Q GAL</th>
+                                <th>Gto</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(capituloQueries[capitulo]?.trim()
+                                ? filtrados.map((r) => r.item)
+                                : items
+                              ).map((item, j) => (
+                                <tr key={j}>
                                   <td>{item.codigo}</td>
                                   <td>{item.descripcion}</td>
                                   <td>{item.q_gal}</td>
                                   <td>{item.gto}</td>
                                 </tr>
                               ))}
-                        </tbody>
-                      </table>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+          </div>
+        </>
       )}
     </div>
   );

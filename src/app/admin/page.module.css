@@ -1,67 +1,102 @@
-
 /* === NAVBAR === */
 .navbar {
-    background-color: var(--navbar-bg) !important;
-    color: var(--text-color);
+  background-color: var(--navbar-bg) !important;
+  color: var(--text-color);
+  border-bottom: 1px solid #1f2937;
 }
 
 /* === SIDEBAR === */
+.aside {
+  background-color: var(--sidebar-bg);
+  color: var(--text-color);
+  border-right: 1px solid #1f2937;
+}
+
 .sidebar .list-group-item {
-    color: var(--text-color);
-    background: transparent;
-    border: 0;
-    padding: .75rem 1rem;
-    transition: background .2s, color .2s;
+  background: transparent;
+  color: var(--text-color);
+  border: none;
+  padding: 0.75rem 1rem;
+  transition: background 0.2s, color 0.2s;
 }
 
 .sidebar .list-group-item:hover {
-    background: var(--hover-bg);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .active {
-    background: var(--active-bg) !important;
-    color: #fff !important;
-    font-weight: 600;
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-left: 4px solid #00ff99;
 }
 
-.aside {
-    background-color: var(--sidebar-bg);
-    color: var(--text-color);
+/* === TÍTULOS DE SECCIÓN (GESTIÓN, NOMENCLADORES) === */
+.sectionTitle {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: #a1b5a1;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem 0.5rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* === BOTONES DE GESTIÓN === */
+.menuButton {
+  background-color: var(--sidebar-bg);
+  color: var(--text-color);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.menuButton:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 /* === AVATAR === */
 .avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-weight: 700;
-    background: rgba(255, 255, 255, .2);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* === MAIN === */
 .main {
-    background-color: var(--main-bg);
-    min-height: calc(100vh - 72px);
+  background-color: var(--main-bg);
+  min-height: calc(100vh - 72px);
 }
 
 .content {
-    max-width: 1400px;
-    margin: auto;
-    background-color: var(--content-bg);
-    border-radius: 16px;
-    color: var(--text-color);
+  background-color: var(--content-bg);
+  color: var(--text-color);
+  max-width: 1400px;
+  margin: auto;
+  padding: 1.5rem;
+  border-radius: 16px;
 }
 
 /* === FOOTER === */
 .footer {
-    color: var(--footer-text);
+  color: var(--footer-text);
+  opacity: 0.8;
 }
 
 /* === RESPONSIVE === */
 @media (max-width: 991.98px) {
-    .content {
-        border-radius: 1rem;
-    }
+  .content {
+    border-radius: 1rem;
+  }
 }

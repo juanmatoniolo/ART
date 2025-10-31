@@ -1,30 +1,55 @@
-/* === THEMES === */
-:root[data-theme='dark'] {
-    --navbar-bg: #14532d;
-    --sidebar-bg: #1e293b;
-    --text-color: #e2e8f0;
-    --hover-bg: rgba(255, 255, 255, 0.08);
-    --active-bg: rgba(34, 197, 94, 0.25);
-    --main-bg: #0f172a;
-    --content-bg: #1e293b;
-    --footer-text: #94a3b8;
-}
-
-:root[data-theme='light'] {
-    --navbar-bg: #198754;
-    --sidebar-bg: #f8fafc;
-    --text-color: #1e293b;
-    --hover-bg: rgba(0, 0, 0, 0.05);
-    --active-bg: rgba(25, 135, 84, 0.2);
-    --main-bg: #f8fafc;
-    --content-bg: #ffffff;
-    --footer-text: #475569;
-}
-
-body {
-  background-color: var(--background);
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text);
+/* === GLOBAL RESET === */
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html,
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0b1220;
+  color: #f8fafc;
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+/* === VARIABLES GLOBALES (Modo oscuro fijo) === */
+:root {
+  --navbar-bg: #0f3d26;
+  --sidebar-bg: #0e1625;
+  --main-bg: #0b1220;
+  --content-bg: #111827;
+  --text-color: #f8fafc;
+  --color-primary: #198754;
+  --color-border: #2d3748;
+  --footer-text: #94a3b8;
+}
+
+/* === SCROLL === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3748;
 }
