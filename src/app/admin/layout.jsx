@@ -14,27 +14,19 @@ import {
   FileText,
   Library,
   LogOut,
-  UserCircle,
   Settings,
-  Menu,
-  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState({ name: 'Usuario', role: 'admin' });
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const s = getSession?.();
-    if (s?.user) {
-      setUser({
-        name: s.user.displayName || s.user.email || 'Usuario',
-        role: s.user.role || 'admin',
-      });
-    }
+    if (!s) return;
     document.documentElement.setAttribute('data-theme', 'dark');
   }, []);
 
@@ -46,123 +38,89 @@ export default function AdminLayout({ children }) {
   const isActive = (href) => pathname?.startsWith(href);
 
   return (
-    <>
-      {/* === NAVBAR === */}
-      <header className={styles.navbar}>
-        <div className={styles.navContainer}>
-          {/* LOGO */}
-          <Link href="/admin" className={styles.logoContainer}>
-            <Image src="/logo.png" alt="Logo" width={42} height={42} className="rounded-2" />
-            <span>Clínica de la Unión S.A.</span>
-          </Link>
-
-          {/* PERFIL (DESKTOP) */}
-          <div className={styles.profileDesktop}>
-            <div
-              className={styles.avatar}
-              onClick={() => setShowDropdown((prev) => !prev)}
-            >
-              {(user.name || 'U').slice(0, 2).toUpperCase()}
-            </div>
-
-            {showDropdown && (
-              <div className={styles.dropdownMenu}>
-                <div className={styles.dropdownItemHeader}>
-                  <UserCircle size={18} /> {user.name}
-                </div>
-                <div className={styles.dropdownItemSub}>
-                  {user.role === 'admin' ? 'Administrador' : user.role}
-                </div>
-                <hr className={styles.dropdownDivider} />
-                <button
-                  className={styles.dropdownItem}
-                  onClick={() => router.push('/admin/configuracion')}
-                >
-                  <Settings size={16} /> Configuración
-                </button>
-                <button className={styles.dropdownItemLogout} onClick={cerrarSesion}>
-                  <LogOut size={16} /> Cerrar sesión
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* MENÚ HAMBURGUESA (MOBILE) */}
-          <button
-            className={styles.menuButton}
-            onClick={() => setMenuOpen((prev) => !prev)}
-            aria-label="Abrir menú"
-          >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </header>
-
+    <div className={styles.layout}>
       {/* === SIDEBAR === */}
-      <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ''}`}>
+      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
+        <div className={styles.sidebarHeader}>
+          <Image src="/logo.png" alt="Logo" width={42} height={42} className="rounded-2" />
+          {!collapsed && <span className={styles.brand}>Clínica Unión</span>}
+        </div>
+
+        <button
+          className={styles.collapseBtn}
+          onClick={() => setCollapsed((prev) => !prev)}
+          aria-label="Colapsar menú"
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+
         <nav className={styles.navMenu}>
-          <div className={styles.sectionTitle}>Gestión</div>
           <Link
             href="/admin/pacientes"
-            className={`${styles.menuItem} ${isActive('/admin/pacientes') ? styles.active : ''
-              }`}
+            className={`${styles.menuItem} ${isActive('/admin/pacientes') ? styles.active : ''}`}
           >
-            <Users size={18} /> Pacientes
+            <Users size={20} />
+            {!collapsed && <span>Pacientes</span>}
           </Link>
+
           <Link
             href="/admin/empleados"
-            className={`${styles.menuItem} ${isActive('/admin/empleados') ? styles.active : ''
-              }`}
+            className={`${styles.menuItem} ${isActive('/admin/empleados') ? styles.active : ''}`}
           >
-            <Briefcase size={18} /> Empleados
+            <Briefcase size={20} />
+            {!collapsed && <span>Empleados</span>}
           </Link>
+
           <Link
             href="/admin/facturacion"
-            className={`${styles.menuItem} ${isActive('/admin/facturacion') ? styles.active : ''
-              }`}
+            className={`${styles.menuItem} ${isActive('/admin/facturacion') ? styles.active : ''}`}
           >
-            <FileText size={18} /> Facturación
+            <FileText size={20} />
+            {!collapsed && <span>Facturación</span>}
           </Link>
 
-          <div className={styles.sectionTitle}>Nomencladores</div>
+          <div className={styles.sectionTitle}>{!collapsed && 'Nomencladores'}</div>
+
           <Link
             href="/admin/nomencladores"
-            className={`${styles.menuItem} ${isActive('/admin/nomencladores') ? styles.active : ''
-              }`}
+            className={`${styles.menuItem} ${isActive('/admin/nomencladores') ? styles.active : ''}`}
           >
-            <Library size={18} /> Nomencladores
-          </Link>
-          <Link
-            href="/admin/nomencladores/editar"
-            className={`${styles.menuItem} ${isActive('/admin/nomencladores/editar') ? styles.active : ''
-              }`}
-          >
-            <Users size={18} /> Crear Convenios
+            <Library size={20} />
+            {!collapsed && <span>Nomencladores</span>}
           </Link>
 
-          {/* === PERFIL (SOLO MOBILE) === */}
-          <div className={styles.profileMobile}>
-            <div className={styles.avatar}>
-              {(user.name || 'U').slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <div className={styles.userName}>{user.name}</div>
-              <div className={styles.userRole}>{user.role}</div>
-            </div>
-            <button onClick={cerrarSesion} className={styles.logoutBtnMobile}>
-              <LogOut size={16} /> Cerrar sesión
-            </button>
-          </div>
+          <Link
+            href="/admin/nomencladores/editar"
+            className={`${styles.menuItem} ${isActive('/admin/nomencladores/editar') ? styles.active : ''}`}
+          >
+            <Users size={20} />
+            {!collapsed && <span>Convenios</span>}
+          </Link>
+
+          <div className={styles.sectionTitle}>{!collapsed && 'Usuario'}</div>
+
+          <button
+            className={styles.menuItem}
+            onClick={() => router.push('/admin/configuracion')}
+          >
+            <Settings size={20} />
+            {!collapsed && <span>Configuración</span>}
+          </button>
+
+          <button className={`${styles.menuItem} ${styles.logoutBtn}`} onClick={cerrarSesion}>
+            <LogOut size={20} />
+            {!collapsed && <span>Cerrar sesión</span>}
+          </button>
         </nav>
       </aside>
 
-      {/* === MAIN CONTENT === */}
+      {/* === CONTENIDO PRINCIPAL === */}
       <main className={styles.main}>
         <div className={styles.content}>{children}</div>
         <footer className={styles.footer}>
           © {new Date().getFullYear()} Clínica de la Unión S.A. — Sistema Médico Interno
         </footer>
       </main>
-    </>
+    </div>
   );
 }

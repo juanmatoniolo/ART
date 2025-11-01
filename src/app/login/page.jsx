@@ -1,4 +1,3 @@
-// src/app/login/page.jsx
 'use client';
 
 import { useState } from 'react';
@@ -6,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { setSession } from '@/utils/session';
+import Link from 'next/link';
+import styles from './login.module.css';
+import { Stethoscope, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
     const [user, setUser] = useState('');
@@ -43,7 +45,6 @@ export default function LoginPage() {
             const [id, userData] = found;
             setSession({ ...userData, id });
 
-            // redirección según tipo
             const routes = {
                 ADM: '/admin',
                 DR: '/doctores',
@@ -58,53 +59,67 @@ export default function LoginPage() {
     };
 
     return (
-        <div
-            className="d-flex align-items-center justify-content-center vh-100"
-            style={{ backgroundColor: '#f0f4f0' }}
-        >
-            <div className="card shadow-lg p-4" style={{ width: '100%', maxWidth: '400px' }}>
-                <h3 className="text-center mb-4 text-success">
-                    Clínica de la Unión S.A.
-                </h3>
+        <div className={styles.wrapper}>
+            {/* NAVBAR minimalista (igual que Home) */}
+            <header className={styles.header}>
+                <Link href="/" className={styles.brand} aria-label="Inicio">
+                    <Stethoscope size={20} aria-hidden="true" />
+                    <span>Clínica de la Unión S.A.</span>
+                </Link>
+            </header>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-3">
-                        <label className="form-label">Usuario</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            value={user}
-                            onChange={(e) => setUser(e.target.value)}
-                            placeholder="Ingrese su usuario"
-                            required
-                        />
+            {/* Contenido */}
+            <main className={styles.main}>
+                <section className={styles.card} aria-labelledby="login-title">
+                    <h1 id="login-title" className={styles.title}>Iniciar sesión</h1>
+                    <p className={styles.subtitle}>
+                        Acceda para gestionar pacientes y registros clínicos.
+                    </p>
+
+                    <form onSubmit={handleSubmit} className={styles.form}>
+                        <div className="mb-3">
+                            <label className="form-label">Usuario</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={user}
+                                onChange={(e) => setUser(e.target.value)}
+                                placeholder="Ingrese su usuario"
+                                required
+                            />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Contraseña</label>
+                            <input
+                                type="password"
+                                className="form-control"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Ingrese su contraseña"
+                                required
+                            />
+                        </div>
+
+                        {error && <div className="alert alert-danger">{error}</div>}
+
+                        <button type="submit" className={`${styles.btn} ${styles.btnPrimary} w-100`}>
+                            <LogIn size={18} aria-hidden="true" />
+                            Ingresar
+                        </button>
+                    </form>
+
+                    <div className={styles.registerHint}>
+                        <small className={styles.muted}>
+                            ¿No tienes cuenta? <Link className={styles.link} href="/register">Regístrate aquí</Link>
+                        </small>
                     </div>
+                </section>
+            </main>
 
-                    <div className="mb-3">
-                        <label className="form-label">Contraseña</label>
-                        <input
-                            type="password"
-                            className="form-control"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Ingrese su contraseña"
-                            required
-                        />
-                    </div>
-
-                    {error && <div className="alert alert-danger">{error}</div>}
-
-                    <button type="submit" className="btn btn-success w-100">
-                        Ingresar
-                    </button>
-                </form>
-
-                <div className="text-center mt-3">
-                    <small className="text-muted">
-                        ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
-                    </small>
-                </div>
-            </div>
+            <footer className={styles.footer}>
+                © {new Date().getFullYear()} Clínica de la Unión S.A.
+            </footer>
         </div>
     );
 }

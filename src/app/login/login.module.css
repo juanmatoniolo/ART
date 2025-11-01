@@ -1,31 +1,34 @@
-/* Minimal, mobile-first, solo clases locales (CSS Module) */
+/* Módulo local: minimalista, mobile-first, sin :root ni selectores globales */
 
 .wrapper {
     min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
     background: #f6f8f7;
-    /* tono claro suave */
+    /* tono claro */
     font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
 }
 
-/* Header */
+/* Navbar igual al Home minimal */
 .header {
     background: #44794D;
-    /* verde institucional */
+    /* brand-600 */
     color: #ffffff;
     border-bottom: 3px solid #6FA17B;
+    /* brand-500 */
 }
 
 .brand {
     max-width: 920px;
     margin: 0 auto;
-    padding: 0.9rem 1rem;
+    padding: 0.85rem 1rem;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     font-weight: 700;
     letter-spacing: 0.2px;
+    color: #ffffff;
+    text-decoration: none;
 }
 
 /* Main */
@@ -37,7 +40,7 @@
 
 .card {
     width: 100%;
-    max-width: 480px;
+    max-width: 420px;
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 14px;
@@ -46,34 +49,27 @@
 }
 
 .title {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.35rem;
+    margin: 0 0 0.35rem 0;
+    font-size: 1.3rem;
     font-weight: 800;
     color: #2f5237;
-    /* más oscuro para contraste */
+    /* tono oscuro de marca */
     text-align: center;
 }
 
 .subtitle {
-    margin: 0 0 1.1rem 0;
-    font-size: 0.98rem;
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
     color: #475569;
     text-align: center;
 }
 
-/* Acciones (botones sólidos) */
-.actions {
+.form {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
+    gap: 0.75rem;
 }
 
-@media (min-width: 560px) {
-    .actions {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
+/* Botón sólido principal */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -94,10 +90,8 @@
     transform: translateY(1px);
 }
 
-/* Sólidos */
 .btnPrimary {
     background: #44794D;
-    /* sólido principal */
     color: #ffffff;
     border-color: #44794D;
     box-shadow: 0 6px 14px rgba(68, 121, 77, 0.22);
@@ -109,18 +103,24 @@
     box-shadow: 0 8px 18px rgba(68, 121, 77, 0.26);
 }
 
-.btnSecondary {
-    background: #6FA17B;
-    /* sólido secundario */
-    color: #ffffff;
-    border-color: #6FA17B;
-    box-shadow: 0 6px 14px rgba(111, 161, 123, 0.22);
+.registerHint {
+    text-align: center;
+    margin-top: 0.75rem;
 }
 
-.btnSecondary:hover {
-    background: #5b8f68;
-    border-color: #5b8f68;
-    box-shadow: 0 8px 18px rgba(111, 161, 123, 0.26);
+.muted {
+    color: #64748b;
+}
+
+.link {
+    color: #2f5237;
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(47, 82, 55, 0.2);
+}
+
+.link:hover {
+    border-bottom-color: rgba(47, 82, 55, 0.4);
 }
 
 /* Footer */
@@ -131,4 +131,14 @@
     color: #334155;
     background: #eef3ef;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Accesibilidad mínima dentro del módulo */
+@media (prefers-reduced-motion: reduce) {
+
+    .wrapper *,
+    .card * {
+        animation: none !important;
+        transition: none !important;
+    }
 }
