@@ -6,7 +6,6 @@ import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
-/* === Utils === */
 const normalize = (s) =>
     (s ?? '')
         .toString()
@@ -28,7 +27,7 @@ const highlight = (text, query) => {
     return (
         <>
             {before}
-            <mark style={{ backgroundColor: '#19875466', borderRadius: '4px' }}>{match}</mark>
+            <mark className={styles.highlight}>{match}</mark>
             {after}
         </>
     );
@@ -44,7 +43,6 @@ const money = (n) => {
     });
 };
 
-/* === COMPONENTE PRINCIPAL === */
 export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState('');
@@ -54,13 +52,10 @@ export default function NomencladorBioquimica() {
     const [convenioSel, setConvenioSel] = useState('');
     const [error, setError] = useState(null);
 
-    /* === 1️⃣ Cargar JSON local === */
     useEffect(() => {
         const loadData = async () => {
             try {
-                if (typeof window === 'undefined') return;
-                const baseUrl = window.location.origin;
-                const res = await fetch(`${baseUrl}/archivos/NomecladorBioquimica.json`);
+                const res = await fetch('/archivos/NomecladorBioquimica.json');
                 if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
                 const json = await res.json();
                 setData(json);
@@ -72,22 +67,18 @@ export default function NomencladorBioquimica() {
         loadData();
     }, []);
 
-    /* === 2️⃣ Escuchar convenios desde Firebase === */
     useEffect(() => {
         const conveniosRef = ref(db, 'convenios');
         const unsub = onValue(conveniosRef, (snap) => {
             const val = snap.exists() ? snap.val() : {};
             setConvenios(val);
-
             const stored = localStorage.getItem('convenioActivo');
             const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
             setConvenioSel(elegir);
         });
-
         return () => unsub();
     }, []);
 
-    /* === 3️⃣ Detectar el valor “Laboratorios NBU” o “Laboratorios NBU T” === */
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setValorUB(0);
@@ -104,31 +95,22 @@ export default function NomencladorBioquimica() {
                 break;
             }
         }
-
-        // 🔹 Si el valor es miles mal interpretado (ej. 1.430 => 1430)
         if (nbu > 0 && nbu < 100) nbu *= 1000;
-
-        if (nbu > 0) {
-            setValorUB(nbu);
-        }
+        if (nbu > 0) setValorUB(nbu);
     }, [convenioSel, convenios]);
 
-    /* === 4️⃣ Búsqueda (exacta + Fuse.js) === */
     const practicasFiltradas = useMemo(() => {
         if (!data?.practicas) return [];
         const practicas = data.practicas;
-
         const q = filtro.trim();
         if (!q && !soloUrgencia) return practicas;
 
-        // Exactas primero
         const exact = practicas.filter(
             (p) =>
                 normalize(`${p.codigo} ${p.practica_bioquimica}`).includes(normalize(q)) &&
                 (!soloUrgencia || p.urgencia === true || p.urgencia === 'U')
         );
 
-        // Fuzzy con Fuse
         const fuse = new Fuse(practicas, {
             keys: ['codigo', 'practica_bioquimica'],
             threshold: 0.3,
@@ -144,20 +126,17 @@ export default function NomencladorBioquimica() {
         return [...exact, ...fuzzy];
     }, [filtro, soloUrgencia, data]);
 
-    /* === 5️⃣ Render === */
     if (error)
         return (
-            <div className={`${styles.wrapper} text-center text-danger`}>
-                <h5>{error}</h5>
-                <p className="text-muted">Verificá que el archivo esté en /public/archivos/</p>
+            <div className={styles.wrapper}>
+                <p className={styles.error}>{error}</p>
             </div>
         );
 
     if (!data)
         return (
-            <div className={`${styles.wrapper} text-center`}>
-                <div className="spinner-border text-light" role="status" />
-                <p className="mt-3 text-muted">Cargando nomenclador bioquímico...</p>
+            <div className={styles.wrapper}>
+                <p className={styles.info}>Cargando nomenclador bioquímico...</p>
             </div>
         );
 
@@ -165,15 +144,13 @@ export default function NomencladorBioquimica() {
 
     return (
         <div className={styles.wrapper}>
-            <div className="mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <h1 className="fw-bold text-white">🧪 Nomenclador Bioquímico</h1>
+            <div className={styles.header}>
+                <h2 className={styles.title}>🧪 Nomenclador Bioquímico</h2>
 
-                {/* Selector de convenio */}
-                <div className="d-flex align-items-center gap-2">
-                    <span className="text-light">Convenio:</span>
+                <div className={styles.filters}>
+                    <label>Convenio:</label>
                     <select
-                        className={`form-select ${styles.darkInput}`}
-                        style={{ minWidth: 280 }}
+                        className={styles.select}
                         value={convenioSel}
                         onChange={(e) => setConvenioSel(e.target.value)}
                     >
@@ -181,113 +158,63 @@ export default function NomencladorBioquimica() {
                             <option key={k}>{k}</option>
                         ))}
                     </select>
-                    <span className="badge bg-success ms-2">
+                    <span className={styles.badgeGreen}>
                         UB: ${valorUB ? money(valorUB) : money(valorPorDefecto)}
                     </span>
                 </div>
             </div>
 
-            {/* Filtros */}
-            <div className="card bg-dark border-0 shadow-sm mb-4">
-                <div className="card-body row gy-3 gx-4">
-                    {/* Valor UB */}
-                    <div className="col-md-4">
-                        <label className="form-label text-light fw-semibold">
-                            Valor de la Unidad Bioquímica (UB)
-                        </label>
-                        <input
-                            type="number"
-                            className={`form-control ${styles.darkInput}`}
-                            value={valorUB || valorPorDefecto}
-                            onChange={(e) =>
-                                setValorUB(parseFloat(e.target.value) || valorPorDefecto)
-                            }
-                        />
-                        <small className="text-muted">
-                            Ingresá o ajustá el valor actual de la Unidad Bioquímica
-                        </small>
-                    </div>
-
-                    {/* Buscador */}
-                    <div className="col-md-8">
-                        <label className="form-label text-light fw-semibold">
-                            Buscar práctica bioquímica
-                        </label>
-                        <div className="input-group">
-                            <input
-                                type="text"
-                                className={`form-control ${styles.darkInput}`}
-                                placeholder="Buscar por código o nombre..."
-                                value={filtro}
-                                onChange={(e) => setFiltro(e.target.value)}
-                            />
-                            <button
-                                className="btn btn-outline-light"
-                                onClick={() => {
-                                    setFiltro('');
-                                    setSoloUrgencia(false);
-                                }}
-                            >
-                                Limpiar
-                            </button>
-                        </div>
-                        <div className="form-check mt-2">
-                            <input
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={soloUrgencia}
-                                onChange={(e) => setSoloUrgencia(e.target.checked)}
-                                id="checkUrgencia"
-                            />
-                            <label className="form-check-label text-light" htmlFor="checkUrgencia">
-                                Solo urgencias
-                            </label>
-                        </div>
-                    </div>
-                </div>
+            <div className={styles.controls}>
+                <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Buscar código o práctica..."
+                    value={filtro}
+                    onChange={(e) => setFiltro(e.target.value)}
+                />
+                <label className={styles.checkbox}>
+                    <input
+                        type="checkbox"
+                        checked={soloUrgencia}
+                        onChange={(e) => setSoloUrgencia(e.target.checked)}
+                    />
+                    Solo urgencias
+                </label>
             </div>
 
-            {/* Tabla */}
-            <div className="table-responsive shadow-sm">
-                <table className="table table-dark table-striped table-hover align-middle">
+            <div className={styles.tableWrapper}>
+                <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th style={{ width: '8%' }}>Código</th>
+                            <th>Código</th>
                             <th>Práctica Bioquímica</th>
-                            <th style={{ width: '10%' }}>Urgencia</th>
-                            <th style={{ width: '8%' }}>N/I</th>
-                            <th style={{ width: '10%' }}>U.B.</th>
-                            <th style={{ width: '15%' }} className="text-end">
-                                Valor Estimado
-                            </th>
+                            <th>Urgencia</th>
+                            <th>N/I</th>
+                            <th>U.B.</th>
+                            <th>Valor Estimado</th>
                         </tr>
                     </thead>
                     <tbody>
                         {practicasFiltradas.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="text-center text-muted py-4">
+                                <td colSpan="6" className={styles.noResults}>
                                     No se encontraron resultados.
                                 </td>
                             </tr>
                         ) : (
                             practicasFiltradas.map((p) => {
                                 const valorCalculado =
-                                    p.unidad_bioquimica && valorUB
-                                        ? p.unidad_bioquimica * valorUB
-                                        : null;
-
+                                    p.unidad_bioquimica && valorUB ? p.unidad_bioquimica * valorUB : null;
                                 return (
                                     <tr key={p.codigo}>
-                                        <td className="fw-bold text-white">
-                                            {highlight(p.codigo.toString(), filtro)}
-                                        </td>
+                                        <td className={styles.bold}>{highlight(p.codigo.toString(), filtro)}</td>
                                         <td>{highlight(p.practica_bioquimica, filtro)}</td>
                                         <td className="text-center">
-                                            {p.urgencia ? <span className="badge bg-danger">U</span> : ''}
+                                            {p.urgencia ? <span className={styles.badgeRed}>U</span> : ''}
                                         </td>
-                                        <td className="text-center">{p.nota_N_I || ''}</td>
-                                        <td className="text-center">{money(p.unidad_bioquimica)}</td>
-                                        <td className="text-end fw-bold text-white">
+                                        <td>{p.nota_N_I || ''}</td>
+                                        <td>{money(p.unidad_bioquimica)}</td>
+                                        <td className={styles.numeric}>
                                             {valorCalculado ? `$${money(valorCalculado)}` : '-'}
                                         </td>
                                     </tr>
@@ -298,11 +225,9 @@ export default function NomencladorBioquimica() {
                 </table>
             </div>
 
-            <p className="text-muted small mt-3">
+            <p className={styles.footerNote}>
                 * Valor calculado según la Unidad Bioquímica del convenio seleccionado:{' '}
-                <strong className="text-white">
-                    ${money(valorUB || valorPorDefecto)}
-                </strong>
+                <strong>${money(valorUB || valorPorDefecto)}</strong>
             </p>
         </div>
     );

@@ -20,7 +20,6 @@ export default function FichaPaciente() {
   // 🧠 Verifica sesión al montar
   useEffect(() => {
     const session = getSession();
-    console.log('🔑 Sesión cargada en FichaPaciente:', session);
 
     if (!session) {
       console.warn('🚫 No hay sesión activa, redirigiendo a login...');
@@ -31,7 +30,7 @@ export default function FichaPaciente() {
     setTipoEmpleado(session.TipoEmpleado);
     setFirmante(`${session.Nombre} ${session.Apellido}`);
   }, [router]);
-if (!id) return null
+  if (!id) return null
   // 🧩 Carga los datos del paciente y sus pedidos/evoluciones
   useEffect(() => {
     if (!id) return;

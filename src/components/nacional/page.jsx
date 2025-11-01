@@ -1,18 +1,12 @@
 'use client';
-
 import { useEffect, useMemo, useState } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
-/* ===== Utils ===== */
 const normalize = (s) =>
-  (s ?? '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+  (s ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 const money = (n) =>
   typeof n === 'number'
@@ -41,34 +35,29 @@ function highlight(text, q) {
   return (
     <>
       {before}
-      <mark style={{ backgroundColor: '#28a74555', borderRadius: '4px' }}>{match}</mark>
+      <mark className={styles.highlight}>{match}</mark>
       {after}
     </>
   );
 }
 
-/* ===== Componente principal ===== */
 export default function NomencladorNacional() {
-  const [data, setData] = useState([]); // todas las prácticas aplanadas
-  const [capitulos, setCapitulos] = useState([]); // estructura agrupada
+  const [data, setData] = useState([]);
+  const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
   const [modoBusqueda, setModoBusqueda] = useState(true);
   const [filtroCapitulo, setFiltroCapitulo] = useState('');
   const [capituloQueries, setCapituloQueries] = useState({});
-
-  // Convenios
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
   const [gastoRx, setGastoRx] = useState(0);
   const [galenoRxPractica, setGalenoRxPractica] = useState(0);
 
-  /* === 1️⃣ Cargar JSON corregido === */
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
       .then((json) => {
         setCapitulos(json);
-        // aplanar prácticas
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => ({
             ...p,
@@ -81,7 +70,6 @@ export default function NomencladorNacional() {
       .catch((err) => console.error('Error cargando JSON:', err));
   }, []);
 
-  /* === 2️⃣ Cargar convenios desde Firebase === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
@@ -108,7 +96,6 @@ export default function NomencladorNacional() {
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
 
-  /* === 3️⃣ Búsqueda global === */
   const resultadosGlobales = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
@@ -119,8 +106,6 @@ export default function NomencladorNacional() {
       ignoreLocation: true,
     });
     let results = fuse.search(q).map((r) => r.item);
-
-    // Enriquecer con subsiguientes
     const seen = new Set();
     const enriched = [];
     for (const it of results) {
@@ -132,8 +117,6 @@ export default function NomencladorNacional() {
       if (next && isSubsiguiente(next) && !seen.has(next.codigo)) enriched.push(next);
       if (isSubsiguiente(it) && prev && !seen.has(prev.codigo)) enriched.push(prev);
     }
-
-    // Ordenar RX primero
     return enriched.sort((a, b) => {
       const ar = isRadiografia(a) ? 0 : 1;
       const br = isRadiografia(b) ? 0 : 1;
@@ -141,32 +124,32 @@ export default function NomencladorNacional() {
     });
   }, [query, data]);
 
-  /* === 4️⃣ Calcular costos (solo RX) === */
   const renderCosts = (it) => {
     const rx = isRadiografia(it);
     const gto = Number(it.gto) || 0;
     const gal = Number(it.q_gal) || 0;
     return (
       <>
-        <td className="text-end">
-          {money(gto)}
-          {rx && gastoRx ? (
-            <div className="small opacity-75">${money((gto * gastoRx) / 2)}</div>
-          ) : null}
-        </td>
-        <td className="text-end">
+        {/* Primero GAL */}
+        <td className={styles.numeric}>
           {money(gal)}
           {rx && (galenoRxPractica || gastoRx) ? (
-            <div className="small opacity-75">
+            <div className={styles.subValue}>
               ${money(gal * galenoRxPractica + (gto * gastoRx) / 2)}
             </div>
+          ) : null}
+        </td>
+        {/* Luego GTO */}
+        <td className={styles.numeric}>
+          {money(gto)}
+          {rx && gastoRx ? (
+            <div className={styles.subValue}>${money((gto * gastoRx) / 2)}</div>
           ) : null}
         </td>
       </>
     );
   };
 
-  /* === 5️⃣ Filtrar dentro de capítulos === */
   const filtrarCapitulo = (cap, practicas) => {
     const term = capituloQueries[cap]?.trim();
     if (!term) return practicas;
@@ -188,18 +171,15 @@ export default function NomencladorNacional() {
     return [...res, ...plus];
   };
 
-  /* === 6️⃣ Render === */
   return (
     <div className={styles.wrapper}>
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
+      <div className={styles.header}>
         <h2 className={styles.title}>Nomenclador Nacional</h2>
 
-        {/* Selector convenio */}
-        <div className="d-flex align-items-center gap-2">
-          <span className="text-light">Convenio:</span>
+        <div className={styles.filters}>
+          <label>Convenio:</label>
           <select
-            className={`form-select ${styles.inputDark}`}
-            style={{ minWidth: 280 }}
+            className={styles.select}
             value={convenioSel}
             onChange={(e) => setConvenioSel(e.target.value)}
           >
@@ -207,148 +187,131 @@ export default function NomencladorNacional() {
               <option key={k}>{k}</option>
             ))}
           </select>
-          <div className="small text-light ms-2">
-            <span className="badge bg-success me-2">Gasto Rx: {gastoRx || '—'}</span>
-            <span className="badge bg-info">Galeno Rx: {galenoRxPractica || '—'}</span>
-          </div>
+          <span className={styles.badgeGreen}>Gasto Rx: {gastoRx || '—'}</span>
+          <span className={styles.badgeBlue}>Galeno Rx: {galenoRxPractica || '—'}</span>
         </div>
 
-        <button className={styles.btnSuccess} onClick={() => setModoBusqueda((p) => !p)}>
+        <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
           {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
         </button>
       </div>
 
-      {/* 🔍 Modo global */}
       {modoBusqueda ? (
         <>
           <input
             type="text"
-            className={`form-control mb-4 ${styles.inputDark}`}
+            className={styles.input}
             placeholder="Buscar código o descripción..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          {query ? (
-            <div className="table-responsive shadow-sm">
-              <table className={`table table-dark table-striped ${styles.table}`}>
-                <thead>
+
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Capítulo</th>
+                  <th>GAL</th>
+                  <th>Gto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultadosGlobales.length === 0 ? (
                   <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
-                    <th>Capítulo</th>
-                    <th className="text-end">Gto</th>
-                    <th className="text-end">GAL</th>
+                    <td colSpan={5} className={styles.noResults}>
+                      Sin resultados.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {resultadosGlobales.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-4">
-                        Sin resultados.
+                ) : (
+                  resultadosGlobales.map((it, i) => (
+                    <tr key={i} className={isRadiografia(it) ? styles.rxRow : ''}>
+                      <td>{highlight(it.codigo, query)}</td>
+                      <td>{highlight(it.descripcion, query)}</td>
+                      <td>
+                        <span className={styles.capBadge}>
+                          {it.capitulo} – {it.capituloNombre}
+                        </span>
                       </td>
+                      {renderCosts(it)}
                     </tr>
-                  ) : (
-                    resultadosGlobales.map((it, i) => (
-                      <tr key={i} className={isRadiografia(it) ? styles.rxRow : ''}>
-                        <td>{highlight(it.codigo, query)}</td>
-                        <td>{highlight(it.descripcion, query)}</td>
-                        <td>
-                          <span className={styles.capBadge}>
-                            {it.capitulo} – {it.capituloNombre}
-                          </span>
-                        </td>
-                        {renderCosts(it)}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center text-muted">Escribí para buscar...</p>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
-        /* 📂 Modo capítulos */
         <>
           <input
             type="text"
-            className={`form-control mb-4 ${styles.inputDark}`}
+            className={styles.input}
             placeholder="Buscar capítulo..."
             value={filtroCapitulo}
             onChange={(e) => setFiltroCapitulo(e.target.value)}
           />
-          <div className="accordion" id="accordionCapitulos">
-            {capitulos
-              .filter(
-                (c) =>
-                  !filtroCapitulo ||
-                  c.descripcion.toLowerCase().includes(filtroCapitulo.toLowerCase()) ||
-                  c.capitulo.includes(filtroCapitulo)
-              )
-              .map((c, i) => {
-                const visibles = filtrarCapitulo(c.capitulo, c.practicas);
-                return (
-                  <div className="accordion-item bg-dark text-light border-0 mb-2" key={i}>
-                    <h2 className="accordion-header">
-                      <button
-                        className="accordion-button collapsed bg-dark text-light fw-bold"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target={`#collapse-${i}`}
-                      >
-                        {c.capitulo} — {c.descripcion}
-                      </button>
-                    </h2>
-                    <div id={`collapse-${i}`} className="accordion-collapse collapse">
-                      <div className="accordion-body bg-dark text-light">
-                        <input
-                          type="text"
-                          className={`form-control mb-3 ${styles.inputDark}`}
-                          placeholder={`Buscar en ${c.descripcion}...`}
-                          value={capituloQueries[c.capitulo] || ''}
-                          onChange={(e) =>
-                            setCapituloQueries((prev) => ({
-                              ...prev,
-                              [c.capitulo]: e.target.value,
-                            }))
-                          }
-                        />
-                        <div className="table-responsive">
-                          <table className={`table table-dark table-striped ${styles.table}`}>
-                            <thead>
-                              <tr>
-                                <th>Código</th>
-                                <th>Descripción</th>
-                                <th className="text-end">Gto</th>
-                                <th className="text-end">GAL</th>
+
+          {capitulos
+            .filter(
+              (c) =>
+                !filtroCapitulo ||
+                c.descripcion.toLowerCase().includes(filtroCapitulo.toLowerCase()) ||
+                c.capitulo.includes(filtroCapitulo)
+            )
+            .map((c, i) => {
+              const visibles = filtrarCapitulo(c.capitulo, c.practicas);
+              return (
+                <details key={i} className={styles.accordion}>
+                  <summary className={styles.accordionHeader}>
+                    {c.capitulo} — {c.descripcion}
+                  </summary>
+                  <div className={styles.accordionBody}>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder={`Buscar en ${c.descripcion}...`}
+                      value={capituloQueries[c.capitulo] || ''}
+                      onChange={(e) =>
+                        setCapituloQueries((prev) => ({
+                          ...prev,
+                          [c.capitulo]: e.target.value,
+                        }))
+                      }
+                    />
+                    <div className={styles.tableWrapper}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>GAL</th>
+                            <th>Gto</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visibles.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className={styles.noResults}>
+                                Sin resultados.
+                              </td>
+                            </tr>
+                          ) : (
+                            visibles.map((it, j) => (
+                              <tr key={j} className={isRadiografia(it) ? styles.rxRow : ''}>
+                                <td>{it.codigo}</td>
+                                <td>{it.descripcion}</td>
+                                {renderCosts(it)}
                               </tr>
-                            </thead>
-                            <tbody>
-                              {visibles.length === 0 ? (
-                                <tr>
-                                  <td colSpan={4} className="text-center py-3">
-                                    Sin resultados.
-                                  </td>
-                                </tr>
-                              ) : (
-                                visibles.map((it, j) => (
-                                  <tr key={j} className={isRadiografia(it) ? styles.rxRow : ''}>
-                                    <td>{it.codigo}</td>
-                                    <td>{it.descripcion}</td>
-                                    {renderCosts(it)}
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                );
-              })}
-          </div>
+                </details>
+              );
+            })}
         </>
       )}
     </div>

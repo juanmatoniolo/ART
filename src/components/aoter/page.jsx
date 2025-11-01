@@ -6,7 +6,7 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import styles from './page.module.css';
 
-/* === Helpers === */
+/* === Utils === */
 const parseNumber = (val) =>
   typeof val === 'number'
     ? val
@@ -23,12 +23,18 @@ const money = (n) =>
 const normalize = (s) =>
   (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
+/* 🚀 Nueva función para eliminar puntos, guiones, espacios, etc. */
+const normalizeCode = (s) =>
+  normalize(s)
+    .replace(/[\s\-.]/g, '') // borra espacios, puntos y guiones
+    .trim();
+
 const highlight = (text, q) => {
   if (!text) return '';
   if (!q) return text;
 
-  const query = normalize(q).replace(/\./g, '');
-  const target = normalize(text).replace(/\./g, '');
+  const query = normalizeCode(q);
+  const target = normalizeCode(text);
 
   const idx = target.indexOf(query);
   if (idx === -1) return text;
@@ -36,10 +42,11 @@ const highlight = (text, q) => {
   const before = text.slice(0, idx);
   const match = text.slice(idx, idx + q.length);
   const after = text.slice(idx + q.length);
+
   return (
     <>
       {before}
-      <mark style={{ backgroundColor: '#28a74555', borderRadius: '3px' }}>{match}</mark>
+      <mark className={styles.highlight}>{match}</mark>
       {after}
     </>
   );
@@ -62,7 +69,6 @@ export default function AOTER() {
         const res = await fetch('/archivos/Nomeclador_AOTER.json');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-
         if (!json?.practicas) throw new Error('Formato no válido');
 
         const regionesMap = {};
@@ -108,7 +114,7 @@ export default function AOTER() {
     loadJSON();
   }, []);
 
-  /* === 2️⃣ Cargar convenios desde Firebase === */
+  /* === 2️⃣ Cargar convenios === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const unsub = onValue(conveniosRef, (snap) => {
@@ -121,22 +127,19 @@ export default function AOTER() {
     return () => unsub();
   }, []);
 
-  /* === 3️⃣ Procesar honorarios del convenio activo === */
+  /* === 3️⃣ Procesar honorarios === */
   const honorariosConvenio = useMemo(() => {
     const conv = convenios[convenioSel];
     const niveles = conv?.honorarios_medicos;
 
     if (Array.isArray(niveles)) {
       return niveles
-        .map((n, i) => {
-          if (!n) return null;
-          return {
-            nivel: i,
-            cirujano: parseNumber(n.Cirujano),
-            ayudante1: parseNumber(n['Ayudante 1']),
-            ayudante2: parseNumber(n['Ayudante 2']),
-          };
-        })
+        .map((n, i) => ({
+          nivel: i,
+          cirujano: parseNumber(n.Cirujano),
+          ayudante1: parseNumber(n['Ayudante 1']),
+          ayudante2: parseNumber(n['Ayudante 2']),
+        }))
         .filter(Boolean);
     }
     return [];
@@ -144,8 +147,7 @@ export default function AOTER() {
 
   const getHonorarios = (complejidad) => {
     const reg = honorariosConvenio.find((n) => n.nivel === Number(complejidad));
-    if (!reg) return { cirujano: null, ayudante1: null, ayudante2: null };
-    return reg;
+    return reg || { cirujano: null, ayudante1: null, ayudante2: null };
   };
 
   /* === 4️⃣ Crear lista plana para búsqueda === */
@@ -155,6 +157,8 @@ export default function AOTER() {
       region.complejidades.flatMap((bloque) =>
         bloque.practicas.map((p) => ({
           ...p,
+          codigoNormalizado: normalizeCode(p.codigo),
+          descripcionNormalizada: normalize(p.descripcion),
           region: region.region,
           region_nombre: region.region_nombre,
           complejidad: bloque.complejidad,
@@ -163,59 +167,62 @@ export default function AOTER() {
     );
   }, [data]);
 
-  /* === 5️⃣ Buscador === */
+  /* === 5️⃣ Buscador compatible con “ms0201” === */
   const resultados = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = normalize(query).replace(/\./g, '');
+    const q = query.trim();
+    if (!q) return [];
 
-    // Búsqueda exacta
+    const qNorm = normalizeCode(q);
+
+    // 🔹 Exact match sin puntos
     const exact = allPractices.filter(
       (p) =>
-        normalize(p.codigo).replace(/\./g, '') === q ||
-        normalize(p.descripcion) === normalize(query)
+        p.codigoNormalizado.includes(qNorm) ||
+        p.descripcionNormalizada.includes(normalize(q)) ||
+        normalize(p.region_nombre).includes(normalize(q))
     );
 
-    // Búsqueda por similitud (Fuse)
+    // 🔹 Fuzzy match (difuso)
     const fuse = new Fuse(allPractices, {
-      keys: ['codigo', 'descripcion', 'region_nombre'],
-      includeScore: true,
+      keys: ['codigoNormalizado', 'descripcionNormalizada', 'region_nombre'],
       threshold: 0.3,
       ignoreLocation: true,
     });
-    const fuzzy = fuse.search(query).map((r) => r.item);
 
-    const seen = new Set(exact.map((p) => p.codigo));
-    return [...exact, ...fuzzy.filter((p) => !seen.has(p.codigo))];
+    const fuzzy = fuse.search(qNorm).map((r) => r.item);
+
+    // Eliminar duplicados
+    const seen = new Set();
+    return [...exact, ...fuzzy].filter((p) => {
+      if (seen.has(p.codigo)) return false;
+      seen.add(p.codigo);
+      return true;
+    });
   }, [query, allPractices]);
 
-  /* === 🧭 Render === */
   if (loading)
     return (
-      <div className={`${styles.wrapper} text-center text-muted`}>
-        <div className="spinner-border text-light mb-3" role="status" />
-        <p>Cargando nomenclador AOTER...</p>
+      <div className={styles.wrapper}>
+        <p className={styles.info}>Cargando nomenclador AOTER...</p>
       </div>
     );
 
   if (error)
     return (
-      <div className={`${styles.wrapper} text-center text-danger`}>
-        <h5>{error}</h5>
-        <p className="text-muted">Verificá que el archivo esté en /public/archivos/</p>
+      <div className={styles.wrapper}>
+        <p className={styles.error}>{error}</p>
       </div>
     );
 
   return (
     <div className={styles.wrapper}>
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-3">
+      <div className={styles.header}>
         <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
 
-        {/* Selector de convenio */}
-        <div className="d-flex align-items-center gap-2">
-          <span className="text-light">Convenio:</span>
+        <div className={styles.filters}>
+          <label>Convenio:</label>
           <select
-            className={`form-select ${styles.inputDark}`}
-            style={{ minWidth: 280 }}
+            className={styles.select}
             value={convenioSel}
             onChange={(e) => setConvenioSel(e.target.value)}
           >
@@ -225,38 +232,43 @@ export default function AOTER() {
           </select>
         </div>
 
-        <button className={styles.btnSuccess} onClick={() => setModoBusqueda((p) => !p)}>
+        <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
           {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
         </button>
       </div>
 
-      {/* === 🔍 Modo búsqueda global === */}
       {modoBusqueda ? (
         <>
           <input
             type="text"
-            className={`form-control mb-4 ${styles.inputDark}`}
-            placeholder="Buscar código o descripción..."
+            className={styles.input}
+            placeholder="Buscar código o descripción (ej: MS0201)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
 
-          {resultados.length > 0 ? (
-            <div className="table-responsive shadow-sm">
-              <table className={`table table-dark table-striped ${styles.table}`}>
-                <thead>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Región</th>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Comp.</th>
+                  <th>Cirujano</th>
+                  <th>Ayud. 1</th>
+                  <th>Ayud. 2</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultados.length === 0 ? (
                   <tr>
-                    <th>Región</th>
-                    <th>Código</th>
-                    <th>Descripción</th>
-                    <th>Comp.</th>
-                    <th className="text-end">Cirujano</th>
-                    <th className="text-end">Ayud. 1</th>
-                    <th className="text-end">Ayud. 2</th>
+                    <td colSpan="7" className={styles.noResults}>
+                      Sin resultados.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {resultados.map((p, i) => {
+                ) : (
+                  resultados.map((p, i) => {
                     const { cirujano, ayudante1, ayudante2 } = getHonorarios(p.complejidad);
                     return (
                       <tr key={i}>
@@ -264,69 +276,52 @@ export default function AOTER() {
                         <td>{highlight(p.codigo, query)}</td>
                         <td>{highlight(p.descripcion, query)}</td>
                         <td>{p.complejidad}</td>
-                        <td className="text-end">{money(cirujano)}</td>
-                        <td className="text-end">{money(ayudante1)}</td>
-                        <td className="text-end">{money(ayudante2)}</td>
+                        <td className={styles.numeric}>{money(cirujano)}</td>
+                        <td className={styles.numeric}>{money(ayudante1)}</td>
+                        <td className={styles.numeric}>{money(ayudante2)}</td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            query && <p className="text-center text-muted">Sin resultados.</p>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
-        /* === 📚 Modo regiones === */
-        <div className="accordion" id="accordionAOTER">
+        <div className={styles.accordion}>
           {data.map((region, rIndex) => (
-            <div className="accordion-item bg-dark text-light border-0 mb-2" key={rIndex}>
-              <h2 className="accordion-header">
-                <button
-                  className="accordion-button collapsed bg-dark text-light fw-bold"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target={`#collapse-${rIndex}`}
-                >
-                  {region.region_nombre}
-                </button>
-              </h2>
-              <div id={`collapse-${rIndex}`} className="accordion-collapse collapse">
-                <div className="accordion-body bg-dark text-light">
-                  {region.complejidades.map((bloque, bIndex) => {
-                    const { cirujano, ayudante1, ayudante2 } = getHonorarios(bloque.complejidad);
-                    return (
-                      <div key={bIndex} className="mb-4 border rounded p-3">
-                        <h6 className="fw-bold text-info mb-3">
-                          Complejidad {bloque.complejidad}{' '}
-                          <small className="text-muted">
-                            ({money(cirujano)} — {money(ayudante1)} — {money(ayudante2)})
-                          </small>
-                        </h6>
-
-                        <table className="table table-dark table-striped">
-                          <thead>
-                            <tr>
-                              <th>Código</th>
-                              <th>Descripción</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {bloque.practicas.map((p, i) => (
-                              <tr key={i}>
-                                <td>{p.codigo}</td>
-                                <td>{p.descripcion}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            <details key={rIndex} className={styles.accordionItem}>
+              <summary className={styles.accordionHeader}>{region.region_nombre}</summary>
+              {region.complejidades.map((bloque, bIndex) => {
+                const { cirujano, ayudante1, ayudante2 } = getHonorarios(bloque.complejidad);
+                return (
+                  <div key={bIndex} className={styles.accordionBody}>
+                    <h6 className={styles.complexTitle}>
+                      Complejidad {bloque.complejidad}{' '}
+                      <small>
+                        ({money(cirujano)} / {money(ayudante1)} / {money(ayudante2)})
+                      </small>
+                    </h6>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Código</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bloque.practicas.map((p, i) => (
+                          <tr key={i}>
+                            <td>{p.codigo}</td>
+                            <td>{p.descripcion}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </details>
           ))}
         </div>
       )}

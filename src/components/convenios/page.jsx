@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
-/* ===== Utils ===== */
+/* === Utils === */
 const normalize = (s) =>
     (s ?? '')
         .toString()
@@ -28,13 +28,12 @@ function highlight(text, query) {
     return (
         <>
             {before}
-            <mark style={{ backgroundColor: '#19875466', borderRadius: '4px' }}>{match}</mark>
+            <mark className={styles.highlight}>{match}</mark>
             {after}
         </>
     );
 }
 
-/** 💰 Formateador de dinero con separador de miles **/
 const money = (n) => {
     if (n == null || n === '' || n === '-') return '-';
     const num = parseFloat(n.toString().replace(',', '.'));
@@ -45,7 +44,6 @@ const money = (n) => {
     });
 };
 
-/* ===== COMPONENTE PRINCIPAL ===== */
 export default function PrestadoresART() {
     const [convenios, setConvenios] = useState({});
     const [convenioSel, setConvenioSel] = useState('');
@@ -53,7 +51,6 @@ export default function PrestadoresART() {
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
-    /* === 1️⃣ Escuchar convenios desde Realtime DB === */
     useEffect(() => {
         const conveniosRef = ref(db, 'convenios');
         const unsubscribe = onValue(conveniosRef, (snapshot) => {
@@ -65,11 +62,9 @@ export default function PrestadoresART() {
             setConvenioSel(elegir);
             setLoading(false);
         });
-
         return () => unsubscribe();
     }, []);
 
-    /* === 2️⃣ Cargar convenio seleccionado === */
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setData(null);
@@ -80,7 +75,6 @@ export default function PrestadoresART() {
         localStorage.setItem('convenioActivo', convenioSel);
     }, [convenioSel, convenios]);
 
-    /* === 3️⃣ Calcular porcentajes === */
     const calcularValor = (base, expresion) => {
         if (typeof base !== 'number') return expresion;
         if (typeof expresion === 'number') return `$${money(expresion)}`;
@@ -100,17 +94,12 @@ export default function PrestadoresART() {
         return expresion;
     };
 
-    /* === 4️⃣ Búsqueda combinada (exacta + Fuse.js) === */
     const resultados = useMemo(() => {
         if (!data?.valores_generales) return [];
-
         const valores = Object.entries(data.valores_generales);
         const q = query.trim();
-        if (!q) {
-            return valores.map(([key, val]) => ({ key, val, exact: false }));
-        }
+        if (!q) return valores.map(([key, val]) => ({ key, val, exact: false }));
 
-        // --- Exact matches first ---
         const exactMatches = valores
             .filter(
                 ([key, value]) =>
@@ -119,7 +108,6 @@ export default function PrestadoresART() {
             )
             .map(([key, val]) => ({ key, val, exact: true }));
 
-        // --- Fuse fuzzy search for similar terms ---
         const fuse = new Fuse(valores.map(([key, val]) => ({ key, val })), {
             keys: ['key', 'val'],
             threshold: 0.3,
@@ -132,36 +120,31 @@ export default function PrestadoresART() {
             exact: false,
         }));
 
-        // --- Merge and remove duplicates ---
         const seen = new Set();
-        const combined = [...exactMatches, ...fuzzyResults].filter((item) => {
+        return [...exactMatches, ...fuzzyResults].filter((item) => {
             if (seen.has(item.key)) return false;
             seen.add(item.key);
             return true;
         });
-
-        return combined;
     }, [query, data]);
 
-    /* === 5️⃣ Render === */
     if (loading)
         return (
             <div className={styles.wrapper}>
-                <p className="text-muted">Cargando convenios...</p>
+                <p className={styles.info}>Cargando convenios...</p>
             </div>
         );
 
     if (!data)
         return (
             <div className={styles.wrapper}>
-                <p className="text-danger">No se encontraron convenios.</p>
+                <p className={styles.error}>No se encontraron convenios.</p>
             </div>
         );
 
     return (
         <div className={styles.wrapper}>
-            {/* === ENCABEZADO === */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div className={styles.header}>
                 <h2 className={styles.title}>🩺 Convenios ART</h2>
                 <select
                     className={styles.select}
@@ -176,39 +159,35 @@ export default function PrestadoresART() {
                 </select>
             </div>
 
-            {/* === BUSCADOR === */}
-            <div className={styles.searchContainer}>
-                <input
-                    type="text"
-                    className={styles.search}
-                    placeholder="🔍 Buscar concepto o valor..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-            </div>
+            <input
+                type="text"
+                className={styles.search}
+                placeholder="🔍 Buscar concepto o valor..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+            />
 
-            {/* === TABLA PRINCIPAL === */}
-            <div className="table-responsive">
-                <table className={`table table-dark table-striped ${styles.table}`}>
+            <div className={styles.tableWrapper}>
+                <table className={styles.table}>
                     <thead>
                         <tr>
                             <th>Concepto</th>
-                            <th className="text-end">Valor ($)</th>
+                            <th>Valor ($)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {resultados.length > 0 ? (
                             resultados.map(({ key, val, exact }, i) => (
-                                <tr key={i} className={exact ? 'fw-bold text-success' : ''}>
+                                <tr key={i} className={exact ? styles.exactRow : ''}>
                                     <td>{highlight(key.replaceAll('_', ' '), query)}</td>
-                                    <td className="text-end">
+                                    <td className={styles.numeric}>
                                         {highlight(money(val?.toString() || '-'), query)}
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="2" className="text-center text-muted">
+                                <td colSpan="2" className={styles.noResults}>
                                     No se encontraron coincidencias.
                                 </td>
                             </tr>
@@ -217,12 +196,11 @@ export default function PrestadoresART() {
                 </table>
             </div>
 
-            {/* === HONORARIOS MÉDICOS === */}
             {data.honorarios_medicos && (
                 <>
                     <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
-                    <div className="table-responsive">
-                        <table className={`table table-dark table-striped ${styles.table}`}>
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
                             <thead>
                                 <tr>
                                     <th>Nivel</th>
@@ -246,7 +224,6 @@ export default function PrestadoresART() {
                 </>
             )}
 
-            {/* === CONDICIONES === */}
             {data.condiciones && (
                 <>
                     <h5 className={styles.sectionTitle}>📋 Condiciones del Convenio</h5>
@@ -260,10 +237,9 @@ export default function PrestadoresART() {
                 </>
             )}
 
-            {/* === FIRMA === */}
             <footer className={styles.footer}>
                 <p>
-                    <span className="fw-semibold text-light">
+                    <span className={styles.firma}>
                         {data.firma?.entidad || 'Clínica de la Unión'}
                     </span>{' '}
                     — CUIT: {data.firma?.CUIT || '30-70754530-1'}
