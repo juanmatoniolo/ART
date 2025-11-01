@@ -1,56 +1,43 @@
-// page.jsx
 "use client";
 import { useState } from "react";
 import NomencladorNacional from "../../../components/nacional/page";
 import ConveniosArt from "../../../components/convenios/page";
 import NomencladorBioq from "../../../components/bioquimica/page";
 import NomencladorAoter from "../../../components/aoter/page";
+import styles from "./page.module.css"; // 👈 nuevo archivo de estilos
 
 export default function NomencladorGlobal() {
   const [activeTab, setActiveTab] = useState("nacional");
 
-  return (
-    <div className="container mt-4">
-      <ul className="nav nav-tabs">
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "nacional" ? "active" : ""}`}
-            onClick={() => setActiveTab("nacional")}
-          >
-            Nomeclador Nacional
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "convenios" ? "active" : ""}`}
-            onClick={() => setActiveTab("convenios")}
-          >
-            Convenios ART
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "bioq" ? "active" : ""}`}
-            onClick={() => setActiveTab("bioq")}
-          >
-            Bioquímica
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link ${activeTab === "aoter" ? "active" : ""}`}
-            onClick={() => setActiveTab("aoter")}
-          >
-            AOTER
-          </button>
-        </li>
-      </ul>
+  const tabs = [
+    { key: "nacional", label: "Nomenclador Nacional" },
+    { key: "convenios", label: "Convenios ART" },
+    { key: "bioq", label: "Bioquímica" },
+    { key: "aoter", label: "AOTER" },
+  ];
 
-      <div className="tab-content border p-4 rounded-bottom bg-dark text-light">
-        {activeTab === "nacional" && <NomencladorNacional />}
-        {activeTab === "convenios" && <ConveniosArt />}
-        {activeTab === "bioq" && <NomencladorBioq />}
-        {activeTab === "aoter" && <NomencladorAoter />}
+  return (
+    <div className={`${styles.wrapper} container-fluid py-4`}>
+      <div className={`${styles.card} shadow-lg`}>
+        <ul className={`nav nav-tabs ${styles.navTabs}`}>
+          {tabs.map((tab) => (
+            <li className="nav-item" key={tab.key}>
+              <button
+                className={`nav-link ${activeTab === tab.key ? styles.activeTab : styles.tab}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className={`${styles.tabContent} border p-4 rounded-bottom`}>
+          {activeTab === "nacional" && <NomencladorNacional />}
+          {activeTab === "convenios" && <ConveniosArt />}
+          {activeTab === "bioq" && <NomencladorBioq />}
+          {activeTab === "aoter" && <NomencladorAoter />}
+        </div>
       </div>
     </div>
   );

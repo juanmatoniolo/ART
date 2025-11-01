@@ -6,44 +6,43 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import styles from './page.module.css';
 
-/* === Utils === */
+/* === Helpers === */
 const parseNumber = (val) =>
   typeof val === 'number'
     ? val
     : parseFloat(String(val).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
 
 const money = (n) =>
-  n
-    ? `$${n.toLocaleString('es-AR', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })}`
-    : '—';
+  isNaN(n)
+    ? '—'
+    : `$${n.toLocaleString('es-AR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })}`;
 
 const normalize = (s) =>
   (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 const highlight = (text, q) => {
-  if (!text) return ''; // ✅ evita errores
+  if (!text) return '';
   if (!q) return text;
 
-  try {
-    const regex = new RegExp(`(${q})`, 'ig');
-    return String(text)
-      .split(regex)
-      .map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} style={{ backgroundColor: '#28a74555', borderRadius: '3px' }}>
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      );
-  } catch (err) {
-    console.error('❌ Error en highlight:', err);
-    return text;
-  }
+  const query = normalize(q).replace(/\./g, '');
+  const target = normalize(text).replace(/\./g, '');
+
+  const idx = target.indexOf(query);
+  if (idx === -1) return text;
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + q.length);
+  const after = text.slice(idx + q.length);
+  return (
+    <>
+      {before}
+      <mark style={{ backgroundColor: '#28a74555', borderRadius: '3px' }}>{match}</mark>
+      {after}
+    </>
+  );
 };
 
 /* === Componente principal === */
@@ -56,6 +55,7 @@ export default function AOTER() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  /* === 1️⃣ Cargar nomenclador === */
   useEffect(() => {
     const loadJSON = async () => {
       try {
@@ -63,53 +63,41 @@ export default function AOTER() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
 
-        let dataParsed = [];
+        if (!json?.practicas) throw new Error('Formato no válido');
 
-        // ✅ Caso 1: el JSON ya viene como array
-        if (Array.isArray(json)) {
-          dataParsed = json;
-        }
-        // ✅ Caso 2: formato actual (objeto con "practicas")
-        else if (json?.practicas && Array.isArray(json.practicas)) {
-          // Agrupar por región
-          const regionesMap = {};
+        const regionesMap = {};
 
-          json.practicas.forEach((p) => {
-            const region = p.region_nombre || p.region || 'SIN REGIÓN';
-            if (!regionesMap[region]) {
-              regionesMap[region] = {
-                region: p.region,
-                region_nombre: region,
-                complejidades: {},
-              };
-            }
+        json.practicas.forEach((p) => {
+          const region = p.region_nombre || p.region || 'SIN REGIÓN';
+          if (!regionesMap[region]) {
+            regionesMap[region] = {
+              region: p.region,
+              region_nombre: region,
+              complejidades: {},
+            };
+          }
 
-            if (!regionesMap[region].complejidades[p.complejidad]) {
-              regionesMap[region].complejidades[p.complejidad] = {
-                complejidad: p.complejidad,
-                practicas: [],
-              };
-            }
+          if (!regionesMap[region].complejidades[p.complejidad]) {
+            regionesMap[region].complejidades[p.complejidad] = {
+              complejidad: p.complejidad,
+              practicas: [],
+            };
+          }
 
-            // Agregar todas las prácticas
-            p.practicas?.forEach((pr) => {
-              regionesMap[region].complejidades[p.complejidad].practicas.push({
-                codigo: pr.codigo,
-                descripcion: pr.descripcion,
-              });
+          p.practicas?.forEach((pr) => {
+            regionesMap[region].complejidades[p.complejidad].practicas.push({
+              codigo: pr.codigo,
+              descripcion: pr.descripcion,
             });
           });
+        });
 
-          // Convertir a array
-          dataParsed = Object.values(regionesMap).map((region) => ({
-            ...region,
-            complejidades: Object.values(region.complejidades),
-          }));
-        } else {
-          throw new Error('Formato no reconocido');
-        }
+        const parsed = Object.values(regionesMap).map((region) => ({
+          ...region,
+          complejidades: Object.values(region.complejidades),
+        }));
 
-        setData(dataParsed);
+        setData(parsed);
       } catch (err) {
         console.error('❌ Error cargando JSON AOTER:', err);
         setError('No se pudo cargar el nomenclador AOTER.');
@@ -117,64 +105,54 @@ export default function AOTER() {
         setLoading(false);
       }
     };
-
     loadJSON();
   }, []);
-
 
   /* === 2️⃣ Cargar convenios desde Firebase === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
-    const unsub = onValue(
-      conveniosRef,
-      (snap) => {
-        const val = snap.exists() ? snap.val() : {};
-        setConvenios(val);
-        const stored = localStorage.getItem('convenioActivo');
-        const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
-        setConvenioSel(elegir);
-      },
-      (err) => console.error('Error al leer convenios:', err)
-    );
+    const unsub = onValue(conveniosRef, (snap) => {
+      const val = snap.exists() ? snap.val() : {};
+      setConvenios(val);
+      const stored = localStorage.getItem('convenioActivo');
+      const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
+      setConvenioSel(elegir);
+    });
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    if (convenioSel) localStorage.setItem('convenioActivo', convenioSel);
-  }, [convenioSel]);
-
-  /* === 3️⃣ Determinar honorarios base según convenio === */
+  /* === 3️⃣ Procesar honorarios del convenio activo === */
   const honorariosConvenio = useMemo(() => {
     const conv = convenios[convenioSel];
-    const niveles = conv?.honorarios_medicos?.niveles;
-    if (Array.isArray(niveles) && niveles.length > 0) {
-      return niveles.map((n) => ({
-        nivel: parseInt(n.nivel),
-        cirujano: parseNumber(n.cirujano ?? n.Cirujano),
-        ayudante1: parseNumber(n.ayudante_1 ?? n['Ayudante 1']),
-        ayudante2: parseNumber(n.ayudante_2 ?? n['Ayudante 2']),
-      }));
-    }
+    const niveles = conv?.honorarios_medicos;
 
-    // Fallback valores fijos
-    return [
-      { nivel: 1, cirujano: 108900, ayudante1: 32670 },
-      { nivel: 2, cirujano: 136400, ayudante1: 40700 },
-      { nivel: 3, cirujano: 341000, ayudante1: 102800 },
-      { nivel: 4, cirujano: 544500, ayudante1: 163350 },
-      { nivel: 5, cirujano: 829400, ayudante1: 248820, ayudante2: 165880 },
-      { nivel: 6, cirujano: 1232000, ayudante1: 369600, ayudante2: 246400 },
-      { nivel: 7, cirujano: 1361250, ayudante1: 408375, ayudante2: 272250 },
-      { nivel: 8, cirujano: 1906300, ayudante1: 571890, ayudante2: 381260 },
-      { nivel: 9, cirujano: 2450250, ayudante1: 735075, ayudante2: 490050 },
-    ];
+    if (Array.isArray(niveles)) {
+      return niveles
+        .map((n, i) => {
+          if (!n) return null;
+          return {
+            nivel: i,
+            cirujano: parseNumber(n.Cirujano),
+            ayudante1: parseNumber(n['Ayudante 1']),
+            ayudante2: parseNumber(n['Ayudante 2']),
+          };
+        })
+        .filter(Boolean);
+    }
+    return [];
   }, [convenios, convenioSel]);
 
-  /* === 4️⃣ Generar lista plana === */
+  const getHonorarios = (complejidad) => {
+    const reg = honorariosConvenio.find((n) => n.nivel === Number(complejidad));
+    if (!reg) return { cirujano: null, ayudante1: null, ayudante2: null };
+    return reg;
+  };
+
+  /* === 4️⃣ Crear lista plana para búsqueda === */
   const allPractices = useMemo(() => {
     if (!Array.isArray(data)) return [];
     return data.flatMap((region) =>
-      region.complejidades?.flatMap((bloque) =>
+      region.complejidades.flatMap((bloque) =>
         bloque.practicas.map((p) => ({
           ...p,
           region: region.region,
@@ -185,19 +163,19 @@ export default function AOTER() {
     );
   }, [data]);
 
-  /* === 5️⃣ Búsqueda === */
+  /* === 5️⃣ Buscador === */
   const resultados = useMemo(() => {
     if (!query.trim()) return [];
     const q = normalize(query).replace(/\./g, '');
 
-    // Exactos
+    // Búsqueda exacta
     const exact = allPractices.filter(
       (p) =>
         normalize(p.codigo).replace(/\./g, '') === q ||
         normalize(p.descripcion) === normalize(query)
     );
 
-    // Similares con Fuse.js
+    // Búsqueda por similitud (Fuse)
     const fuse = new Fuse(allPractices, {
       keys: ['codigo', 'descripcion', 'region_nombre'],
       includeScore: true,
@@ -210,41 +188,23 @@ export default function AOTER() {
     return [...exact, ...fuzzy.filter((p) => !seen.has(p.codigo))];
   }, [query, allPractices]);
 
-  /* === 6️⃣ Obtener honorarios por complejidad === */
-  const getHonorarios = (complejidad) => {
-    const reg = honorariosConvenio.find((n) => n.nivel === Number(complejidad));
-    if (!reg) return { cirujano: null, ayudante1: null, ayudante2: null };
-    return reg;
-  };
-
-  /* === Render principal === */
-  if (loading) {
+  /* === 🧭 Render === */
+  if (loading)
     return (
       <div className={`${styles.wrapper} text-center text-muted`}>
         <div className="spinner-border text-light mb-3" role="status" />
         <p>Cargando nomenclador AOTER...</p>
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <div className={`${styles.wrapper} text-center text-danger`}>
         <h5>{error}</h5>
         <p className="text-muted">Verificá que el archivo esté en /public/archivos/</p>
       </div>
     );
-  }
 
-  if (!Array.isArray(data) || data.length === 0) {
-    return (
-      <div className={`${styles.wrapper} text-center text-warning`}>
-        <p>No hay datos disponibles para mostrar.</p>
-      </div>
-    );
-  }
-
-  /* === UI === */
   return (
     <div className={styles.wrapper}>
       <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-3">
@@ -259,29 +219,24 @@ export default function AOTER() {
             value={convenioSel}
             onChange={(e) => setConvenioSel(e.target.value)}
           >
-            {Object.keys(convenios).length > 0 ? (
-              Object.keys(convenios).map((k) => <option key={k}>{k}</option>)
-            ) : (
-              <option disabled>Cargando...</option>
-            )}
+            {Object.keys(convenios).map((k) => (
+              <option key={k}>{k}</option>
+            ))}
           </select>
         </div>
 
-        <button
-          className={styles.btnSuccess}
-          onClick={() => setModoBusqueda((p) => !p)}
-        >
+        <button className={styles.btnSuccess} onClick={() => setModoBusqueda((p) => !p)}>
           {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
         </button>
       </div>
 
-      {/* === 🔍 Modo Global === */}
+      {/* === 🔍 Modo búsqueda global === */}
       {modoBusqueda ? (
         <>
           <input
             type="text"
             className={`form-control mb-4 ${styles.inputDark}`}
-            placeholder="Buscar código o descripción (ej: MS0702 o 'canal estrecho')..."
+            placeholder="Buscar código o descripción..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -323,13 +278,10 @@ export default function AOTER() {
           )}
         </>
       ) : (
-        /* === 📚 Modo por Regiones === */
+        /* === 📚 Modo regiones === */
         <div className="accordion" id="accordionAOTER">
           {data.map((region, rIndex) => (
-            <div
-              className="accordion-item bg-dark text-light border-0 mb-2"
-              key={rIndex}
-            >
+            <div className="accordion-item bg-dark text-light border-0 mb-2" key={rIndex}>
               <h2 className="accordion-header">
                 <button
                   className="accordion-button collapsed bg-dark text-light fw-bold"
