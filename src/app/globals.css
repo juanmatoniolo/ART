@@ -27,17 +27,17 @@ button {
   font-family: inherit;
 }
 
-/* === VARIABLES GLOBALES (Modo oscuro fijo) === */
+/* === COLORES INSTITUCIONALES === */
 :root {
-  --navbar-bg: #44794D;
-  --sidebar-bg: #0e1625;
-  --main-bg: #0b1220;
-  --content-bg: #111827;
-  --text-color: #f8fafc;
-  --color-primary: #198754;
-  --color-border: #2d3748;
-  --footer-text: #94a3b8;
+  --color-primary: #44794D;
+  --color-primary-light: #6FA17B;
+  --bg-dark: #0B1220;
+  --bg-sidebar: #0E1625;
+  --bg-content: #111827;
+  --text-light: #f8fafc;
+  --text-muted: #94a3b8;
 }
+
 
 /* === SCROLL === */
 ::-webkit-scrollbar {
