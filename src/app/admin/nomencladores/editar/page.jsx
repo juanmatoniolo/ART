@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import {
   crearConvenio,
   escucharConvenios,
-  eliminarConvenio
+  eliminarConvenio,
 } from "@/lib/conveniosService";
 import { ref, get, set, remove } from "firebase/database";
 import { db } from "@/lib/firebase";
+import styles from "./conveniosAdmin.module.css";
 
 export default function ConveniosAdmin() {
   const [convenios, setConvenios] = useState({});
@@ -24,12 +25,12 @@ export default function ConveniosAdmin() {
   const [modalConfirmarCancelar, setModalConfirmarCancelar] = useState(false);
   const [nuevoNombreConvenio, setNuevoNombreConvenio] = useState("");
 
-  // 🔹 Escucha en vivo los convenios desde Firebase
+  /* === Escuchar convenios === */
   useEffect(() => {
     escucharConvenios(setConvenios);
   }, []);
 
-  /* === CREAR NUEVO CONVENIO === */
+  /* === Crear nuevo convenio === */
   const handleCrear = () => {
     if (!nuevoNombre.trim()) return setMensaje("⚠️ Ingresá un nombre válido.");
     setModalConfirmarCrear(true);
@@ -43,10 +44,11 @@ export default function ConveniosAdmin() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
-  /* === EDITAR === */
+  /* === Editar === */
   const handleEditar = (nombre) => {
+    if (!convenios[nombre]) return;
     setActivo(nombre);
-    setEditBuffer(JSON.parse(JSON.stringify(convenios[nombre])));
+    setEditBuffer(structuredClone(convenios[nombre]));
     setErrores({});
   };
 
@@ -59,7 +61,7 @@ export default function ConveniosAdmin() {
     setModalConfirmarCancelar(false);
   };
 
-  /* === INPUTS === */
+  /* === Inputs === */
   const handleChange = (tipo, clave, campo, valor) => {
     setEditBuffer((prev) => {
       const updated = { ...prev };
@@ -69,15 +71,15 @@ export default function ConveniosAdmin() {
     });
   };
 
-  /* === PRÁCTICAS === */
+  /* === Prácticas === */
   const handleAgregarPractica = () => {
     if (!nuevaPractica.nombre.trim()) return;
     setEditBuffer((prev) => ({
       ...prev,
       valores_generales: {
         ...prev.valores_generales,
-        [nuevaPractica.nombre]: nuevaPractica.valor
-      }
+        [nuevaPractica.nombre]: nuevaPractica.valor,
+      },
     }));
     setNuevaPractica({ nombre: "", valor: "" });
   };
@@ -88,7 +90,7 @@ export default function ConveniosAdmin() {
     setEditBuffer(nuevo);
   };
 
-  /* === VALIDACIÓN === */
+  /* === Validar === */
   const validarCampos = () => {
     const nuevosErrores = {};
     for (const [clave, valor] of Object.entries(editBuffer.valores_generales || {}))
@@ -103,7 +105,7 @@ export default function ConveniosAdmin() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  /* === GUARDAR (OPTIMIZADO) === */
+  /* === Guardar === */
   const handleGuardar = () => {
     if (!validarCampos()) {
       setMensaje("⚠️ Completá todos los campos antes de guardar.");
@@ -116,12 +118,12 @@ export default function ConveniosAdmin() {
     if (!activo) return;
     setGuardando(true);
     try {
-      // 🚀 Guardado atómico ultra rápido
       await set(ref(db, `convenios/${activo}`), editBuffer);
-
       setMensaje("✅ Convenio guardado correctamente.");
-      setActivo(null);
-      setEditBuffer({});
+      setTimeout(() => {
+        setActivo(null);
+        setEditBuffer({});
+      }, 600);
     } catch (err) {
       console.error(err);
       setMensaje("❌ Error al guardar los datos.");
@@ -132,7 +134,7 @@ export default function ConveniosAdmin() {
     }
   };
 
-  /* === ELIMINAR === */
+  /* === Eliminar === */
   const confirmarEliminar = async () => {
     await eliminarConvenio(modalEliminar);
     setModalEliminar(null);
@@ -140,7 +142,7 @@ export default function ConveniosAdmin() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
-  /* === RENOMBRAR === */
+  /* === Renombrar === */
   const handleRenombrar = async () => {
     if (!modalRenombrar || !nuevoNombreConvenio.trim()) return;
     const snap = await get(ref(db, `convenios/${modalRenombrar}`));
@@ -154,143 +156,125 @@ export default function ConveniosAdmin() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
-  /* === RENDER === */
+  /* === Render === */
   return (
-    <div className="container mt-4 text-light">
-      <h2>🩺 Administración de Convenios</h2>
+    <div className={styles.wrapper}>
+      <h2 className={styles.title}>🩺 Administración de Convenios</h2>
 
-      {mensaje && <div className="alert alert-success text-center py-2 small">{mensaje}</div>}
+      {mensaje && <div className={styles.message}>{mensaje}</div>}
 
-      {/* Crear nuevo */}
-      <div className="d-flex gap-2 my-3">
+      <div className={styles.newRow}>
         <input
-          className="form-control"
+          className={styles.input}
           placeholder="Nuevo convenio..."
           value={nuevoNombre}
           onChange={(e) => setNuevoNombre(e.target.value)}
         />
-        <button className="btn btn-success" onClick={handleCrear}>
+        <button className={styles.btnPrimary} onClick={handleCrear}>
           ➕ Crear
         </button>
       </div>
 
-      {/* Tabla de convenios */}
-      <table className="table table-dark table-striped table-hover">
-        <thead>
-          <tr>
-            <th>Convenio</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.keys(convenios).length === 0 && (
+      <div className={styles.tableWrapper}>
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <td colSpan={3}>No hay convenios cargados.</td>
+              <th>Convenio</th>
+              <th>Estado</th>
+              <th>Acciones</th>
             </tr>
-          )}
-          {Object.entries(convenios).map(([nombre, data]) => {
-            const cargado = Object.values(data.valores_generales || {}).some((v) => v);
-            return (
-              <tr key={nombre}>
-                <td>{nombre}</td>
-                <td>{cargado ? "🟢 Cargado" : "🟡 Sin datos"}</td>
-                <td>
-                  <button
-                    className="btn btn-sm btn-outline-info me-2"
-                    onClick={() => handleEditar(nombre)}
-                  >
-                    ✏️ {cargado ? "Editar" : "Cargar"}
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-warning me-2"
-                    onClick={() => setModalRenombrar(nombre)}
-                  >
-                    📝 Renombrar
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => setModalEliminar(nombre)}
-                  >
-                    🗑️ Eliminar
-                  </button>
-                </td>
+          </thead>
+          <tbody>
+            {Object.keys(convenios).length === 0 && (
+              <tr>
+                <td colSpan={3}>No hay convenios cargados.</td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            )}
+            {Object.entries(convenios).map(([nombre, data]) => {
+              const cargado = Object.values(data.valores_generales || {}).some((v) => v);
+              return (
+                <tr key={nombre}>
+                  <td>{nombre}</td>
+                  <td>{cargado ? "🟢 Cargado" : "🟡 Sin datos"}</td>
+                  <td className={styles.actions}>
+                    <button onClick={() => handleEditar(nombre)}>✏️</button>
+                    <button onClick={() => setModalRenombrar(nombre)}>📝</button>
+                    <button onClick={() => setModalEliminar(nombre)}>🗑️</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* === MODALES === */}
       {modalConfirmarCrear && (
         <Modal
           title="Confirmar creación"
-          message={`¿Deseas crear el convenio "${nuevoNombre}"?`}
+          message={`¿Crear el convenio "${nuevoNombre}"?`}
           onCancel={() => setModalConfirmarCrear(false)}
           onConfirm={confirmarCrear}
           confirmText="Crear"
-          confirmClass="btn-success"
+          confirmClass={styles.btnPrimary}
         />
       )}
 
       {modalConfirmarGuardar && (
         <Modal
           title="Guardar cambios"
-          message={`¿Deseas guardar los cambios realizados en "${activo}"?`}
+          message={`¿Guardar los cambios en "${activo}"?`}
           onCancel={() => setModalConfirmarGuardar(false)}
           onConfirm={confirmarGuardar}
           confirmText="Guardar"
-          confirmClass="btn-success"
+          confirmClass={styles.btnPrimary}
         />
       )}
 
       {modalConfirmarCancelar && (
         <Modal
           title="Cancelar edición"
-          message="¿Deseas descartar los cambios?"
+          message="¿Descartar los cambios?"
           onCancel={() => setModalConfirmarCancelar(false)}
           onConfirm={confirmarCancelar}
           confirmText="Descartar"
-          confirmClass="btn-secondary"
+          confirmClass={styles.btnSecondary}
         />
       )}
 
       {modalEliminar && (
         <Modal
           title="Eliminar convenio"
-          message={`¿Seguro que deseas eliminar "${modalEliminar}"?`}
+          message={`¿Eliminar "${modalEliminar}"?`}
           onCancel={() => setModalEliminar(null)}
           onConfirm={confirmarEliminar}
           confirmText="Eliminar"
-          confirmClass="btn-danger"
+          confirmClass={styles.btnDanger}
         />
       )}
 
       {modalRenombrar && (
-        <div className="modal fade show d-block">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content bg-dark text-light">
-              <div className="modal-header">
-                <h5 className="modal-title text-warning">Renombrar Convenio</h5>
-                <button className="btn-close btn-close-white" onClick={() => setModalRenombrar(null)}></button>
-              </div>
-              <div className="modal-body">
-                <label className="form-label">Nuevo nombre para <strong>{modalRenombrar}</strong></label>
-                <input
-                  type="text"
-                  className="form-control bg-dark text-light border-secondary"
-                  placeholder="Ej: ART-Noviembre-2025"
-                  value={nuevoNombreConvenio}
-                  onChange={(e) => setNuevoNombreConvenio(e.target.value)}
-                />
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setModalRenombrar(null)}>Cancelar</button>
-                <button className="btn btn-warning" onClick={handleRenombrar}>Renombrar</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Modal
+          title="Renombrar Convenio"
+          message={
+            <>
+              <p>
+                Nuevo nombre para <strong>{modalRenombrar}</strong>:
+              </p>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Ej: ART-Noviembre-2025"
+                value={nuevoNombreConvenio}
+                onChange={(e) => setNuevoNombreConvenio(e.target.value)}
+              />
+            </>
+          }
+          onCancel={() => setModalRenombrar(null)}
+          onConfirm={handleRenombrar}
+          confirmText="Renombrar"
+          confirmClass={styles.btnWarning}
+        />
       )}
 
       {activo && editBuffer && (
@@ -312,25 +296,20 @@ export default function ConveniosAdmin() {
   );
 }
 
-/* === MODAL GENÉRICO === */
+/* === MODAL === */
 function Modal({ title, message, onCancel, onConfirm, confirmText, confirmClass }) {
   return (
-    <div className="modal fade show d-block">
-      <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content bg-dark text-light">
-          <div className="modal-header">
-            <h5 className="modal-title">{title}</h5>
-            <button className="btn-close btn-close-white" onClick={onCancel}></button>
-          </div>
-          <div className="modal-body">
-            <p>{message}</p>
-          </div>
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
-            <button className={`btn ${confirmClass}`} onClick={onConfirm}>
-              {confirmText}
-            </button>
-          </div>
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
+        <h4>{title}</h4>
+        <div className={styles.modalBody}>{message}</div>
+        <div className={styles.modalActions}>
+          <button className={styles.btnSecondary} onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className={confirmClass} onClick={onConfirm}>
+            {confirmText}
+          </button>
         </div>
       </div>
     </div>
@@ -349,13 +328,16 @@ function EditorConvenio({
   handleGuardar,
   handleCancelar,
   nuevaPractica,
-  setNuevaPractica
+  setNuevaPractica,
 }) {
+  if (!editBuffer?.valores_generales) return null;
+
   return (
-    <div className="card bg-dark mt-4 p-3 shadow-sm">
-      <h4 className="text-info">✏️ Editando: {activo}</h4>
-      <h5 className="mt-3">📑 Prácticas</h5>
-      <table className="table table-dark table-striped table-sm">
+    <div className={styles.editorCard}>
+      <h4>✏️ Editando: {activo}</h4>
+
+      <h5>📑 Prácticas</h5>
+      <table className={styles.table}>
         <thead>
           <tr>
             <th>Concepto</th>
@@ -369,8 +351,8 @@ function EditorConvenio({
               <td>{nombre}</td>
               <td>
                 <input
-                  className={`form-control form-control-sm bg-dark text-light ${
-                    errores[`val-${nombre}`] ? "border-danger" : "border-secondary"
+                  className={`${styles.input} ${
+                    errores[`val-${nombre}`] ? styles.errorInput : ""
                   }`}
                   value={valor}
                   onChange={(e) =>
@@ -380,7 +362,7 @@ function EditorConvenio({
               </td>
               <td>
                 <button
-                  className="btn btn-sm btn-outline-danger"
+                  className={styles.btnDanger}
                   onClick={() => handleEliminarPractica(nombre)}
                 >
                   🗑️
@@ -391,7 +373,7 @@ function EditorConvenio({
           <tr>
             <td>
               <input
-                className="form-control form-control-sm bg-dark text-light"
+                className={styles.input}
                 placeholder="Nueva práctica"
                 value={nuevaPractica.nombre}
                 onChange={(e) =>
@@ -401,7 +383,7 @@ function EditorConvenio({
             </td>
             <td>
               <input
-                className="form-control form-control-sm bg-dark text-light"
+                className={styles.input}
                 placeholder="Valor"
                 value={nuevaPractica.valor}
                 onChange={(e) =>
@@ -410,10 +392,7 @@ function EditorConvenio({
               />
             </td>
             <td>
-              <button
-                className="btn btn-sm btn-outline-success"
-                onClick={handleAgregarPractica}
-              >
+              <button className={styles.btnPrimary} onClick={handleAgregarPractica}>
                 ➕
               </button>
             </td>
@@ -421,8 +400,8 @@ function EditorConvenio({
         </tbody>
       </table>
 
-      <h5 className="mt-3">👨‍⚕️ Honorarios Médicos</h5>
-      <table className="table table-dark table-striped table-sm">
+      <h5>👨‍⚕️ Honorarios Médicos</h5>
+      <table className={styles.table}>
         <thead>
           <tr>
             <th>Nivel</th>
@@ -432,38 +411,37 @@ function EditorConvenio({
           </tr>
         </thead>
         <tbody>
-          {Object.entries(editBuffer.honorarios_medicos || {}).map(([nivel, h]) => {
-            const honorario = h || { Cirujano: "", "Ayudante 1": "", "Ayudante 2": "" };
-            return (
-              <tr key={nivel}>
-                <td>{nivel}</td>
-                {Object.entries(honorario).map(([campo, valor]) => (
-                  <td key={campo}>
-                    <input
-                      className={`form-control form-control-sm bg-dark text-light ${
-                        errores[`hon-${nivel}-${campo}`]
-                          ? "border-danger"
-                          : "border-secondary"
-                      }`}
-                      value={valor}
-                      onChange={(e) =>
-                        handleChange("honorarios_medicos", nivel, campo, e.target.value)
-                      }
-                    />
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {Object.entries(editBuffer.honorarios_medicos || {}).map(([nivel, h]) => (
+            <tr key={nivel}>
+              <td>{nivel}</td>
+              {Object.entries(h || {}).map(([campo, valor]) => (
+                <td key={campo}>
+                  <input
+                    className={`${styles.input} ${
+                      errores[`hon-${nivel}-${campo}`] ? styles.errorInput : ""
+                    }`}
+                    value={valor}
+                    onChange={(e) =>
+                      handleChange("honorarios_medicos", nivel, campo, e.target.value)
+                    }
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
 
-      <div className="d-flex justify-content-end gap-2 mt-3">
-        <button className="btn btn-outline-secondary" onClick={handleCancelar}>
+      <div className={styles.editorActions}>
+        <button className={styles.btnSecondary} onClick={handleCancelar}>
           ❌ Cancelar
         </button>
-        <button className="btn btn-success" onClick={handleGuardar} disabled={guardando}>
-          💾 {guardando ? "Guardando..." : "Guardar y cerrar"}
+        <button
+          className={styles.btnPrimary}
+          onClick={handleGuardar}
+          disabled={guardando}
+        >
+          💾 {guardando ? "Guardando..." : "Guardar"}
         </button>
       </div>
     </div>

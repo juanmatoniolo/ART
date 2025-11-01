@@ -26,6 +26,15 @@ input,
 button {
   font-family: inherit;
 }
+:global(:root) {
+  --bg-dark: #0b1220;
+  --bg-content: #1a1f2c;
+  --text-light: #f1f5f9;
+  --color-primary: #44794d;
+  --color-primary-light: #6fa17b;
+  --color-danger: #ef4444;
+  --color-warning: #facc15;
+}
 
 /* === COLORES INSTITUCIONALES === */
 :root {
