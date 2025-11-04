@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import { useState, useEffect } from "react";
 import {
   crearConvenio,
@@ -47,20 +47,30 @@ export default function ConveniosAdmin() {
   /* === Editar === */
   const handleEditar = (nombre) => {
     const data = convenios[nombre];
-    if (!data)
-      return setMensaje("⚠️ Este convenio no tiene datos todavía.");
+    if (!data) return setMensaje("⚠️ Este convenio no tiene datos todavía.");
 
-    // Asegurar que las claves existan
+    // 🔹 Convertir claves con '_' → ' ' para mostrar bonito en pantalla
+    const mostrarBonito = (obj) => {
+      if (!obj || typeof obj !== "object") return obj;
+      const result = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const displayKey = key.replace(/_/g, " ");
+        result[displayKey] =
+          typeof value === "object" ? mostrarBonito(value) : value;
+      }
+      return result;
+    };
+
     setEditBuffer({
-      valores_generales: { ...(data.valores_generales || {}) },
+      valores_generales: mostrarBonito(data.valores_generales || {}),
       honorarios_medicos: [...(data.honorarios_medicos || [null])],
     });
+
     setActivo(nombre);
     setErrores({});
   };
 
   const handleCancelar = () => setModalConfirmarCancelar(true);
-
   const confirmarCancelar = () => {
     setActivo(null);
     setEditBuffer({});
@@ -72,7 +82,6 @@ export default function ConveniosAdmin() {
   const handleChange = (tipo, clave, campo, valor) => {
     setEditBuffer((prev) => {
       const updated = structuredClone(prev);
-
       if (tipo === "valores_generales") {
         updated.valores_generales[clave] = valor;
       } else if (tipo === "honorarios_medicos") {
@@ -111,10 +120,10 @@ export default function ConveniosAdmin() {
     for (const [clave, valor] of Object.entries(editBuffer.valores_generales || {}))
       if (valor === "" || valor === null) nuevosErrores[`val-${clave}`] = true;
     setErrores(nuevosErrores);
-    return true; // ✅ permitimos guardar aunque falten campos
+    return true;
   };
 
-  /* === Guardar (fusiona datos, no reemplaza) === */
+  /* === Guardar con normalización === */
   const handleGuardar = () => {
     if (!validarCampos()) {
       setMensaje("⚠️ Revisá los campos antes de guardar.");
@@ -123,78 +132,88 @@ export default function ConveniosAdmin() {
     setModalConfirmarGuardar(true);
   };
 
-const confirmarGuardar = async () => {
-  if (!activo) return;
-  setGuardando(true);
+  const confirmarGuardar = async () => {
+    if (!activo) return;
+    setGuardando(true);
 
-  try {
-    const convenioRef = ref(db, `convenios/${activo}`);
-    const snap = await get(convenioRef);
-    const currentData = snap.exists() ? snap.val() : {};
+    try {
+      const convenioRef = ref(db, `convenios/${activo}`);
+      const snap = await get(convenioRef);
+      const currentData = snap.exists() ? snap.val() : {};
 
-    // 🔹 Fusionar datos existentes con los nuevos
-    const merged = {
-      valores_generales: {
-        ...(currentData.valores_generales || {}),
-        ...(editBuffer.valores_generales || {}),
-      },
-      honorarios_medicos: editBuffer.honorarios_medicos?.length
-        ? editBuffer.honorarios_medicos
-        : currentData.honorarios_medicos || [null],
-    };
-
-    // 🔹 Limpieza recursiva: elimina undefined / null / vacío
-    const cleanData = (obj) => {
-      if (Array.isArray(obj)) {
-        return obj
-          .map((item) => cleanData(item))
-          .filter((item) => item !== undefined && item !== null);
-      } else if (obj && typeof obj === "object") {
-        const cleaned = {};
-        for (const [key, value] of Object.entries(obj)) {
-          const cleanedValue = cleanData(value);
-          if (cleanedValue !== undefined && cleanedValue !== null && cleanedValue !== "")
-            cleaned[key] = cleanedValue;
+      // 🔹 Reemplazar espacios por guiones bajos antes de guardar
+      const normalizarClaves = (obj) => {
+        if (Array.isArray(obj)) return obj.map(normalizarClaves);
+        if (obj && typeof obj === "object") {
+          const res = {};
+          for (const [k, v] of Object.entries(obj)) {
+            const safeKey = k.replace(/\s+/g, "_"); // ← convierte “Bonito Nombre” → “Bonito_Nombre”
+            res[safeKey] = normalizarClaves(v);
+          }
+          return res;
         }
-        return cleaned;
-      }
-      return obj;
-    };
+        return obj;
+      };
 
-    // 🔹 Sanitiza las claves inválidas para Firebase
-    const sanitizeKeys = (obj) => {
-      if (Array.isArray(obj)) return obj.map(sanitizeKeys);
-      if (obj && typeof obj === "object") {
-        const cleaned = {};
-        for (const [key, value] of Object.entries(obj)) {
-          // ⚠️ Reemplazar caracteres prohibidos: ".", "#", "$", "/", "[", "]"
-          const safeKey = key.replace(/[.#$/[\]]/g, "_").replace(/\//g, " ");
-          cleaned[safeKey] = sanitizeKeys(value);
+      // 🔹 Fusionar y limpiar
+      const merged = {
+        valores_generales: {
+          ...(currentData.valores_generales || {}),
+          ...(normalizarClaves(editBuffer.valores_generales || {})),
+        },
+        honorarios_medicos: editBuffer.honorarios_medicos?.length
+          ? editBuffer.honorarios_medicos
+          : currentData.honorarios_medicos || [null],
+      };
+
+      const cleanData = (obj) => {
+        if (Array.isArray(obj)) {
+          return obj
+            .map((item) => cleanData(item))
+            .filter((item) => item !== undefined && item !== null);
+        } else if (obj && typeof obj === "object") {
+          const cleaned = {};
+          for (const [key, value] of Object.entries(obj)) {
+            const cleanedValue = cleanData(value);
+            if (cleanedValue !== undefined && cleanedValue !== null && cleanedValue !== "")
+              cleaned[key] = cleanedValue;
+          }
+          return cleaned;
         }
-        return cleaned;
-      }
-      return obj;
-    };
+        return obj;
+      };
 
-    const sanitized = sanitizeKeys(cleanData(merged));
+      // 🔹 Sanitiza claves para Firebase
+      const sanitizeKeys = (obj) => {
+        if (Array.isArray(obj)) return obj.map(sanitizeKeys);
+        if (obj && typeof obj === "object") {
+          const cleaned = {};
+          for (const [key, value] of Object.entries(obj)) {
+            const safeKey = key.replace(/[.#$/[\]]/g, "_").replace(/\//g, "_");
+            cleaned[safeKey] = sanitizeKeys(value);
+          }
+          return cleaned;
+        }
+        return obj;
+      };
 
-    await set(convenioRef, sanitized);
+      const sanitized = sanitizeKeys(cleanData(merged));
+      await set(convenioRef, sanitized);
 
-    setMensaje("✅ Convenio actualizado correctamente.");
-    setTimeout(() => {
-      setActivo(null);
-      setEditBuffer({});
-    }, 600);
-  } catch (err) {
-    console.error(err);
-    setMensaje("❌ Error al guardar los datos.");
-  } finally {
-    setGuardando(false);
-    setModalConfirmarGuardar(false);
-    setTimeout(() => setMensaje(""), 3000);
-  }
-};
-
+      setMensaje("✅ Convenio actualizado correctamente.");
+      setTimeout(() => {
+        setActivo(null);
+        setEditBuffer({});
+      }, 600);
+    } catch (err) {
+      console.error(err);
+      setMensaje("❌ Error al guardar los datos.");
+    } finally {
+      setGuardando(false);
+      setModalConfirmarGuardar(false);
+      setTimeout(() => setMensaje(""), 3000);
+    }
+  };
 
   /* === Eliminar === */
   const confirmarEliminar = async () => {
@@ -217,6 +236,7 @@ const confirmarGuardar = async () => {
     setMensaje("✅ Convenio renombrado correctamente.");
     setTimeout(() => setMensaje(""), 3000);
   };
+
 
   /* === Render === */
   return (

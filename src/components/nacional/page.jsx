@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useMemo, useState } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
@@ -115,8 +116,19 @@ export default function NomencladorNacional() {
     if (!convenioSel || !convenios[convenioSel]) return;
 
     const vg = convenios[convenioSel]?.valores_generales || {};
-    const gastoRaw = vg['Gasto Rx'] ?? vg['Gastos Rx'];
-    const galenoRaw = vg['Galeno Rx Practica'] ?? vg['Galeno Rx y Practica'];
+
+    // 🔹 Soporta tanto claves con espacios como con guiones bajos
+    const gastoRaw =
+      vg['Gasto_Rx'] ??
+      vg['Gastos_Rx'] ??
+      vg['Gasto Rx'] ??
+      vg['Gastos Rx'];
+
+    const galenoRaw =
+      vg['Galeno_Rx_Practica'] ??
+      vg['Galeno_Rx_y_Practica'] ??
+      vg['Galeno Rx Practica'] ??
+      vg['Galeno Rx y Practica'];
 
     let updated = false;
 

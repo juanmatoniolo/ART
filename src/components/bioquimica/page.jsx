@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
+/* === Utils === */
 const normalize = (s) =>
     (s ?? '')
         .toString()
@@ -52,6 +53,7 @@ export default function NomencladorBioquimica() {
     const [convenioSel, setConvenioSel] = useState('');
     const [error, setError] = useState(null);
 
+    /* === Cargar JSON local (Nomenclador) === */
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -67,18 +69,30 @@ export default function NomencladorBioquimica() {
         loadData();
     }, []);
 
+    /* === Leer convenios desde Firebase === */
     useEffect(() => {
         const conveniosRef = ref(db, 'convenios');
         const unsub = onValue(conveniosRef, (snap) => {
             const val = snap.exists() ? snap.val() : {};
-            setConvenios(val);
+
+            // 🔹 Limpia claves con espacios o caracteres extraños
+            const normalizado = Object.keys(val).reduce((acc, key) => {
+                const cleanKey = key.trim();
+                acc[cleanKey] = val[key];
+                return acc;
+            }, {});
+
+            setConvenios(normalizado);
+
             const stored = localStorage.getItem('convenioActivo');
-            const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
+            const elegir =
+                stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
             setConvenioSel(elegir);
         });
         return () => unsub();
     }, []);
 
+    /* === Detectar valor UB del convenio activo === */
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setValorUB(0);
@@ -86,7 +100,18 @@ export default function NomencladorBioquimica() {
         }
 
         const vg = convenios[convenioSel]?.valores_generales || {};
-        const keysPosibles = ['Laboratorios NBU T', 'Laboratorios NBU', 'Laboratorios NBU_T'];
+
+        // 🔹 Acepta claves con guiones bajos o espacios
+        const keysPosibles = [
+            'Laboratorios_NBU_T',
+            'Laboratorios_NBU',
+            'Laboratorios NBU T',
+            'Laboratorios NBU',
+            'UB',
+            'Unidad_Bioquimica',
+            'Unidad Bioquimica'
+        ];
+
         let nbu = 0;
 
         for (const k of keysPosibles) {
@@ -95,20 +120,27 @@ export default function NomencladorBioquimica() {
                 break;
             }
         }
-        if (nbu > 0 && nbu < 100) nbu *= 1000;
+
+        // ✅ Eliminado el escalado por 1000
+        // Si el valor es decimal (ej. 1.22) no se multiplica automáticamente
+
         if (nbu > 0) setValorUB(nbu);
     }, [convenioSel, convenios]);
 
+    /* === Filtrado y búsqueda === */
     const practicasFiltradas = useMemo(() => {
         if (!data?.practicas) return [];
         const practicas = data.practicas;
         const q = filtro.trim();
+
         if (!q && !soloUrgencia) return practicas;
+
+        const filtroUrg = (p) => !soloUrgencia || p.urgencia === true || p.urgencia === 'U';
 
         const exact = practicas.filter(
             (p) =>
                 normalize(`${p.codigo} ${p.practica_bioquimica}`).includes(normalize(q)) &&
-                (!soloUrgencia || p.urgencia === true || p.urgencia === 'U')
+                filtroUrg(p)
         );
 
         const fuse = new Fuse(practicas, {
@@ -116,12 +148,11 @@ export default function NomencladorBioquimica() {
             threshold: 0.3,
             ignoreLocation: true,
         });
+
         const fuzzy = fuse
             .search(q)
             .map((r) => r.item)
-            .filter(
-                (p) => (!soloUrgencia || p.urgencia === true || p.urgencia === 'U') && !exact.includes(p)
-            );
+            .filter((p) => filtroUrg(p) && !exact.includes(p));
 
         return [...exact, ...fuzzy];
     }, [filtro, soloUrgencia, data]);
@@ -142,6 +173,7 @@ export default function NomencladorBioquimica() {
 
     const valorPorDefecto = data.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
 
+    /* === Render === */
     return (
         <div className={styles.wrapper}>
             <div className={styles.header}>

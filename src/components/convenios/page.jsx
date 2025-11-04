@@ -44,6 +44,13 @@ const money = (n) => {
     });
 };
 
+// 🔹 Normaliza las claves para eliminar espacios y guiones bajos de forma legible
+const formatKey = (key) =>
+    key
+        .replaceAll('_', ' ')
+        .replace(/\b([a-z])/g, (c) => c.toUpperCase()) // Primera letra mayúscula
+        .trim();
+
 export default function PrestadoresART() {
     const [convenios, setConvenios] = useState({});
     const [convenioSel, setConvenioSel] = useState('');
@@ -51,20 +58,31 @@ export default function PrestadoresART() {
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
+    // === LECTURA DE CONVENIOS ===
     useEffect(() => {
         const conveniosRef = ref(db, 'convenios');
         const unsubscribe = onValue(conveniosRef, (snapshot) => {
             const val = snapshot.exists() ? snapshot.val() : {};
-            setConvenios(val);
+
+            // 🔸 Limpieza de claves
+            const normalizado = Object.keys(val).reduce((acc, k) => {
+                const clean = k.trim();
+                acc[clean] = val[k];
+                return acc;
+            }, {});
+
+            setConvenios(normalizado);
 
             const stored = localStorage.getItem('convenioActivo');
-            const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
+            const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
             setConvenioSel(elegir);
             setLoading(false);
         });
+
         return () => unsubscribe();
     }, []);
 
+    // === CARGA DEL CONVENIO SELECCIONADO ===
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setData(null);
@@ -75,6 +93,7 @@ export default function PrestadoresART() {
         localStorage.setItem('convenioActivo', convenioSel);
     }, [convenioSel, convenios]);
 
+    // === CÁLCULOS DE VALORES ===
     const calcularValor = (base, expresion) => {
         if (typeof base !== 'number') return expresion;
         if (typeof expresion === 'number') return `$${money(expresion)}`;
@@ -94,10 +113,12 @@ export default function PrestadoresART() {
         return expresion;
     };
 
+    // === FILTRO Y BÚSQUEDA ===
     const resultados = useMemo(() => {
         if (!data?.valores_generales) return [];
         const valores = Object.entries(data.valores_generales);
         const q = query.trim();
+
         if (!q) return valores.map(([key, val]) => ({ key, val, exact: false }));
 
         const exactMatches = valores
@@ -167,6 +188,7 @@ export default function PrestadoresART() {
                 onChange={(e) => setQuery(e.target.value)}
             />
 
+            {/* === Tabla de valores generales === */}
             <div className={styles.tableWrapper}>
                 <table className={styles.table}>
                     <thead>
@@ -179,7 +201,7 @@ export default function PrestadoresART() {
                         {resultados.length > 0 ? (
                             resultados.map(({ key, val, exact }, i) => (
                                 <tr key={i} className={exact ? styles.exactRow : ''}>
-                                    <td>{highlight(key.replaceAll('_', ' '), query)}</td>
+                                    <td>{highlight(formatKey(key), query)}</td>
                                     <td className={styles.numeric}>
                                         {highlight(money(val?.toString() || '-'), query)}
                                     </td>
@@ -196,6 +218,7 @@ export default function PrestadoresART() {
                 </table>
             </div>
 
+            {/* === Honorarios Médicos === */}
             {data.honorarios_medicos && (
                 <>
                     <h5 className={styles.sectionTitle}>👨‍⚕️ Honorarios Médicos</h5>
@@ -212,10 +235,10 @@ export default function PrestadoresART() {
                             <tbody>
                                 {Object.entries(data.honorarios_medicos).map(([nivel, h], i) => (
                                     <tr key={i}>
-                                        <td>{nivel}</td>
+                                        <td>{formatKey(nivel)}</td>
                                         <td>{money(h.Cirujano)}</td>
-                                        <td>{calcularValor(h.Cirujano, h['Ayudante 1'])}</td>
-                                        <td>{calcularValor(h.Cirujano, h['Ayudante 2'])}</td>
+                                        <td>{calcularValor(h.Cirujano, h['Ayudante_1'] || h['Ayudante 1'])}</td>
+                                        <td>{calcularValor(h.Cirujano, h['Ayudante_2'] || h['Ayudante 2'])}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -224,13 +247,14 @@ export default function PrestadoresART() {
                 </>
             )}
 
+            {/* === Condiciones === */}
             {data.condiciones && (
                 <>
                     <h5 className={styles.sectionTitle}>📋 Condiciones del Convenio</h5>
                     <ul className={styles.condiciones}>
                         {Object.entries(data.condiciones).map(([key, value]) => (
                             <li key={key}>
-                                <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
+                                <strong>{formatKey(key)}:</strong> {value}
                             </li>
                         ))}
                     </ul>
@@ -239,10 +263,8 @@ export default function PrestadoresART() {
 
             <footer className={styles.footer}>
                 <p>
-                    <span className={styles.firma}>
-                        {data.firma?.entidad || 'Clínica de la Unión'}
-                    </span>{' '}
-                    — CUIT: {data.firma?.CUIT || '30-70754530-1'}
+                    <span className={styles.firma}>{data.firma?.entidad || 'Clínica de la Unión'}</span> — CUIT:{' '}
+                    {data.firma?.CUIT || '30-70754530-1'}
                 </p>
             </footer>
         </div>

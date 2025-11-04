@@ -13,46 +13,37 @@ const parseNumber = (val) =>
     : parseFloat(String(val).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
 
 const money = (n) =>
-  isNaN(n)
-    ? '—'
-    : `$${n.toLocaleString('es-AR', {
+  typeof n === 'number' && !isNaN(n)
+    ? `$${n.toLocaleString('es-AR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      })}`;
+      })}`
+    : '—';
 
 const normalize = (s) =>
   (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-/* 🚀 Nueva función para eliminar puntos, guiones, espacios, etc. */
-const normalizeCode = (s) =>
-  normalize(s)
-    .replace(/[\s\-.]/g, '') // borra espacios, puntos y guiones
-    .trim();
+/* 👇 No eliminamos símbolos, solo espacios */
+const normalizeCode = (s) => normalize(s).replace(/\s+/g, '').trim();
 
+/* 🔍 Resalta TODAS las coincidencias en el texto */
 const highlight = (text, q) => {
-  if (!text) return '';
-  if (!q) return text;
+  if (!text || !q) return text;
 
-  const query = normalizeCode(q);
-  const target = normalizeCode(text);
+  const regex = new RegExp(`(${q})`, 'gi');
+  const parts = text.split(regex);
 
-  const idx = target.indexOf(query);
-  if (idx === -1) return text;
-
-  const before = text.slice(0, idx);
-  const match = text.slice(idx, idx + q.length);
-  const after = text.slice(idx + q.length);
-
-  return (
-    <>
-      {before}
-      <mark className={styles.highlight}>{match}</mark>
-      {after}
-    </>
+  return parts.map((part, i) =>
+    part.toLowerCase() === q.toLowerCase() ? (
+      <mark key={i} className={styles.highlight}>
+        {part}
+      </mark>
+    ) : (
+      part
+    )
   );
 };
 
-/* === Componente principal === */
 export default function AOTER() {
   const [data, setData] = useState([]);
   const [convenios, setConvenios] = useState({});
@@ -114,7 +105,7 @@ export default function AOTER() {
     loadJSON();
   }, []);
 
-  /* === 2️⃣ Cargar convenios === */
+  /* === 2️⃣ Cargar convenios desde Firebase === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const unsub = onValue(conveniosRef, (snap) => {
@@ -127,20 +118,18 @@ export default function AOTER() {
     return () => unsub();
   }, []);
 
-  /* === 3️⃣ Procesar honorarios === */
+  /* === 3️⃣ Procesar honorarios con campos con "_" === */
   const honorariosConvenio = useMemo(() => {
     const conv = convenios[convenioSel];
     const niveles = conv?.honorarios_medicos;
 
     if (Array.isArray(niveles)) {
-      return niveles
-        .map((n, i) => ({
-          nivel: i,
-          cirujano: parseNumber(n.Cirujano),
-          ayudante1: parseNumber(n['Ayudante 1']),
-          ayudante2: parseNumber(n['Ayudante 2']),
-        }))
-        .filter(Boolean);
+      return niveles.map((n, i) => ({
+        nivel: i,
+        cirujano: parseNumber(n.Cirujano),
+        ayudante1: parseNumber(n.Ayudante_1 || n['Ayudante 1']),
+        ayudante2: parseNumber(n.Ayudante_2 || n['Ayudante 2']),
+      }));
     }
     return [];
   }, [convenios, convenioSel]);
@@ -167,31 +156,47 @@ export default function AOTER() {
     );
   }, [data]);
 
-  /* === 5️⃣ Buscador compatible con “ms0201” === */
+  /* === 5️⃣ Buscador mejorado con orden de relevancia === */
   const resultados = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
 
     const qNorm = normalizeCode(q);
+    const qNormLower = normalize(q);
 
-    // 🔹 Exact match sin puntos
-    const exact = allPractices.filter(
-      (p) =>
-        p.codigoNormalizado.includes(qNorm) ||
-        p.descripcionNormalizada.includes(normalize(q)) ||
-        normalize(p.region_nombre).includes(normalize(q))
-    );
+    const exact = allPractices
+      .filter((p) => {
+        const codigoNorm = normalizeCode(p.codigo);
+        const descNorm = normalize(p.descripcion);
+        const regionNorm = normalize(p.region_nombre);
 
-    // 🔹 Fuzzy match (difuso)
+        return (
+          codigoNorm.startsWith(qNorm) ||
+          codigoNorm.includes(qNorm) ||
+          descNorm.includes(qNormLower) ||
+          regionNorm.includes(qNormLower)
+        );
+      })
+      // 🔹 Ordenar: primero los que empiezan con el código, luego los demás
+      .sort((a, b) => {
+        const aStarts = normalizeCode(a.codigo).startsWith(qNorm) ? 0 : 1;
+        const bStarts = normalizeCode(b.codigo).startsWith(qNorm) ? 0 : 1;
+        return aStarts - bStarts;
+      });
+
     const fuse = new Fuse(allPractices, {
-      keys: ['codigoNormalizado', 'descripcionNormalizada', 'region_nombre'],
-      threshold: 0.3,
+      keys: [
+        { name: 'codigoNormalizado', weight: 0.6 },
+        { name: 'descripcionNormalizada', weight: 0.35 },
+        { name: 'region_nombre', weight: 0.05 },
+      ],
+      threshold: 0.2,
+      distance: 80,
       ignoreLocation: true,
     });
 
     const fuzzy = fuse.search(qNorm).map((r) => r.item);
 
-    // Eliminar duplicados
     const seen = new Set();
     return [...exact, ...fuzzy].filter((p) => {
       if (seen.has(p.codigo)) return false;
@@ -200,6 +205,7 @@ export default function AOTER() {
     });
   }, [query, allPractices]);
 
+  /* === Render === */
   if (loading)
     return (
       <div className={styles.wrapper}>
@@ -242,7 +248,7 @@ export default function AOTER() {
           <input
             type="text"
             className={styles.input}
-            placeholder="Buscar código o descripción (ej: MS0201)"
+            placeholder="Buscar código o descripción (ej: R0, MS0201, artroscopia...)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
