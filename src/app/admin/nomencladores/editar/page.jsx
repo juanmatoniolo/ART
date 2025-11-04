@@ -1,4 +1,5 @@
-'use client';
+"use client";
+
 import { useState, useEffect } from "react";
 import {
   crearConvenio,
@@ -25,22 +26,85 @@ export default function ConveniosAdmin() {
   const [modalConfirmarCancelar, setModalConfirmarCancelar] = useState(false);
   const [nuevoNombreConvenio, setNuevoNombreConvenio] = useState("");
 
+  /* ========= Helpers ========= */
+
+  // Mostrar en frontend: "_" -> " "
+  const prettyKeys = (obj) => {
+    if (!obj || typeof obj !== "object") return obj;
+    const out = Array.isArray(obj) ? [] : {};
+    for (const [k, v] of Object.entries(obj)) {
+      const pk = Array.isArray(obj) ? k : k.replace(/_/g, " ");
+      out[pk] = typeof v === "object" ? prettyKeys(v) : v;
+    }
+    return out;
+  };
+
+  // Guardar en Firebase: " " -> "_"
+  const normalizeKeys = (obj) => {
+    if (Array.isArray(obj)) return obj.map(normalizeKeys);
+    if (obj && typeof obj === "object") {
+      const res = {};
+      for (const [k, v] of Object.entries(obj)) {
+        const safeKey = k.trim().replace(/\s+/g, "_");
+        res[safeKey] = normalizeKeys(v);
+      }
+      return res;
+    }
+    return obj;
+  };
+
+  // Quitar undefined/null/objetos vacíos y elementos vacíos en arrays
+  const cleanData = (obj) => {
+    const isEmptyObject = (o) =>
+      o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === 0;
+
+    if (Array.isArray(obj)) {
+      return obj
+        .map((it) => cleanData(it))
+        .filter((it) => it !== undefined && it !== null && !(typeof it === "object" && !Array.isArray(it) && Object.keys(it).length === 0));
+    }
+    if (obj && typeof obj === "object") {
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        const cv = cleanData(v);
+        if (cv !== undefined && cv !== null && !isEmptyObject(cv)) out[k] = cv;
+      }
+      return out;
+    }
+    return obj;
+  };
+
+  // Claves válidas en Firebase
+  const sanitizeKeys = (obj) => {
+    if (Array.isArray(obj)) return obj.map(sanitizeKeys);
+    if (obj && typeof obj === "object") {
+      const cleaned = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const safeKey = key.replace(/[.#$/[\]]/g, "_").replace(/\//g, "_");
+        cleaned[safeKey] = sanitizeKeys(value);
+      }
+      return cleaned;
+    }
+    return obj;
+  };
+
   /* === Escuchar convenios === */
   useEffect(() => {
     escucharConvenios(setConvenios);
   }, []);
 
-  /* === Crear nuevo convenio === */
+  /* === Crear nuevo convenio (espacios → _) === */
   const handleCrear = () => {
     if (!nuevoNombre.trim()) return setMensaje("⚠️ Ingresá un nombre válido.");
     setModalConfirmarCrear(true);
   };
 
   const confirmarCrear = async () => {
-    await crearConvenio(nuevoNombre.trim());
+    const safeName = nuevoNombre.trim().replace(/\s+/g, "_");
+    await crearConvenio(safeName);
     setNuevoNombre("");
     setModalConfirmarCrear(false);
-    setMensaje("✅ Convenio creado correctamente.");
+    setMensaje(`✅ Convenio "${safeName}" creado correctamente.`);
     setTimeout(() => setMensaje(""), 3000);
   };
 
@@ -49,21 +113,12 @@ export default function ConveniosAdmin() {
     const data = convenios[nombre];
     if (!data) return setMensaje("⚠️ Este convenio no tiene datos todavía.");
 
-    // 🔹 Convertir claves con '_' → ' ' para mostrar bonito en pantalla
-    const mostrarBonito = (obj) => {
-      if (!obj || typeof obj !== "object") return obj;
-      const result = {};
-      for (const [key, value] of Object.entries(obj)) {
-        const displayKey = key.replace(/_/g, " ");
-        result[displayKey] =
-          typeof value === "object" ? mostrarBonito(value) : value;
-      }
-      return result;
-    };
-
     setEditBuffer({
-      valores_generales: mostrarBonito(data.valores_generales || {}),
-      honorarios_medicos: [...(data.honorarios_medicos || [null])],
+      valores_generales: prettyKeys(data.valores_generales || {}),
+      // NUNCA [null]; siempre array limpio
+      honorarios_medicos: Array.isArray(data.honorarios_medicos)
+        ? data.honorarios_medicos
+        : [],
     });
 
     setActivo(nombre);
@@ -82,34 +137,48 @@ export default function ConveniosAdmin() {
   const handleChange = (tipo, clave, campo, valor) => {
     setEditBuffer((prev) => {
       const updated = structuredClone(prev);
+
       if (tipo === "valores_generales") {
+        // clave viene "bonita" (con espacios) en pantalla
         updated.valores_generales[clave] = valor;
       } else if (tipo === "honorarios_medicos") {
-        if (!updated.honorarios_medicos[clave])
-          updated.honorarios_medicos[clave] = {};
-        updated.honorarios_medicos[clave][campo] = valor;
+        if (!Array.isArray(updated.honorarios_medicos))
+          updated.honorarios_medicos = [];
+        const idx = Number(clave); // clave es índice
+        if (!updated.honorarios_medicos[idx]) updated.honorarios_medicos[idx] = {};
+        updated.honorarios_medicos[idx][campo] = valor;
       }
       return updated;
     });
   };
 
-  /* === Prácticas === */
+  /* === Agregar y eliminar prácticas === */
   const handleAgregarPractica = () => {
     if (!nuevaPractica.nombre.trim()) return;
+
+    // Guardamos la clave en el buffer *como se mostrará* (con espacios o con _?)
+    // Para mantener consistencia visual en el editor mostramos con espacios,
+    // pero acá ya las agregamos con "_" para no mezclar al render.
+    const safeKey = nuevaPractica.nombre.trim().replace(/\s+/g, "_");
+
     setEditBuffer((prev) => ({
       ...prev,
       valores_generales: {
         ...prev.valores_generales,
-        [nuevaPractica.nombre]: nuevaPractica.valor,
+        [safeKey]: nuevaPractica.valor,
       },
     }));
+
     setNuevaPractica({ nombre: "", valor: "" });
   };
 
-  const handleEliminarPractica = (nombre) => {
+  const handleEliminarPractica = (nombreMostrado) => {
     setEditBuffer((prev) => {
       const nuevo = structuredClone(prev);
-      delete nuevo.valores_generales[nombre];
+      delete nuevo.valores_generales[nombreMostrado];
+      // por si vino "bonito", intentamos también borrar la versión con "_"
+      const alt = nombreMostrado.replace(/\s+/g, "_");
+      delete nuevo.valores_generales[alt];
       return nuevo;
     });
   };
@@ -123,7 +192,7 @@ export default function ConveniosAdmin() {
     return true;
   };
 
-  /* === Guardar con normalización === */
+  /* === Guardar === */
   const handleGuardar = () => {
     if (!validarCampos()) {
       setMensaje("⚠️ Revisá los campos antes de guardar.");
@@ -141,64 +210,44 @@ export default function ConveniosAdmin() {
       const snap = await get(convenioRef);
       const currentData = snap.exists() ? snap.val() : {};
 
-      // 🔹 Reemplazar espacios por guiones bajos antes de guardar
-      const normalizarClaves = (obj) => {
-        if (Array.isArray(obj)) return obj.map(normalizarClaves);
-        if (obj && typeof obj === "object") {
-          const res = {};
-          for (const [k, v] of Object.entries(obj)) {
-            const safeKey = k.replace(/\s+/g, "_"); // ← convierte “Bonito Nombre” → “Bonito_Nombre”
-            res[safeKey] = normalizarClaves(v);
-          }
-          return res;
-        }
-        return obj;
-      };
+      // 1) normalizar claves de valores_generales (espacios -> "_")
+      const nuevosGenerales = normalizeKeys(editBuffer.valores_generales || {});
 
-      // 🔹 Fusionar y limpiar
+      // 2) borrar en current lo que ya no esté en el buffer
+      const mergedGenerales = { ...(currentData.valores_generales || {}) };
+      for (const key in mergedGenerales) {
+        if (!(key in nuevosGenerales)) delete mergedGenerales[key];
+      }
+
+      // 3) preparar honorarios: array limpio SIN undefined/null/objetos vacíos
+      const honorariosLimpios = cleanData(
+        Array.isArray(editBuffer.honorarios_medicos)
+          ? editBuffer.honorarios_medicos
+          : []
+      ).map((h) => {
+        // forzar nombres de campos correctos con "_"
+        const out = {};
+        if (h?.Cirujano !== undefined && h.Cirujano !== "") out.Cirujano = h.Cirujano;
+        const a1 = h?.Ayudante_1 ?? h?.["Ayudante 1"];
+        const a2 = h?.Ayudante_2 ?? h?.["Ayudante 2"];
+        if (a1 !== undefined && a1 !== "") out.Ayudante_1 = a1;
+        if (a2 !== undefined && a2 !== "") out.Ayudante_2 = a2;
+        return out;
+      }).filter((obj) => Object.keys(obj).length > 0);
+
+      // 4) merge final
       const merged = {
         valores_generales: {
-          ...(currentData.valores_generales || {}),
-          ...(normalizarClaves(editBuffer.valores_generales || {})),
+          ...mergedGenerales,
+          ...nuevosGenerales,
         },
-        honorarios_medicos: editBuffer.honorarios_medicos?.length
-          ? editBuffer.honorarios_medicos
-          : currentData.honorarios_medicos || [null],
+        honorarios_medicos: honorariosLimpios,
       };
 
-      const cleanData = (obj) => {
-        if (Array.isArray(obj)) {
-          return obj
-            .map((item) => cleanData(item))
-            .filter((item) => item !== undefined && item !== null);
-        } else if (obj && typeof obj === "object") {
-          const cleaned = {};
-          for (const [key, value] of Object.entries(obj)) {
-            const cleanedValue = cleanData(value);
-            if (cleanedValue !== undefined && cleanedValue !== null && cleanedValue !== "")
-              cleaned[key] = cleanedValue;
-          }
-          return cleaned;
-        }
-        return obj;
-      };
+      // 5) limpieza total + sanitización de claves (Firebase-safe)
+      const payload = sanitizeKeys(cleanData(merged));
 
-      // 🔹 Sanitiza claves para Firebase
-      const sanitizeKeys = (obj) => {
-        if (Array.isArray(obj)) return obj.map(sanitizeKeys);
-        if (obj && typeof obj === "object") {
-          const cleaned = {};
-          for (const [key, value] of Object.entries(obj)) {
-            const safeKey = key.replace(/[.#$/[\]]/g, "_").replace(/\//g, "_");
-            cleaned[safeKey] = sanitizeKeys(value);
-          }
-          return cleaned;
-        }
-        return obj;
-      };
-
-      const sanitized = sanitizeKeys(cleanData(merged));
-      await set(convenioRef, sanitized);
+      await set(convenioRef, payload);
 
       setMensaje("✅ Convenio actualizado correctamente.");
       setTimeout(() => {
@@ -215,7 +264,7 @@ export default function ConveniosAdmin() {
     }
   };
 
-  /* === Eliminar === */
+  /* === Eliminar convenio === */
   const confirmarEliminar = async () => {
     await eliminarConvenio(modalEliminar);
     setModalEliminar(null);
@@ -229,14 +278,14 @@ export default function ConveniosAdmin() {
     const snap = await get(ref(db, `convenios/${modalRenombrar}`));
     if (!snap.exists()) return alert("Convenio no encontrado");
     const data = snap.val();
-    await set(ref(db, `convenios/${nuevoNombreConvenio}`), data);
+    const safeName = nuevoNombreConvenio.trim().replace(/\s+/g, "_");
+    await set(ref(db, `convenios/${safeName}`), data);
     await remove(ref(db, `convenios/${modalRenombrar}`));
     setModalRenombrar(null);
     setNuevoNombreConvenio("");
     setMensaje("✅ Convenio renombrado correctamente.");
     setTimeout(() => setMensaje(""), 3000);
   };
-
 
   /* === Render === */
   return (
@@ -276,7 +325,7 @@ export default function ConveniosAdmin() {
               const cargado = Object.keys(data.valores_generales || {}).length > 0;
               return (
                 <tr key={nombre}>
-                  <td>{nombre}</td>
+                  <td>{nombre.replace(/_/g, " ")}</td>
                   <td>{cargado ? "🟢 Cargado" : "🟡 Sin datos"}</td>
                   <td className={styles.actions}>
                     <button onClick={() => handleEditar(nombre)}>✏️</button>
@@ -416,7 +465,7 @@ function EditorConvenio({
 
   return (
     <div className={styles.editorCard}>
-      <h4>✏️ Editando: {activo}</h4>
+      <h4>✏️ Editando: {activo.replace(/_/g, " ")}</h4>
 
       <h5>📑 Prácticas</h5>
       <table className={styles.table}>
@@ -430,7 +479,7 @@ function EditorConvenio({
         <tbody>
           {Object.entries(editBuffer.valores_generales || {}).map(([nombre, valor]) => (
             <tr key={nombre}>
-              <td>{nombre}</td>
+              <td>{nombre.replace(/_/g, " ")}</td>
               <td>
                 <input
                   className={`${styles.input} ${errores[`val-${nombre}`] ? styles.errorInput : ""}`}
@@ -485,14 +534,18 @@ function EditorConvenio({
           {Object.entries(editBuffer.honorarios_medicos || {}).map(([nivel, h]) => (
             <tr key={nivel}>
               <td>{nivel}</td>
-              {Object.entries(h || {}).map(([campo, valor]) => (
+              {["Cirujano", "Ayudante_1", "Ayudante_2"].map((campo) => (
                 <td key={campo}>
                   <input
                     className={`${styles.input} ${errores[`hon-${nivel}-${campo}`] ? styles.errorInput : ""}`}
-                    value={valor}
-                    onChange={(e) =>
-                      handleChange("honorarios_medicos", nivel, campo, e.target.value)
+                    value={
+                      campo === "Ayudante_1"
+                        ? h?.Ayudante_1 ?? h?.["Ayudante 1"] ?? ""
+                        : campo === "Ayudante_2"
+                        ? h?.Ayudante_2 ?? h?.["Ayudante 2"] ?? ""
+                        : h?.Cirujano ?? ""
                     }
+                    onChange={(e) => handleChange("honorarios_medicos", nivel, campo, e.target.value)}
                   />
                 </td>
               ))}
