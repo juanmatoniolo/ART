@@ -13,8 +13,9 @@ import {
   Briefcase,
   FileText,
   Library,
-  LogOut,
+  Handshake,
   Settings,
+  LogOut,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -35,7 +36,11 @@ export default function AdminLayout({ children }) {
     router.push('/login');
   };
 
-  const isActive = (href) => pathname?.startsWith(href);
+const isActive = (href) => {
+  // Evita activar el padre si la ruta tiene más profundidad
+  return pathname === href;
+};
+
 
   return (
     <div className={styles.layout}>
@@ -93,8 +98,26 @@ export default function AdminLayout({ children }) {
             href="/admin/nomencladores/editar"
             className={`${styles.menuItem} ${isActive('/admin/nomencladores/editar') ? styles.active : ''}`}
           >
-            <Users size={20} />
+            <Handshake size={20} />
             {!collapsed && <span>Convenios</span>}
+          </Link>
+
+          <div className={styles.sectionTitle}>{!collapsed && 'Utilidades'}</div>
+
+          <Link
+            href="/admin/utilidades"
+            className={`${styles.menuItem} ${isActive('/admin/utilidades') ? styles.active : ''}`}
+          >
+            <Settings size={20} />
+            {!collapsed && <span>Utilidades</span>}
+          </Link>
+
+          <Link
+            href="/admin/med-descartables"
+            className={`${styles.menuItem} ${isActive('/admin/med-descartables') ? styles.active : ''}`}
+          >
+            <Library size={20} />
+            {!collapsed && <span>Med + Descartables</span>}
           </Link>
 
           <div className={styles.sectionTitle}>{!collapsed && 'Usuario'}</div>
@@ -107,7 +130,10 @@ export default function AdminLayout({ children }) {
             {!collapsed && <span>Configuración</span>}
           </button>
 
-          <button className={`${styles.menuItem} ${styles.logoutBtn}`} onClick={cerrarSesion}>
+          <button
+            className={`${styles.menuItem} ${styles.logoutBtn}`}
+            onClick={cerrarSesion}
+          >
             <LogOut size={20} />
             {!collapsed && <span>Cerrar sesión</span>}
           </button>

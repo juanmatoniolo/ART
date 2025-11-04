@@ -46,9 +46,16 @@ export default function ConveniosAdmin() {
 
   /* === Editar === */
   const handleEditar = (nombre) => {
-    if (!convenios[nombre]) return;
+    const data = convenios[nombre];
+    if (!data)
+      return setMensaje("⚠️ Este convenio no tiene datos todavía.");
+
+    // Asegurar que las claves existan
+    setEditBuffer({
+      valores_generales: { ...(data.valores_generales || {}) },
+      honorarios_medicos: [...(data.honorarios_medicos || [null])],
+    });
     setActivo(nombre);
-    setEditBuffer(structuredClone(convenios[nombre]));
     setErrores({});
   };
 
@@ -64,9 +71,15 @@ export default function ConveniosAdmin() {
   /* === Inputs === */
   const handleChange = (tipo, clave, campo, valor) => {
     setEditBuffer((prev) => {
-      const updated = { ...prev };
-      if (tipo === "valores_generales") updated.valores_generales[clave] = valor;
-      else updated.honorarios_medicos[clave][campo] = valor;
+      const updated = structuredClone(prev);
+
+      if (tipo === "valores_generales") {
+        updated.valores_generales[clave] = valor;
+      } else if (tipo === "honorarios_medicos") {
+        if (!updated.honorarios_medicos[clave])
+          updated.honorarios_medicos[clave] = {};
+        updated.honorarios_medicos[clave][campo] = valor;
+      }
       return updated;
     });
   };
@@ -85,9 +98,11 @@ export default function ConveniosAdmin() {
   };
 
   const handleEliminarPractica = (nombre) => {
-    const nuevo = { ...editBuffer };
-    delete nuevo.valores_generales[nombre];
-    setEditBuffer(nuevo);
+    setEditBuffer((prev) => {
+      const nuevo = structuredClone(prev);
+      delete nuevo.valores_generales[nombre];
+      return nuevo;
+    });
   };
 
   /* === Validar === */
@@ -95,44 +110,91 @@ export default function ConveniosAdmin() {
     const nuevosErrores = {};
     for (const [clave, valor] of Object.entries(editBuffer.valores_generales || {}))
       if (valor === "" || valor === null) nuevosErrores[`val-${clave}`] = true;
-    for (const [nivel, h] of Object.entries(editBuffer.honorarios_medicos || {})) {
-      const honorario = h || {};
-      for (const [campo, valor] of Object.entries(honorario))
-        if (valor === "" || valor === null)
-          nuevosErrores[`hon-${nivel}-${campo}`] = true;
-    }
     setErrores(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
+    return true; // ✅ permitimos guardar aunque falten campos
   };
 
-  /* === Guardar === */
+  /* === Guardar (fusiona datos, no reemplaza) === */
   const handleGuardar = () => {
     if (!validarCampos()) {
-      setMensaje("⚠️ Completá todos los campos antes de guardar.");
+      setMensaje("⚠️ Revisá los campos antes de guardar.");
       return;
     }
     setModalConfirmarGuardar(true);
   };
 
-  const confirmarGuardar = async () => {
-    if (!activo) return;
-    setGuardando(true);
-    try {
-      await set(ref(db, `convenios/${activo}`), editBuffer);
-      setMensaje("✅ Convenio guardado correctamente.");
-      setTimeout(() => {
-        setActivo(null);
-        setEditBuffer({});
-      }, 600);
-    } catch (err) {
-      console.error(err);
-      setMensaje("❌ Error al guardar los datos.");
-    } finally {
-      setGuardando(false);
-      setModalConfirmarGuardar(false);
-      setTimeout(() => setMensaje(""), 3000);
-    }
-  };
+const confirmarGuardar = async () => {
+  if (!activo) return;
+  setGuardando(true);
+
+  try {
+    const convenioRef = ref(db, `convenios/${activo}`);
+    const snap = await get(convenioRef);
+    const currentData = snap.exists() ? snap.val() : {};
+
+    // 🔹 Fusionar datos existentes con los nuevos
+    const merged = {
+      valores_generales: {
+        ...(currentData.valores_generales || {}),
+        ...(editBuffer.valores_generales || {}),
+      },
+      honorarios_medicos: editBuffer.honorarios_medicos?.length
+        ? editBuffer.honorarios_medicos
+        : currentData.honorarios_medicos || [null],
+    };
+
+    // 🔹 Limpieza recursiva: elimina undefined / null / vacío
+    const cleanData = (obj) => {
+      if (Array.isArray(obj)) {
+        return obj
+          .map((item) => cleanData(item))
+          .filter((item) => item !== undefined && item !== null);
+      } else if (obj && typeof obj === "object") {
+        const cleaned = {};
+        for (const [key, value] of Object.entries(obj)) {
+          const cleanedValue = cleanData(value);
+          if (cleanedValue !== undefined && cleanedValue !== null && cleanedValue !== "")
+            cleaned[key] = cleanedValue;
+        }
+        return cleaned;
+      }
+      return obj;
+    };
+
+    // 🔹 Sanitiza las claves inválidas para Firebase
+    const sanitizeKeys = (obj) => {
+      if (Array.isArray(obj)) return obj.map(sanitizeKeys);
+      if (obj && typeof obj === "object") {
+        const cleaned = {};
+        for (const [key, value] of Object.entries(obj)) {
+          // ⚠️ Reemplazar caracteres prohibidos: ".", "#", "$", "/", "[", "]"
+          const safeKey = key.replace(/[.#$/[\]]/g, "_").replace(/\//g, " ");
+          cleaned[safeKey] = sanitizeKeys(value);
+        }
+        return cleaned;
+      }
+      return obj;
+    };
+
+    const sanitized = sanitizeKeys(cleanData(merged));
+
+    await set(convenioRef, sanitized);
+
+    setMensaje("✅ Convenio actualizado correctamente.");
+    setTimeout(() => {
+      setActivo(null);
+      setEditBuffer({});
+    }, 600);
+  } catch (err) {
+    console.error(err);
+    setMensaje("❌ Error al guardar los datos.");
+  } finally {
+    setGuardando(false);
+    setModalConfirmarGuardar(false);
+    setTimeout(() => setMensaje(""), 3000);
+  }
+};
+
 
   /* === Eliminar === */
   const confirmarEliminar = async () => {
@@ -191,7 +253,7 @@ export default function ConveniosAdmin() {
               </tr>
             )}
             {Object.entries(convenios).map(([nombre, data]) => {
-              const cargado = Object.values(data.valores_generales || {}).some((v) => v);
+              const cargado = Object.keys(data.valores_generales || {}).length > 0;
               return (
                 <tr key={nombre}>
                   <td>{nombre}</td>
@@ -316,7 +378,7 @@ function Modal({ title, message, onCancel, onConfirm, confirmText, confirmClass 
   );
 }
 
-/* === EDITOR DE CONVENIO === */
+/* === EDITOR === */
 function EditorConvenio({
   activo,
   editBuffer,
@@ -351,20 +413,13 @@ function EditorConvenio({
               <td>{nombre}</td>
               <td>
                 <input
-                  className={`${styles.input} ${
-                    errores[`val-${nombre}`] ? styles.errorInput : ""
-                  }`}
+                  className={`${styles.input} ${errores[`val-${nombre}`] ? styles.errorInput : ""}`}
                   value={valor}
-                  onChange={(e) =>
-                    handleChange("valores_generales", nombre, "", e.target.value)
-                  }
+                  onChange={(e) => handleChange("valores_generales", nombre, "", e.target.value)}
                 />
               </td>
               <td>
-                <button
-                  className={styles.btnDanger}
-                  onClick={() => handleEliminarPractica(nombre)}
-                >
+                <button className={styles.btnDanger} onClick={() => handleEliminarPractica(nombre)}>
                   🗑️
                 </button>
               </td>
@@ -376,9 +431,7 @@ function EditorConvenio({
                 className={styles.input}
                 placeholder="Nueva práctica"
                 value={nuevaPractica.nombre}
-                onChange={(e) =>
-                  setNuevaPractica({ ...nuevaPractica, nombre: e.target.value })
-                }
+                onChange={(e) => setNuevaPractica({ ...nuevaPractica, nombre: e.target.value })}
               />
             </td>
             <td>
@@ -386,9 +439,7 @@ function EditorConvenio({
                 className={styles.input}
                 placeholder="Valor"
                 value={nuevaPractica.valor}
-                onChange={(e) =>
-                  setNuevaPractica({ ...nuevaPractica, valor: e.target.value })
-                }
+                onChange={(e) => setNuevaPractica({ ...nuevaPractica, valor: e.target.value })}
               />
             </td>
             <td>
@@ -417,9 +468,7 @@ function EditorConvenio({
               {Object.entries(h || {}).map(([campo, valor]) => (
                 <td key={campo}>
                   <input
-                    className={`${styles.input} ${
-                      errores[`hon-${nivel}-${campo}`] ? styles.errorInput : ""
-                    }`}
+                    className={`${styles.input} ${errores[`hon-${nivel}-${campo}`] ? styles.errorInput : ""}`}
                     value={valor}
                     onChange={(e) =>
                       handleChange("honorarios_medicos", nivel, campo, e.target.value)
@@ -436,11 +485,7 @@ function EditorConvenio({
         <button className={styles.btnSecondary} onClick={handleCancelar}>
           ❌ Cancelar
         </button>
-        <button
-          className={styles.btnPrimary}
-          onClick={handleGuardar}
-          disabled={guardando}
-        >
+        <button className={styles.btnPrimary} onClick={handleGuardar} disabled={guardando}>
           💾 {guardando ? "Guardando..." : "Guardar"}
         </button>
       </div>
