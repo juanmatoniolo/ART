@@ -1,0 +1,115 @@
+.wrapper {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: auto;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-content);
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
+}
+
+.title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 0.5rem;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.search {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    color: var(--text-light);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.search:focus {
+    border-color: var(--color-primary-light);
+    background-color: #273449;
+}
+
+.select {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    color: var(--text-light);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.select:focus {
+    border-color: var(--color-primary-light);
+    background-color: #273449;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #161b26;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+}
+
+.table th {
+    background-color: var(--color-primary);
+    color: white;
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #273449;
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.table tr:hover {
+    background-color: #1e293b;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.medicacion {
+    color: var(--color-primary-light);
+    font-weight: 500;
+}
+
+.descartable {
+    color: var(--color-warning);
+    font-weight: 500;
+}
+
+/* === Responsive === */
+@media (max-width: 700px) {
+    .controls {
+        flex-direction: column;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+}

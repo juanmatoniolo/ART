@@ -26,6 +26,7 @@ input,
 button {
   font-family: inherit;
 }
+
 :global(:root) {
   --bg-dark: #0b1220;
   --bg-content: #1a1f2c;
@@ -63,4 +64,11 @@ button {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #2d3748;
+}
+
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
