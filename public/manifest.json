@@ -1,7 +1,7 @@
 {
-	"name": "Nombre del Sitio",
+	"name": "Clinica de la Union S.A",
 	"short_name": "Sitio",
-	"description": "Descripción breve del sitio o aplicación web.",
+	"description": " Sistema de gestión médica integral de la Clínica de la Unión S.A. — Administración de pacientes, empleados, nomencladores y facturación médica en un entorno seguro y moderno.",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#ffffff",
