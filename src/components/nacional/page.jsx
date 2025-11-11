@@ -23,17 +23,13 @@ const isSubsiguiente = (item) =>
   normalize(item?.descripcion).includes('por exposicion subsiguiente') ||
   normalize(item?.descripcion).includes('por exposición subsiguiente');
 
-// 🔹 Vincula práctica con su compañera (subsiguiente o principal)
 const vincularSubsiguientes = (item, data) => {
   const idx = data.findIndex((d) => d.codigo === item.codigo);
   if (idx === -1) return [item];
-
   const prev = data[idx - 1];
   const next = data[idx + 1];
-
   if (isSubsiguiente(item) && prev) return [prev, item];
   if (next && isSubsiguiente(next)) return [item, next];
-
   return [item];
 };
 
@@ -65,9 +61,13 @@ export default function NomencladorNacional() {
   const [capituloQueries, setCapituloQueries] = useState({});
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
+  const [alerta, setAlerta] = useState('');
+
+  // Valores del convenio
   const [gastoRx, setGastoRx] = useState(0);
   const [galenoRxPractica, setGalenoRxPractica] = useState(0);
-  const [alerta, setAlerta] = useState('');
+  const [gastoOperatorio, setGastoOperatorio] = useState(0);
+  const [galenoQuir, setGalenoQuir] = useState(0);
 
   // === CARGA JSON BASE ===
   useEffect(() => {
@@ -92,60 +92,41 @@ export default function NomencladorNacional() {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
       const val = snap.exists() ? snap.val() : {};
-
-      // Limpia claves con espacios accidentales
       const normalizado = Object.keys(val).reduce((acc, key) => {
         const cleanKey = key.trim();
         acc[cleanKey] = val[key];
         return acc;
       }, {});
-
       setConvenios(normalizado);
-
       const stored = localStorage.getItem('convenioActivo');
       const elegir =
         stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
       setConvenioSel(elegir);
     });
-
     return () => off();
   }, []);
 
   // === ACTUALIZA FACTORES SEGÚN CONVENIO ===
   useEffect(() => {
     if (!convenioSel || !convenios[convenioSel]) return;
-
     const vg = convenios[convenioSel]?.valores_generales || {};
 
-    // 🔹 Soporta tanto claves con espacios como con guiones bajos
     const gastoRaw =
-      vg['Gasto_Rx'] ??
-      vg['Gastos_Rx'] ??
-      vg['Gasto Rx'] ??
-      vg['Gastos Rx'];
-
+      vg['Gasto_Rx'] ?? vg['Gastos_Rx'] ?? vg['Gasto Rx'] ?? vg['Gastos Rx'];
     const galenoRaw =
       vg['Galeno_Rx_Practica'] ??
       vg['Galeno_Rx_y_Practica'] ??
       vg['Galeno Rx Practica'] ??
       vg['Galeno Rx y Practica'];
+    const gastoOpRaw =
+      vg['Gasto_Operatorio'] ?? vg['Gasto Operatorio'] ?? vg['Gastos Operatorios'];
+    const galenoQuirRaw =
+      vg['Galeno_Quir'] ?? vg['Galeno Quir'] ?? vg['Galeno Quirúrgico'];
 
-    let updated = false;
-
-    if (gastoRaw != null && !isNaN(gastoRaw)) {
-      setGastoRx(Number(gastoRaw));
-      updated = true;
-    }
-
-    if (galenoRaw != null && !isNaN(galenoRaw)) {
-      setGalenoRxPractica(Number(galenoRaw));
-      updated = true;
-    }
-
-    if (!updated) {
-      setAlerta(`⚠️ El convenio "${convenioSel}" no tiene valores definidos de Rx.`);
-      setTimeout(() => setAlerta(''), 5000);
-    }
+    if (gastoRaw != null && !isNaN(gastoRaw)) setGastoRx(Number(gastoRaw));
+    if (galenoRaw != null && !isNaN(galenoRaw)) setGalenoRxPractica(Number(galenoRaw));
+    if (gastoOpRaw != null && !isNaN(gastoOpRaw)) setGastoOperatorio(Number(gastoOpRaw));
+    if (galenoQuirRaw != null && !isNaN(galenoQuirRaw)) setGalenoQuir(Number(galenoQuirRaw));
 
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
@@ -154,15 +135,12 @@ export default function NomencladorNacional() {
   const resultadosGlobales = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
-
     const exact = data.filter(
       (it) =>
         it.codigo?.toString().toLowerCase() === q.toLowerCase() ||
         normalize(it.descripcion).includes(normalize(q))
     );
-
     let results = [];
-
     if (exact.length > 0) {
       for (const it of exact) results.push(...vincularSubsiguientes(it, data));
     } else {
@@ -172,13 +150,10 @@ export default function NomencladorNacional() {
         threshold: 0.1,
         ignoreLocation: true,
       });
-
       const found = fuse.search(q).map((r) => r.item);
       for (const it of found) results.push(...vincularSubsiguientes(it, data));
     }
-
     const unique = Array.from(new Map(results.map((it) => [it.codigo, it])).values());
-
     return unique.sort((a, b) => {
       const ar = isRadiografia(a) ? 0 : 1;
       const br = isRadiografia(b) ? 0 : 1;
@@ -186,58 +161,32 @@ export default function NomencladorNacional() {
     });
   }, [query, data]);
 
-  // === COSTOS (solo aplica cálculo especial en capítulo 34) ===
   const renderCosts = (it) => {
     const gto = Number(it.gto) || 0;
     const gal = Number(it.q_gal) || 0;
-
     const esCapitulo34 =
       normalize(it.capituloNombre).includes('radiologia') ||
       normalize(it.capituloNombre).includes('diagnostico por imagenes');
-
-    let totalGal = null;
-    let totalGto = null;
-
+    let totalGal = gal;
+    let totalGto = gto;
     if (esCapitulo34) {
-      totalGal = gal * (galenoRxPractica || 0) + (gto * (gastoRx || 0)) / 2;
-      totalGto = (gto * (gastoRx || 0)) / 2;
+      const gastoOp = (gastoRx * gto) / 2;
+      const honorario = galenoRxPractica * gal + gastoOp;
+      totalGal = honorario;
+      totalGto = gastoOp;
     }
-
     return (
       <>
         <td className={styles.numeric}>
           {money(gal)}
-          {esCapitulo34 && (
-            <div className={styles.subValue}>${money(totalGal)}</div>
-          )}
+          {esCapitulo34 && <div className={styles.subValue}>${money(totalGal)}</div>}
         </td>
         <td className={styles.numeric}>
           {money(gto)}
-          {esCapitulo34 && (
-            <div className={styles.subValue}>${money(totalGto)}</div>
-          )}
+          {esCapitulo34 && <div className={styles.subValue}>${money(totalGto)}</div>}
         </td>
       </>
     );
-  };
-
-  // === FILTRAR POR CAPÍTULO ===
-  const filtrarCapitulo = (cap, practicas) => {
-    const term = capituloQueries[cap]?.trim();
-    if (!term) return practicas;
-
-    const fuse = new Fuse(practicas, {
-      keys: ['descripcion', 'codigo'],
-      includeScore: true,
-      threshold: 0.1,
-    });
-
-    const found = fuse.search(term).map((r) => r.item);
-    let results = [];
-
-    for (const it of found) results.push(...vincularSubsiguientes(it, practicas));
-
-    return Array.from(new Map(results.map((it) => [it.codigo, it])).values());
   };
 
   // === RENDER ===
@@ -259,8 +208,11 @@ export default function NomencladorNacional() {
                 <option key={k}>{k}</option>
               ))}
           </select>
-          <span className={styles.badgeGreen}>Gasto Rx: {gastoRx || '—'}</span>
-          <span className={styles.badgeBlue}>Galeno Rx: {galenoRxPractica || '—'}</span>
+
+          <span className={styles.badgeGreen}>Gasto Rx: {money(gastoRx)}</span>
+          <span className={styles.badgeBlue}>Galeno Rx: {money(galenoRxPractica)}</span>
+          <span className={styles.badgePurple}>Gasto Operatorio: {money(gastoOperatorio)}</span>
+          <span className={styles.badgeOrange}>Galeno Quirúrgico: {money(galenoQuir)}</span>
         </div>
 
         {alerta && <div className={styles.alert}>{alerta}</div>}
@@ -302,9 +254,8 @@ export default function NomencladorNacional() {
                   resultadosGlobales.map((it, i) => (
                     <tr
                       key={i}
-                      className={`${isRadiografia(it) ? styles.rxRow : ''} ${
-                        isSubsiguiente(it) ? styles.subsiguiente : ''
-                      }`}
+                      className={`${isRadiografia(it) ? styles.rxRow : ''} ${isSubsiguiente(it) ? styles.subsiguiente : ''
+                        }`}
                     >
                       <td>{highlight(it.codigo, query)}</td>
                       <td>{highlight(it.descripcion, query)}</td>
@@ -322,6 +273,7 @@ export default function NomencladorNacional() {
           </div>
         </>
       ) : (
+        // === MODO POR CAPÍTULOS ===
         <>
           <input
             type="text"
@@ -339,7 +291,7 @@ export default function NomencladorNacional() {
                 c.capitulo.includes(filtroCapitulo)
             )
             .map((c, i) => {
-              const visibles = filtrarCapitulo(c.capitulo, c.practicas);
+              const practicas = c.practicas || [];
               return (
                 <details key={i} className={styles.accordion}>
                   <summary className={styles.accordionHeader}>
@@ -369,19 +321,18 @@ export default function NomencladorNacional() {
                           </tr>
                         </thead>
                         <tbody>
-                          {visibles.length === 0 ? (
+                          {practicas.length === 0 ? (
                             <tr>
                               <td colSpan={4} className={styles.noResults}>
                                 Sin resultados.
                               </td>
                             </tr>
                           ) : (
-                            visibles.map((it, j) => (
+                            practicas.map((it, j) => (
                               <tr
                                 key={j}
-                                className={`${isRadiografia(it) ? styles.rxRow : ''} ${
-                                  isSubsiguiente(it) ? styles.subsiguiente : ''
-                                }`}
+                                className={`${isRadiografia(it) ? styles.rxRow : ''} ${isSubsiguiente(it) ? styles.subsiguiente : ''
+                                  }`}
                               >
                                 <td>{it.codigo}</td>
                                 <td>{it.descripcion}</td>

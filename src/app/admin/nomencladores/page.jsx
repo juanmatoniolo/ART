@@ -1,5 +1,7 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import NomencladorNacional from '../../../components/nacional/page';
 import ConveniosArt from '../../../components/convenios/page';
 import NomencladorBioq from '../../../components/bioquimica/page';
@@ -9,22 +11,35 @@ import styles from './page.module.css';
 export default function NomencladorGlobal() {
   const [activeTab, setActiveTab] = useState('nacional');
 
-  const tabs = [
-    { key: 'nacional', label: 'Nomenclador Nacional' },
-    { key: 'convenios', label: 'Convenios ART' },
-    { key: 'bioq', label: 'Bioquímica' },
-    { key: 'aoter', label: 'AOTER' },
-  ];
+  // ✅ Definimos las pestañas una sola vez
+  const tabs = useMemo(
+    () => [
+      { key: 'nacional', label: 'Nomenclador Nacional' },
+      { key: 'convenios', label: 'Convenios ART' },
+      { key: 'bioq', label: 'Bioquímica' },
+      { key: 'aoter', label: 'AOTER' },
+    ],
+    []
+  );
+
+  // ✅ Variantes para animaciones (fade suave)
+  const variants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+  };
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.card}>
+    <main className={styles.wrapper}>
+      <section className={styles.card}>
+        {/* === NAV TABS === */}
         <ul className={styles.tabs}>
           {tabs.map((tab) => (
             <li key={tab.key}>
               <button
-                className={`${styles.tabButton} ${activeTab === tab.key ? styles.activeTab : ''
-                  }`}
+                className={`${styles.tabButton} ${
+                  activeTab === tab.key ? styles.activeTab : ''
+                }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
@@ -33,13 +48,63 @@ export default function NomencladorGlobal() {
           ))}
         </ul>
 
+        {/* === CONTENIDO === */}
         <div className={styles.tabContent}>
-          {activeTab === 'nacional' && <NomencladorNacional />}
-          {activeTab === 'convenios' && <ConveniosArt />}
-          {activeTab === 'bioq' && <NomencladorBioq />}
-          {activeTab === 'aoter' && <NomencladorAoter />}
+          <AnimatePresence mode="wait">
+            {activeTab === 'nacional' && (
+              <motion.div
+                key="nacional"
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <NomencladorNacional />
+              </motion.div>
+            )}
+
+            {activeTab === 'convenios' && (
+              <motion.div
+                key="convenios"
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <ConveniosArt />
+              </motion.div>
+            )}
+
+            {activeTab === 'bioq' && (
+              <motion.div
+                key="bioq"
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <NomencladorBioq />
+              </motion.div>
+            )}
+
+            {activeTab === 'aoter' && (
+              <motion.div
+                key="aoter"
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <NomencladorAoter />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
