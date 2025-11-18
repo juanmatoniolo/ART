@@ -233,14 +233,20 @@ export default function PrestadoresART() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {Object.entries(data.honorarios_medicos).map(([nivel, h], i) => (
-                                    <tr key={i}>
-                                        <td>{formatKey(nivel)}</td>
-                                        <td>{money(h.Cirujano)}</td>
-                                        <td>{calcularValor(h.Cirujano, h['Ayudante_1'] || h['Ayudante 1'])}</td>
-                                        <td>{calcularValor(h.Cirujano, h['Ayudante_2'] || h['Ayudante 2'])}</td>
-                                    </tr>
-                                ))}
+                                {Object.entries(data.honorarios_medicos).map(([nivel, h], i) => {
+                                    const nivelNumerico = parseInt(nivel.replace(/\D/g, ""), 10);
+                                    const nivelReal = isNaN(nivelNumerico) ? formatKey(nivel) : `Nivel ${nivelNumerico + 1}`;
+
+                                    return (
+                                        <tr key={i}>
+                                            <td>{nivelReal}</td>
+                                            <td>{money(h.Cirujano)}</td>
+                                            <td>{calcularValor(h.Cirujano, h['Ayudante_1'] || h['Ayudante 1'])}</td>
+                                            <td>{calcularValor(h.Cirujano, h['Ayudante_2'] || h['Ayudante 2'])}</td>
+                                        </tr>
+                                    );
+                                })}
+
                             </tbody>
                         </table>
                     </div>
