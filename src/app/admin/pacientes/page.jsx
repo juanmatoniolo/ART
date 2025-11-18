@@ -12,12 +12,55 @@ export default function Home() {
   const buildMessage = () => {
     let text = "";
 
+    // --- MENSAJE 1: FKT APROBADA ---
     if (mensaje === "1") {
-      text = `Buenas tardes *${name}*. Me comunico de Clínica de la Unión. Sus sesiones de kinesiología fueron aprobadas, tiene que pasar a retirar la autorización por mesa de entrada en los horarios de 8 a 12 o de 16 a 20 horas.\n\nTambién ya te dejo las kines que trabajan con ART:\n- Daniela Rivas\n  Consultorio: 9 de Julio 1870 (Chajarí - E.R)\n\n- Avancini Natali\n  Consultorio: Rivadavia 2665, Chajarí (E.R)\n\n_En caso que su ART sea IAPS puede ponerse en contacto y ver la cartilla de profesionales afiliados._`;
+      text = `Buen día, *${name}*.  
+Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.  
+Puede pasar a retirar la autorización por *Mesa de Entrada*, de *8 a 12 hs* o de *16 a 20 hs*.  
+Ingreso por *Roque Sáenz Peña*.
+
+También le dejamos las kinesiólogas que trabajan con ART:
+
+• *Daniela Rivas*  
+  Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
+
+• *Avancini Natali*  
+  Consultorio: Rivadavia 2665 (Chajarí – E.R.)
+
+En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
     }
 
+    // --- MENSAJE 2: RESONANCIA APROBADA ---
     if (mensaje === "2") {
-      text = `Buen día *${name}*. Me comunico de Clínica de la Unión.\nSu resonancia fue aprobada, tiene turno el día *${dia}* a las *${hora}*.\nSe ingresa por calle Siburu 1085.`;
+      text = `Buen día, *${name}*.  
+Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
+
+*Indicaciones importantes:*  
+• Límite de peso: *140 kg*  
+• Asistir con ropa cómoda  
+• Llegar *15 minutos antes* del turno  
+• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, desfibrilador, válvula cardíaca o cirugías recientes  
+• Puede asistir con *un acompañante* (en sala de espera)
+
+
+
+*Ingreso por Avenida Siburu 1085.* ( Imagenes Médicas) `;
+    }
+
+    // --- MENSAJE 3: MEDICAMENTOS APROBADOS ---
+    if (mensaje === "3") {
+      text = `Buen día, *${name}*.  
+Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.  
+Puede pasar a retirar la orden por *Mesa de Entrada*, de *8 a 12 hs* o de *16 a 20 hs*.  
+Ingreso por *Roque Sáenz Peña*.
+
+*Cómo trabajan las ART:*  
+
+• *IAPS*: Presentarse con la orden en Farmacia Zordan o Farmacia de la Unión.  
+• *Federación Patronal*: Orden + denuncia → Farmacia Del Pueblo.  
+• *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.  
+  Si no posee copia de la denuncia, debe concurrir a la oficina de la ART.  
+• *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
     return encodeURIComponent(text);
@@ -53,7 +96,7 @@ export default function Home() {
           <>
             <input
               type="text"
-              placeholder="Día del turno"
+              placeholder="Día del turno (ej: 6/11)"
               className={styles.input}
               value={dia}
               onChange={(e) => setDia(e.target.value)}
@@ -61,7 +104,7 @@ export default function Home() {
 
             <input
               type="text"
-              placeholder="Hora del turno"
+              placeholder="Hora del turno (ej: 19hs)"
               className={styles.input}
               value={hora}
               onChange={(e) => setHora(e.target.value)}
@@ -74,8 +117,9 @@ export default function Home() {
           value={mensaje}
           onChange={(e) => setMensaje(e.target.value)}
         >
-          <option value="1">Mensaje 1 – Kinesiología aprobada</option>
-          <option value="2">Mensaje 2 – Resonancia aprobada</option>
+          <option value="1">Mensaje 1 – FKT Aprobada</option>
+          <option value="2">Mensaje 2 – RMN Aprobada</option>
+          <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
         </select>
 
         <a
