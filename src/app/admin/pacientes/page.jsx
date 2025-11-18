@@ -1,343 +1,91 @@
-'use client';
+"use client";
+import { useState } from "react";
+import styles from "./page.module.css";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { getSession } from '@/utils/session';
+export default function Home() {
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [dia, setDia] = useState("");
+  const [hora, setHora] = useState("");
+  const [mensaje, setMensaje] = useState("1");
 
-export default function FichaPaciente() {
-  const { id } = useParams();
-  const router = useRouter();
+  const buildMessage = () => {
+    let text = "";
 
-  const [paciente, setPaciente] = useState(null);
-  const [evoluciones, setEvoluciones] = useState([]);
-  const [pedidos, setPedidos] = useState([]);
-  const [nuevaEvolucion, setNuevaEvolucion] = useState('');
-  const [mostrarPedido, setMostrarPedido] = useState(false);
-  const [practica, setPractica] = useState('');
-  const [firmante, setFirmante] = useState('');
-  const [tipoEmpleado, setTipoEmpleado] = useState('');
-
-  // 🧠 Verifica sesión al montar
-  useEffect(() => {
-    const session = getSession();
-
-    if (!session) {
-      console.warn('🚫 No hay sesión activa, redirigiendo a login...');
-      router.push('/login');
-      return;
+    if (mensaje === "1") {
+      text = `Buenas tardes *${name}*. Me comunico de Clínica de la Unión. Sus sesiones de kinesiología fueron aprobadas, tiene que pasar a retirar la autorización por mesa de entrada en los horarios de 8 a 12 o de 16 a 20 horas.\n\nTambién ya te dejo las kines que trabajan con ART:\n- Daniela Rivas\n  Consultorio: 9 de Julio 1870 (Chajarí - E.R)\n\n- Avancini Natali\n  Consultorio: Rivadavia 2665, Chajarí (E.R)\n\n_En caso que su ART sea IAPS puede ponerse en contacto y ver la cartilla de profesionales afiliados._`;
     }
 
-    setTipoEmpleado(session.TipoEmpleado);
-    setFirmante(`${session.Nombre} ${session.Apellido}`);
-  }, [router]);
-  if (!id) return null
-  // 🧩 Carga los datos del paciente y sus pedidos/evoluciones
-  useEffect(() => {
-    if (!id) return;
-
-    console.log('🩺 Cargando datos para paciente ID:', id);
-
-    const obtenerPaciente = async () => {
-      try {
-        const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`);
-        const data = await res.json();
-        console.log('📦 Paciente:', data);
-        setPaciente(data);
-      } catch (error) {
-        console.error('❌ Error al cargar el paciente:', error);
-      }
-    };
-
-    const obtenerEvoluciones = async () => {
-      try {
-        const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`);
-        const data = await res.json();
-        if (data && typeof data === 'object') {
-          const lista = Object.entries(data).map(([eid, ev]) => ({ id: eid, ...ev }));
-          setEvoluciones(lista);
-        } else setEvoluciones([]);
-      } catch (err) {
-        console.error('❌ Error al obtener evoluciones:', err);
-      }
-    };
-
-    const obtenerPedidos = async () => {
-      try {
-        const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos.json`);
-        const data = await res.json();
-        if (data && typeof data === 'object') {
-          const lista = Object.entries(data).map(([pid, val]) => ({ id: pid, ...val }));
-          setPedidos(lista);
-        } else setPedidos([]);
-      } catch (err) {
-        console.error('❌ Error al obtener pedidos:', err);
-      }
-    };
-
-    obtenerPaciente();
-    obtenerEvoluciones();
-    obtenerPedidos();
-  }, [id]);
-
-  // 🩹 Guardar nueva evolución
-  const agregarEvolucion = async (e) => {
-    e.preventDefault();
-    if (!nuevaEvolucion.trim()) return;
-
-    const nueva = {
-      texto: nuevaEvolucion,
-      fecha: new Date().toISOString(),
-      firmante,
-    };
-
-    try {
-      await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nueva),
-      });
-      setEvoluciones((prev) => [...prev, nueva]);
-      setNuevaEvolucion('');
-    } catch (err) {
-      console.error('❌ Error al guardar evolución:', err);
+    if (mensaje === "2") {
+      text = `Buen día *${name}*. Me comunico de Clínica de la Unión.\nSu resonancia fue aprobada, tiene turno el día *${dia}* a las *${hora}*.\nSe ingresa por calle Siburu 1085.`;
     }
+
+    return encodeURIComponent(text);
   };
 
-  // 🧾 Realizar pedido
-  const realizarPedido = async () => {
-    if (!practica.trim()) return;
-    const pedido = {
-      practica,
-      firmante,
-      fecha: new Date().toISOString(),
-      estado: 'Pendiente',
-    };
-
-    try {
-      const res = await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pedido),
-      });
-      const data = await res.json();
-      setPedidos((prev) => [...prev, { id: data.name, ...pedido }]);
-      setMostrarPedido(false);
-      setPractica('');
-    } catch (error) {
-      console.error('❌ Error al registrar pedido:', error);
-    }
+  const createWaLink = () => {
+    if (!phone) return "";
+    return `https://wa.me/${phone}?text=${buildMessage()}`;
   };
 
-  // 🔄 Actualizar estado del pedido
-  const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
-    try {
-      await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/pedidos/${pedidoId}.json`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: nuevoEstado }),
-      });
-      setPedidos((prev) =>
-        prev.map((p) => (p.id === pedidoId ? { ...p, estado: nuevoEstado } : p))
-      );
-    } catch (err) {
-      console.error('❌ Error al actualizar estado:', err);
-    }
-  };
-
-  // 🎨 Colores de estado
-  const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'Pendiente':
-        return 'bg-warning text-dark';
-      case 'Solicitado':
-        return 'bg-info text-dark';
-      case 'Aprobado':
-        return 'bg-success';
-      default:
-        return 'bg-secondary';
-    }
-  };
-
-  // 🏥 Alta médica
-  const darAltaMedica = async () => {
-    if (!confirm('¿Está seguro de dar el alta médica al paciente?')) return;
-
-    const evolucion = {
-      texto: 'Alta médica otorgada.',
-      fecha: new Date().toISOString(),
-      firmante,
-    };
-
-    try {
-      await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}/evolucionesMedicas.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(evolucion),
-      });
-
-      await fetch(`https://datos-clini-default-rtdb.firebaseio.com/pacientes/${id}.json`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'Alta médica' }),
-      });
-
-      setEvoluciones((prev) => [...prev, evolucion]);
-      alert('✅ Paciente dado de alta médica.');
-    } catch (error) {
-      console.error('❌ Error al dar alta médica:', error);
-    }
-  };
-
-  // 🚫 No renderizar si no hay id
-  if (!id) {
-    console.warn('⚠️ No hay ID de paciente en la URL');
-    return null;
-  }
-
-  // ⏳ Loading visual
-  if (!paciente)
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-success" role="status">
-          <span className="visually-hidden">Cargando ficha...</span>
-        </div>
-      </div>
-    );
-
-  // 🧠 Render principal
   return (
-    <div className="container py-4">
-      <h2 className="mb-4">
-        Ficha de {paciente.Nombre} {paciente.Apellido}
-      </h2>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <ul className="list-group">
-            <li className="list-group-item"><strong>DNI:</strong> {paciente.dni}</li>
-            <li className="list-group-item"><strong>Empleador:</strong> {paciente.Empleador}</li>
-            <li className="list-group-item"><strong>ART:</strong> {paciente.ART}</li>
-            <li className="list-group-item"><strong>Estado:</strong> {paciente.estado || 'En tratamiento'}</li>
-          </ul>
+        <input
+          type="text"
+          placeholder="Número de teléfono (ej: 549xxxxxxxxx)"
+          className={styles.input}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
 
-          {tipoEmpleado === 'ADM' && (
-            <div className="mt-4 d-flex gap-2">
-              <button className="btn btn-info" onClick={() => setMostrarPedido(true)}>📦 Realizar pedido</button>
-              <button className="btn btn-danger" onClick={darAltaMedica}>🏥 Alta médica</button>
-            </div>
-          )}
-        </div>
+        <input
+          type="text"
+          placeholder="Nombre del paciente"
+          className={styles.input}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
-        {tipoEmpleado === 'ADM' && (
-          <div className="col-md-6">
-            <h4>Agregar Evolución Médica</h4>
-            <form onSubmit={agregarEvolucion} className="mt-3">
-              <textarea
-                className="form-control mb-2"
-                rows="4"
-                placeholder="Describa la evolución médica..."
-                value={nuevaEvolucion}
-                onChange={(e) => setNuevaEvolucion(e.target.value)}
-              ></textarea>
-              <button type="submit" className="btn btn-success w-100">Guardar evolución</button>
-            </form>
-          </div>
+        {mensaje === "2" && (
+          <>
+            <input
+              type="text"
+              placeholder="Día del turno"
+              className={styles.input}
+              value={dia}
+              onChange={(e) => setDia(e.target.value)}
+            />
+
+            <input
+              type="text"
+              placeholder="Hora del turno"
+              className={styles.input}
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+            />
+          </>
         )}
+
+        <select
+          className={styles.input}
+          value={mensaje}
+          onChange={(e) => setMensaje(e.target.value)}
+        >
+          <option value="1">Mensaje 1 – Kinesiología aprobada</option>
+          <option value="2">Mensaje 2 – Resonancia aprobada</option>
+        </select>
+
+        <a
+          href={createWaLink()}
+          target="_blank"
+          className={styles.button}
+        >
+          Enviar WhatsApp
+        </a>
       </div>
-
-      {/* 🩺 Evoluciones */}
-      <div className="mt-5">
-        <h4 className="mb-3">Evoluciones Médicas</h4>
-        {evoluciones.length === 0 ? (
-          <p className="text-muted">Sin evoluciones registradas.</p>
-        ) : (
-          <ul className="list-group">
-            {[...evoluciones].reverse().map((ev) => (
-              <li key={ev.id} className="list-group-item">
-                <p className="mb-1">{ev.texto}</p>
-                <small className="text-muted">
-                  {new Date(ev.fecha).toLocaleString()} — {ev.firmante || 'Sin firma'}
-                </small>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* 🧾 Pedidos Médicos */}
-      <div className="mt-5">
-        <h4 className="mb-3">Pedidos Médicos</h4>
-        {pedidos.length === 0 ? (
-          <p className="text-muted">Sin pedidos registrados.</p>
-        ) : (
-          <ul className="list-group">
-            {[...pedidos].reverse().map((p) => (
-              <li key={p.id} className="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{p.practica}</strong><br />
-                  <small className="text-muted">
-                    Solicitado por: {p.firmante} el {new Date(p.fecha).toLocaleString()}
-                  </small>
-                </div>
-                <div className="text-end">
-                  <span className={`badge ${getEstadoColor(p.estado)} p-2`}>{p.estado}</span>
-
-                  {tipoEmpleado === 'ADM' && (
-                    <div className="dropdown mt-2">
-                      <button
-                        className="btn btn-sm btn-outline-secondary dropdown-toggle"
-                        type="button"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                      >
-                        Cambiar estado
-                      </button>
-                      <ul className="dropdown-menu">
-                        <li><button className="dropdown-item" onClick={() => actualizarEstadoPedido(p.id, 'Pendiente')}>🟡 Pendiente</button></li>
-                        <li><button className="dropdown-item" onClick={() => actualizarEstadoPedido(p.id, 'Solicitado')}>🔵 Solicitado</button></li>
-                        <li><button className="dropdown-item" onClick={() => actualizarEstadoPedido(p.id, 'Aprobado')}>🟢 Aprobado</button></li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* 📦 Modal de nuevo pedido */}
-      {mostrarPedido && (
-        <div className="modal show fade d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Nuevo Pedido Médico</h5>
-                <button type="button" className="btn-close" onClick={() => setMostrarPedido(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Práctica Médica</label>
-                  <textarea
-                    className="form-control"
-                    rows="3"
-                    value={practica}
-                    onChange={(e) => setPractica(e.target.value)}
-                  ></textarea>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Firmado por</label>
-                  <input type="text" className="form-control" value={firmante} disabled />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setMostrarPedido(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={realizarPedido}>Guardar Pedido</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
