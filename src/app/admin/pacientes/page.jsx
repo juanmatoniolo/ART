@@ -9,14 +9,19 @@ export default function Home() {
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
 
-  // Opciones nuevas
   const [bioquimico, setBioquimico] = useState("confalonieri");
   const [cardiologo, setCardiologo] = useState("percara");
 
-  // Vista previa
+  // El usuario PUEDE editar este texto
   const [preview, setPreview] = useState("");
 
-  // 🔵 AHORA buildMessage SOLO DEVUELVE EL TEXTO — NO SETEA NADA
+  // SOLO genera el mensaje base cuando se cambia alguna opción
+  useEffect(() => {
+    const base = buildMessage();
+    setPreview(base);
+  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+
+  // Generador automático
   const buildMessage = () => {
     let text = "";
 
@@ -45,7 +50,7 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 • Límite de peso: *140 kg*  
 • Asistir con ropa cómoda  
 • Llegar *15 minutos antes* del turno  
-• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, desfibrilador, válvula cardíaca o cirugías recientes  
+• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes  
 • Puede asistir con *un acompañante* (en sala de espera)
 
 *Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
@@ -107,12 +112,7 @@ ${profesional}
     return text;
   };
 
-  // 🔵 EL PREVIEW SE SETEA SOLAMENTE ACÁ — YA NO CAUSA LOOP
-  useEffect(() => {
-    const text = buildMessage();
-    setPreview(text);
-  }, [phone, name, dia, hora, mensaje, bioquimico, cardiologo]);
-
+  // Link a WhatsApp
   const createWaLink = () => {
     if (!phone) return "";
     return `https://wa.me/${phone}?text=${encodeURIComponent(preview)}`;
@@ -193,11 +193,16 @@ ${profesional}
           <option value="5">Mensaje 5 – Estudios Laboratorio</option>
         </select>
 
+        {/* TEXTAREA EDITABLE */}
         <div className={styles.previewBox}>
-          <h3>Vista previa del mensaje:</h3>
-          <textarea className={styles.textarea} value={preview} readOnly />
+          <textarea
+            className={styles.textarea}
+            value={preview}
+            onChange={(e) => setPreview(e.target.value)}
+          />
         </div>
 
+      
         <a href={createWaLink()} target="_blank" className={styles.button}>
           Enviar WhatsApp
         </a>
