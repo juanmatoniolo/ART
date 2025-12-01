@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -9,16 +9,17 @@ export default function Home() {
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
 
-  // Nuevos estados para elegir profesionales
-  const [electroProf, setElectroProf] = useState("percara");
-  const [labProf, setLabProf] = useState("confalonieri");
+  // Opciones nuevas
+  const [bioquimico, setBioquimico] = useState("confalonieri");
+  const [cardiologo, setCardiologo] = useState("percara");
 
+  // Vista previa
+  const [preview, setPreview] = useState("");
+
+  // 🔵 AHORA buildMessage SOLO DEVUELVE EL TEXTO — NO SETEA NADA
   const buildMessage = () => {
     let text = "";
 
-    /* ============================================================
-       MENSAJE 1: FKT APROBADA
-    ============================================================ */
     if (mensaje === "1") {
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.  
@@ -36,9 +37,6 @@ También le dejamos las kinesiólogas que trabajan con ART:
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
     }
 
-    /* ============================================================
-       MENSAJE 2: RESONANCIA APROBADA
-    ============================================================ */
     if (mensaje === "2") {
       text = `Buen día, *${name}*.  
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
@@ -48,14 +46,11 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 • Asistir con ropa cómoda  
 • Llegar *15 minutos antes* del turno  
 • *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, desfibrilador, válvula cardíaca o cirugías recientes  
-• Puede asistir con *un acompañante* (sala de espera)
+• Puede asistir con *un acompañante* (en sala de espera)
 
 *Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
     }
 
-    /* ============================================================
-       MENSAJE 3: MEDICAMENTOS APROBADOS
-    ============================================================ */
     if (mensaje === "3") {
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.  
@@ -67,75 +62,60 @@ Ingreso por *Roque Sáenz Peña*.
 • *IAPS*: Presentarse con la orden en Farmacia Zordan o Farmacia de la Unión.  
 • *Federación Patronal*: Orden + denuncia → Farmacia Del Pueblo.  
 • *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.  
-  Si no posee copia de la denuncia, debe concurrir a la oficina de la ART.  
 • *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
-    /* ============================================================
-       MENSAJE 4: ELECTROCARDIOGRAMA APROBADO
-    ============================================================ */
-
-    const electroProfesionales = {
-      percara: {
-        nombre: "Dr. Percara",
-        direccion: "Bolívar 1695 (esquina con 9 de Julio)",
-      },
-      capovilla: {
-        nombre: "Dr. Capovilla",
-        direccion: "Bolívar 1645 (entre Pablo Estampa y 9 de Julio)",
-      },
-    };
-
     if (mensaje === "4") {
-      const prof = electroProfesionales[electroProf];
+      const profesional =
+        cardiologo === "percara"
+          ? `Dr. Percara  
+*Dirección:* Bolívar 1695 (esquina con 9 de Julio)`
+          : `Dr. Capovilla  
+*Dirección:* Bolívar 1645 (entre Pablo Estampa y 9 de Julio)`;
 
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
 *Indicaciones:*  
 • Asistir con documento  
-• Llegar *15 minutos antes* del turno  
+• Llegar 15 minutos antes  
 
-*Profesional:* ${prof.nombre}  
-*Dirección:* ${prof.direccion}`;
+*Profesional:*  
+${profesional}`;
     }
 
-    /* ============================================================
-       MENSAJE 5: LABORATORIO (BIOQUÍMICO/A)
-    ============================================================ */
-
-    const laboratorioProfesionales = {
-      confalonieri: {
-        nombre: "Bioquímica Confalonieri",
-        direccion: "Belgrano y Corrientes (frente a la juguetería Pepos)",
-      },
-      marmol: {
-        nombre: "Bioquímico Mármol",
-        direccion: "Sarmiento 2610",
-      },
-    };
-
     if (mensaje === "5") {
-      const prof = laboratorioProfesionales[labProf];
+      const profesional =
+        bioquimico === "confalonieri"
+          ? `Bioquímica Confalonieri  
+*Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
+          : `Bioquímico Mármol  
+*Dirección:* Sarmiento 2610`;
 
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
-*Profesional:* ${prof.nombre}  
-*Dirección:* ${prof.direccion}
+*Profesional:*  
+${profesional}
 
-*Recomendaciones:*  
-• Presentarse con *8 horas de ayuno*  
+*Requisitos:*  
+• Presentarse con 8 horas de ayuno  
 • Llevar documento  
-• Llegar *15 minutos antes* del turno`;
+• Llegar 10 a 15 minutos antes`;
     }
 
-    return encodeURIComponent(text);
+    return text;
   };
+
+  // 🔵 EL PREVIEW SE SETEA SOLAMENTE ACÁ — YA NO CAUSA LOOP
+  useEffect(() => {
+    const text = buildMessage();
+    setPreview(text);
+  }, [phone, name, dia, hora, mensaje, bioquimico, cardiologo]);
 
   const createWaLink = () => {
     if (!phone) return "";
-    return `https://wa.me/${phone}?text=${buildMessage()}`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(preview)}`;
   };
 
   return (
@@ -163,7 +143,7 @@ Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue apr
           <>
             <input
               type="text"
-              placeholder="Día del turno (ej: 6/11)"
+              placeholder="Día del turno"
               className={styles.input}
               value={dia}
               onChange={(e) => setDia(e.target.value)}
@@ -171,7 +151,7 @@ Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue apr
 
             <input
               type="text"
-              placeholder="Hora del turno (ej: 19hs)"
+              placeholder="Hora del turno"
               className={styles.input}
               value={hora}
               onChange={(e) => setHora(e.target.value)}
@@ -179,27 +159,25 @@ Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue apr
           </>
         )}
 
-        {/* SELECT DE ELECTROCARDIOGRAMA */}
-        {mensaje === "4" && (
-          <select
-            className={styles.input}
-            value={electroProf}
-            onChange={(e) => setElectroProf(e.target.value)}
-          >
-            <option value="percara">Dr. Percara</option>
-            <option value="capovilla">Dr. Capovilla</option>
-          </select>
-        )}
-
-        {/* SELECT DE LABORATORIO */}
         {mensaje === "5" && (
           <select
             className={styles.input}
-            value={labProf}
-            onChange={(e) => setLabProf(e.target.value)}
+            value={bioquimico}
+            onChange={(e) => setBioquimico(e.target.value)}
           >
             <option value="confalonieri">Bioquímica Confalonieri</option>
             <option value="marmol">Bioquímico Mármol</option>
+          </select>
+        )}
+
+        {mensaje === "4" && (
+          <select
+            className={styles.input}
+            value={cardiologo}
+            onChange={(e) => setCardiologo(e.target.value)}
+          >
+            <option value="percara">Dr. Percara</option>
+            <option value="capovilla">Dr. Capovilla</option>
           </select>
         )}
 
@@ -212,8 +190,13 @@ Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue apr
           <option value="2">Mensaje 2 – RMN Aprobada</option>
           <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
           <option value="4">Mensaje 4 – Electrocardiograma</option>
-          <option value="5">Mensaje 5 – Laboratorio (Bioquímicos)</option>
+          <option value="5">Mensaje 5 – Estudios Laboratorio</option>
         </select>
+
+        <div className={styles.previewBox}>
+          <h3>Vista previa del mensaje:</h3>
+          <textarea className={styles.textarea} value={preview} readOnly />
+        </div>
 
         <a href={createWaLink()} target="_blank" className={styles.button}>
           Enviar WhatsApp
