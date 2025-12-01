@@ -9,10 +9,16 @@ export default function Home() {
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
 
+  // Nuevos estados para elegir profesionales
+  const [electroProf, setElectroProf] = useState("percara");
+  const [labProf, setLabProf] = useState("confalonieri");
+
   const buildMessage = () => {
     let text = "";
 
-    // --- MENSAJE 1: FKT APROBADA ---
+    /* ============================================================
+       MENSAJE 1: FKT APROBADA
+    ============================================================ */
     if (mensaje === "1") {
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.  
@@ -30,7 +36,9 @@ También le dejamos las kinesiólogas que trabajan con ART:
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
     }
 
-    // --- MENSAJE 2: RESONANCIA APROBADA ---
+    /* ============================================================
+       MENSAJE 2: RESONANCIA APROBADA
+    ============================================================ */
     if (mensaje === "2") {
       text = `Buen día, *${name}*.  
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
@@ -40,12 +48,14 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 • Asistir con ropa cómoda  
 • Llegar *15 minutos antes* del turno  
 • *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, desfibrilador, válvula cardíaca o cirugías recientes  
-• Puede asistir con *un acompañante* (en sala de espera)
+• Puede asistir con *un acompañante* (sala de espera)
 
 *Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
     }
 
-    // --- MENSAJE 3: MEDICAMENTOS APROBADOS ---
+    /* ============================================================
+       MENSAJE 3: MEDICAMENTOS APROBADOS
+    ============================================================ */
     if (mensaje === "3") {
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.  
@@ -61,46 +71,63 @@ Ingreso por *Roque Sáenz Peña*.
 • *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
-    // --- MENSAJE 4: ELECTROCARDIOGRAMA APROBADO ---
+    /* ============================================================
+       MENSAJE 4: ELECTROCARDIOGRAMA APROBADO
+    ============================================================ */
+
+    const electroProfesionales = {
+      percara: {
+        nombre: "Dr. Percara",
+        direccion: "Bolívar 1695 (esquina con 9 de Julio)",
+      },
+      capovilla: {
+        nombre: "Dr. Capovilla",
+        direccion: "Bolívar 1645 (entre Pablo Estampa y 9 de Julio)",
+      },
+    };
+
     if (mensaje === "4") {
+      const prof = electroProfesionales[electroProf];
+
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
-*Indicaciones importantes:*  
+*Indicaciones:*  
 • Asistir con documento  
 • Llegar *15 minutos antes* del turno  
 
-
-*Consultorio del profesional:* Bolívar 1695 (esquina con 9 de Julio).`;
+*Profesional:* ${prof.nombre}  
+*Dirección:* ${prof.direccion}`;
     }
 
-    // --- MENSAJE 5: LABORATORIO CLÍNICO – DR. PERCARA ---
+    /* ============================================================
+       MENSAJE 5: LABORATORIO (BIOQUÍMICO/A)
+    ============================================================ */
+
+    const laboratorioProfesionales = {
+      confalonieri: {
+        nombre: "Bioquímica Confalonieri",
+        direccion: "Belgrano y Corrientes (frente a la juguetería Pepos)",
+      },
+      marmol: {
+        nombre: "Bioquímico Mármol",
+        direccion: "Sarmiento 2610",
+      },
+    };
+
     if (mensaje === "5") {
+      const prof = laboratorioProfesionales[labProf];
+
       text = `Buen día, *${name}*.  
 Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
-*Profesional:* Dra. Confalonieri  
-*Dirección:* Belgrano y Corrientes ( frente a la jugueteria Pepos).
+*Profesional:* ${prof.nombre}  
+*Dirección:* ${prof.direccion}
 
 *Recomendaciones:*  
 • Presentarse con *8 horas de ayuno*  
 • Llevar documento  
 • Llegar *15 minutos antes* del turno`;
-    }
-
-    // --- MENSAJE 6: BIOQUÍMICA – CONFALONIERI ---
-    if (mensaje === "6") {
-      text = `Buen día, *${name}*.  
-Le informamos desde Clínica de la Unión que su *estudio bioquímico fue aprobado*.  
-
-Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonieri*.
-
-*Consultorio:* Belgrano y Corrientes (frente a la juguetería Pepos).  
-
-*Requisitos:*  
-• Presentarse con *8 horas de ayuno*  
-• Llevar documento  
-• Llegar *10 a 15 minutos antes*`;
     }
 
     return encodeURIComponent(text);
@@ -132,7 +159,6 @@ Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonier
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* Campos extras sólo para mensajes que requieren día y hora */}
         {(mensaje === "2" || mensaje === "4" || mensaje === "5") && (
           <>
             <input
@@ -153,6 +179,30 @@ Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonier
           </>
         )}
 
+        {/* SELECT DE ELECTROCARDIOGRAMA */}
+        {mensaje === "4" && (
+          <select
+            className={styles.input}
+            value={electroProf}
+            onChange={(e) => setElectroProf(e.target.value)}
+          >
+            <option value="percara">Dr. Percara</option>
+            <option value="capovilla">Dr. Capovilla</option>
+          </select>
+        )}
+
+        {/* SELECT DE LABORATORIO */}
+        {mensaje === "5" && (
+          <select
+            className={styles.input}
+            value={labProf}
+            onChange={(e) => setLabProf(e.target.value)}
+          >
+            <option value="confalonieri">Bioquímica Confalonieri</option>
+            <option value="marmol">Bioquímico Mármol</option>
+          </select>
+        )}
+
         <select
           className={styles.input}
           value={mensaje}
@@ -162,7 +212,7 @@ Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonier
           <option value="2">Mensaje 2 – RMN Aprobada</option>
           <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
           <option value="4">Mensaje 4 – Electrocardiograma</option>
-          <option value="5">Mensaje 5 – Bioquímica Confalonieri</option>
+          <option value="5">Mensaje 5 – Laboratorio (Bioquímicos)</option>
         </select>
 
         <a href={createWaLink()} target="_blank" className={styles.button}>
