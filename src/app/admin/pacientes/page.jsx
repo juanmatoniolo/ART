@@ -42,9 +42,7 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 • *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, desfibrilador, válvula cardíaca o cirugías recientes  
 • Puede asistir con *un acompañante* (en sala de espera)
 
-
-
-*Ingreso por Avenida Siburu 1085.* ( Imagenes Médicas) `;
+*Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
     }
 
     // --- MENSAJE 3: MEDICAMENTOS APROBADOS ---
@@ -61,6 +59,48 @@ Ingreso por *Roque Sáenz Peña*.
 • *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.  
   Si no posee copia de la denuncia, debe concurrir a la oficina de la ART.  
 • *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
+    }
+
+    // --- MENSAJE 4: ELECTROCARDIOGRAMA APROBADO ---
+    if (mensaje === "4") {
+      text = `Buen día, *${name}*.  
+Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
+
+*Indicaciones importantes:*  
+• Asistir con documento  
+• Llegar *15 minutos antes* del turno  
+
+
+*Consultorio del profesional:* Bolívar 1695 (esquina con 9 de Julio).`;
+    }
+
+    // --- MENSAJE 5: LABORATORIO CLÍNICO – DR. PERCARA ---
+    if (mensaje === "5") {
+      text = `Buen día, *${name}*.  
+Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
+
+*Profesional:* Dra. Confalonieri  
+*Dirección:* Belgrano y Corrientes ( frente a la jugueteria Pepos).
+
+*Recomendaciones:*  
+• Presentarse con *8 horas de ayuno*  
+• Llevar documento  
+• Llegar *15 minutos antes* del turno`;
+    }
+
+    // --- MENSAJE 6: BIOQUÍMICA – CONFALONIERI ---
+    if (mensaje === "6") {
+      text = `Buen día, *${name}*.  
+Le informamos desde Clínica de la Unión que su *estudio bioquímico fue aprobado*.  
+
+Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonieri*.
+
+*Consultorio:* Belgrano y Corrientes (frente a la juguetería Pepos).  
+
+*Requisitos:*  
+• Presentarse con *8 horas de ayuno*  
+• Llevar documento  
+• Llegar *10 a 15 minutos antes*`;
     }
 
     return encodeURIComponent(text);
@@ -92,7 +132,8 @@ Ingreso por *Roque Sáenz Peña*.
           onChange={(e) => setName(e.target.value)}
         />
 
-        {mensaje === "2" && (
+        {/* Campos extras sólo para mensajes que requieren día y hora */}
+        {(mensaje === "2" || mensaje === "4" || mensaje === "5") && (
           <>
             <input
               type="text"
@@ -120,13 +161,12 @@ Ingreso por *Roque Sáenz Peña*.
           <option value="1">Mensaje 1 – FKT Aprobada</option>
           <option value="2">Mensaje 2 – RMN Aprobada</option>
           <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
+          <option value="4">Mensaje 4 – Electrocardiograma</option>
+          <option value="5">Mensaje 5 – Laboratorio Dr. Percara</option>
+          <option value="6">Mensaje 6 – Bioquímica Confalonieri</option>
         </select>
 
-        <a
-          href={createWaLink()}
-          target="_blank"
-          className={styles.button}
-        >
+        <a href={createWaLink()} target="_blank" className={styles.button}>
           Enviar WhatsApp
         </a>
       </div>
