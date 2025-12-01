@@ -162,8 +162,7 @@ Tiene turno para el *jueves 27/11 a las 7:30 hs* con la bioquímica *Confalonier
           <option value="2">Mensaje 2 – RMN Aprobada</option>
           <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
           <option value="4">Mensaje 4 – Electrocardiograma</option>
-          <option value="5">Mensaje 5 – Laboratorio Dr. Percara</option>
-          <option value="6">Mensaje 6 – Bioquímica Confalonieri</option>
+          <option value="5">Mensaje 5 – Bioquímica Confalonieri</option>
         </select>
 
         <a href={createWaLink()} target="_blank" className={styles.button}>
