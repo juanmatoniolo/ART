@@ -12,107 +12,116 @@ export default function Home() {
   const [bioquimico, setBioquimico] = useState("confalonieri");
   const [cardiologo, setCardiologo] = useState("percara");
 
-  // El usuario PUEDE editar este texto
   const [preview, setPreview] = useState("");
 
-  // SOLO genera el mensaje base cuando se cambia alguna opción
   useEffect(() => {
     const base = buildMessage();
     setPreview(base);
   }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
-  // Generador automático
   const buildMessage = () => {
     let text = "";
 
     if (mensaje === "1") {
-      text = `Buen día, *${name}*.  
-Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.  
-Puede pasar a retirar la autorización por *Mesa de Entrada*, de *8 a 12 hs* o de *16 a 20 hs*.  
+      text = `Buen día, *${name}*.
+Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
+Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
 
 También le dejamos las kinesiólogas que trabajan con ART:
 
-• *Daniela Rivas*  
+• *Daniela Rivas*
   Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
 
-• *Avancini Natali*  
+• *Avancini Natali*
   Consultorio: Rivadavia 2665 (Chajarí – E.R.)
 
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
     }
 
     if (mensaje === "2") {
-      text = `Buen día, *${name}*.  
+      text = `Buen día, *${name}*.
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
 
-*Indicaciones importantes:*  
-• Límite de peso: *140 kg*  
-• Asistir con ropa cómoda  
-• Llegar *15 minutos antes* del turno  
-• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes  
+*Indicaciones importantes:*
+• Límite de peso: *140 kg*
+• Asistir con ropa cómoda
+• Llegar *15 minutos antes* del turno
+• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes
 • Puede asistir con *un acompañante* (en sala de espera)
 
 *Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
     }
 
     if (mensaje === "3") {
-      text = `Buen día, *${name}*.  
-Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.  
-Puede pasar a retirar la orden por *Mesa de Entrada*, de *8 a 12 hs* o de *16 a 20 hs*.  
+      text = `Buen día, *${name}*.
+Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.
+Puede pasar a retirar la orden por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
 
-*Cómo trabajan las ART:*  
+*Cómo trabajan las ART:*
 
-• *IAPS*: Presentarse con la orden en Farmacia Zordan o Farmacia de la Unión.  
-• *Federación Patronal*: Orden + denuncia → Farmacia Del Pueblo.  
-• *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.  
+• *IAPS*: Presentarse con la orden en Farmacia Zordan o Farmacia de la Unión.
+• *Federación Patronal*: Orden + denuncia → Farmacia Del Pueblo.
+• *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.
 • *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
-          ? `Dr. Percara  
+          ? `Dr. Percara
 *Dirección:* Bolívar 1695 (esquina con 9 de Julio)`
-          : `Dr. Capovilla  
+          : `Dr. Capovilla
 *Dirección:* Bolívar 1645 (entre Pablo Estampa y 9 de Julio)`;
 
-      text = `Buen día, *${name}*.  
+      text = `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
-*Indicaciones:*  
-• Asistir con documento  
-• Llegar 15 minutos antes  
+*Indicaciones:*
+• Asistir con documento
+• Llegar 15 minutos antes
 
-*Profesional:*  
+*Profesional:*
 ${profesional}`;
     }
 
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
-          ? `Bioquímica Confalonieri  
+          ? `Bioquímica Confalonieri
 *Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
-          : `Bioquímico Mármol  
+          : `Bioquímico Mármol
 *Dirección:* Sarmiento 2610`;
 
-      text = `Buen día, *${name}*.  
+      text = `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
-*Profesional:*  
+*Profesional:*
 ${profesional}
 
-*Requisitos:*  
-• Presentarse con 8 horas de ayuno  
-• Llevar documento  
+*Requisitos:*
+• Presentarse con 8 horas de ayuno
+• Llevar documento
+• Llegar 10 a 15 minutos antes`;
+    }
+
+    if (mensaje === "6") {
+      text = `Buen día, *${name}*.
+Le informamos desde Clínica de la Unión que su *ecografía fue aprobada* y tiene turno para *${dia} a las ${hora}*.
+
+*Lugar de realización:*
+Sector de *BioImagen* dentro de Clínica de la Unión.
+En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
+
+*Indicaciones:*
+• Asistir con documento
 • Llegar 10 a 15 minutos antes`;
     }
 
     return text;
   };
 
-  // Link a WhatsApp
   const createWaLink = () => {
     if (!phone) return "";
     return `https://wa.me/${phone}?text=${encodeURIComponent(preview)}`;
@@ -139,7 +148,7 @@ ${profesional}
           onChange={(e) => setName(e.target.value)}
         />
 
-        {(mensaje === "2" || mensaje === "4" || mensaje === "5") && (
+        {(mensaje === "2" || mensaje === "4" || mensaje === "5" || mensaje === "6") && (
           <>
             <input
               type="text"
@@ -191,9 +200,9 @@ ${profesional}
           <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
           <option value="4">Mensaje 4 – Electrocardiograma</option>
           <option value="5">Mensaje 5 – Estudios Laboratorio</option>
+          <option value="6">Mensaje 6 – Ecografía Aprobada</option>
         </select>
 
-        {/* TEXTAREA EDITABLE */}
         <div className={styles.previewBox}>
           <textarea
             className={styles.textarea}
@@ -202,7 +211,6 @@ ${profesional}
           />
         </div>
 
-      
         <a href={createWaLink()} target="_blank" className={styles.button}>
           Enviar WhatsApp
         </a>
