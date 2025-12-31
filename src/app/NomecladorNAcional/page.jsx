@@ -68,41 +68,35 @@ export default function Home() {
   }, []);
 
   // --- Filtro con Fuse.js ---
-  const filterData = (data, search, chapter, complexity) => {
-    if (!data.length) return [];
+const filterData = (data, search, chapter, complexity) => {
+  if (!data.length) return [];
 
-    if (!search) {
-      let filtered = data;
-      if (chapter) filtered = filtered.filter((d) => d.capitulo === chapter);
-      if (complexity) filtered = filtered.filter((d) => d.complejidad === complexity);
-      return filtered;
-    }
+  const normalizedSearch = normalizeText(search);
 
-    const lowerSearch = normalizeText(search);
+  let filtered = data;
 
-    // Coincidencias exactas
-    let exactMatches = data.filter(
-      (d) =>
-        normalizeText(d.codigo).includes(lowerSearch) ||
-        normalizeText(d.descripcion).includes(lowerSearch)
+  // FILTRO POR CAPÍTULO
+  if (chapter) filtered = filtered.filter((d) => d.capitulo === chapter);
+
+  // FILTRO POR COMPLEJIDAD (solo NAT)
+  if (complexity) filtered = filtered.filter((d) => d.complejidad === complexity);
+
+  // SIN TEXTO → mostrar todo
+  if (!search) return filtered;
+
+  // COINCIDENCIA EXACTA
+  return filtered.filter((d) => {
+    const cod = normalizeText(d.codigo);
+    const desc = normalizeText(d.descripcion);
+
+    return (
+      cod === normalizedSearch ||                      // Igual al código
+      cod.includes(normalizedSearch) ||               // Coincidencia EXACTA dentro del código
+      desc.includes(normalizedSearch)                 // Coincidencia EXACTA dentro de descripción
     );
+  });
+};
 
-    // Coincidencias parciales con Fuse.js
-    const fuse = new Fuse(data, {
-      keys: ["codigo", "descripcion"],
-      threshold: 0.4,
-      getFn: (item, key) => normalizeText(item[key]),
-    });
-
-    let partialMatches = fuse.search(search).map((r) => r.item);
-    partialMatches = partialMatches.filter((d) => !exactMatches.includes(d));
-
-    let filtered = [...exactMatches, ...partialMatches];
-    if (chapter) filtered = filtered.filter((d) => d.capitulo === chapter);
-    if (complexity) filtered = filtered.filter((d) => d.complejidad === complexity);
-
-    return filtered;
-  };
 
   // --- Resaltar coincidencias ---
   const highlightText = (text, query) => {
