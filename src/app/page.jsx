@@ -26,14 +26,11 @@ export default function HomePage() {
           </p>
 
           <div className={styles.actions}>
-            <Link href="/login" className={`${styles.btn} ${styles.btnPrimary}`}>
+            <Link href="/Siniestro" className={`${styles.btn} ${styles.btnPrimary}`}>
               <LogIn size={18} aria-hidden="true" />
-              Iniciar sesión
+              Agregar Siniestro
             </Link>
-            <Link href="/register" className={`${styles.btn} ${styles.btnSecondary}`}>
-              <UserPlus size={18} aria-hidden="true" />
-              Registrarse
-            </Link>
+
           </div>
         </section>
       </main>
