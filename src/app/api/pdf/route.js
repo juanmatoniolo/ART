@@ -1,4 +1,3 @@
-// src/app/api/pdf/route.js
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -6,24 +5,6 @@ import { PDFDocument } from "pdf-lib";
 
 export const runtime = "nodejs";
 
-// ✅ Prestador fijo (NO pedir en el form)
-const PRESTADOR = {
-	nombre: process.env.PRESTADOR_NOMBRE || "CLINICA DE LA UNION S.A",
-	cuit: process.env.PRESTADOR_CUIT || "30-70754530-1",
-	calle: process.env.PRESTADOR_CALLE || "AV. SIBURU",
-	numero: process.env.PRESTADOR_NUMERO || "1085",
-	piso: process.env.PRESTADOR_PISO || "-",
-	depto: process.env.PRESTADOR_DEPTO || "-",
-	localidad: process.env.PRESTADOR_LOCALIDAD || "CHAJARI",
-	provincia: process.env.PRESTADOR_PROVINCIA || "ENTRE RIOS",
-	cp: process.env.PRESTADOR_CP || "3228",
-	telDdn: process.env.PRESTADOR_TEL_DDN || "3456",
-	tel: process.env.PRESTADOR_TEL || "441580",
-	fax: process.env.PRESTADOR_FAX || "-",
-	mail: process.env.PRESTADOR_MAIL || "CLINICADELAUNIONART@GMAIL.COM",
-};
-
-// ✅ Otro dato constante
 const LUGAR_FECHA_CONST = "Chajari, Entre Rios";
 
 function templatePath() {
@@ -39,32 +20,77 @@ function onlyDigits(s) {
 	return (s ?? "").toString().replace(/\D/g, "");
 }
 
+function cleanText(s) {
+	const v = (s ?? "").toString().trim();
+	if (!v) return "";
+	// si usás "-" como “vacío”, lo convertimos en ""
+	if (v === "-" || v.toLowerCase() === "n/a") return "";
+	return v;
+}
+
 function splitDateISO(iso) {
 	if (!iso) return { dia: "", mes: "", anio: "" };
 	const [yyyy, mm, dd] = iso.split("-");
 	return { dia: dd || "", mes: mm || "", anio: yyyy || "" };
 }
 
-function buildPdfFields(payload) {
-	const t = payload.trabajador || {};
-	const e = payload.empleador || {};
-	const a = payload.ART || {};
-	const c = payload.consulta || {};
-	const p = payload.prestador || PRESTADOR;
+function getPrestadorFromEnv() {
+	const nombre = cleanText(process.env.PRESTADOR_NOMBRE);
+	const cuit = onlyDigits(process.env.PRESTADOR_CUIT);
 
-	const apellidoNombre = `${(t.apellido || "").trim()} ${(
-		t.nombre || ""
-	).trim()}`.trim();
-	const nac = splitDateISO(t.nacimiento);
+	const calle = cleanText(process.env.PRESTADOR_CALLE);
+	const nro = cleanText(process.env.PRESTADOR_NUMERO);
+	const piso = cleanText(process.env.PRESTADOR_PISO);
+	const depto = cleanText(process.env.PRESTADOR_DEPTO);
+
+	const localidad = cleanText(process.env.PRESTADOR_LOCALIDAD);
+	const provincia = cleanText(process.env.PRESTADOR_PROVINCIA);
+	const cp = onlyDigits(process.env.PRESTADOR_CP);
+
+	const ddn = onlyDigits(process.env.PRESTADOR_TEL_DDN);
+	const tel = onlyDigits(process.env.PRESTADOR_TEL);
+	const celular = onlyDigits(`${ddn}${tel}`); // ej: 3456 + 441580
+
+	const mail = cleanText(process.env.PRESTADOR_MAIL);
 
 	return {
-		// ✅ nombres EXACTOS del debug (pdf-lib)
-		art: (a.nombre || "").trim(),
-		"num-siniestro": (a.nroSiniestro || "").trim(),
+		nombre,
+		cuit,
+		calle,
+		nro,
+		piso,
+		depto,
+		localidad,
+		provincia,
+		cp,
+		celular,
+		mail,
+	};
+}
 
-		// Empleado
-		"empleado-nombre": apellidoNombre,
+function buildPdfFields(payload) {
+	const t = payload.trabajador || {};
+	const emp = payload.empleador || {};
+	const art = payload.ART || {};
+	const c = payload.consulta || {};
+
+	// ✅ Prestador SIEMPRE desde ENV
+	const p = getPrestadorFromEnv();
+
+	const nac = splitDateISO(t.nacimiento);
+	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(
+		t.nombre
+	)}`.trim();
+
+	return {
+		// ART
+		art: cleanText(art.nombre),
+		"num-siniestro": cleanText(art.nroSiniestro),
+
+		// EMPLEADO
+		"empleado-nombre": nombreEmpleado,
 		"empleado-dni": onlyDigits(t.dni),
+
 		"empleado-dia": nac.dia,
 		"empleado-mes": nac.mes,
 		"empleado-anio": nac.anio,
@@ -72,53 +98,54 @@ function buildPdfFields(payload) {
 		"Sexo M": t.sexo === "M",
 		F: t.sexo === "F",
 
-		"empleado-calle": (t.calle || "").trim(),
-		"empleado-nro": (t.numero || "").trim(),
-		"empleado-piso": (t.piso || "").trim(),
-		"empleado-depto": (t.depto || "").trim(),
-		"empleado-localidad": (t.localidad || "").trim(),
-		"empleado-provincia": (t.provincia || "").trim(),
+		"empleado-calle": cleanText(t.calle),
+		"empleado-nro": cleanText(t.numero),
+		"empleado-piso": cleanText(t.piso),
+		"empleado-depto": cleanText(t.depto),
+		"empleado-localidad": cleanText(t.localidad),
+		"empleado-provincia": cleanText(t.provincia),
 		"empleado-cp": onlyDigits(t.cp),
 		"empleado-celular": onlyDigits(t.telefono),
 
-		// Empleador (tu form: nombre + cuit)
-		"empleador-nombre": (e.nombre || "").trim(),
-		"empleador-cuit": onlyDigits(e.cuit),
+		// EMPLEADOR
+		"empleador-nombre": cleanText(emp.nombre),
+		"empleador-cuit": onlyDigits(emp.cuit),
+		"empleador-cuil": onlyDigits(emp.cuit),
 
-		// Existe en el PDF, pero no lo pedís: lo dejamos vacío (o si querés lo igualamos al CUIT)
-		"empleador-cuil": "",
-
-		// Campos del empleador que existen pero NO los capturás en tu form: vacíos
-		"empleador-calle": "",
-		"empleador-nro": "",
-		"empleador-piso": "",
-		"empleador-depto": "",
-		"empleador-localidad": "",
-		"empleador-provincia": "",
-		"empleador-cp": "",
-		"empleador-celular": "",
-		"empleador-mail": "",
-
-		// Prestador (fijo) -> el PDF solo tiene prestador-nombre según tu debug
-		"prestador-nombre": (p.nombre || "").trim(),
-
-		// Motivo (solo contingencia)
+		// MOTIVO
 		"motivo-trabajo": c.tipo === "AT",
 		"motivo-in-itinere": c.tipo === "AIT",
 		"motivo-enfermedad-profesional": c.tipo === "EP",
 		"motivo-intercurrencia": c.tipo === "INT",
 
-		// Constante
+		// CONST
 		"lugar-fecha": LUGAR_FECHA_CONST,
+
+		// PRESTADOR (desde ENV)
+		"prestador-nombre": p.nombre,
+		"prestador-cuit": p.cuit,
+
+		"prestador-calle": p.calle,
+		"prestador-nro": p.nro,
+		"prestador-piso": p.piso,
+		"prestador-depto": p.depto,
+
+		"prestador-localidad": p.localidad,
+		"prestador-provincia": p.provincia,
+		"prestador-cp": p.cp,
+
+		"prestador-celular": p.celular,
+		"prestador-mail": p.mail,
 	};
 }
 
 function fillFormFields(form, fields) {
 	const missing = [];
+
 	for (const [name, value] of Object.entries(fields || {})) {
 		let ok = false;
 
-		// Text
+		// TextField
 		try {
 			const tf = form.getTextField(name);
 			tf.setText(value == null ? "" : String(value));
@@ -141,7 +168,7 @@ function fillFormFields(form, fields) {
 	if (missing.length) console.log("[PDF] missing fields:", missing);
 }
 
-// ✅ GET: health + debug fields (?debug=1)
+// GET debug
 export async function GET(req) {
 	try {
 		const url = new URL(req.url);
@@ -159,8 +186,10 @@ export async function GET(req) {
 		const templateBytes = await fs.readFile(pdfFile);
 		const pdfDoc = await PDFDocument.load(templateBytes);
 		const form = pdfDoc.getForm();
-
 		const fieldNames = form.getFields().map((f) => f.getName());
+
+		// ✅ también devolvemos el prestador ya parseado desde ENV para confirmar
+		const prestador = getPrestadorFromEnv();
 
 		return NextResponse.json({
 			ok: true,
@@ -168,6 +197,7 @@ export async function GET(req) {
 			template: pdfFile,
 			fieldsCount: fieldNames.length,
 			fieldNames,
+			prestadorFromEnv: prestador,
 		});
 	} catch (e) {
 		return NextResponse.json(
@@ -191,9 +221,6 @@ export async function POST(req) {
 				{ status: 400 }
 			);
 		}
-
-		// ✅ Inyectar constantes (no confiar en cliente)
-		payload.prestador = PRESTADOR;
 
 		const pdfFile = templatePath();
 		const templateBytes = await fs.readFile(pdfFile);
