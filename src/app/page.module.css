@@ -63,9 +63,9 @@
 
 /* Acciones (botones sólidos) */
 .actions {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
-    margin: auto;
+    display: flex;
+    flex-flow: column wrap;
+    gap: 1em;
 }
 
 
@@ -83,7 +83,7 @@
     cursor: pointer;
     transition: transform 0.06s ease, box-shadow 0.15s ease, background 0.2s ease, border-color 0.2s ease;
     will-change: transform;
-    
+
 }
 
 .btn:active {
