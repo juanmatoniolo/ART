@@ -63,19 +63,14 @@
 
 /* Acciones (botones sólidos) */
 .actions {
-    display: grid;
     grid-template-columns: 1fr;
     gap: 0.6rem;
+    margin: auto;
 }
 
-@media (min-width: 560px) {
-    .actions {
-        grid-template-columns: 1fr 1fr;
-    }
-}
 
 .btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
@@ -88,6 +83,7 @@
     cursor: pointer;
     transition: transform 0.06s ease, box-shadow 0.15s ease, background 0.2s ease, border-color 0.2s ease;
     will-change: transform;
+    
 }
 
 .btn:active {
