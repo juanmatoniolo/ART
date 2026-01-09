@@ -13,9 +13,9 @@ const CANONICAL_ALIASES = {};
 // ===== Helpers =====
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-const PRINT_OFFSET_X_PT = 2;     // si seguís necesitando derecha 5
-const PRINT_OFFSET_Y_PT = 75;    // 72 + 3
-
+// ===== Ajuste fino impresión (global) =====
+const PRINT_OFFSET_X_PT = 5;   // derecha
+const PRINT_OFFSET_Y_PT = -5;  // arriba
 
 function normalizeName(name) {
   return (name || '')
@@ -59,13 +59,16 @@ const isCanonNombresPaciente = (c) => normalizeName(c) === 'nombres-paciente';
 // Servicio fijo, NO visible
 const isCanonServicio = (c) => normalizeName(c) === 'servicio';
 
-// Edad calculada (si existe en PDF)
+// Edad (si existe)
 const isCanonEdad = (c) => normalizeName(c) === 'edad';
+
+// Edad-paciente (si existe)
+const isCanonEdadPaciente = (c) => normalizeName(c) === 'edad-paciente';
 
 // Campo "edad paciente" (NO mostrar en UI - porque ya la calculamos arriba)
 const isCanonEdadPacienteUI = (c) => {
   const n = normalizeName(c);
-  return n === 'edad-paciente' || n.includes('edad-paciente');
+  return n === 'edad-paciente' || n.includes('edad-paciente') || n.includes('edad_paciente');
 };
 
 // ART (ajustable)
@@ -74,7 +77,7 @@ const isCanonART = (c) => {
   return n === 'art' || n.includes('art-') || n.includes('-art');
 };
 
-// Doctor (ideal: campo se llame nombre-dr o doctor; esto es heurístico)
+// Doctor (heurístico)
 const isCanonDoctor = (c) => {
   const n = normalizeName(c);
   return (
@@ -118,8 +121,6 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [mapping, setMapping] = useState(null);
   const [error, setError] = useState('');
-
-  // Form state: canónicos
   const [form, setForm] = useState({});
 
   // Cargar mapping
@@ -156,7 +157,7 @@ export default function Page() {
     const canonicalToInternal = {};
     const internalToCanonical = {};
 
-    // 1) Aliases manuales (prioridad)
+    // 1) Aliases manuales
     for (const [canon, internals] of Object.entries(CANONICAL_ALIASES)) {
       canonicalToInternal[canon] = Array.from(new Set(internals));
       for (const internal of internals) internalToCanonical[internal] = canon;
@@ -196,6 +197,7 @@ export default function Page() {
   const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
   const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
   const canonEdad = useMemo(() => canonKeys.find(isCanonEdad), [canonKeys]);
+  const canonEdadPaciente = useMemo(() => canonKeys.find(isCanonEdadPaciente), [canonKeys]);
 
   // fecha nac
   const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
@@ -233,10 +235,8 @@ export default function Page() {
 
     const next = {};
     for (const k of Object.keys(canonical.canonicalToInternal)) next[k] = '';
-
     if (next.sexo !== undefined) next.sexo = '';
 
-    // servicio fijo
     if (Object.keys(canonical.canonicalToInternal).some((k) => isCanonServicio(k))) {
       next.servicio = 'PISO';
     }
@@ -252,16 +252,28 @@ export default function Page() {
     return computeAgeYears(d, m, y);
   }, [form, canonDia, canonMes, canonAnio]);
 
-  // ✅ Auto-set del campo "edad" (si existe) cuando cambia la fecha
+  // ✅ Auto-set de edad: guarda en "edad" y en "edad-paciente" (si existen)
   useEffect(() => {
-    if (!canonEdad) return;
-
     const next = edadCalculada ? `${edadCalculada} años` : '';
+    if (!canonEdad && !canonEdadPaciente) return;
+
     setForm((prev) => {
-      if ((prev?.[canonEdad] ?? '') === next) return prev;
-      return { ...prev, [canonEdad]: next };
+      let changed = false;
+      const out = { ...prev };
+
+      if (canonEdad && (out?.[canonEdad] ?? '') !== next) {
+        out[canonEdad] = next;
+        changed = true;
+      }
+
+      if (canonEdadPaciente && (out?.[canonEdadPaciente] ?? '') !== next) {
+        out[canonEdadPaciente] = next;
+        changed = true;
+      }
+
+      return changed ? out : prev;
     });
-  }, [edadCalculada, canonEdad]);
+  }, [edadCalculada, canonEdad, canonEdadPaciente]);
 
   // Resto de campos (no top, no ocultos)
   const orderedResto = useMemo(() => {
@@ -270,11 +282,12 @@ export default function Page() {
     const all = Object.keys(canonical.canonicalToInternal);
     const hidden = new Set(['masculino-paciente', 'femenino-paciente', 'sexo']);
 
-    if (canonNombres) hidden.add(canonNombres); // no visible
-    if (canonServicio) hidden.add(canonServicio); // no visible
-    if (canonEdad) hidden.add(canonEdad); // no input, se calcula
+    if (canonNombres) hidden.add(canonNombres);
+    if (canonServicio) hidden.add(canonServicio);
+    if (canonEdad) hidden.add(canonEdad);
+    if (canonEdadPaciente) hidden.add(canonEdadPaciente);
 
-    // ✅ Ocultar "edad-paciente" del resto (porque ya la calculamos arriba)
+    // Ocultar campos edad-paciente* del resto
     for (const k of all) {
       if (isCanonEdadPacienteUI(k)) hidden.add(k);
     }
@@ -291,6 +304,7 @@ export default function Page() {
     canonNombres,
     canonServicio,
     canonEdad,
+    canonEdadPaciente,
     canonART,
     canonCX,
     canonDoctor,
@@ -331,7 +345,6 @@ export default function Page() {
     function drawTextOnOcc(outPage, occ, text) {
       const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
       const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-
       const w = Number(occ.w_pt);
       const h = Number(occ.h_pt);
 
@@ -369,10 +382,10 @@ export default function Page() {
         if (isBtn) {
           const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
           const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-
           const w = Number(occ.w_pt);
           const h = Number(occ.h_pt);
           const size = clamp(h * 0.9, 8, 14);
+
           outPage.drawText('X', { x: x + w * 0.25, y: y + h * 0.15, size, font });
         } else {
           drawTextOnOcc(outPage, occ, v);
@@ -404,7 +417,6 @@ export default function Page() {
         if (isBtn) {
           const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
           const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-
           const w = Number(occ.w_pt);
           const h = Number(occ.h_pt);
           const size = clamp(h * 0.9, 8, 14);
@@ -458,13 +470,21 @@ export default function Page() {
     }
     if ((mapping['nombres-paciente'] || []).length) drawValueOnInternal('nombres-paciente', nombreCompuesto);
 
-    // ===== 4) Edad (si existe campo en PDF) como "NN años" =====
+    // ===== 4) Edad: imprimir en "edad" y en "edad-paciente" =====
     if (canonEdad) {
       for (const internal of canonical.canonicalToInternal[canonEdad] || []) {
         drawValueOnInternal(internal, edadValuePrint);
       }
     }
+    if (canonEdadPaciente) {
+      for (const internal of canonical.canonicalToInternal[canonEdadPaciente] || []) {
+        drawValueOnInternal(internal, edadValuePrint);
+      }
+    }
+
+    // fallback directo por si existen como internos
     if ((mapping['edad'] || []).length) drawValueOnInternal('edad', edadValuePrint);
+    if ((mapping['edad-paciente'] || []).length) drawValueOnInternal('edad-paciente', edadValuePrint);
 
     // ===== 5) nombre-paciente: en páginas 3 y 6 usar nombreCompuesto =====
     if (canonNombre) {
@@ -486,7 +506,8 @@ export default function Page() {
       if (canonServicio && canonName === canonServicio) continue;
       if (canonNombres && canonName === canonNombres) continue;
       if (canonEdad && canonName === canonEdad) continue;
-      if (canonNombre && canonName === canonNombre) continue; // se imprimió por página
+      if (canonEdadPaciente && canonName === canonEdadPaciente) continue;
+      if (canonNombre && canonName === canonNombre) continue;
 
       // doctor: imprimir con prefijo Dr.
       let canonValue = form?.[canonName];
@@ -626,7 +647,6 @@ export default function Page() {
 
         <div className={styles.card}>
           <div className={styles.grid}>
-            {/* ART */}
             {canonART ? (
               <div className={`${styles.field} ${styles.fieldWide}`} key={canonART}>
                 <div className={styles.labelRow}>
@@ -642,7 +662,6 @@ export default function Page() {
               </div>
             ) : null}
 
-            {/* CX */}
             {canonCX ? (
               <div className={`${styles.field} ${styles.fieldWide}`} key={canonCX}>
                 <div className={styles.labelRow}>
@@ -658,7 +677,6 @@ export default function Page() {
               </div>
             ) : null}
 
-            {/* Doctor */}
             {canonDoctor ? (
               <div className={`${styles.field} ${styles.fieldWide}`} key={canonDoctor}>
                 <div className={styles.labelRow}>
@@ -677,7 +695,6 @@ export default function Page() {
 
           <div className={styles.divider} />
 
-          {/* Paciente + Sexo */}
           <div className={styles.grid}>
             <div className={`${styles.field} ${styles.fieldWide}`}>
               <div className={styles.labelRow}>
@@ -737,7 +754,6 @@ export default function Page() {
             ) : null}
           </div>
 
-          {/* Fecha nacimiento + Edad */}
           <div className={styles.grid}>
             <div className={`${styles.field} ${styles.fieldWide}`}>
               <div className={styles.labelRow}>
@@ -799,7 +815,6 @@ export default function Page() {
 
           <div className={styles.divider} />
 
-          {/* Resto */}
           <div className={styles.formHeaderRow}>
             <div>
               <div className={styles.cardTitle}>Resto de datos del paciente</div>
@@ -846,29 +861,23 @@ export default function Page() {
               );
             })}
           </div>
-          <br />
 
+          <br />
         </div>
+
         <div className={`${styles.heroRight} ${styles.stickyActions} mt-3`}>
           <div className={styles.actionCard}>
             <div className={styles.actionTitle}>Acciones</div>
             <div className={styles.actionButtons}>
-              <button className={styles.secondaryBtn} onClick={resetAll} type="button">
-                Limpiar
-              </button>
+           
               <button className={styles.ghostBtn} onClick={downloadOverlay} type="button">
                 Descargar PDF
               </button>
-              <button className={styles.primaryBtn} onClick={printOverlay} type="button">
-                Imprimir
-              </button>
+          
             </div>
-
           </div>
         </div>
       </div>
-
-
     </main>
   );
 }
