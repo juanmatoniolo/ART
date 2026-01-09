@@ -3,17 +3,12 @@
 import Link from 'next/link';
 import styles from './page.module.css';
 import { Stethoscope, LogIn, UserPlus } from 'lucide-react';
+import Header from '@/components/Header/Header';
 
 export default function HomePage() {
   return (
     <div className={styles.wrapper}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.brand}>
-          <Stethoscope size={22} aria-hidden="true" />
-          <span>Clínica de la Unión S.A.</span>
-        </div>
-      </header>
+  <Header/>
 
       {/* Main */}
       <main className={styles.main}>

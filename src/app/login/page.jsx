@@ -8,6 +8,7 @@ import { setSession } from '@/utils/session';
 import Link from 'next/link';
 import styles from './login.module.css';
 import { Stethoscope, LogIn } from 'lucide-react';
+import Header from '@/components/Header/Header';
 
 export default function LoginPage() {
     const [user, setUser] = useState('');
@@ -61,12 +62,7 @@ export default function LoginPage() {
     return (
         <div className={styles.wrapper}>
             {/* NAVBAR minimalista (igual que Home) */}
-            <header className={styles.header}>
-                <Link href="/" className={styles.brand} aria-label="Inicio">
-                    <Stethoscope size={20} aria-hidden="true" />
-                    <span>Clínica de la Unión S.A.</span>
-                </Link>
-            </header>
+            <Header />
 
             {/* Contenido */}
             <main className={styles.main}>

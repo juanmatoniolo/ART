@@ -1,16 +1,20 @@
 /* ===== Layout ===== */
 .page {
-    min-height: 100vh;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
+    min-height: calc(100vh - 64px);
+    /* alto del header */
     background: #f4f6f8;
+    padding: 20px 0;
+    /* solo vertical */
 }
 
+
 .shell {
-    width: 100%;
-    max-width: 980px;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;       /* 👈 centra el contenido */
+  padding: 0 20px;      /* padding lateral */
 }
+
 
 /* ===== Header ===== */
 .header {

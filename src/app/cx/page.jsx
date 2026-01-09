@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import styles from './page.module.css';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+import Header from '@/components/Header/Header';
 
 const MAPPING_URL = '/mappings/cd-campos_fields_rects.json';
 const TEMPLATE_URL = '/templates/cd-campos.pdf';
@@ -638,6 +639,7 @@ export default function Page() {
   // ===== Render =====
   if (loading) {
     return (
+
       <main className={styles.page}>
         <div className={styles.shell}>
           <div className={styles.heroLeft}>
@@ -677,7 +679,7 @@ export default function Page() {
     <main className={styles.page}>
       <div className={styles.shell}>
         {error ? <div className={styles.bannerError}>{error}</div> : null}
-
+        <Header />
         <div className={styles.card}>
           <div className={styles.grid}>
             {canonART ? (

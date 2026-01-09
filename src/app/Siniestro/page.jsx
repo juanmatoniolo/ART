@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import { push, ref, set } from "firebase/database";
 import styles from "./SiniestroPage.module.css";
+import Header from "@/components/Header/Header";
 
 const STORAGE_KEY = "siniestro_form_simple_v1";
 
@@ -264,6 +265,8 @@ export default function SiniestroPage() {
     }
 
     return (
+    <>
+        <Header />
         <div className={styles.page}>
             <div className={styles.shell}>
                 <div className={styles.header}>
@@ -577,5 +580,6 @@ export default function SiniestroPage() {
                 </form>
             </div>
         </div>
+    </>
     );
 }
