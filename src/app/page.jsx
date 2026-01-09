@@ -32,6 +32,13 @@ export default function HomePage() {
             </Link>
 
           </div>
+          <div className={styles.actions}>
+            <Link href="/cx" className={`${styles.btn} ${styles.btnPrimary}`}>
+              <LogIn size={18} aria-hidden="true" />
+              Completar Formulario CX
+            </Link>
+
+          </div>
         </section>
       </main>
 
