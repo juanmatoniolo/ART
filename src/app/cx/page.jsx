@@ -17,6 +17,10 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const PRINT_OFFSET_X_PT = 5;   // derecha
 const PRINT_OFFSET_Y_PT = -5;  // arriba
 
+// ===== Autocomplete (historial) =====
+const SUGGESTIONS_MAX = 20;
+const LS_KEY = 'cx_form_suggestions_v1';
+
 function normalizeName(name) {
   return (name || '')
     .toLowerCase()
@@ -53,31 +57,22 @@ const isCanonCX = (c) => normalizeName(c) === 'cx';
 const isCanonApellido = (c) => normalizeName(c) === 'apellido-paciente' || normalizeName(c) === 'apellido';
 const isCanonNombre = (c) => normalizeName(c) === 'nombre-paciente' || normalizeName(c) === 'nombre';
 
-// NO visible, se arma con apellido + nombre
 const isCanonNombresPaciente = (c) => normalizeName(c) === 'nombres-paciente';
-
-// Servicio fijo, NO visible
 const isCanonServicio = (c) => normalizeName(c) === 'servicio';
 
-// Edad (si existe)
 const isCanonEdad = (c) => normalizeName(c) === 'edad';
-
-// Edad-paciente (si existe)
 const isCanonEdadPaciente = (c) => normalizeName(c) === 'edad-paciente';
 
-// Campo "edad paciente" (NO mostrar en UI - porque ya la calculamos arriba)
 const isCanonEdadPacienteUI = (c) => {
   const n = normalizeName(c);
   return n === 'edad-paciente' || n.includes('edad-paciente') || n.includes('edad_paciente');
 };
 
-// ART (ajustable)
 const isCanonART = (c) => {
   const n = normalizeName(c);
   return n === 'art' || n.includes('art-') || n.includes('-art');
 };
 
-// Doctor (heurístico)
 const isCanonDoctor = (c) => {
   const n = normalizeName(c);
   return (
@@ -89,6 +84,10 @@ const isCanonDoctor = (c) => {
     n.includes('cirujano')
   );
 };
+
+// ✅ para defaults/autocomplete fuerte
+const isCanonLocalidad = (c) => normalizeName(c) === 'localidad';
+const isCanonProvincia = (c) => normalizeName(c) === 'provincia';
 
 function computeAgeYears(d, m, y) {
   const dd = Number(d);
@@ -117,11 +116,48 @@ function computeAgeYears(d, m, y) {
   return String(age);
 }
 
+function safeUpper(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).toUpperCase();
+}
+
+function loadSuggestions() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const data = raw ? JSON.parse(raw) : {};
+    return typeof data === 'object' && data ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSuggestions(next) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
+function addSuggestion(sug, canonName, valueRaw) {
+  const v = (valueRaw ?? '').toString().trim();
+  if (!v) return sug;
+
+  const val = v.toUpperCase(); // guardamos en MAYUS para evitar duplicados
+  const prev = Array.isArray(sug?.[canonName]) ? sug[canonName] : [];
+  const without = prev.filter((x) => (x ?? '').toString().toUpperCase() !== val);
+  const nextArr = [val, ...without].slice(0, SUGGESTIONS_MAX);
+  return { ...sug, [canonName]: nextArr };
+}
+
 export default function Page() {
   const [loading, setLoading] = useState(true);
   const [mapping, setMapping] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState({});
+
+  // ✅ historial de sugerencias
+  const [suggestions, setSuggestions] = useState({});
 
   // Cargar mapping
   useEffect(() => {
@@ -193,6 +229,9 @@ export default function Page() {
   const canonApellido = useMemo(() => canonKeys.find(isCanonApellido), [canonKeys]);
   const canonNombre = useMemo(() => canonKeys.find(isCanonNombre), [canonKeys]);
 
+  const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
+  const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
+
   // NO visibles
   const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
   const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
@@ -226,8 +265,51 @@ export default function Page() {
     setForm(initial);
   }, [canonical, mapping]);
 
+  // ✅ cargar historial + sembrar defaults (Chajarí / Entre Rios)
+  useEffect(() => {
+    if (!canonical) return;
+
+    const loaded = loadSuggestions();
+
+    let seeded = loaded;
+
+    if (canonLocalidad) {
+      seeded = addSuggestion(seeded, canonLocalidad, 'CHAJARÍ');
+    }
+    if (canonProvincia) {
+      seeded = addSuggestion(seeded, canonProvincia, 'ENTRE RIOS');
+    }
+
+    setSuggestions(seeded);
+    saveSuggestions(seeded);
+
+    // opcional: si están vacíos, pre-rellenar (solo localidad/provincia)
+    setForm((prev) => {
+      const out = { ...prev };
+      let changed = false;
+
+      if (canonLocalidad && !(out?.[canonLocalidad] ?? '').toString().trim()) {
+        out[canonLocalidad] = 'CHAJARÍ';
+        changed = true;
+      }
+      if (canonProvincia && !(out?.[canonProvincia] ?? '').toString().trim()) {
+        out[canonProvincia] = 'ENTRE RIOS';
+        changed = true;
+      }
+
+      return changed ? out : prev;
+    });
+  }, [canonical, canonLocalidad, canonProvincia]);
+
   function setValue(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function commitSuggestion(canonName, value) {
+    const nextSug = addSuggestion(suggestions, canonName, value);
+    if (nextSug === suggestions) return;
+    setSuggestions(nextSug);
+    saveSuggestions(nextSug);
   }
 
   function resetAll() {
@@ -240,6 +322,10 @@ export default function Page() {
     if (Object.keys(canonical.canonicalToInternal).some((k) => isCanonServicio(k))) {
       next.servicio = 'PISO';
     }
+
+    // mantener defaults para localidad/provincia si existen
+    if (canonLocalidad) next[canonLocalidad] = 'CHAJARÍ';
+    if (canonProvincia) next[canonProvincia] = 'ENTRE RIOS';
 
     setForm(next);
   }
@@ -321,6 +407,16 @@ export default function Page() {
     return sample?.field_type;
   }
 
+  function getAutoCompleteAttr(canonName) {
+    const n = normalizeName(canonName);
+    if (n === 'provincia') return 'address-level1';
+    if (n === 'localidad') return 'address-level2';
+    if (n.includes('domicilio') || n.includes('direccion')) return 'street-address';
+    if (n.includes('telefono') || n.includes('celular')) return 'tel';
+    if (n.includes('dni')) return 'off';
+    return 'on';
+  }
+
   // ===== PDF generation (overlay solo datos) =====
   async function buildOverlayPdfBytes() {
     if (!mapping || !canonical) throw new Error('Mapping no cargado');
@@ -354,8 +450,10 @@ export default function Page() {
       const dy = y + (h - size) * 0.5;
       const dx = x + Math.min(2, w * 0.05);
 
+      const up = safeUpper(text); // ✅ SIEMPRE MAYUSC EN IMPRESIÓN
+
       const maxChars = Math.max(4, Math.floor(w / (size * 0.55)));
-      const t = text.length > maxChars ? text.slice(0, maxChars) : text;
+      const t = up.length > maxChars ? up.slice(0, maxChars) : up;
 
       outPage.drawText(t, { x: dx, y: dy, size, font });
     }
@@ -393,7 +491,6 @@ export default function Page() {
       }
     }
 
-    // Variante: elegir el valor por ocurrencia (para páginas 3 y 6)
     function drawValueOnInternalByOcc(internalName, getValueForOcc) {
       const occurrences = mapping[internalName] || [];
       if (!occurrences.length) return;
@@ -481,8 +578,6 @@ export default function Page() {
         drawValueOnInternal(internal, edadValuePrint);
       }
     }
-
-    // fallback directo por si existen como internos
     if ((mapping['edad'] || []).length) drawValueOnInternal('edad', edadValuePrint);
     if ((mapping['edad-paciente'] || []).length) drawValueOnInternal('edad-paciente', edadValuePrint);
 
@@ -491,8 +586,8 @@ export default function Page() {
       for (const internal of canonical.canonicalToInternal[canonNombre] || []) {
         drawValueOnInternalByOcc(internal, (occ) => {
           const p = Number(occ.page ?? 0); // 1-based
-          if (p === 3 || p === 6) return nombreCompuesto; // nombre completo
-          return nombre; // solo nombre
+          if (p === 3 || p === 6) return nombreCompuesto;
+          return nombre;
         });
       }
     }
@@ -502,14 +597,12 @@ export default function Page() {
       if (canonName === 'masculino-paciente' || canonName === 'femenino-paciente') continue;
       if (canonName === 'sexo') continue;
 
-      // ya gestionados
       if (canonServicio && canonName === canonServicio) continue;
       if (canonNombres && canonName === canonNombres) continue;
       if (canonEdad && canonName === canonEdad) continue;
       if (canonEdadPaciente && canonName === canonEdadPaciente) continue;
       if (canonNombre && canonName === canonNombre) continue;
 
-      // doctor: imprimir con prefijo Dr.
       let canonValue = form?.[canonName];
       if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
 
@@ -520,40 +613,6 @@ export default function Page() {
     }
 
     return await outDoc.save();
-  }
-
-  async function printOverlay() {
-    try {
-      setError('');
-      const bytes = await buildOverlayPdfBytes();
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.src = url;
-
-      document.body.appendChild(iframe);
-
-      iframe.onload = () => {
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        } finally {
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-            iframe.remove();
-          }, 1500);
-        }
-      };
-    } catch (e) {
-      setError(e?.message || 'Error al generar/imprimir');
-    }
   }
 
   async function downloadOverlay() {
@@ -617,32 +676,6 @@ export default function Page() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <div className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <h1 className={styles.h1}>Formulario · Impresión</h1>
-          </div>
-
-          <div className={`${styles.heroRight} ${styles.stickyActions}`}>
-            <div className={styles.actionCard}>
-              <div className={styles.actionTitle}>Acciones</div>
-              <div className={styles.actionButtons}>
-                <button className={styles.secondaryBtn} onClick={resetAll} type="button">
-                  Limpiar
-                </button>
-                <button className={styles.ghostBtn} onClick={downloadOverlay} type="button">
-                  Descargar PDF
-                </button>
-                <button className={styles.primaryBtn} onClick={printOverlay} type="button">
-                  Imprimir
-                </button>
-              </div>
-              <div className={styles.note}>
-                Imprimir con <b>escala 100%</b> (sin “Ajustar a página”).
-              </div>
-            </div>
-          </div>
-        </div>
-
         {error ? <div className={styles.bannerError}>{error}</div> : null}
 
         <div className={styles.card}>
@@ -654,11 +687,18 @@ export default function Page() {
                 </div>
                 <input
                   className={styles.input}
+                  name={canonART}
+                  autoComplete="on"
                   value={form?.[canonART] ?? ''}
                   onChange={(e) => setValue(canonART, e.target.value)}
+                  onBlur={(e) => commitSuggestion(canonART, e.target.value)}
                   placeholder="ART…"
-                  autoComplete="on"
                 />
+                <datalist id={`dl-${canonART}`}>
+                  {(suggestions?.[canonART] || []).map((opt) => (
+                    <option value={opt} key={opt} />
+                  ))}
+                </datalist>
               </div>
             ) : null}
 
@@ -669,11 +709,19 @@ export default function Page() {
                 </div>
                 <input
                   className={styles.input}
+                  name={canonCX}
+                  autoComplete="on"
                   value={form?.[canonCX] ?? ''}
                   onChange={(e) => setValue(canonCX, e.target.value)}
+                  onBlur={(e) => commitSuggestion(canonCX, e.target.value)}
                   placeholder="Cirugía a realizar…"
-                  autoComplete="on"
+                  list={`dl-${canonCX}`}
                 />
+                <datalist id={`dl-${canonCX}`}>
+                  {(suggestions?.[canonCX] || []).map((opt) => (
+                    <option value={opt} key={opt} />
+                  ))}
+                </datalist>
               </div>
             ) : null}
 
@@ -684,11 +732,19 @@ export default function Page() {
                 </div>
                 <input
                   className={styles.input}
+                  name={canonDoctor}
+                  autoComplete="on"
                   value={form?.[canonDoctor] ?? ''}
                   onChange={(e) => setValue(canonDoctor, e.target.value)}
+                  onBlur={(e) => commitSuggestion(canonDoctor, e.target.value)}
                   placeholder="Nombre del profesional…"
-                  autoComplete="on"
+                  list={`dl-${canonDoctor}`}
                 />
+                <datalist id={`dl-${canonDoctor}`}>
+                  {(suggestions?.[canonDoctor] || []).map((opt) => (
+                    <option value={opt} key={opt} />
+                  ))}
+                </datalist>
               </div>
             ) : null}
           </div>
@@ -707,24 +763,44 @@ export default function Page() {
                   <div className={styles.subLabel}>Apellido</div>
                   <input
                     className={styles.input}
+                    name={canonApellido || 'apellido'}
+                    autoComplete="family-name"
                     value={canonApellido ? (form?.[canonApellido] ?? '') : ''}
                     onChange={(e) => canonApellido && setValue(canonApellido, e.target.value)}
+                    onBlur={(e) => canonApellido && commitSuggestion(canonApellido, e.target.value)}
                     placeholder="Apellido…"
-                    autoComplete="on"
                     disabled={!canonApellido}
+                    list={canonApellido ? `dl-${canonApellido}` : undefined}
                   />
+                  {canonApellido ? (
+                    <datalist id={`dl-${canonApellido}`}>
+                      {(suggestions?.[canonApellido] || []).map((opt) => (
+                        <option value={opt} key={opt} />
+                      ))}
+                    </datalist>
+                  ) : null}
                 </div>
 
                 <div>
                   <div className={styles.subLabel}>Nombre</div>
                   <input
                     className={styles.input}
+                    name={canonNombre || 'nombre'}
+                    autoComplete="given-name"
                     value={canonNombre ? (form?.[canonNombre] ?? '') : ''}
                     onChange={(e) => canonNombre && setValue(canonNombre, e.target.value)}
+                    onBlur={(e) => canonNombre && commitSuggestion(canonNombre, e.target.value)}
                     placeholder="Nombre…"
-                    autoComplete="on"
                     disabled={!canonNombre}
+                    list={canonNombre ? `dl-${canonNombre}` : undefined}
                   />
+                  {canonNombre ? (
+                    <datalist id={`dl-${canonNombre}`}>
+                      {(suggestions?.[canonNombre] || []).map((opt) => (
+                        <option value={opt} key={opt} />
+                      ))}
+                    </datalist>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -766,6 +842,8 @@ export default function Page() {
                   <div className={styles.subLabel}>Día</div>
                   <input
                     className={styles.input}
+                    name={canonDia || 'dia'}
+                    autoComplete="off"
                     value={canonDia ? (form?.[canonDia] ?? '') : ''}
                     onChange={(e) => canonDia && setValue(canonDia, e.target.value)}
                     placeholder="DD"
@@ -777,6 +855,8 @@ export default function Page() {
                   <div className={styles.subLabel}>Mes</div>
                   <input
                     className={styles.input}
+                    name={canonMes || 'mes'}
+                    autoComplete="off"
                     value={canonMes ? (form?.[canonMes] ?? '') : ''}
                     onChange={(e) => canonMes && setValue(canonMes, e.target.value)}
                     placeholder="MM"
@@ -788,6 +868,8 @@ export default function Page() {
                   <div className={styles.subLabel}>Año</div>
                   <input
                     className={styles.input}
+                    name={canonAnio || 'anio'}
+                    autoComplete="off"
                     value={canonAnio ? (form?.[canonAnio] ?? '') : ''}
                     onChange={(e) => canonAnio && setValue(canonAnio, e.target.value)}
                     placeholder="AAAA"
@@ -843,13 +925,23 @@ export default function Page() {
                       <span>Marcar</span>
                     </label>
                   ) : (
-                    <input
-                      className={styles.input}
-                      value={form?.[canonName] ?? ''}
-                      onChange={(e) => setValue(canonName, e.target.value)}
-                      placeholder="Completar…"
-                      autoComplete="on"
-                    />
+                    <>
+                      <input
+                        className={styles.input}
+                        name={canonName}
+                        autoComplete={getAutoCompleteAttr(canonName)}
+                        value={form?.[canonName] ?? ''}
+                        onChange={(e) => setValue(canonName, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonName, e.target.value)}
+                        placeholder="Completar…"
+                        list={`dl-${canonName}`}
+                      />
+                      <datalist id={`dl-${canonName}`}>
+                        {(suggestions?.[canonName] || []).map((opt) => (
+                          <option value={opt} key={opt} />
+                        ))}
+                      </datalist>
+                    </>
                   )}
 
                   <div className={styles.hint}>
@@ -869,11 +961,9 @@ export default function Page() {
           <div className={styles.actionCard}>
             <div className={styles.actionTitle}>Acciones</div>
             <div className={styles.actionButtons}>
-           
               <button className={styles.ghostBtn} onClick={downloadOverlay} type="button">
                 Descargar PDF
               </button>
-          
             </div>
           </div>
         </div>

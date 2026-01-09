@@ -10,7 +10,7 @@ export default function InsumosAdmin() {
     const [tab, setTab] = useState("ver");
     const [tipo, setTipo] = useState("medicamentos");
     const [meds, setMeds] = useState([]);
-       const [busqueda, setBusqueda] = useState("");
+    const [busqueda, setBusqueda] = useState("");
     const [nuevoNombre, setNuevoNombre] = useState("");
     const [nuevoPrecio, setNuevoPrecio] = useState("");
     const [mensaje, setMensaje] = useState("");
@@ -116,6 +116,7 @@ export default function InsumosAdmin() {
     };
 
     /* === Leer Excel === */
+    /* === Leer Excel (evita duplicados) === */
     const handleExcelUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -132,16 +133,42 @@ export default function InsumosAdmin() {
 
             const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-            const preview = data
-                .slice(1)
+            // Convertimos filas a objetos sanitizando key
+            const rows = data
+                .slice(1) // salta encabezado
                 .filter((r) => r[0] && r[1])
                 .map(([nombre, precio]) => ({
                     nombre: limpiarKey(nombre),
                     precio: parseFloat(precio),
                 }));
 
-            setArchivoPreview(preview);
+            // === Detectar duplicados ===
+            const seen = new Set();
+            const duplicates = new Set();
+
+            rows.forEach((item) => {
+                if (seen.has(item.nombre)) {
+                    duplicates.add(item.nombre);
+                } else {
+                    seen.add(item.nombre);
+                }
+            });
+
+            if (duplicates.size > 0) {
+                setArchivoPreview([]);
+                setMensaje(
+                    "⚠️ Existen productos duplicados en el Excel: " +
+                    Array.from(duplicates).join(", ")
+                );
+
+                setTimeout(() => setMensaje(""), 5000);
+                return; // 🚫 NO permite previsualizar ni cargar
+            }
+
+            // Si no hay duplicados → guardar preview
+            setArchivoPreview(rows);
         };
+
         reader.readAsBinaryString(file);
     };
 
@@ -172,11 +199,10 @@ export default function InsumosAdmin() {
 
             {mensaje && (
                 <div
-                    className={`${styles.toast} ${
-                        mensaje.includes("✅") || mensaje.includes("💾")
+                    className={`${styles.toast} ${mensaje.includes("✅") || mensaje.includes("💾")
                             ? styles.toastSuccess
                             : styles.toastInfo
-                    }`}
+                        }`}
                 >
                     {mensaje}
                 </div>
@@ -185,27 +211,24 @@ export default function InsumosAdmin() {
             {/* === Tabs === */}
             <div className={styles.tabs}>
                 <button
-                    className={`${styles.tab} ${
-                        tab === "ver" ? styles.active : ""
-                    }`}
+                    className={`${styles.tab} ${tab === "ver" ? styles.active : ""
+                        }`}
                     onClick={() => setTab("ver")}
                 >
                     💊 Med + 🧷 Descartables
                 </button>
 
                 <button
-                    className={`${styles.tab} ${
-                        tab === "admin" ? styles.active : ""
-                    }`}
+                    className={`${styles.tab} ${tab === "admin" ? styles.active : ""
+                        }`}
                     onClick={() => setTab("admin")}
                 >
                     ⚙️ Administración
                 </button>
 
                 <button
-                    className={`${styles.tab} ${
-                        tab === "masiva" ? styles.active : ""
-                    }`}
+                    className={`${styles.tab} ${tab === "masiva" ? styles.active : ""
+                        }`}
                     onClick={() => setTab("masiva")}
                 >
                     📦 Carga Masiva
@@ -285,7 +308,9 @@ export default function InsumosAdmin() {
                                 </tr>
                             ) : (
                                 filtrados.map((item) => (
-                                    <tr key={item.nombre}>
+                                    <tr key={`${item.nombre}_${tipo}`}>
+
+
                                         <td>
                                             {item.nombre.replace(/_/g, " ")}
                                         </td>
