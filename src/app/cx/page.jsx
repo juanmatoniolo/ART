@@ -2,21 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import styles from './page.module.css';
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import Header from '@/components/Header/Header';
 
 const MAPPING_URL = '/mappings/cd-campos_fields_rects.json';
-const TEMPLATE_URL = '/templates/cd-campos.pdf';
+
+// ✅ AHORA: PDFs INTERACTIVOS (AcroForm) a completar
+const TEMPLATE_FRENTE_URL = '/templates/FRENTE-CX.pdf';
+const TEMPLATE_DORSO_URL = '/templates/DORSO-CX.pdf';
 
 // Si tenés duplicados con nombres distintos, agrupálos acá (opcional)
 const CANONICAL_ALIASES = {};
-
-// ===== Helpers =====
-const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-
-// ===== Ajuste fino impresión (global) =====
-const PRINT_OFFSET_X_PT = 5;   // derecha
-const PRINT_OFFSET_Y_PT = -5;  // arriba
 
 // ===== Autocomplete (historial) =====
 const SUGGESTIONS_MAX = 20;
@@ -313,24 +309,6 @@ export default function Page() {
     saveSuggestions(nextSug);
   }
 
-  function resetAll() {
-    if (!canonical) return;
-
-    const next = {};
-    for (const k of Object.keys(canonical.canonicalToInternal)) next[k] = '';
-    if (next.sexo !== undefined) next.sexo = '';
-
-    if (Object.keys(canonical.canonicalToInternal).some((k) => isCanonServicio(k))) {
-      next.servicio = 'PISO';
-    }
-
-    // mantener defaults para localidad/provincia si existen
-    if (canonLocalidad) next[canonLocalidad] = 'CHAJARÍ';
-    if (canonProvincia) next[canonProvincia] = 'ENTRE RIOS';
-
-    setForm(next);
-  }
-
   // edad calculada
   const edadCalculada = useMemo(() => {
     const d = canonDia ? form?.[canonDia] : '';
@@ -418,214 +396,115 @@ export default function Page() {
     return 'on';
   }
 
-  // ===== PDF generation (overlay solo datos) =====
-  async function buildOverlayPdfBytes() {
+  // ==========================================================
+  // ✅ NUEVO: PDF generation (rellenar PDF interactivo, sin coordenadas)
+  // - Sirve para FRENTE y DORSO
+  // - Deja el PDF listo para imprimir (flatten)
+  // ==========================================================
+  async function buildFilledPdfBytes(templateUrl) {
     if (!mapping || !canonical) throw new Error('Mapping no cargado');
 
-    const templateBytes = await fetch(TEMPLATE_URL, { cache: 'no-store' }).then((r) => {
+    const templateBytes = await fetch(templateUrl, { cache: 'no-store' }).then((r) => {
       if (!r.ok) throw new Error(`No pude cargar template PDF (${r.status})`);
       return r.arrayBuffer();
     });
 
-    const templateDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
-    const outDoc = await PDFDocument.create();
-    const font = await outDoc.embedFont(StandardFonts.Helvetica);
+    const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+    const pdfForm = pdfDoc.getForm();
 
-    // páginas vacías del mismo tamaño
-    const tplPages = templateDoc.getPages();
-    for (const p of tplPages) {
-      const { width, height } = p.getSize();
-      outDoc.addPage([width, height]);
-    }
-
-    // --- Helpers de dibujo ---
-    function drawTextOnOcc(outPage, occ, text) {
-      const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
-      const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-      const w = Number(occ.w_pt);
-      const h = Number(occ.h_pt);
-
-      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h)) return;
-
-      const size = clamp(h * 0.6, 8, 12);
-      const dy = y + (h - size) * 0.5;
-      const dx = x + Math.min(2, w * 0.05);
-
-      const up = safeUpper(text); // ✅ SIEMPRE MAYUSC EN IMPRESIÓN
-
-      const maxChars = Math.max(4, Math.floor(w / (size * 0.55)));
-      const t = up.length > maxChars ? up.slice(0, maxChars) : up;
-
-      outPage.drawText(t, { x: dx, y: dy, size, font });
-    }
-
-    function drawValueOnInternal(internalName, value) {
-      const occurrences = mapping[internalName] || [];
-      if (!occurrences.length) return;
-
-      const fieldType = occurrences?.[0]?.field_type;
-      const isBtn = isLikelyCheckbox(fieldType);
-      const isTx = isLikelyText(fieldType);
-
-      let v = value;
-      if (isBtn) v = !!v;
-      if (isTx) v = (v ?? '').toString();
-
-      if (isTx && v.trim() === '') return;
-      if (isBtn && v !== true) return;
-
-      for (const occ of occurrences) {
-        const pageIndex = (occ.page ?? 1) - 1;
-        const outPage = outDoc.getPage(pageIndex);
-
-        if (isBtn) {
-          const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
-          const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-          const w = Number(occ.w_pt);
-          const h = Number(occ.h_pt);
-          const size = clamp(h * 0.9, 8, 14);
-
-          outPage.drawText('X', { x: x + w * 0.25, y: y + h * 0.15, size, font });
-        } else {
-          drawTextOnOcc(outPage, occ, v);
-        }
+    // Helpers tolerantes (si no existe el campo, no rompe)
+    const trySetText = (fieldName, value) => {
+      const v = safeUpper((value ?? '').toString()).trim();
+      if (!v) return;
+      try {
+        pdfForm.getTextField(fieldName).setText(v);
+      } catch {
+        // ignore
       }
-    }
+    };
 
-    function drawValueOnInternalByOcc(internalName, getValueForOcc) {
-      const occurrences = mapping[internalName] || [];
-      if (!occurrences.length) return;
-
-      const fieldType = occurrences?.[0]?.field_type;
-      const isBtn = isLikelyCheckbox(fieldType);
-      const isTx = isLikelyText(fieldType);
-
-      for (const occ of occurrences) {
-        let v = getValueForOcc(occ);
-
-        if (isBtn) v = !!v;
-        if (isTx) v = (v ?? '').toString();
-
-        if (isTx && v.trim() === '') continue;
-        if (isBtn && v !== true) continue;
-
-        const pageIndex = (occ.page ?? 1) - 1;
-        const outPage = outDoc.getPage(pageIndex);
-
-        if (isBtn) {
-          const x = Number(occ.x_pt) + PRINT_OFFSET_X_PT;
-          const y = Number(occ.y_pt) + PRINT_OFFSET_Y_PT;
-          const w = Number(occ.w_pt);
-          const h = Number(occ.h_pt);
-          const size = clamp(h * 0.9, 8, 14);
-          outPage.drawText('X', { x: x + w * 0.25, y: y + h * 0.15, size, font });
-        } else {
-          drawTextOnOcc(outPage, occ, v);
-        }
+    const tryCheck = (fieldName, shouldCheck) => {
+      if (!shouldCheck) return;
+      try {
+        pdfForm.getCheckBox(fieldName).check();
+      } catch {
+        // ignore
       }
-    }
+    };
 
     // ===== Valores derivados =====
     const apellido = canonApellido ? (form?.[canonApellido] ?? '').toString().trim() : '';
     const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
-    const nombreCompuesto = [apellido, nombre].filter(Boolean).join(' ').trim();
+    const nombresPaciente = [apellido, nombre].filter(Boolean).join(' ').trim(); // ✅ CONCAT
 
     const edadValuePrint = edadCalculada ? `${edadCalculada} años` : '';
 
     const doctorRaw = canonDoctor ? (form?.[canonDoctor] ?? '').toString().trim() : '';
     const doctorPrint = doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
 
-    // ===== 1) Sexo (checkbox internos) =====
+    // ===== Reglas explícitas que pediste =====
+    // Paciente (campos exactos del PDF)
+    trySetText('apellido-paciente', apellido);
+    trySetText('nombre-paciente', nombre);
+    trySetText('nombres-paciente', nombresPaciente);
+
+    // Edad (si existe)
+    trySetText('edad', edadValuePrint);
+    trySetText('edad-paciente', edadValuePrint);
+
+    // Servicio fijo (si existe)
+    trySetText('servicio', 'PISO');
+
+    // Sexo (checkbox internos)
     const sexValue = form?.sexo; // 'M' | 'F' | ''
-    const sexoInternals = [];
-    if ((mapping['masculino-paciente'] || []).length) sexoInternals.push('masculino-paciente');
-    if ((mapping['femenino-paciente'] || []).length) sexoInternals.push('femenino-paciente');
+    tryCheck('masculino-paciente', sexValue === 'M');
+    tryCheck('femenino-paciente', sexValue === 'F');
 
-    if (sexValue && sexoInternals.length) {
-      for (const internal of sexoInternals) {
-        const shouldMark =
-          (internal === 'masculino-paciente' && sexValue === 'M') ||
-          (internal === 'femenino-paciente' && sexValue === 'F');
-
-        if (!shouldMark) continue;
-        drawValueOnInternal(internal, true);
-      }
-    }
-
-    // ===== 2) Servicio fijo PISO (NO visible) =====
-    if (canonServicio) {
-      for (const internal of canonical.canonicalToInternal[canonServicio] || []) {
-        drawValueOnInternal(internal, 'PISO');
-      }
-    }
-    if ((mapping['servicio'] || []).length) drawValueOnInternal('servicio', 'PISO');
-
-    // ===== 3) nombres-paciente (NO visible): apellido + nombre =====
-    if (canonNombres) {
-      for (const internal of canonical.canonicalToInternal[canonNombres] || []) {
-        drawValueOnInternal(internal, nombreCompuesto);
-      }
-    }
-    if ((mapping['nombres-paciente'] || []).length) drawValueOnInternal('nombres-paciente', nombreCompuesto);
-
-    // ===== 4) Edad: imprimir en "edad" y en "edad-paciente" =====
-    if (canonEdad) {
-      for (const internal of canonical.canonicalToInternal[canonEdad] || []) {
-        drawValueOnInternal(internal, edadValuePrint);
-      }
-    }
-    if (canonEdadPaciente) {
-      for (const internal of canonical.canonicalToInternal[canonEdadPaciente] || []) {
-        drawValueOnInternal(internal, edadValuePrint);
-      }
-    }
-    if ((mapping['edad'] || []).length) drawValueOnInternal('edad', edadValuePrint);
-    if ((mapping['edad-paciente'] || []).length) drawValueOnInternal('edad-paciente', edadValuePrint);
-
-    // ===== 5) nombre-paciente: en páginas 3 y 6 usar nombreCompuesto =====
-    if (canonNombre) {
-      for (const internal of canonical.canonicalToInternal[canonNombre] || []) {
-        drawValueOnInternalByOcc(internal, (occ) => {
-          const p = Number(occ.page ?? 0); // 1-based
-          if (p === 3 || p === 6) return nombreCompuesto;
-          return nombre;
-        });
-      }
-    }
-
-    // ===== 6) Replicar resto de campos canónicos =====
+    // ===== Replicar el resto de campos (por internos y por canónico) =====
     for (const canonName of Object.keys(canonical.canonicalToInternal)) {
-      if (canonName === 'masculino-paciente' || canonName === 'femenino-paciente') continue;
       if (canonName === 'sexo') continue;
 
-      if (canonServicio && canonName === canonServicio) continue;
-      if (canonNombres && canonName === canonNombres) continue;
-      if (canonEdad && canonName === canonEdad) continue;
-      if (canonEdadPaciente && canonName === canonEdadPaciente) continue;
-      if (canonNombre && canonName === canonNombre) continue;
-
       let canonValue = form?.[canonName];
+
+      // overrides
       if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
+      if (canonEdad && canonName === canonEdad) canonValue = edadValuePrint;
+      if (canonEdadPaciente && canonName === canonEdadPaciente) canonValue = edadValuePrint;
+      if (canonNombres && canonName === canonNombres) canonValue = nombresPaciente;
+      if (canonServicio && canonName === canonServicio) canonValue = 'PISO';
+
+      const fieldType = getCanonFieldType(canonName);
+      const isBtn = isLikelyCheckbox(fieldType);
 
       const internalNames = canonical.canonicalToInternal[canonName] || [];
+
+      // 1) intentar por internal name
       for (const internal of internalNames) {
-        drawValueOnInternal(internal, canonValue);
+        if (isBtn) tryCheck(internal, !!canonValue);
+        else trySetText(internal, canonValue);
       }
+
+      // 2) intentar por canon name
+      if (isBtn) tryCheck(canonName, !!canonValue);
+      else trySetText(canonName, canonValue);
     }
 
-    return await outDoc.save();
+    // ✅ Para imprimir: "aplana" los campos (queda no editable, pero visible e imprimible)
+    pdfForm.flatten();
+
+    return await pdfDoc.save();
   }
 
-  async function downloadOverlay() {
+  async function downloadPdf(templateUrl, filenameBase) {
     try {
       setError('');
-      const bytes = await buildOverlayPdfBytes();
+      const bytes = await buildFilledPdfBytes(templateUrl);
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `overlay-solo-datos-${Date.now()}.pdf`;
+      a.download = `${filenameBase}-${Date.now()}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -639,7 +518,6 @@ export default function Page() {
   // ===== Render =====
   if (loading) {
     return (
-
       <main className={styles.page}>
         <div className={styles.shell}>
           <div className={styles.heroLeft}>
@@ -664,8 +542,15 @@ export default function Page() {
             {error || 'Error desconocido'}
             <div className={styles.small}>
               Verificá:
-              <div><code className={styles.code}>public/mappings/cd-campos_fields_rects.json</code></div>
-              <div><code className={styles.code}>public/templates/cd-campos.pdf</code></div>
+              <div>
+                <code className={styles.code}>public/mappings/cd-campos_fields_rects.json</code>
+              </div>
+              <div>
+                <code className={styles.code}>public/templates/FRENTE-CX.pdf</code>
+              </div>
+              <div>
+                <code className={styles.code}>public/templates/DORSO-CX.pdf</code>
+              </div>
             </div>
           </div>
         </div>
@@ -887,13 +772,7 @@ export default function Page() {
                 <label className={styles.fieldLabel}>Edad</label>
                 <span className={styles.badge}>auto</span>
               </div>
-              <input
-                className={styles.input}
-                value={edadCalculada ? `${edadCalculada} años` : ''}
-                placeholder="—"
-                readOnly
-                disabled
-              />
+              <input className={styles.input} value={edadCalculada ? `${edadCalculada} años` : ''} placeholder="—" readOnly disabled />
             </div>
           </div>
 
@@ -919,11 +798,7 @@ export default function Page() {
 
                   {isBtn ? (
                     <label className={styles.checkboxRow}>
-                      <input
-                        type="checkbox"
-                        checked={!!form[canonName]}
-                        onChange={(e) => setValue(canonName, e.target.checked)}
-                      />
+                      <input type="checkbox" checked={!!form[canonName]} onChange={(e) => setValue(canonName, e.target.checked)} />
                       <span>Marcar</span>
                     </label>
                   ) : (
@@ -963,8 +838,21 @@ export default function Page() {
           <div className={styles.actionCard}>
             <div className={styles.actionTitle}>Acciones</div>
             <div className={styles.actionButtons}>
-              <button className={styles.ghostBtn} onClick={downloadOverlay} type="button">
-                Descargar PDF
+              {/* ✅ Descargables imprimibles */}
+              <button
+                className={styles.ghostBtn}
+                onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'FRENTE-CX-completado')}
+                type="button"
+              >
+                Descargar FRENTE-CX
+              </button>
+
+              <button
+                className={styles.ghostBtn}
+                onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'DORSO-CX-completado')}
+                type="button"
+              >
+                Descargar DORSO-CX
               </button>
             </div>
           </div>
