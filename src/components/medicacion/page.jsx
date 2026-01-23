@@ -1,61 +1,89 @@
 "use client";
-import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+
+import { useEffect, useMemo, useState } from "react";
 import { ref, onValue } from "firebase/database";
+import { db } from "@/lib/firebase";
 import styles from "./medydescartables.module.css";
 
+function normalizeText(input) {
+    return String(input ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/_/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function matchesAllTerms(texto, busqueda) {
+    const t = normalizeText(texto);
+    const q = normalizeText(busqueda);
+    if (!q) return true;
+
+    const terms = q.split(" ").filter(Boolean);
+    return terms.every((term) => t.includes(term));
+}
+
 export default function MedyDescartablesPage() {
-    const [items, setItems] = useState([]);
     const [busqueda, setBusqueda] = useState("");
-    const [filtro, setFiltro] = useState("todos");
-    const [filtrados, setFiltrados] = useState([]);
+    const [items, setItems] = useState([]);
 
-    /* === Escuchar Firebase === */
     useEffect(() => {
-        const refInsumos = ref(db, "medydescartables");
-        const unsub = onValue(refInsumos, (snap) => {
-            if (!snap.exists()) return setItems([]);
+        const refMeds = ref(db, "medydescartables/medicamentos");
+        const refDesc = ref(db, "medydescartables/descartables");
 
-            const data = snap.val();
-            const meds = data.medicamentos
-                ? Object.entries(data.medicamentos).map(([nombre, precio]) => ({
-                    nombre,
-                    precio,
-                    tipo: "Medicacion",
-                }))
-                : [];
+        let medsData = null;
+        let descData = null;
 
-            const desc = data.descartables
-                ? Object.entries(data.descartables).map(([nombre, precio]) => ({
-                    nombre,
-                    precio,
-                    tipo: "Descartable",
-                }))
-                : [];
+        const build = () => {
+            const arr = [];
 
-            const combinados = [...meds, ...desc].sort((a, b) =>
-                a.nombre.localeCompare(b.nombre)
-            );
+            if (medsData) {
+                for (const [nombre, precio] of Object.entries(medsData)) {
+                    arr.push({
+                        nombre,
+                        precio,
+                        tipo: "Medicacion",
+                        id: `medydescartables/medicamentos/${nombre}`,
+                    });
+                }
+            }
 
-            setItems(combinados);
+            if (descData) {
+                for (const [nombre, precio] of Object.entries(descData)) {
+                    arr.push({
+                        nombre,
+                        precio,
+                        tipo: "Descartable", // ✅ singular para matchear tu CSS y textos
+                        id: `medydescartables/descartables/${nombre}`,
+                    });
+                }
+            }
+
+            arr.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            setItems(arr);
+        };
+
+        const unsubMeds = onValue(refMeds, (snap) => {
+            medsData = snap.exists() ? snap.val() : {};
+            build();
         });
 
-        return () => unsub();
+        const unsubDesc = onValue(refDesc, (snap) => {
+            descData = snap.exists() ? snap.val() : {};
+            build();
+        });
+
+        return () => {
+            unsubMeds();
+            unsubDesc();
+        };
     }, []);
 
-    /* === Buscar y filtrar === */
-    useEffect(() => {
-        const query = busqueda.toLowerCase().trim();
-        const filtrados = items.filter((item) => {
-            const coincideNombre = item.nombre.toLowerCase().includes(query);
-            const coincideTipo =
-                filtro === "todos" || item.tipo.toLowerCase() === filtro;
-            return coincideNombre && coincideTipo;
-        });
-        setFiltrados(filtrados);
-    }, [busqueda, filtro, items]);
+    const filtrados = useMemo(() => {
+        return items.filter((it) => matchesAllTerms(it.nombre, busqueda));
+    }, [items, busqueda]);
 
-    /* === Render === */
     return (
         <div className={styles.wrapper}>
             <h2 className={styles.title}>💊 Medicación y 🧷 Descartables</h2>
@@ -64,20 +92,10 @@ export default function MedyDescartablesPage() {
                 <input
                     type="text"
                     className={styles.search}
-                    placeholder="Buscar producto..."
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder='Buscar (ej: "suero dextrosa 10")'
                 />
-
-                <select
-                    className={styles.select}
-                    value={filtro}
-                    onChange={(e) => setFiltro(e.target.value)}
-                >
-                    <option value="todos">🔍 Ver todos</option>
-                    <option value="medicacion">💊 Solo medicación</option>
-                    <option value="descartable">🧷 Solo descartables</option>
-                </select>
             </div>
 
             <table className={styles.table}>
@@ -85,34 +103,43 @@ export default function MedyDescartablesPage() {
                     <tr>
                         <th>Producto</th>
                         <th>Tipo</th>
-                        <th>Precio ($)</th>
+                        <th style={{ textAlign: "right" }}>Precio ($)</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {filtrados.length === 0 ? (
                         <tr>
-                            <td colSpan={3}>No se encontraron resultados.</td>
+                            <td colSpan={3} style={{ padding: 12 }}>
+                                No hay coincidencias.
+                            </td>
                         </tr>
                     ) : (
-                        filtrados.map((item) => (
-                            <tr key={item.nombre}>
-                                <td>{item.nombre.replace(/_/g, " ")}</td>
-                                <td>
-                                    {item.tipo === "Medicacion" ? (
-                                        <span className={styles.medicacion}>💊 Medicación</span>
-                                    ) : (
-                                        <span className={styles.descartable}>🧷 Descartable</span>
-                                    )}
-                                </td>
-                                <td>
-                                    {isNaN(item.precio)
-                                        ? item.precio
-                                        : `$${parseFloat(item.precio).toLocaleString("es-AR", {
+                        filtrados.map((item) => {
+                            const esMedicacion = item.tipo === "Medicacion";
+
+                            return (
+                                <tr key={item.id}>
+                                    <td>{String(item.nombre).replace(/_/g, " ")}</td>
+
+                                    <td>
+                                        {esMedicacion ? (
+                                            <span className={styles.medicacion}>💊 Medicación</span>
+                                        ) : (
+                                            <span className={styles.descartable}>🧷 Descartable</span>
+                                        )}
+                                    </td>
+
+                                    <td style={{ textAlign: "right" }}>
+                                        {Number(item.precio ?? 0).toLocaleString("es-AR", {
                                             minimumFractionDigits: 2,
-                                        })}`}
-                                </td>
-                            </tr>
-                        ))
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </td>
+
+                                </tr>
+                            );
+                        })
                     )}
                 </tbody>
             </table>
