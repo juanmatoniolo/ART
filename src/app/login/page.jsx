@@ -50,6 +50,7 @@ export default function LoginPage() {
                 ADM: '/admin',
                 DR: '/doctores',
                 MDE: '/mesa-de-entrada',
+                FARM: '/farmacia',
             };
 
             router.push(routes[userData.TipoEmpleado] || '/admin');

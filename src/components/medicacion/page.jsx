@@ -39,23 +39,27 @@ export default function MedyDescartablesPage() {
             const arr = [];
 
             if (medsData) {
-                for (const [nombre, precio] of Object.entries(medsData)) {
+                for (const [key, itemData] of Object.entries(medsData)) {
                     arr.push({
-                        nombre,
-                        precio,
+                        id: `medydescartables/medicamentos/${key}`,
+                        nombre: itemData.nombre || key,
+                        precio: itemData.precioReferencia || itemData.precio || 0,
+                        presentacion: itemData.presentacion || "ampolla",
                         tipo: "Medicacion",
-                        id: `medydescartables/medicamentos/${nombre}`,
+                        tipoFormatted: "💊 Medicación"
                     });
                 }
             }
 
             if (descData) {
-                for (const [nombre, precio] of Object.entries(descData)) {
+                for (const [key, itemData] of Object.entries(descData)) {
                     arr.push({
-                        nombre,
-                        precio,
-                        tipo: "Descartable", // ✅ singular para matchear tu CSS y textos
-                        id: `medydescartables/descartables/${nombre}`,
+                        id: `medydescartables/descartables/${key}`,
+                        nombre: itemData.nombre || key,
+                        precio: itemData.precioReferencia || itemData.precio || 0,
+                        presentacion: itemData.presentacion || "unidad",
+                        tipo: "Descartable",
+                        tipoFormatted: "🧷 Descartable"
                     });
                 }
             }
@@ -81,7 +85,11 @@ export default function MedyDescartablesPage() {
     }, []);
 
     const filtrados = useMemo(() => {
-        return items.filter((it) => matchesAllTerms(it.nombre, busqueda));
+        return items.filter((it) => 
+            matchesAllTerms(it.nombre, busqueda) || 
+            matchesAllTerms(it.presentacion, busqueda) ||
+            matchesAllTerms(it.tipoFormatted, busqueda)
+        );
     }, [items, busqueda]);
 
     return (
@@ -94,7 +102,7 @@ export default function MedyDescartablesPage() {
                     className={styles.search}
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    placeholder='Buscar (ej: "suero dextrosa 10")'
+                    placeholder='Buscar (ej: "suero dextrosa 10", "ampolla", "Medicación")'
                 />
             </div>
 
@@ -102,6 +110,7 @@ export default function MedyDescartablesPage() {
                 <thead>
                     <tr>
                         <th>Producto</th>
+                        <th>Presentación</th>
                         <th>Tipo</th>
                         <th style={{ textAlign: "right" }}>Precio ($)</th>
                     </tr>
@@ -110,7 +119,7 @@ export default function MedyDescartablesPage() {
                 <tbody>
                     {filtrados.length === 0 ? (
                         <tr>
-                            <td colSpan={3} style={{ padding: 12 }}>
+                            <td colSpan={4} style={{ padding: 12 }}>
                                 No hay coincidencias.
                             </td>
                         </tr>
@@ -123,20 +132,27 @@ export default function MedyDescartablesPage() {
                                     <td>{String(item.nombre).replace(/_/g, " ")}</td>
 
                                     <td>
+                                        <span className={styles.presentacion}>
+                                            {item.presentacion.charAt(0).toUpperCase() + item.presentacion.slice(1)}
+                                        </span>
+                                    </td>
+
+                                    <td>
                                         {esMedicacion ? (
-                                            <span className={styles.medicacion}>💊 Medicación</span>
+                                            <span className={styles.medicacion}>{item.tipoFormatted}</span>
                                         ) : (
-                                            <span className={styles.descartable}>🧷 Descartable</span>
+                                            <span className={styles.descartable}>{item.tipoFormatted}</span>
                                         )}
                                     </td>
 
                                     <td style={{ textAlign: "right" }}>
                                         {Number(item.precio ?? 0).toLocaleString("es-AR", {
+                                            style: "currency",
+                                            currency: "ARS",
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
                                         })}
                                     </td>
-
                                 </tr>
                             );
                         })
