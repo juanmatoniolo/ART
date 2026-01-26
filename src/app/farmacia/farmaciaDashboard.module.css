@@ -1,0 +1,2257 @@
+/* farmaciaDashboard.module.css */
+
+/* Eliminamos :root y convertimos las variables a clases */
+.dashboardContainer {
+    /* Variables como propiedades CSS locales */
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --secondary-color: #2ecc71;
+    --secondary-dark: #27ae60;
+    --danger-color: #e74c3c;
+    --danger-dark: #c0392b;
+    --warning-color: #f39c12;
+    --warning-dark: #d35400;
+    --info-color: #3498db;
+    --success-color: #27ae60;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Resto del estilo */
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding: 0;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* También necesitamos agregar las variables a otros elementos que las usen */
+.modalContent,
+.statCard,
+.alertSection,
+.recentMovements,
+.stockControl,
+.ingresosHistory {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --secondary-color: #2ecc71;
+    --secondary-dark: #27ae60;
+    --danger-color: #e74c3c;
+    --danger-dark: #c0392b;
+    --warning-color: #f39c12;
+    --warning-dark: #d35400;
+    --success-color: #27ae60;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header principal */
+.dashboardHeader {
+    background: white;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.headerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.dashboardTitle {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.titleIcon {
+    font-size: 2rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.headerStats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.statItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    min-width: 160px;
+}
+
+.statItem:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.statIcon {
+    font-size: 1.5rem;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+}
+
+.statLabel {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.headerActions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.actionButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.actionButton:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.primaryButton {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.secondaryButton {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-dark) 100%);
+    color: white;
+}
+
+.dangerButton {
+    background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    color: white;
+}
+
+.buttonIcon {
+    font-size: 1.1rem;
+}
+
+/* Navegación */
+.mainNav {
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 96px;
+    z-index: 90;
+}
+
+.tabsContainer {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0 1.5rem;
+    gap: 0.5rem;
+}
+
+.tabsContainer::-webkit-scrollbar {
+    display: none;
+}
+
+.tabButton {
+    flex: 1;
+    min-width: 120px;
+    padding: 1rem 1.25rem;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+}
+
+.tabButton:hover {
+    color: var(--primary-color);
+    background: var(--light-color);
+}
+
+.activeTab {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tabIcon {
+    font-size: 1.25rem;
+}
+
+.tabText {
+    display: none;
+}
+
+/* Contenido principal */
+.mainContent {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+/* Dashboard */
+.dashboardGrid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.statCard {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.statCard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.statCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.statCardIcon {
+    font-size: 1.75rem;
+    background: var(--light-color);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statCard h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.statCardValue {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.statCardLabel {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.warningCard .statCardIcon {
+    background: #fff8e6;
+    color: var(--warning-color);
+}
+
+.warningCard .statCardValue {
+    color: var(--warning-color);
+}
+
+.dangerCard .statCardIcon {
+    background: #fee;
+    color: var(--danger-color);
+}
+
+.dangerCard .statCardValue {
+    color: var(--danger-color);
+}
+
+.successCard .statCardIcon {
+    background: #e8f5e9;
+    color: var(--success-color);
+}
+
+.successCard .statCardValue {
+    color: var(--success-color);
+}
+
+/* Secciones */
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.headerTitle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+    color: var(--text-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sectionIcon {
+    font-size: 1.5rem;
+}
+
+.alertCount {
+    background: var(--danger-color);
+    color: white;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.stockCount {
+    font-size: 0.95rem;
+    color: var(--text-light);
+}
+
+.ingresosCount {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+.viewAll {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.viewAll:hover {
+    text-decoration: underline;
+}
+
+/* Alertas */
+.alertSection {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.noAlerts {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--success-color);
+    background: #e8f5e9;
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--success-color);
+}
+
+.noAlertsIcon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.noAlerts p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.alertList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.alertItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #fff8e6;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--warning-color);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.alertItem:hover {
+    background: #fff3cd;
+    transform: translateX(4px);
+}
+
+.alertItemIcon {
+    font-size: 1.5rem;
+    background: white;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alertItemContent {
+    flex: 1;
+}
+
+.alertItemTitle {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.alertItemDetails {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.alertItemType {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.alertItemPresentacion {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.alertItemStock {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+.stockIndicator {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.stockBar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.stockNumbers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    justify-content: center;
+}
+
+.stockCurrent {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.stockMin {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* Últimos movimientos */
+.recentMovements {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.movementItem {
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.movementItem:hover {
+    border-color: var(--primary-color);
+}
+
+.movementHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.movementTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.ingresoBadge {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.movementUser {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.movementDate {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+}
+
+.movementStats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.movementStat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.movementStat .statIcon {
+    font-size: 1rem;
+}
+
+.productosList {
+    margin-top: 1rem;
+}
+
+.productosGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.productoTag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    padding: 0.5rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+}
+
+.productoName {
+    color: var(--text-dark);
+}
+
+.productoCantidad {
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.moreProducts {
+    background: var(--light-color);
+    color: var(--text-light);
+    padding: 0.5rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Control de Stock */
+.stockControl {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.quickActions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.searchContainer {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    background: white;
+    transition: var(--transition);
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    pointer-events: none;
+}
+
+.filterSelect {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+    min-width: 200px;
+    transition: var(--transition);
+}
+
+.filterSelect:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Tabla de stock */
+.stockTableContainer {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    background: white;
+    position: relative;
+    min-height: 300px;
+}
+
+.stockTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stockTable th {
+    background: var(--light-color);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    border-bottom: 2px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.stockTable td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.stockRow:hover {
+    background: #f8f9fa;
+}
+
+.productCell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.productIcon {
+    font-size: 1.5rem;
+    background: var(--light-color);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.productInfo {
+    flex: 1;
+}
+
+.productName {
+    display: block;
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.productPrice {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.medBadge,
+.descBadge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.medBadge {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.descBadge {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.presentacionBadge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.stockValue {
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: inline-block;
+    min-width: 50px;
+}
+
+.stockMin {
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    min-width: 100px;
+}
+
+.valueCell {
+    font-weight: 600;
+    color: var(--success-color);
+    font-size: 1rem;
+}
+
+.noResults {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.noResultsIcon {
+    font-size: 3rem;
+    color: var(--text-light);
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.noResults p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+/* Historial de ingresos */
+.ingresosHistory {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.noIngresos {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
+}
+
+.noIngresosIcon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.noIngresos p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.ingresosList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.ingresoCard {
+    background: var(--light-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.ingresoCard:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.ingresoHeader {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ingresoTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ingresoId {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+}
+
+.ingresoFecha {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.ingresoStats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.ingresoStats span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 20px;
+}
+
+.ingresoUsuario {
+    color: #1565c0;
+}
+
+.ingresoTotal {
+    color: #2e7d32;
+}
+
+.ingresoProductos {
+    color: #7b1fa2;
+}
+
+.ingresoValor {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.ingresoProductosList {
+    margin-top: 1.5rem;
+}
+
+.productosTitle {
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.productosTable {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    overflow: auto;
+}
+
+.productosTable table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.productosTable th {
+    background: var(--light-color);
+    padding: 0.875rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.productosTable td {
+    padding: 0.875rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.productoRow:hover {
+    background: #f8f9fa;
+}
+
+.medSmallBadge,
+.descSmallBadge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.medSmallBadge {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.descSmallBadge {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.cantidadCell {
+    font-weight: 600;
+}
+
+.cantidadPositiva {
+    color: var(--success-color);
+}
+
+.stockNuevo {
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.valorCell {
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+/* Modales */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modalContent {
+    background: white;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.largeModal {
+    max-width: 1000px;
+    max-height: 95vh;
+}
+
+.modalHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.modalTitle {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modalIcon {
+    font-size: 1.5rem;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.closeButton:hover {
+    background: var(--light-color);
+    color: var(--danger-color);
+}
+
+.modalBody {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.largeBody {
+    padding: 1.5rem;
+}
+
+/* Formularios */
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formLabel {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.labelIcon {
+    font-size: 1.1rem;
+    opacity: 0.7;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    width: 100%;
+    transition: var(--transition);
+    background: white;
+    font-family: inherit;
+}
+
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.formTextarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.formTextarea:focus {
+    border-color: var(--primary-color);
+}
+
+/* Botones del modal */
+.modalFooter {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.cancelButton,
+.submitButton {
+    padding: 0.875rem 1.75rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 120px;
+}
+
+.cancelButton {
+    background: var(--light-color);
+    color: var(--text-dark);
+}
+
+.cancelButton:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.submitButton {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.submitButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.submitButton:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Carga masiva */
+.cargaMasivaGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    height: 100%;
+}
+
+.panelTitle {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.panelIcon {
+    font-size: 1.25rem;
+}
+
+.panelHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.panelTotal {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.totalLabel {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.totalValue {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.catalogoList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.catalogoItem {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.catalogoItem:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.catalogoItemHeader {
+    margin-bottom: 0.75rem;
+}
+
+.catalogoItemInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.catalogoItemName {
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    flex: 1;
+}
+
+.catalogoItemDetails {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.presentacionSmall {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.precioSmall {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success-color);
+    background: #e8f5e9;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.catalogoItemStock {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stockLabel {
+    opacity: 0.7;
+}
+
+.stockValue {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.noProductsMessage {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
+}
+
+.noProductsIcon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.noProductsMessage p {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.noProductsMessage small {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.cargaList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.cargaItem {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    border: 2px solid #e8f5e9;
+    background: #f8fef8;
+}
+
+.cargaItemHeader {
+    margin-bottom: 0.75rem;
+}
+
+.cargaItemInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.cargaItemName {
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    flex: 1;
+}
+
+.removeButton {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.removeButton:hover {
+    background: #fee;
+}
+
+.cargaItemDetails {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.cargaTipo {
+    font-size: 0.85rem;
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.cargaPresentacion {
+    font-size: 0.85rem;
+    background: var(--light-color);
+    color: var(--text-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.cargaPrecio {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success-color);
+    background: #e8f5e9;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.cargaItemStock {
+    margin-bottom: 1rem;
+}
+
+.stockInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.arrowIcon {
+    color: var(--text-light);
+    font-weight: 700;
+}
+
+.cargaControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cargaControlGroup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.controlLabel {
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cantidadInput {
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    width: 80px;
+    transition: var(--transition);
+}
+
+.cantidadInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.stockMax {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+.itemTotal {
+    text-align: right;
+}
+
+.itemTotal .totalLabel {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+}
+
+.itemTotal .totalValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: none;
+    padding: 0;
+}
+
+.summaryCard {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    margin-top: 1.5rem;
+}
+
+.summaryTitle {
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summaryIcon {
+    font-size: 1.25rem;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.summaryItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+}
+
+.summaryLabel {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+}
+
+.summaryValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.availableProducts {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.availableTitle {
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.availableIcon {
+    font-size: 1.25rem;
+}
+
+.availableGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.availableItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.availableItem:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.availableItem .availableIcon {
+    font-size: 1.5rem;
+    background: var(--light-color);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.availableInfo {
+    flex: 1;
+}
+
+.availableName {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.availableStock {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.footerTotal {
+    flex: 1;
+}
+
+.totalAmount {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+}
+
+.totalUnits {
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.totalMoney {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--success-color);
+}
+
+.footerActions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .tabText {
+        display: inline;
+    }
+
+    .dashboardTitle {
+        font-size: 2rem;
+    }
+
+    .headerContent {
+        flex-wrap: nowrap;
+    }
+
+    .formGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cargaMasivaGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .modalBody {
+        padding: 2rem;
+    }
+
+    .modalHeader {
+        padding: 2rem;
+    }
+
+    .modalFooter {
+        padding: 2rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboardTitle {
+        font-size: 2.25rem;
+    }
+
+    .statsGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .tabsContainer {
+        padding: 0 2rem;
+    }
+
+    .mainContent {
+        padding: 2rem;
+    }
+
+    .formGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .headerStats {
+        display: none;
+    }
+
+    .headerActions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .actionButton {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .searchContainer {
+        min-width: 100%;
+    }
+
+    .filterSelect {
+        width: 100%;
+    }
+
+    .stockTable {
+        font-size: 0.85rem;
+    }
+
+    .stockTable th,
+    .stockTable td {
+        padding: 0.75rem;
+    }
+
+    .productIcon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.25rem;
+    }
+
+    .statItem {
+        min-width: 120px;
+        padding: 0.5rem 1rem;
+    }
+
+    .statValue {
+        font-size: 1.25rem;
+    }
+
+    .footerActions {
+        flex-direction: column;
+    }
+
+    .cancelButton,
+    .submitButton {
+        width: 100%;
+    }
+}
+
+/* Estilos para movimientos */
+.movimientosHistory {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.movimientosCount {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+.movimientosList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.movimientoCard {
+    background: var(--light-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.movimientoCard:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.movimientoHeader {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.movimientoTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.movimientoTipo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.tipoBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ingresoBadge {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.repartoBadge {
+    background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    color: white;
+}
+
+.tipoIcon {
+    font-size: 1rem;
+}
+
+.destinoBadge {
+    background: white;
+    color: var(--text-dark);
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+}
+
+.movimientoFecha {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.movimientoStats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.movimientoStats span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 20px;
+}
+
+.responsableBadge {
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    background: white;
+}
+
+.noMovimientos {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
+}
+
+.noMovimientosIcon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.noMovimientos p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Estilos para cantidades */
+.cantidad {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.cantidadPositiva {
+    color: var(--success-color);
+}
+
+.cantidadNegativa {
+    color: var(--danger-color);
+}
+
+/* Mejoras para el buscador en available products */
+.availableDetails {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.availablePrecio {
+    color: var(--success-color);
+    font-weight: 600;
+    background: #e8f5e9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Agrega estas clases al final de tu archivo farmaciaDashboard.module.css */
+
+/* Estilos para movimientos */
+.movimientosHistory {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.movimientosCount {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+.movimientosList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.movimientoCard {
+    background: var(--light-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.movimientoCard:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.movimientoHeader {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.movimientoTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.movimientoTipo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.tipoBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ingresoBadge {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+.repartoBadge {
+    background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    color: white;
+}
+
+.tipoIcon {
+    font-size: 1rem;
+}
+
+.destinoBadge {
+    background: white;
+    color: var(--text-dark);
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+}
+
+.movimientoFecha {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.movimientoStats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.movimientoStats span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 20px;
+}
+
+.responsableBadge {
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    background: white;
+}
+
+.noMovimientos {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
+}
+
+.noMovimientosIcon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.noMovimientos p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Estilos para cantidades en movimientos */
+.cantidad {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.cantidadPositiva {
+    color: var(--success-color);
+}
+
+.cantidadNegativa {
+    color: var(--danger-color);
+}
+
+/* Mejoras para el buscador en available products */
+.availableDetails {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.availablePrecio {
+    color: var(--success-color);
+    font-weight: 600;
+    background: #e8f5e9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Estilos para badges en dashboard */
+.movimientoBadge {
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.destinoMini {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    background: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
