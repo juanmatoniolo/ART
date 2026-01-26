@@ -2255,3 +2255,184 @@
     border-radius: 20px;
     border: 1px solid var(--border-color);
 }
+
+/* Estilos para exportar sección */
+.exportarSection {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.exportarCount {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+.exportarGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.exportarCard {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 2px solid var(--border-color);
+    transition: var(--transition);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.exportarCard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+.exportarIcon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.exportarCard h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-dark);
+}
+
+.exportarCard p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    flex: 1;
+}
+
+.exportarStats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.exportarStats span {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.exportarInfo {
+    background: var(--light-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.exportarInfo h4 {
+    margin: 0 0 1rem 0;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.exportarInfo ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.exportarInfo li {
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.exportarResumen {
+    background: #f8f9fa;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.exportarResumen h4 {
+    margin: 0 0 1rem 0;
+    color: var(--text-dark);
+}
+
+.exportarResumen ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.exportarResumen li {
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.exportarResumen strong {
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+/* Estilos para checkbox */
+.formCheckboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+}
+
+.formCheckbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkboxText {
+    flex: 1;
+}
+
+/* Estilos para modal de mensajes */
+.mensajeModal {
+    max-width: 400px;
+}
+
+.mensajeContent {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.mensajeContent p {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+/* Botón de éxito */
+.successButton {
+    background: linear-gradient(135deg, #27ae60 0%, #219653 100%);
+    color: white;
+}
+
+/* Responsive adicional para exportar */
+@media (max-width: 768px) {
+    .exportarGrid {
+        grid-template-columns: 1fr;
+    }
+}

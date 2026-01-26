@@ -103,6 +103,24 @@ export default function FarmaciaDashboard() {
         nota: ""
     });
 
+    // Estados para modales de mensajes
+    const [mensajeModal, setMensajeModal] = useState(false);
+    const [mensajeData, setMensajeData] = useState({
+        titulo: "",
+        mensaje: "",
+        tipo: "success" // success, error, warning, info
+    });
+
+    // Estados para exportar a Excel
+    const [exportarModal, setExportarModal] = useState(false);
+    const [exportarOpciones, setExportarOpciones] = useState({
+        tipo: "stock",
+        fechaInicio: "",
+        fechaFin: "",
+        incluirSinStock: true,
+        formato: "excel"
+    });
+
     // Verificar si es móvil
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -111,115 +129,117 @@ export default function FarmaciaDashboard() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-// Cargar datos de Firebase - VERSIÓN COMPLETAMENTE CORREGIDA
-useEffect(() => {
-    const cargarDatos = async () => {
-        try {
-            // Cargar items del inventario
-            const refMeds = ref(db, "medydescartables/medicamentos");
-            const refDesc = ref(db, "medydescartables/descartables");
-            const refIngresos = ref(db, "ingresos_farmacia");
-            const refRepartos = ref(db, "repartos_farmacia");
+    // Cargar datos de Firebase - VERSIÓN COMPLETAMENTE CORREGIDA
+    useEffect(() => {
+        const cargarDatos = async () => {
+            try {
+                // Cargar items del inventario
+                const refMeds = ref(db, "medydescartables/medicamentos");
+                const refDesc = ref(db, "medydescartables/descartables");
+                const refIngresos = ref(db, "ingresos_farmacia");
+                const refRepartos = ref(db, "repartos_farmacia");
 
-            // Cargar medicamentos y descartables
-            const unsubMedsDesc = onValue(refMeds, (snapMeds) => {
-                const medsData = snapMeds.exists() ? snapMeds.val() : {};
-                
-                const unsubDesc = onValue(refDesc, (snapDescLocal) => {
-                    const descData = snapDescLocal.exists() ? snapDescLocal.val() : {};
-                    const itemsArray = [];
+                // Cargar medicamentos y descartables
+                const unsubMedsDesc = onValue(refMeds, (snapMeds) => {
+                    const medsData = snapMeds.exists() ? snapMeds.val() : {};
+                    
+                    const unsubDesc = onValue(refDesc, (snapDescLocal) => {
+                        const descData = snapDescLocal.exists() ? snapDescLocal.val() : {};
+                        const itemsArray = [];
 
-                    // Procesar medicamentos
-                    Object.entries(medsData).forEach(([key, itemData]) => {
-                        itemsArray.push({
-                            id: key,
-                            nombre: itemData.nombre || key,
-                            precio: itemData.precioReferencia || itemData.precio || 0,
-                            presentacion: itemData.presentacion || "ampolla",
-                            stockActual: itemData.stockActual || 0,
-                            stockMinimo: itemData.stockMinimo || 10,
-                            tipo: "medicamento",
-                            activo: itemData.activo !== false
+                        // Procesar medicamentos
+                        Object.entries(medsData).forEach(([key, itemData]) => {
+                            itemsArray.push({
+                                id: key,
+                                nombre: itemData.nombre || key,
+                                precio: itemData.precioReferencia || itemData.precio || 0,
+                                presentacion: itemData.presentacion || "ampolla",
+                                stockActual: itemData.stockActual || 0,
+                                stockMinimo: itemData.stockMinimo || 10,
+                                tipo: "medicamento",
+                                activo: itemData.activo !== false
+                            });
                         });
+
+                        // Procesar descartables
+                        Object.entries(descData).forEach(([key, itemData]) => {
+                            itemsArray.push({
+                                id: key,
+                                nombre: itemData.nombre || key,
+                                precio: itemData.precioReferencia || itemData.precio || 0,
+                                presentacion: itemData.presentacion || "unidad",
+                                stockActual: itemData.stockActual || 0,
+                                stockMinimo: itemData.stockMinimo || 10,
+                                tipo: "descartable",
+                                activo: itemData.activo !== false
+                            });
+                        });
+
+                        // Ordenar por nombre
+                        itemsArray.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                        setItems(itemsArray);
                     });
 
-                    // Procesar descartables
-                    Object.entries(descData).forEach(([key, itemData]) => {
-                        itemsArray.push({
-                            id: key,
-                            nombre: itemData.nombre || key,
-                            precio: itemData.precioReferencia || itemData.precio || 0,
-                            presentacion: itemData.presentacion || "unidad",
-                            stockActual: itemData.stockActual || 0,
-                            stockMinimo: itemData.stockMinimo || 10,
-                            tipo: "descartable",
-                            activo: itemData.activo !== false
-                        });
+                    return () => unsubDesc();
+                });
+
+                // Cargar movimientos (ingresos + repartos)
+                const unsubMovimientos = onValue(refIngresos, (snapIngresosLocal) => {
+                    const ingresosData = snapIngresosLocal.exists() ? snapIngresosLocal.val() : {};
+                    
+                    const unsubRepartos = onValue(refRepartos, (snapRepartosLocal) => {
+                        const repartosData = snapRepartosLocal.exists() ? snapRepartosLocal.val() : {};
+                        
+                        // Procesar ingresos
+                        const ingresosArray = Object.entries(ingresosData)
+                            .map(([key, ingreso]) => ({
+                                id: key,
+                                tipo: "ingreso",
+                                ...ingreso,
+                                fecha: ingreso.timestamp || key,
+                                fechaFormatted: formatFecha(ingreso.timestamp || key),
+                                fechaLegible: getFechaLegible(ingreso.timestamp || key),
+                                icono: "📥"
+                            }))
+                            .filter(item => item.fecha);
+                        
+                        // Procesar repartos
+                        const repartosArray = Object.entries(repartosData)
+                            .map(([key, reparto]) => ({
+                                id: key,
+                                tipo: "reparto",
+                                ...reparto,
+                                fecha: reparto.timestamp || key,
+                                fechaFormatted: formatFecha(reparto.timestamp || key),
+                                fechaLegible: getFechaLegible(reparto.timestamp || key),
+                                icono: "🚚"
+                            }))
+                            .filter(item => item.fecha);
+                        
+                        // Combinar y ordenar por fecha
+                        const movimientosArray = [...ingresosArray, ...repartosArray]
+                            .sort((a, b) => b.fecha - a.fecha)
+                            .slice(0, 60);
+                        
+                        setMovimientos(movimientosArray);
                     });
 
-                    // Ordenar por nombre
-                    itemsArray.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                    setItems(itemsArray);
+                    return () => unsubRepartos();
                 });
 
-                return () => unsubDesc();
-            });
+                return () => {
+                    unsubMedsDesc();
+                    unsubMovimientos();
+                };
+            } catch (error) {
+                console.error("Error al cargar datos:", error);
+                mostrarMensaje("Error", "No se pudieron cargar los datos: " + error.message, "error");
+            }
+        };
 
-            // Cargar movimientos (ingresos + repartos)
-            const unsubMovimientos = onValue(refIngresos, (snapIngresosLocal) => {
-                const ingresosData = snapIngresosLocal.exists() ? snapIngresosLocal.val() : {};
-                
-                const unsubRepartos = onValue(refRepartos, (snapRepartosLocal) => {
-                    const repartosData = snapRepartosLocal.exists() ? snapRepartosLocal.val() : {};
-                    
-                    // Procesar ingresos
-                    const ingresosArray = Object.entries(ingresosData)
-                        .map(([key, ingreso]) => ({
-                            id: key,
-                            tipo: "ingreso",
-                            ...ingreso,
-                            fecha: ingreso.timestamp || key,
-                            fechaFormatted: formatFecha(ingreso.timestamp || key),
-                            fechaLegible: getFechaLegible(ingreso.timestamp || key),
-                            icono: "📥"
-                        }))
-                        .filter(item => item.fecha);
-                    
-                    // Procesar repartos
-                    const repartosArray = Object.entries(repartosData)
-                        .map(([key, reparto]) => ({
-                            id: key,
-                            tipo: "reparto",
-                            ...reparto,
-                            fecha: reparto.timestamp || key,
-                            fechaFormatted: formatFecha(reparto.timestamp || key),
-                            fechaLegible: getFechaLegible(reparto.timestamp || key),
-                            icono: "🚚"
-                        }))
-                        .filter(item => item.fecha);
-                    
-                    // Combinar y ordenar por fecha
-                    const movimientosArray = [...ingresosArray, ...repartosArray]
-                        .sort((a, b) => b.fecha - a.fecha)
-                        .slice(0, 60);
-                    
-                    setMovimientos(movimientosArray);
-                });
+        cargarDatos();
+    }, []);
 
-                return () => unsubRepartos();
-            });
-
-            return () => {
-                unsubMedsDesc();
-                unsubMovimientos();
-            };
-        } catch (error) {
-            console.error("Error al cargar datos:", error);
-        }
-    };
-
-    cargarDatos();
-}, []);
     // Cargar catálogo completo para carga masiva
     useEffect(() => {
         if (cargaMasivaModal) {
@@ -270,6 +290,7 @@ useEffect(() => {
                     setCatalogoFiltrado(catalogoItems);
                 } catch (error) {
                     console.error("Error al cargar catálogo:", error);
+                    mostrarMensaje("Error", "No se pudo cargar el catálogo", "error");
                 }
             };
 
@@ -360,11 +381,17 @@ useEffect(() => {
         return "Stock óptimo";
     };
 
-    // Validar que un número no sea negativo
+    // Función para mostrar mensajes en modal
+    const mostrarMensaje = (titulo, mensaje, tipo = "info") => {
+        setMensajeData({ titulo, mensaje, tipo });
+        setMensajeModal(true);
+    };
+
+    // Validar que un número no sea negativo (sin alert)
     const validateNonNegative = (value, fieldName = "valor") => {
         const num = parseFloat(value);
         if (isNaN(num) || num < 0) {
-            alert(`❌ El ${fieldName} no puede ser negativo`);
+            mostrarMensaje("Error", `El ${fieldName} no puede ser negativo`, "error");
             return false;
         }
         return true;
@@ -373,7 +400,7 @@ useEffect(() => {
     // Agregar nuevo producto al inventario
     const agregarProducto = async () => {
         if (!nuevoProducto.nombre.trim() || !nuevoProducto.precio || parseFloat(nuevoProducto.precio) <= 0) {
-            alert("Complete todos los campos requeridos");
+            mostrarMensaje("Campos requeridos", "Complete todos los campos requeridos", "warning");
             return;
         }
 
@@ -444,10 +471,10 @@ useEffect(() => {
             });
             setAgregarModal(false);
             
-            alert("✅ Producto agregado exitosamente");
+            mostrarMensaje("Éxito", "✅ Producto agregado exitosamente", "success");
         } catch (error) {
             console.error("Error al agregar producto:", error);
-            alert("❌ Error al agregar producto");
+            mostrarMensaje("Error", "❌ Error al agregar producto", "error");
         }
     };
 
@@ -473,7 +500,7 @@ useEffect(() => {
     const actualizarCantidadCarga = (id, nuevaCantidad) => {
         const cantidadNum = parseInt(nuevaCantidad) || 0;
         if (cantidadNum < 0) {
-            alert("❌ La cantidad no puede ser negativa");
+            mostrarMensaje("Error", "❌ La cantidad no puede ser negativa", "error");
             return;
         }
 
@@ -492,7 +519,7 @@ useEffect(() => {
     // Procesar carga masiva
     const procesarCargaMasiva = async () => {
         if (productosCarga.length === 0) {
-            alert("Agregue al menos un producto");
+            mostrarMensaje("Sin productos", "Agregue al menos un producto", "warning");
             return;
         }
 
@@ -553,23 +580,23 @@ useEffect(() => {
             setProductosCarga([]);
             setCargaMasivaModal(false);
             
-            alert(`✅ ${productosCarga.length} productos agregados exitosamente. Valor total: ${formatCurrency(valorTotal)}`);
+            mostrarMensaje("Carga masiva exitosa", `✅ ${productosCarga.length} productos agregados exitosamente. Valor total: ${formatCurrency(valorTotal)}`, "success");
         } catch (error) {
             console.error("Error en carga masiva:", error);
-            alert("❌ Error al procesar carga masiva");
+            mostrarMensaje("Error", "❌ Error al procesar carga masiva", "error");
         }
     };
 
     // Agregar producto al reparto
     const agregarAlReparto = (producto) => {
         if (producto.stockActual <= 0) {
-            alert("⚠️ Este producto no tiene stock disponible");
+            mostrarMensaje("Sin stock", "⚠️ Este producto no tiene stock disponible", "warning");
             return;
         }
 
         const yaExiste = productosReparto.find(p => p.id === producto.id);
         if (yaExiste) {
-            alert("⚠️ Este producto ya está en la lista de reparto");
+            mostrarMensaje("Producto duplicado", "⚠️ Este producto ya está en la lista de reparto", "warning");
             return;
         }
 
@@ -592,12 +619,12 @@ useEffect(() => {
         if (!producto) return;
         
         if (cantidadNum < 0) {
-            alert("❌ La cantidad no puede ser negativa");
+            mostrarMensaje("Error", "❌ La cantidad no puede ser negativa", "error");
             return;
         }
         
         if (cantidadNum > producto.stockAnterior) {
-            alert(`❌ No puede repartir más de ${producto.stockAnterior} unidades (stock disponible)`);
+            mostrarMensaje("Stock insuficiente", `❌ No puede repartir más de ${producto.stockAnterior} unidades (stock disponible)`, "warning");
             return;
         }
 
@@ -621,12 +648,12 @@ useEffect(() => {
     // Procesar reparto
     const procesarReparto = async () => {
         if (productosReparto.length === 0) {
-            alert("Agregue al menos un producto para repartir");
+            mostrarMensaje("Sin productos", "Agregue al menos un producto para repartir", "warning");
             return;
         }
 
         if (!repartoData.responsable.trim()) {
-            alert("Ingrese el nombre del responsable");
+            mostrarMensaje("Campo requerido", "Ingrese el nombre del responsable", "warning");
             return;
         }
 
@@ -696,10 +723,114 @@ useEffect(() => {
             setBusquedaReparto("");
             setRepartoModal(false);
             
-            alert(`✅ Reparto registrado exitosamente. ${totalUnidades} unidades repartidas. Valor: ${formatCurrency(valorTotal)}`);
+            mostrarMensaje("Reparto exitoso", `✅ Reparto registrado exitosamente. ${totalUnidades} unidades repartidas. Valor: ${formatCurrency(valorTotal)}`, "success");
         } catch (error) {
             console.error("Error en reparto:", error);
-            alert("❌ Error al procesar reparto");
+            mostrarMensaje("Error", "❌ Error al procesar reparto", "error");
+        }
+    };
+
+    // Función para exportar a Excel
+    const exportarAExcel = () => {
+        try {
+            let datos = [];
+            let nombreArchivo = "";
+            
+            switch(exportarOpciones.tipo) {
+                case "stock":
+                    datos = items.map(item => ({
+                        "Producto": item.nombre.replace(/_/g, " "),
+                        "Tipo": item.tipo === "medicamento" ? "Medicamento" : "Descartable",
+                        "Presentación": item.presentacion,
+                        "Stock Actual": item.stockActual,
+                        "Stock Mínimo": item.stockMinimo,
+                        "Precio Unitario": formatCurrency(item.precio),
+                        "Valor Total": formatCurrency(item.stockActual * item.precio),
+                        "Estado": getStockStatus(item.stockActual, item.stockMinimo)
+                    }));
+                    nombreArchivo = `inventario_farmacia_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    break;
+                    
+                case "movimientos":
+                    const movimientosFiltrados = exportarOpciones.fechaInicio && exportarOpciones.fechaFin 
+                        ? movimientos.filter(mov => {
+                            const fechaMov = new Date(mov.fecha);
+                            const inicio = new Date(exportarOpciones.fechaInicio);
+                            const fin = new Date(exportarOpciones.fechaFin);
+                            fin.setHours(23, 59, 59, 999);
+                            return fechaMov >= inicio && fechaMov <= fin;
+                        })
+                        : movimientos;
+                    
+                    datos = movimientosFiltrados.flatMap(mov => 
+                        mov.productos?.map(prod => ({
+                            "Fecha": mov.fechaFormatted,
+                            "Tipo": mov.tipo === "ingreso" ? "Ingreso" : "Reparto",
+                            "Usuario": mov.usuario,
+                            "Destino": mov.destino || "N/A",
+                            "Responsable": mov.responsable || "N/A",
+                            "Producto": prod.itemNombre.replace(/_/g, " "),
+                            "Tipo Producto": prod.tipo === "medicamento" ? "Medicamento" : "Descartable",
+                            "Presentación": prod.presentacion,
+                            "Cantidad": prod.cantidad,
+                            "Precio Unitario": formatCurrency(prod.precioUnitario),
+                            "Valor Total": formatCurrency(prod.cantidad * prod.precioUnitario),
+                            "Stock Anterior": prod.stockAnterior,
+                            "Stock Nuevo": prod.stockNuevo
+                        })) || []
+                    );
+                    nombreArchivo = `movimientos_farmacia_${exportarOpciones.fechaInicio || 'todos'}_${exportarOpciones.fechaFin || ''}.xlsx`;
+                    break;
+                    
+                case "stock_bajo":
+                    const itemsFiltrados = exportarOpciones.incluirSinStock 
+                        ? items.filter(item => item.stockActual < item.stockMinimo)
+                        : items.filter(item => item.stockActual > 0 && item.stockActual < item.stockMinimo);
+                    
+                    datos = itemsFiltrados.map(item => ({
+                        "Producto": item.nombre.replace(/_/g, " "),
+                        "Tipo": item.tipo === "medicamento" ? "Medicamento" : "Descartable",
+                        "Presentación": item.presentacion,
+                        "Stock Actual": item.stockActual,
+                        "Stock Mínimo": item.stockMinimo,
+                        "Diferencia": item.stockMinimo - item.stockActual,
+                        "Precio Unitario": formatCurrency(item.precio),
+                        "Valor a Comprar": formatCurrency((item.stockMinimo - item.stockActual) * item.precio),
+                        "Urgencia": item.stockActual === 0 ? "CRÍTICO" : "ALTO"
+                    }));
+                    nombreArchivo = `stock_bajo_farmacia_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    break;
+            }
+            
+            if (datos.length === 0) {
+                mostrarMensaje("Sin datos", "No hay datos para exportar con los filtros seleccionados", "warning");
+                return;
+            }
+            
+            // Crear archivo CSV (simplificado para el ejemplo)
+            const csvContent = [
+                Object.keys(datos[0]).join(','),
+                ...datos.map(row => Object.values(row).join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", nombreArchivo.replace('.xlsx', '.csv'));
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            mostrarMensaje("Exportación exitosa", `✅ Se exportaron ${datos.length} registros a ${nombreArchivo}`, "success");
+            setExportarModal(false);
+            
+        } catch (error) {
+            console.error("Error al exportar:", error);
+            mostrarMensaje("Error", "❌ Error al exportar los datos", "error");
         }
     };
 
@@ -786,6 +917,14 @@ useEffect(() => {
                         <span className={styles.buttonIcon}>🚚</span>
                         Repartir
                     </button>
+                    <button 
+                        className={`${styles.actionButton} ${styles.successButton}`}
+                        onClick={() => setExportarModal(true)}
+                        style={{background: 'linear-gradient(135deg, #27ae60 0%, #219653 100%)'}}
+                    >
+                        <span className={styles.buttonIcon}>📊</span>
+                        Exportar
+                    </button>
                 </div>
             </header>
             
@@ -819,6 +958,13 @@ useEffect(() => {
                     >
                         <span className={styles.tabIcon}>💊</span>
                         <span className={styles.tabText}>Catálogo</span>
+                    </button>
+                    <button 
+                        className={`${styles.tabButton} ${activeTab === "exportar" ? styles.activeTab : ""}`}
+                        onClick={() => setActiveTab("exportar")}
+                    >
+                        <span className={styles.tabIcon}>📤</span>
+                        <span className={styles.tabText}>Exportar</span>
                     </button>
                 </div>
             </nav>
@@ -1253,6 +1399,80 @@ useEffect(() => {
                         <MedyDescartablesPage />
                     </div>
                 )}
+
+                {activeTab === "exportar" && (
+                    <div className={styles.exportarSection}>
+                        <div className={styles.sectionHeader}>
+                            <h3 className={styles.sectionTitle}>
+                                <span className={styles.sectionIcon}>📤</span>
+                                Exportar Datos
+                            </h3>
+                            <span className={styles.exportarCount}>
+                                Disponibles: {items.length} productos • {movimientos.length} movimientos
+                            </span>
+                        </div>
+                        
+                        <div className={styles.exportarGrid}>
+                            <div className={styles.exportarCard} onClick={() => {setExportarModal(true); setExportarOpciones({...exportarOpciones, tipo: "stock"})}}>
+                                <div className={styles.exportarIcon}>
+                                    📦
+                                </div>
+                                <h4>Inventario Completo</h4>
+                                <p>Exporta todos los productos del inventario con stock y valores</p>
+                                <div className={styles.exportarStats}>
+                                    <span>{items.length} productos</span>
+                                    <span>{formatCurrency(estadisticas.valorTotalStock)}</span>
+                                </div>
+                            </div>
+                            
+                            <div className={styles.exportarCard} onClick={() => {setExportarModal(true); setExportarOpciones({...exportarOpciones, tipo: "movimientos"})}}>
+                                <div className={styles.exportarIcon}>
+                                    📋
+                                </div>
+                                <h4>Historial de Movimientos</h4>
+                                <p>Exporta todos los ingresos y repartos registrados</p>
+                                <div className={styles.exportarStats}>
+                                    <span>{movimientos.length} movimientos</span>
+                                    <span>{movimientos.filter(m => m.tipo === "ingreso").length} ingresos</span>
+                                </div>
+                            </div>
+                            
+                            <div className={styles.exportarCard} onClick={() => {setExportarModal(true); setExportarOpciones({...exportarOpciones, tipo: "stock_bajo"})}}>
+                                <div className={styles.exportarIcon}>
+                                    ⚠️
+                                </div>
+                                <h4>Stock Bajo / Crítico</h4>
+                                <p>Exporta productos que requieren reabastecimiento urgente</p>
+                                <div className={styles.exportarStats}>
+                                    <span>{estadisticas.itemsBajoStock} productos</span>
+                                    <span style={{color: '#e74c3c'}}>{estadisticas.itemsSinStock} sin stock</span>
+                                </div>
+                            </div>
+                            
+                            <div className={styles.exportarCard} onClick={() => {mostrarMensaje("Próximamente", "La exportación por rangos de fechas estará disponible en la próxima actualización", "info")}}>
+                                <div className={styles.exportarIcon}>
+                                    📅
+                                </div>
+                                <h4>Reporte por Período</h4>
+                                <p>Exporta movimientos entre fechas específicas para análisis</p>
+                                <div className={styles.exportarStats}>
+                                    <span>Personalizable</span>
+                                    <span>Por fechas</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className={styles.exportarInfo}>
+                            <h4>📝 Información sobre la exportación</h4>
+                            <ul>
+                                <li>Los archivos se exportan en formato CSV compatible con Excel</li>
+                                <li>Puedes filtrar por tipo de datos y rangos de fechas</li>
+                                <li>Los datos incluyen cálculos de valor total automáticos</li>
+                                <li>Los archivos se descargan automáticamente a tu dispositivo</li>
+                            </ul>
+                        </div>
+                    </div>
+                )}
             </main>
 
             {/* Modal para agregar producto */}
@@ -1354,7 +1574,7 @@ useEffect(() => {
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             if (parseFloat(value) < 0) {
-                                                alert("❌ El precio no puede ser negativo");
+                                                mostrarMensaje("Error", "❌ El precio no puede ser negativo", "error");
                                                 return;
                                             }
                                             setNuevoProducto({...nuevoProducto, precio: value});
@@ -1377,7 +1597,7 @@ useEffect(() => {
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             if (parseInt(value) < 0) {
-                                                alert("❌ El stock no puede ser negativo");
+                                                mostrarMensaje("Error", "❌ El stock no puede ser negativo", "error");
                                                 return;
                                             }
                                             setNuevoProducto({...nuevoProducto, stockActual: value});
@@ -1399,7 +1619,7 @@ useEffect(() => {
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             if (parseInt(value) < 1) {
-                                                alert("❌ El stock mínimo debe ser al menos 1");
+                                                mostrarMensaje("Error", "❌ El stock mínimo debe ser al menos 1", "error");
                                                 return;
                                             }
                                             setNuevoProducto({...nuevoProducto, stockMinimo: value});
@@ -1905,6 +2125,207 @@ useEffect(() => {
                                     Confirmar Reparto ({productosReparto.length} productos)
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para exportar datos */}
+            {exportarModal && (
+                <div className={styles.modalOverlay} onClick={() => setExportarModal(false)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader} style={{background: 'linear-gradient(135deg, #27ae60 0%, #219653 100%)'}}>
+                            <h3 className={styles.modalTitle} style={{color: 'white'}}>
+                                <span className={styles.modalIcon}>📤</span>
+                                Exportar Datos
+                            </h3>
+                            <button 
+                                className={styles.closeButton}
+                                style={{color: 'white'}}
+                                onClick={() => setExportarModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className={styles.modalBody}>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>
+                                        <span className={styles.labelIcon}>📊</span>
+                                        Tipo de Datos a Exportar
+                                    </label>
+                                    <select
+                                        className={styles.formSelect}
+                                        value={exportarOpciones.tipo}
+                                        onChange={(e) => setExportarOpciones({...exportarOpciones, tipo: e.target.value})}
+                                    >
+                                        <option value="stock">📦 Inventario Completo</option>
+                                        <option value="movimientos">📋 Historial de Movimientos</option>
+                                        <option value="stock_bajo">⚠️ Stock Bajo / Crítico</option>
+                                    </select>
+                                </div>
+                                
+                                {exportarOpciones.tipo === "movimientos" && (
+                                    <>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.formLabel}>
+                                                <span className={styles.labelIcon}>📅</span>
+                                                Fecha de Inicio (opcional)
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className={styles.formInput}
+                                                value={exportarOpciones.fechaInicio}
+                                                onChange={(e) => setExportarOpciones({...exportarOpciones, fechaInicio: e.target.value})}
+                                            />
+                                        </div>
+                                        
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.formLabel}>
+                                                <span className={styles.labelIcon}>📅</span>
+                                                Fecha de Fin (opcional)
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className={styles.formInput}
+                                                value={exportarOpciones.fechaFin}
+                                                onChange={(e) => setExportarOpciones({...exportarOpciones, fechaFin: e.target.value})}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                
+                                {exportarOpciones.tipo === "stock_bajo" && (
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.formCheckboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                className={styles.formCheckbox}
+                                                checked={exportarOpciones.incluirSinStock}
+                                                onChange={(e) => setExportarOpciones({...exportarOpciones, incluirSinStock: e.target.checked})}
+                                            />
+                                            <span className={styles.checkboxText}>Incluir productos sin stock (0 unidades)</span>
+                                        </label>
+                                    </div>
+                                )}
+                                
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>
+                                        <span className={styles.labelIcon}>📁</span>
+                                        Formato de Exportación
+                                    </label>
+                                    <select
+                                        className={styles.formSelect}
+                                        value={exportarOpciones.formato}
+                                        onChange={(e) => setExportarOpciones({...exportarOpciones, formato: e.target.value})}
+                                    >
+                                        <option value="excel">Excel (CSV)</option>
+                                        <option value="pdf" disabled>PDF (próximamente)</option>
+                                        <option value="json" disabled>JSON (próximamente)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className={styles.exportarResumen}>
+                                <h4>📋 Resumen de la exportación:</h4>
+                                <ul>
+                                    <li><strong>Tipo:</strong> {
+                                        exportarOpciones.tipo === "stock" ? "Inventario Completo" :
+                                        exportarOpciones.tipo === "movimientos" ? "Historial de Movimientos" :
+                                        "Stock Bajo / Crítico"
+                                    }</li>
+                                    
+                                    {exportarOpciones.tipo === "stock" && (
+                                        <li><strong>Productos:</strong> {items.length} items</li>
+                                    )}
+                                    
+                                    {exportarOpciones.tipo === "movimientos" && (
+                                        <>
+                                            <li><strong>Movimientos:</strong> {movimientos.length} registros</li>
+                                            {exportarOpciones.fechaInicio && (
+                                                <li><strong>Desde:</strong> {exportarOpciones.fechaInicio}</li>
+                                            )}
+                                            {exportarOpciones.fechaFin && (
+                                                <li><strong>Hasta:</strong> {exportarOpciones.fechaFin}</li>
+                                            )}
+                                        </>
+                                    )}
+                                    
+                                    {exportarOpciones.tipo === "stock_bajo" && (
+                                        <li><strong>Productos con stock bajo:</strong> {estadisticas.itemsBajoStock} items</li>
+                                    )}
+                                    
+                                    <li><strong>Formato:</strong> {exportarOpciones.formato.toUpperCase()}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div className={styles.modalFooter}>
+                            <button 
+                                className={styles.cancelButton}
+                                onClick={() => setExportarModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                className={styles.submitButton}
+                                onClick={exportarAExcel}
+                                style={{background: 'linear-gradient(135deg, #27ae60 0%, #219653 100%)'}}
+                            >
+                                Exportar Datos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para mensajes */}
+            {mensajeModal && (
+                <div className={styles.modalOverlay} onClick={() => setMensajeModal(false)}>
+                    <div className={`${styles.modalContent} ${styles.mensajeModal}`} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader} style={{
+                            background: mensajeData.tipo === "success" ? 'linear-gradient(135deg, #27ae60 0%, #219653 100%)' :
+                                      mensajeData.tipo === "error" ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' :
+                                      mensajeData.tipo === "warning" ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' :
+                                      'linear-gradient(135deg, #3498db 0%, #2980b9 100%)'
+                        }}>
+                            <h3 className={styles.modalTitle} style={{color: 'white'}}>
+                                <span className={styles.modalIcon}>
+                                    {mensajeData.tipo === "success" ? "✅" :
+                                     mensajeData.tipo === "error" ? "❌" :
+                                     mensajeData.tipo === "warning" ? "⚠️" : "ℹ️"}
+                                </span>
+                                {mensajeData.titulo}
+                            </h3>
+                            <button 
+                                className={styles.closeButton}
+                                style={{color: 'white'}}
+                                onClick={() => setMensajeModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className={styles.modalBody}>
+                            <div className={styles.mensajeContent}>
+                                <p>{mensajeData.mensaje}</p>
+                            </div>
+                        </div>
+                        
+                        <div className={styles.modalFooter}>
+                            <button 
+                                className={styles.submitButton}
+                                onClick={() => setMensajeModal(false)}
+                                style={{
+                                    background: mensajeData.tipo === "success" ? 'linear-gradient(135deg, #27ae60 0%, #219653 100%)' :
+                                              mensajeData.tipo === "error" ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' :
+                                              mensajeData.tipo === "warning" ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' :
+                                              'linear-gradient(135deg, #3498db 0%, #2980b9 100%)'
+                                }}
+                            >
+                                Aceptar
+                            </button>
                         </div>
                     </div>
                 </div>
