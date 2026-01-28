@@ -10,17 +10,18 @@ const STORAGE_KEY = "siniestro_form_simple_v1";
 
 const PRESTADOR_CONST = {
     nombre: "CLINICA DE LA UNION S.A",
-    cuit: "",
-    calle: "",
-    nro: "",
-    piso: "",
-    depto: "",
+    cuit: "30-70754530-0",
+    calle: "Av. Siburu",
+    nro: "1085",
+    piso: "-",
+    depto: "-",
     localidad: "Chajari",
     provincia: "Entre Rios",
-    cp: "",
-    celular: "",
-    mail: "",
+    cp: "3228",
+    celular: "3456-441580",
+    mail: "clinicadelaunionart@gmail.com",
 };
+
 
 const initialForm = {
     ART: "",
@@ -61,33 +62,25 @@ function formatCuitIf11(value) {
 function validate(f) {
     const e = {};
 
-    if (!f.ART.trim()) e.ART = "ART requerida";
-
-    if (!f.empleadorNombre.trim()) e.empleadorNombre = "Nombre de empresa requerido";
+    // Solo validaciones de formato si se ingresa algo
+    
+    // Validación CUIT/DNI del empleador (solo formato)
     const empId = onlyDigits(f.empleadorCuitDni);
-    if (!empId) e.empleadorCuitDni = "CUIT/DNI requerido";
-    else if (empId.length < 8) e.empleadorCuitDni = "Debe tener al menos 8 números";
+    if (empId && empId.length < 8 && empId.length > 0) {
+        e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
+    }
 
-    if (!f.trabajadorApellido.trim()) e.trabajadorApellido = "Apellido requerido";
-    if (!f.trabajadorNombre.trim()) e.trabajadorNombre = "Nombre requerido";
-
+    // Validación DNI del trabajador (solo formato)
     const dni = onlyDigits(f.trabajadorDni);
-    if (!dni) e.trabajadorDni = "DNI requerido";
-    if (dni && (dni.length < 7 || dni.length > 9)) e.trabajadorDni = "DNI inválido (7 a 9 dígitos)";
+    if (dni && (dni.length < 7 || dni.length > 9)) {
+        e.trabajadorDni = "DNI inválido (7 a 9 dígitos)";
+    }
 
-    if (!f.trabajadorNacimiento) e.trabajadorNacimiento = "Fecha de nacimiento requerida";
-    if (!f.trabajadorSexo) e.trabajadorSexo = "Seleccioná sexo";
-
-    if (!f.trabajadorCalle.trim()) e.trabajadorCalle = "Calle requerida";
-    if (!f.trabajadorNumero.trim()) e.trabajadorNumero = "Número requerido";
-    if (!f.trabajadorLocalidad.trim()) e.trabajadorLocalidad = "Localidad requerida";
-    if (!f.trabajadorProvincia.trim()) e.trabajadorProvincia = "Provincia requerida";
-
+    // Validación teléfono (solo formato)
     const tel = onlyDigits(f.trabajadorTelefono);
-    if (!tel) e.trabajadorTelefono = "Teléfono requerido";
-    if (tel && tel.length < 8) e.trabajadorTelefono = "Teléfono inválido";
-
-    if (!f.consultaTipo) e.consultaTipo = "Seleccioná tipo de contingencia";
+    if (tel && tel.length < 8) {
+        e.trabajadorTelefono = "Teléfono inválido";
+    }
 
     return e;
 }
@@ -194,32 +187,34 @@ export default function SiniestroPage() {
         setSaving(true);
         try {
             const payload = {
-                ART: { nombre: form.ART.trim(), nroSiniestro: form.nroSiniestro.trim() },
+                ART: { 
+                    nombre: form.ART.trim() || "", 
+                    nroSiniestro: form.nroSiniestro.trim() || "" 
+                },
 
                 empleador: {
-                    nombre: form.empleadorNombre.trim(),
-                    cuit: onlyDigits(form.empleadorCuitDni),
+                    nombre: form.empleadorNombre.trim() || "",
+                    cuit: onlyDigits(form.empleadorCuitDni) || "",
                 },
 
                 trabajador: {
-                    apellido: form.trabajadorApellido.trim(),
-                    nombre: form.trabajadorNombre.trim(),
-                    dni: onlyDigits(form.trabajadorDni),
-                    nacimiento: form.trabajadorNacimiento,
-                    sexo: form.trabajadorSexo,
-                    calle: form.trabajadorCalle.trim(),
-                    numero: form.trabajadorNumero.trim(),
-                    piso: form.trabajadorPiso.trim(),
-                    depto: form.trabajadorDepto.trim(),
-                    localidad: form.trabajadorLocalidad.trim(),
-                    provincia: form.trabajadorProvincia.trim(),
-                    cp: onlyDigits(form.trabajadorCP),
-                    telefono: onlyDigits(form.trabajadorTelefono),
+                    apellido: form.trabajadorApellido.trim() || "",
+                    nombre: form.trabajadorNombre.trim() || "",
+                    dni: onlyDigits(form.trabajadorDni) || "",
+                    nacimiento: form.trabajadorNacimiento || "",
+                    sexo: form.trabajadorSexo || "",
+                    calle: form.trabajadorCalle.trim() || "",
+                    numero: form.trabajadorNumero.trim() || "",
+                    piso: form.trabajadorPiso.trim() || "",
+                    depto: form.trabajadorDepto.trim() || "",
+                    localidad: form.trabajadorLocalidad.trim() || "",
+                    provincia: form.trabajadorProvincia.trim() || "",
+                    cp: onlyDigits(form.trabajadorCP) || "",
+                    telefono: onlyDigits(form.trabajadorTelefono) || "",
                 },
 
-                consulta: { tipo: form.consultaTipo },
+                consulta: { tipo: form.consultaTipo || "" },
 
-                // si el server ya usa ENV, esto se puede sacar
                 prestador: PRESTADOR_CONST,
 
                 createdAt: Date.now(),
@@ -230,7 +225,7 @@ export default function SiniestroPage() {
             await set(newRef, payload);
             setCreatedId(newRef.key);
 
-            const fileName = `ART_${payload.trabajador.apellido}_${payload.trabajador.dni}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
+            const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${payload.trabajador.dni || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
 
             const res = await fetch("/api/pdf", {
                 method: "POST",
@@ -272,7 +267,7 @@ export default function SiniestroPage() {
                 <div className={styles.header}>
                     <div>
                         <h1 className={styles.title}>Nuevo Siniestro</h1>
-                        <p className={styles.subtitle}>Completá el formulario, guardá y descargá/abrí el PDF.</p>
+                        <p className={styles.subtitle}>Todos los campos son opcionales. Completá lo que necesites.</p>
                     </div>
 
                     <div className={styles.headerActions}>
@@ -305,15 +300,15 @@ export default function SiniestroPage() {
                 <form onSubmit={onSubmit} autoComplete="on">
                     <div className={styles.card}>
                         {/* ART + Motivo */}
-                        <Section title="1) ART + Motivo" subtitle="Completar ART y seleccionar tipo de contingencia">
+                        <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <label className={styles.label}>ART *</label>
+                                    <label className={styles.label}>ART</label>
                                     <input
                                         className={cx(styles.input, errors.ART && styles.inputError)}
                                         value={form.ART}
                                         onChange={onChange("ART")}
-                                        placeholder="Ej: Provincia ART, Galeno ART..."
+                                        placeholder="Ej: Provincia ART, Galeno ART... (opcional)"
                                     />
                                     {errors.ART && <div className={styles.errorText}>{errors.ART}</div>}
                                 </div>
@@ -330,7 +325,7 @@ export default function SiniestroPage() {
                                 </div>
 
                                 <div className={styles.fieldFull}>
-                                    <label className={styles.label}>Motivo de consulta *</label>
+                                    <label className={styles.label}>Motivo de consulta</label>
                                     <div className={styles.chips}>
                                         {[
                                             ["AT", "Accidente de trabajo"],
@@ -361,28 +356,28 @@ export default function SiniestroPage() {
                         </Section>
 
                         {/* Empleador */}
-                        <Section title="2) Empleador" subtitle="Datos de la empresa">
+                        <Section title="2) Empleador" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Nombre empresa *</label>
+                                    <label className={styles.label}>Nombre empresa</label>
                                     <input
                                         className={cx(styles.input, errors.empleadorNombre && styles.inputError)}
                                         value={form.empleadorNombre}
                                         onChange={onChange("empleadorNombre")}
-                                        placeholder="Razón social"
+                                        placeholder="Razón social (opcional)"
                                     />
                                     {errors.empleadorNombre && <div className={styles.errorText}>{errors.empleadorNombre}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>CUIT / DNI *</label>
+                                    <label className={styles.label}>CUIT / DNI</label>
                                     <input
                                         className={cx(styles.input, errors.empleadorCuitDni && styles.inputError)}
                                         value={form.empleadorCuitDni}
                                         onChange={onChange("empleadorCuitDni")}
                                         onBlur={onBlurCuitDni}
                                         inputMode="numeric"
-                                        placeholder="Solo números (se formatea si es CUIT)"
+                                        placeholder="Opcional (solo números)"
                                     />
                                     {errors.empleadorCuitDni && <div className={styles.errorText}>{errors.empleadorCuitDni}</div>}
                                 </div>
@@ -390,44 +385,44 @@ export default function SiniestroPage() {
                         </Section>
 
                         {/* Trabajador */}
-                        <Section title="3) Trabajador" subtitle="Datos personales y domicilio">
+                        <Section title="3) Trabajador" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Apellido *</label>
+                                    <label className={styles.label}>Apellido</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorApellido && styles.inputError)}
                                         value={form.trabajadorApellido}
                                         onChange={onChange("trabajadorApellido")}
-                                        placeholder="Apellido"
+                                        placeholder="Apellido (opcional)"
                                     />
                                     {errors.trabajadorApellido && <div className={styles.errorText}>{errors.trabajadorApellido}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Nombre *</label>
+                                    <label className={styles.label}>Nombre</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorNombre && styles.inputError)}
                                         value={form.trabajadorNombre}
                                         onChange={onChange("trabajadorNombre")}
-                                        placeholder="Nombre"
+                                        placeholder="Nombre (opcional)"
                                     />
                                     {errors.trabajadorNombre && <div className={styles.errorText}>{errors.trabajadorNombre}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>DNI *</label>
+                                    <label className={styles.label}>DNI</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
                                         value={form.trabajadorDni}
                                         onChange={onChange("trabajadorDni")}
                                         inputMode="numeric"
-                                        placeholder="Ej: 12345678"
+                                        placeholder="DNI (opcional)"
                                     />
                                     {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Nacimiento *</label>
+                                    <label className={styles.label}>Nacimiento</label>
                                     <input
                                         type="date"
                                         className={cx(styles.input, errors.trabajadorNacimiento && styles.inputError)}
@@ -438,7 +433,7 @@ export default function SiniestroPage() {
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Sexo *</label>
+                                    <label className={styles.label}>Sexo</label>
                                     <div className={styles.chips}>
                                         {[
                                             ["M", "M"],
@@ -463,68 +458,78 @@ export default function SiniestroPage() {
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Teléfono *</label>
+                                    <label className={styles.label}>Teléfono</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorTelefono && styles.inputError)}
                                         value={form.trabajadorTelefono}
                                         onChange={onChange("trabajadorTelefono")}
                                         inputMode="numeric"
-                                        placeholder="Ej: 3456..."
+                                        placeholder="Teléfono (opcional)"
                                     />
                                     {errors.trabajadorTelefono && <div className={styles.errorText}>{errors.trabajadorTelefono}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Calle *</label>
+                                    <label className={styles.label}>Calle</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorCalle && styles.inputError)}
                                         value={form.trabajadorCalle}
                                         onChange={onChange("trabajadorCalle")}
-                                        placeholder="Calle"
+                                        placeholder="Calle (opcional)"
                                     />
                                     {errors.trabajadorCalle && <div className={styles.errorText}>{errors.trabajadorCalle}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Número *</label>
+                                    <label className={styles.label}>Número</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorNumero && styles.inputError)}
                                         value={form.trabajadorNumero}
                                         onChange={onChange("trabajadorNumero")}
                                         inputMode="numeric"
-                                        placeholder="N°"
+                                        placeholder="N° (opcional)"
                                     />
                                     {errors.trabajadorNumero && <div className={styles.errorText}>{errors.trabajadorNumero}</div>}
                                 </div>
 
                                 <div className={styles.field}>
                                     <label className={styles.label}>Piso</label>
-                                    <input className={styles.input} value={form.trabajadorPiso} onChange={onChange("trabajadorPiso")} placeholder="-" />
+                                    <input 
+                                        className={styles.input} 
+                                        value={form.trabajadorPiso} 
+                                        onChange={onChange("trabajadorPiso")} 
+                                        placeholder="Piso (opcional)" 
+                                    />
                                 </div>
 
                                 <div className={styles.field}>
                                     <label className={styles.label}>Depto</label>
-                                    <input className={styles.input} value={form.trabajadorDepto} onChange={onChange("trabajadorDepto")} placeholder="-" />
+                                    <input 
+                                        className={styles.input} 
+                                        value={form.trabajadorDepto} 
+                                        onChange={onChange("trabajadorDepto")} 
+                                        placeholder="Depto (opcional)" 
+                                    />
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Localidad *</label>
+                                    <label className={styles.label}>Localidad</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorLocalidad && styles.inputError)}
                                         value={form.trabajadorLocalidad}
                                         onChange={onChange("trabajadorLocalidad")}
-                                        placeholder="Localidad"
+                                        placeholder="Localidad (opcional)"
                                     />
                                     {errors.trabajadorLocalidad && <div className={styles.errorText}>{errors.trabajadorLocalidad}</div>}
                                 </div>
 
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Provincia *</label>
+                                    <label className={styles.label}>Provincia</label>
                                     <input
                                         className={cx(styles.input, errors.trabajadorProvincia && styles.inputError)}
                                         value={form.trabajadorProvincia}
                                         onChange={onChange("trabajadorProvincia")}
-                                        placeholder="Provincia"
+                                        placeholder="Provincia (opcional)"
                                     />
                                     {errors.trabajadorProvincia && <div className={styles.errorText}>{errors.trabajadorProvincia}</div>}
                                 </div>
@@ -536,7 +541,7 @@ export default function SiniestroPage() {
                                         value={form.trabajadorCP}
                                         onChange={onChange("trabajadorCP")}
                                         inputMode="numeric"
-                                        placeholder="Opcional"
+                                        placeholder="CP (opcional)"
                                     />
                                 </div>
                             </div>
