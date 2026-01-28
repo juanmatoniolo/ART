@@ -45,7 +45,7 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 
 *Indicaciones importantes:*
 • Límite de peso: *140 kg*
-• Asistir con ropa cómoda
+• Asistir con ropa cómoda  y *DNI fisico*
 • Llegar *15 minutos antes* del turno
 • *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes
 • Puede asistir con *un acompañante* (en sala de espera)
