@@ -37,7 +37,7 @@ export default function Header() {
                     className={`${styles.navLink} ${pathname.startsWith('/cx') ? styles.active : ''}`}
                 >
                     <ClipboardList size={16} />
-                    Formulario CX
+                     CX
                 </Link>
             </nav>
         </header>

@@ -86,6 +86,22 @@ const isCanonDoctor = (c) => {
 const isCanonLocalidad = (c) => normalizeName(c) === 'localidad';
 const isCanonProvincia = (c) => normalizeName(c) === 'provincia';
 
+// ✅ NUEVOS CAMPOS (detectores específicos)
+const isCanonNacimientoPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'nacimiento-paciente' || n === 'nacmiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento');
+};
+
+const isCanonDomicilioPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'domicilio-paciente' || n.includes('domicilio');
+};
+
+const isCanonHCPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica');
+};
+
 function computeAgeYears(d, m, y) {
   const dd = Number(d);
   const mm = Number(m);
@@ -116,6 +132,40 @@ function computeAgeYears(d, m, y) {
 function safeUpper(v) {
   if (v === null || v === undefined) return '';
   return String(v).toUpperCase();
+}
+
+// ✅ Función para formatear número con separador de miles
+function formatNumberWithThousands(value) {
+  if (!value) return '';
+  
+  // Remover cualquier separador existente y caracteres no numéricos
+  const numericValue = String(value).replace(/[^\d]/g, '');
+  
+  if (!numericValue) return '';
+  
+  // Formatear con separador de miles
+  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// ✅ Función para parsear número con separador de miles
+function parseFormattedNumber(formattedValue) {
+  if (!formattedValue) return '';
+  return String(formattedValue).replace(/\./g, '');
+}
+
+// ✅ Función para generar nombre de archivo seguro
+function generateSafeFilename(baseName) {
+  if (!baseName || baseName.trim() === '') return 'Paciente';
+  
+  // Limpiar caracteres especiales y espacios
+  return baseName
+    .normalize('NFD') // Separar acentos
+    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+    .replace(/[^a-zA-Z0-9\s-]/g, '') // Remover caracteres especiales
+    .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+    .replace(/-+/g, '-') // Eliminar guiones múltiples
+    .trim()
+    .toUpperCase();
 }
 
 function loadSuggestions() {
@@ -229,6 +279,11 @@ export default function Page() {
   const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
   const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
 
+  // ✅ NUEVOS CAMPOS - detectarlos si existen
+  const canonNacimientoPaciente = useMemo(() => canonKeys.find(isCanonNacimientoPaciente), [canonKeys]);
+  const canonDomicilioPaciente = useMemo(() => canonKeys.find(isCanonDomicilioPaciente), [canonKeys]);
+  const canonHCPaciente = useMemo(() => canonKeys.find(isCanonHCPaciente), [canonKeys]);
+
   // NO visibles
   const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
   const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
@@ -277,6 +332,13 @@ export default function Page() {
       seeded = addSuggestion(seeded, canonProvincia, 'ENTRE RIOS');
     }
 
+    // ✅ Sembrar sugerencias para nacimiento-paciente
+    if (canonNacimientoPaciente) {
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CHAJARÍ, ENTRE RIOS');
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CONCORDIA, ENTRE RIOS');
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'PARANÁ, ENTRE RIOS');
+    }
+
     setSuggestions(seeded);
     saveSuggestions(seeded);
 
@@ -296,10 +358,24 @@ export default function Page() {
 
       return changed ? out : prev;
     });
-  }, [canonical, canonLocalidad, canonProvincia]);
+  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]);
 
   function setValue(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  // ✅ Manejo especial para hc-paciente (con separador de miles)
+  function handleHCChange(value) {
+    // Formatear con separador de miles para mostrar
+    const formattedValue = formatNumberWithThousands(value);
+    setValue(canonHCPaciente, formattedValue);
+  }
+
+  // ✅ Obtener valor formateado para hc-paciente
+  function getHCFormattedValue() {
+    if (!canonHCPaciente) return '';
+    const rawValue = form?.[canonHCPaciente] || '';
+    return formatNumberWithThousands(rawValue);
   }
 
   function commitSuggestion(canonName, value) {
@@ -340,6 +416,40 @@ export default function Page() {
     });
   }, [edadCalculada, canonEdad, canonEdadPaciente]);
 
+  // ✅ Función para obtener etiqueta amigable para los nuevos campos
+  function getFriendlyLabel(canonName) {
+    const n = normalizeName(canonName);
+    
+    if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
+      return 'Lugar de Nacimiento';
+    }
+    if (n === 'domicilio-paciente' || n.includes('domicilio')) {
+      return 'Domicilio';
+    }
+    if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
+      return 'N° Historia Clínica';
+    }
+    
+    return humanizeKey(canonName);
+  }
+
+  // ✅ Función para obtener placeholder amigable
+  function getFriendlyPlaceholder(canonName) {
+    const n = normalizeName(canonName);
+    
+    if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
+      return 'Ej: CHAJARÍ, ENTRE RIOS...';
+    }
+    if (n === 'domicilio-paciente' || n.includes('domicilio')) {
+      return 'Dirección completa...';
+    }
+    if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
+      return 'Ej: 12.345.678';
+    }
+    
+    return 'Completar...';
+  }
+
   // Resto de campos (no top, no ocultos)
   const orderedResto = useMemo(() => {
     if (!canonical) return [];
@@ -347,6 +457,7 @@ export default function Page() {
     const all = Object.keys(canonical.canonicalToInternal);
     const hidden = new Set(['masculino-paciente', 'femenino-paciente', 'sexo']);
 
+    // ✅ NO ocultar los nuevos campos - van con el resto
     if (canonNombres) hidden.add(canonNombres);
     if (canonServicio) hidden.add(canonServicio);
     if (canonEdad) hidden.add(canonEdad);
@@ -361,9 +472,29 @@ export default function Page() {
       [canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio].filter(Boolean)
     );
 
+    // ✅ Orden especial: los nuevos campos primero
     return all
       .filter((k) => !hidden.has(k) && !top.has(k))
-      .sort((a, b) => a.localeCompare(b, 'es'));
+      .sort((a, b) => {
+        // ✅ Ordenar: primero los nuevos campos especiales, luego el resto alfabéticamente
+        const isNewFieldA = isCanonNacimientoPaciente(a) || isCanonDomicilioPaciente(a) || isCanonHCPaciente(a);
+        const isNewFieldB = isCanonNacimientoPaciente(b) || isCanonDomicilioPaciente(b) || isCanonHCPaciente(b);
+        
+        if (isNewFieldA && !isNewFieldB) return -1;
+        if (!isNewFieldA && isNewFieldB) return 1;
+        
+        // Dentro de los nuevos campos, orden específico
+        if (isNewFieldA && isNewFieldB) {
+          const order = ['nacimiento-paciente', 'domicilio-paciente', 'hc-paciente'];
+          const normA = normalizeName(a);
+          const normB = normalizeName(b);
+          const indexA = order.findIndex(o => normA.includes(o.replace('-', '')));
+          const indexB = order.findIndex(o => normB.includes(o.replace('-', '')));
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        }
+        
+        return a.localeCompare(b, 'es');
+      });
   }, [
     canonical,
     canonNombres,
@@ -378,6 +509,9 @@ export default function Page() {
     canonDia,
     canonMes,
     canonAnio,
+    canonNacimientoPaciente,
+    canonDomicilioPaciente,
+    canonHCPaciente,
   ]);
 
   function getCanonFieldType(canonName) {
@@ -393,6 +527,8 @@ export default function Page() {
     if (n.includes('domicilio') || n.includes('direccion')) return 'street-address';
     if (n.includes('telefono') || n.includes('celular')) return 'tel';
     if (n.includes('dni')) return 'off';
+    if (n.includes('hc') || n.includes('historia-clinica')) return 'off';
+    if (n.includes('nacimiento') || n.includes('nacmiento')) return 'address-level2';
     return 'on';
   }
 
@@ -466,6 +602,11 @@ export default function Page() {
 
       let canonValue = form?.[canonName];
 
+      // ✅ Para hc-paciente, quitar los separadores de miles antes de guardar
+      if (canonName === canonHCPaciente && canonValue) {
+        canonValue = parseFormattedNumber(canonValue);
+      }
+
       // overrides
       if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
       if (canonEdad && canonName === canonEdad) canonValue = edadValuePrint;
@@ -495,7 +636,35 @@ export default function Page() {
     return await pdfDoc.save();
   }
 
-  async function downloadPdf(templateUrl, filenameBase) {
+  // ✅ Función para generar nombre de archivo basado en nombres del paciente
+  function generateFilename(type) {
+    const apellido = canonApellido ? (form?.[canonApellido] ?? '').toString().trim() : '';
+    const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
+    
+    let baseName = '';
+    
+    if (apellido && nombre) {
+      baseName = `${apellido} ${nombre}`;
+    } else if (apellido) {
+      baseName = apellido;
+    } else if (nombre) {
+      baseName = nombre;
+    } else {
+      baseName = 'Paciente';
+    }
+    
+    // Limpiar el nombre para usarlo en nombre de archivo
+    const safeName = generateSafeFilename(baseName);
+    
+    // Agregar timestamp si el nombre está vacío
+    if (!safeName || safeName.trim() === '') {
+      return `Paciente-${type}-${Date.now()}`;
+    }
+    
+    return `${safeName}-${type}`;
+  }
+
+  async function downloadPdf(templateUrl, type) {
     try {
       setError('');
       const bytes = await buildFilledPdfBytes(templateUrl);
@@ -504,7 +673,7 @@ export default function Page() {
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filenameBase}-${Date.now()}.pdf`;
+      a.download = `${generateFilename(type)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -559,6 +728,9 @@ export default function Page() {
   }
 
   const hasSexo = form?.sexo !== undefined;
+
+  // ✅ Verificar si existen los nuevos campos
+  const hasNewFields = canonNacimientoPaciente || canonDomicilioPaciente || canonHCPaciente;
 
   return (
     <main className={styles.page}>
@@ -776,60 +948,57 @@ export default function Page() {
             </div>
           </div>
 
-          <div className={styles.divider} />
+  
 
-          <div className={styles.formHeaderRow}>
-            <div>
-              <div className={styles.cardTitle}>Resto de datos del paciente</div>
+
+          {orderedResto.length > 0 && (
+            <div className={styles.grid}>
+              {orderedResto.map((canonName) => {
+                const internals = canonical.canonicalToInternal[canonName] || [];
+                const fieldType = getCanonFieldType(canonName);
+                const isBtn = isLikelyCheckbox(fieldType);
+
+                return (
+                  <div className={styles.field} key={canonName}>
+                    <div className={styles.labelRow}>
+                      <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
+                    </div>
+
+                    {isBtn ? (
+                      <label className={styles.checkboxRow}>
+                        <input type="checkbox" checked={!!form[canonName]} onChange={(e) => setValue(canonName, e.target.checked)} />
+                        <span>Marcar</span>
+                      </label>
+                    ) : (
+                      <>
+                        <input
+                          className={styles.input}
+                          name={canonName}
+                          autoComplete={getAutoCompleteAttr(canonName)}
+                          value={form?.[canonName] ?? ''}
+                          onChange={(e) => setValue(canonName, e.target.value)}
+                          onBlur={(e) => commitSuggestion(canonName, e.target.value)}
+                          placeholder="Completar…"
+                          list={`dl-${canonName}`}
+                        />
+                        <datalist id={`dl-${canonName}`}>
+                          {(suggestions?.[canonName] || []).map((opt) => (
+                            <option value={opt} key={opt} />
+                          ))}
+                        </datalist>
+                      </>
+                    )}
+
+                    <div className={styles.hint}>
+                      Internos:{' '}
+                      <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
+                      {internals.length > 2 ? <span> +{internals.length - 2}</span> : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-
-          <div className={styles.grid}>
-            {orderedResto.map((canonName) => {
-              const internals = canonical.canonicalToInternal[canonName] || [];
-              const fieldType = getCanonFieldType(canonName);
-              const isBtn = isLikelyCheckbox(fieldType);
-
-              return (
-                <div className={styles.field} key={canonName}>
-                  <div className={styles.labelRow}>
-                    <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
-                  </div>
-
-                  {isBtn ? (
-                    <label className={styles.checkboxRow}>
-                      <input type="checkbox" checked={!!form[canonName]} onChange={(e) => setValue(canonName, e.target.checked)} />
-                      <span>Marcar</span>
-                    </label>
-                  ) : (
-                    <>
-                      <input
-                        className={styles.input}
-                        name={canonName}
-                        autoComplete={getAutoCompleteAttr(canonName)}
-                        value={form?.[canonName] ?? ''}
-                        onChange={(e) => setValue(canonName, e.target.value)}
-                        onBlur={(e) => commitSuggestion(canonName, e.target.value)}
-                        placeholder="Completar…"
-                        list={`dl-${canonName}`}
-                      />
-                      <datalist id={`dl-${canonName}`}>
-                        {(suggestions?.[canonName] || []).map((opt) => (
-                          <option value={opt} key={opt} />
-                        ))}
-                      </datalist>
-                    </>
-                  )}
-
-                  <div className={styles.hint}>
-                    Internos:{' '}
-                    <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
-                    {internals.length > 2 ? <span> +{internals.length - 2}</span> : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          )}
 
           <br />
         </div>
@@ -841,19 +1010,22 @@ export default function Page() {
               {/* ✅ Descargables imprimibles */}
               <button
                 className={styles.ghostBtn}
-                onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'FRENTE-CX-completado')}
+                onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'Frente')}
                 type="button"
               >
-                Descargar FRENTE-CX
+                Descargar {canonApellido || canonNombre ? generateFilename('Frente') : 'FRENTE'}
               </button>
 
               <button
                 className={styles.ghostBtn}
-                onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'DORSO-CX-completado')}
+                onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'Dorso')}
                 type="button"
               >
-                Descargar DORSO-CX
+                Descargar {canonApellido || canonNombre ? generateFilename('Dorso') : 'DORSO'}
               </button>
+            </div>
+            <div className={styles.note}>
+              Se descargará como: <strong>{canonApellido || canonNombre ? generateFilename('Frente') : 'Paciente-Frente'}.pdf</strong>
             </div>
           </div>
         </div>
