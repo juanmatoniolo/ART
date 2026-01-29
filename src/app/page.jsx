@@ -21,15 +21,7 @@ export default function HomePage() {
             Acceda para gestionar pacientes y registros clínicos.
           </p>
 
-          <div className={styles.actions}>
-            <Link
-              href="/Siniestro"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-            >
-              <UserPlus size={18} aria-hidden="true" />
-              Agregar Siniestro
-            </Link>
-<br />
+  
             <Link
               href="/login"
               className={`${styles.btn} ${styles.btnSecondary}`}
@@ -37,15 +29,8 @@ export default function HomePage() {
               <LogIn size={18} aria-hidden="true" />
               Ingresar
             </Link>
-          </div>
-          <br />
-          <div className={styles.actions}>
-            <Link href="/cx" className={`${styles.btn} ${styles.btnPrimary}`}>
-              <LogIn size={18} aria-hidden="true" />
-              Completar Formulario CX
-            </Link>
 
-          </div>
+
         </section>
       </main>
 

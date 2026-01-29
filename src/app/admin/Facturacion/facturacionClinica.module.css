@@ -1,0 +1,498 @@
+/* facturacionClinica.module.css */
+.container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.titulo {
+  color: #2d3748;
+  margin-bottom: 30px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+/* Tabs de navegación */
+.tabsNavegacion {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.tabNav {
+  padding: 12px 20px;
+  border: none;
+  background: #f7fafc;
+  color: #4a5568;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.tabNav:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.tabNavActive {
+  background: #4299e1;
+  color: white;
+}
+
+.tabNav:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 30px;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2d3748;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #4299e1;
+  padding-bottom: 10px;
+}
+
+/* Formularios */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+}
+
+/* Grid de convenios */
+.conveniosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.btnConvenio {
+  padding: 12px 15px;
+  border: 2px solid #cbd5e0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btnConvenio:hover {
+  border-color: #4299e1;
+  background: #ebf8ff;
+}
+
+.btnConvenioActive {
+  border-color: #4299e1;
+  background: #4299e1;
+  color: white;
+}
+
+/* Info del convenio */
+.infoConvenio {
+  background: #ebf8ff;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  border-left: 4px solid #4299e1;
+}
+
+.infoConvenio h4 {
+  margin-top: 0;
+  color: #2d3748;
+}
+
+.valoresDestacados {
+  display: flex;
+  gap: 20px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.valorItem {
+  background: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  min-width: 150px;
+}
+
+.valorItem span {
+  display: block;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.valorItem strong {
+  display: block;
+  font-size: 1.2rem;
+  color: #2d3748;
+  margin-top: 5px;
+}
+
+/* Grid de datos */
+.gridDatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.gridDatos input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Botones */
+.botonesAcceso {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btnAcceso {
+  padding: 10px 15px;
+  border: 1px solid #cbd5e0;
+  background: #f7fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.btnAcceso:hover {
+  background: #e2e8f0;
+}
+
+.botonesNavegacion {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  justify-content: space-between;
+}
+
+.btnAtras {
+  padding: 12px 20px;
+  border: 1px solid #cbd5e0;
+  background: #f7fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.btnAtras:hover {
+  background: #e2e8f0;
+}
+
+.btnSiguiente {
+  padding: 12px 30px;
+  border: none;
+  background: #4299e1;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btnSiguiente:hover:not(:disabled) {
+  background: #3182ce;
+}
+
+.btnSiguiente:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+/* Tablas */
+.buscadorPracticas {
+  margin-bottom: 20px;
+}
+
+.inputBusqueda {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.tablaPracticas {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla th {
+  background: #f7fafc;
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+}
+
+.tabla td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #2d3748;
+}
+
+.tabla tbody tr:hover {
+  background: #f7fafc;
+}
+
+.tablaAgregadas {
+  max-height: 500px;
+  overflow-y: auto;
+  margin: 20px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+/* Botones en tablas */
+.btnAgregar {
+  background: #48bb78;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.3s;
+}
+
+.btnAgregar:hover:not(:disabled) {
+  background: #38a169;
+}
+
+.btnAgregar:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.btnEliminar {
+  background: #fed7d7;
+  color: #c53030;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btnEliminar:hover {
+  background: #feb2b2;
+}
+
+.inputCantidad {
+  width: 60px;
+  padding: 6px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Resumen */
+.resumenPaciente {
+  background: #f7fafc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.resumenPaciente h4 {
+  margin-top: 0;
+  color: #2d3748;
+}
+
+.resumenPaciente p {
+  margin: 5px 0;
+  color: #4a5568;
+}
+
+/* Totales */
+.totales {
+  background: #f7fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.totales h4 {
+  margin-top: 0;
+  color: #2d3748;
+}
+
+.lineaTotal {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+  color: #4a5568;
+}
+
+.lineaTotalPrincipal {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  font-size: 1.2rem;
+  color: #2d3748;
+  border-bottom: none;
+}
+
+/* Botones de acción */
+.botonesAccion {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btnGuardar {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: #4299e1;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.3s;
+}
+
+.btnGuardar:hover:not(:disabled) {
+  background: #3182ce;
+}
+
+.btnGuardar:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.btnExcel {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: #48bb78;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.3s;
+}
+
+.btnExcel:hover:not(:disabled) {
+  background: #38a169;
+}
+
+.btnExcel:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+/* Alertas */
+.alerta {
+  background: #fffaf0;
+  border: 1px solid #dd6b20;
+  color: #c05621;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.calculado {
+  color: #3182ce;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Scroll personalizado */
+.tablaPracticas::-webkit-scrollbar,
+.tablaAgregadas::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tablaPracticas::-webkit-scrollbar-track,
+.tablaAgregadas::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tablaPracticas::-webkit-scrollbar-thumb,
+.tablaAgregadas::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.tablaPracticas::-webkit-scrollbar-thumb:hover,
+.tablaAgregadas::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tabsNavegacion {
+    flex-wrap: wrap;
+  }
+  
+  .tabNav {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .gridDatos {
+    grid-template-columns: 1fr;
+  }
+  
+  .valoresDestacados {
+    flex-direction: column;
+  }
+  
+  .conveniosGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .botonesAccion,
+  .botonesNavegacion {
+    flex-direction: column;
+  }
+}
