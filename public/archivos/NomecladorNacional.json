@@ -4091,13 +4091,13 @@
 			},
 			{
 				"codigo": "121801",
-				"descripcion": "Musculares, periarticulares, tendinosas, de fascias, de ganglión.",
+				"descripcion": "Infiltracion e movilizacion. Infiltracion Musculares, periarticulares, tendinosas, de fascias, de ganglión.",
 				"q_gal": 9.0,
 				"gto": 7.0
 			},
 			{
 				"codigo": "121802",
-				"descripcion": "Movilización forzada de articulación (bajo anestesia general).",
+				"descripcion": "Infiltracion e movilizacion. Movilización forzada de articulación (bajo anestesia general).",
 				"q_gal": 21.75,
 				"gto": 27.0
 			},
