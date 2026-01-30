@@ -5,37 +5,74 @@ import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import styles from './facturacionClinica.module.css';
 
-// Datos de prácticas rápidas
-const PRACTICAS_RAPIDAS = [
-  { id: 11, tipo: 'consulta', codInt: '11', practica: 'CONSULTA EN GUARDIA', codigo: '42.01.01', gal: '', honMedico: '34650', gto: '', gtoSanatorial: '', formula: 'directo' },
-  { id: 12, tipo: 'consulta', codInt: '12', practica: 'CONSULTA', codigo: '42.01.01', gal: '', honMedico: '34650', gto: '', gtoSanatorial: '', formula: 'directo' },
-  { id: 3, tipo: 'curacion', codInt: '3', practica: 'CURACIÓN', codigo: '43.02.01', gal: '', honMedico: '-', gto: '', gtoSanatorial: '8820', formula: 'directo' },
-  { id: 4, tipo: 'quirurgica', codInt: '4', practica: 'SUTURA', codigo: '13.01.10', gal: '30', honMedico: '43065', gto: '45', gtoSanatorial: '147645', formula: 'directo' },
-  { id: 5, tipo: 'procedimiento', codInt: '5', practica: 'INFILTRACIÓN', codigo: '12.18.01', gal: '9', honMedico: 'VER AOTER', gto: '7', gtoSanatorial: '22967', formula: 'directo' },
-  { id: 6, tipo: 'estudio', codInt: '6', practica: 'ECOGRAFIA PARTES BLAN (MODULADAS)', codigo: '18.06.01', gal: '', honMedico: '42000', gto: '', gtoSanatorial: '-', formula: 'directo' },
-  { id: 7, tipo: 'estudio', codInt: '7', practica: 'ELECTRO ECG', codigo: '17.01.01 42.03.03', gal: '', honMedico: '63690', gto: '', gtoSanatorial: '-', formula: 'directo' },
-  { id: 8, tipo: 'quirurgica', codInt: '', practica: 'ARTROSCOPIA SIMPLE', codigo: 'XX.06.03 12.09.02', gal: '', honMedico: '1232000', gto: '', gtoSanatorial: '900000', formula: 'directo' },
-  { id: 9, tipo: 'quirurgica', codInt: '', practica: 'ARTROSCOPIA COMPLEJA', codigo: 'XX.07.03 12.09.02', gal: '', honMedico: '1361250', gto: '', gtoSanatorial: '1123200', formula: 'directo' },
-  { id: 81, tipo: 'pension', codInt: '81', practica: 'DÍA DE PENSION', codigo: '43.01.01', gal: '0', honMedico: '-', gto: '57', gtoSanatorial: '161766', formula: 'directo' },
-  { id: 83, tipo: 'insumo', codInt: '83', practica: 'DESCARTABLES', codigo: '43.10.01', gal: '', honMedico: '', gto: '5', gtoSanatorial: '14190', formula: 'directo' },
-  { id: 84, tipo: 'quirurgica', codInt: '83', practica: 'INTERVENCION QUIR.', codigo: '43.11.01', gal: '0', honMedico: '-', gto: '8', gtoSanatorial: '22704', formula: 'directo' },
+// === CONSTANTES Y DATOS ===
 
-  // RX - Estas se calculan con fórmula
-  { id: 201, tipo: 'rx', codInt: '201', practica: 'CRANEO MNO, SPN, CARA (FRENTE)', codigo: '34.02.01', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 202, tipo: 'rx', codInt: '202', practica: 'CRANEO MNO, SPN, CARA (PERFIL)', codigo: '34.02.02', gal: '2.25', honMedico: 'CALCULADO', gto: '20.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 204, tipo: 'rx', codInt: '204', practica: 'ART TEMPOROMANDIBULAR', codigo: '34.02.04', gal: '9.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 207, tipo: 'rx', codInt: '207', practica: 'CRANEO ODONTOLOGICO', codigo: '34.02.07', gal: '5.25', honMedico: 'CALCULADO', gto: '60.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 209, tipo: 'rx', codInt: '209', practica: 'COLUMNA (FRENTE)', codigo: '34.02.09', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 210, tipo: 'rx', codInt: '210', practica: 'COLUMNA (PERFIL)', codigo: '34.02.10', gal: '2.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 211, tipo: 'rx', codInt: '211', practica: 'HOBRO, HUMERO, PELVIS, FEMUR, CADERA (FRENTE)', codigo: '34.02.11', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 212, tipo: 'rx', codInt: '212', practica: 'HOBRO, HUMERO, PELVIS, FEMUR, CADERA (PERFIL)', codigo: '34.02.12', gal: '2.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 213, tipo: 'rx', codInt: '213', practica: 'CODO, MANO, MUÑECA, DEDOS, RODILLA, TOBILLO (FRENTE Y PERFIL)', codigo: '34.02.13', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340301, tipo: 'rx', codInt: '340301', practica: 'TORAX, PARRILLA COSTAL (FRENTE)', codigo: '34.03.01', gal: '6.75', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340302, tipo: 'rx', codInt: '340302', practica: 'TORAX, PARRILLA COSTAL (PERFIL)', codigo: '34.03.02', gal: '2.25', honMedico: 'CALCULADO', gto: '21.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340418, tipo: 'rx', codInt: '340418', practica: 'COLANGIO POST-OP', codigo: '34.04.18', gal: '9.75', honMedico: 'CALCULADO', gto: '60.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340421, tipo: 'rx', codInt: '340421', practica: 'ABDOMEN (FRENTE)', codigo: '34.04.21', gal: '5.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340422, tipo: 'rx', codInt: '340422', practica: 'ABDOMEN (PERFIL)', codigo: '34.04.22', gal: '2.25', honMedico: 'CALCULADO', gto: '20.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
-  { id: 340501, tipo: 'rx', codInt: '340501', practica: 'ARBOL URINARIO SIMPLE', codigo: '34.05.01', gal: '5.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+// Valores constantes del Excel (de la hoja CODIGOS-INTERNOS)
+const VALORES_CONSTANTES = {
+  GALENO_QX: 1435.5,
+  GASTOS_OPERATORIOS: 3281,
+  GASTOS_RX: 1648,
+  GALENO_RX: 1411,
+  PENSION: 2838
+};
+
+// Categorías de prácticas para filtrado
+const CATEGORIAS_PRACTICAS = [
+  { value: 'todas', label: 'Todas las categorías' },
+  { value: 'consulta', label: 'Consulta' },
+  { value: 'curacion', label: 'Curación' },
+  { value: 'quirurgica', label: 'Quirúrgica' },
+  { value: 'procedimiento', label: 'Procedimiento' },
+  { value: 'estudio', label: 'Estudio' },
+  { value: 'pension', label: 'Pensión' },
+  { value: 'insumo', label: 'Insumos/Descartables' },
+  { value: 'rx', label: 'Radiología (RX)' }
+];
+
+// Base de datos completa de prácticas médicas (similar a CODIGOS-INTERNOS)
+const PRACTICAS_COMPLETAS = [
+  // CONSULTAS
+  { id: 11, tipo: 'consulta', categoria: 'consulta', codInt: '11', practica: 'CONSULTA EN GUARDIA', codigo: '42.01.01', gal: '', honMedico: '34650', gto: '', gtoSanatorial: '', formula: 'directo' },
+  { id: 12, tipo: 'consulta', categoria: 'consulta', codInt: '12', practica: 'CONSULTA', codigo: '42.01.01', gal: '', honMedico: '34650', gto: '', gtoSanatorial: '', formula: 'directo' },
+  
+  // CURACIONES
+  { id: 3, tipo: 'curacion', categoria: 'curacion', codInt: '3', practica: 'CURACIÓN', codigo: '43.02.01', gal: '', honMedico: '-', gto: '', gtoSanatorial: '8820', formula: 'directo' },
+  
+  // QUIRÚRGICAS
+  { id: 4, tipo: 'quirurgica', categoria: 'quirurgica', codInt: '4', practica: 'SUTURA', codigo: '13.01.10', gal: '30', honMedico: '43065', gto: '45', gtoSanatorial: '147645', formula: 'directo' },
+  { id: 84, tipo: 'quirurgica', categoria: 'quirurgica', codInt: '83', practica: 'INTERVENCION QUIR.', codigo: '43.11.01', gal: '0', honMedico: '-', gto: '8', gtoSanatorial: '22704', formula: 'directo' },
+  { id: 8, tipo: 'quirurgica', categoria: 'quirurgica', codInt: '', practica: 'ARTROSCOPIA SIMPLE', codigo: 'XX.06.03 12.09.02', gal: '', honMedico: '1232000', gto: '', gtoSanatorial: '900000', formula: 'directo' },
+  { id: 9, tipo: 'quirurgica', categoria: 'quirurgica', codInt: '', practica: 'ARTROSCOPIA COMPLEJA', codigo: 'XX.07.03 12.09.02', gal: '', honMedico: '1361250', gto: '', gtoSanatorial: '1123200', formula: 'directo' },
+  
+  // PROCEDIMIENTOS
+  { id: 5, tipo: 'procedimiento', categoria: 'procedimiento', codInt: '5', practica: 'INFILTRACIÓN', codigo: '12.18.01', gal: '9', honMedico: 'VER AOTER', gto: '7', gtoSanatorial: '22967', formula: 'directo' },
+  
+  // ESTUDIOS
+  { id: 6, tipo: 'estudio', categoria: 'estudio', codInt: '6', practica: 'ECOGRAFIA PARTES BLAN (MODULADAS)', codigo: '18.06.01', gal: '', honMedico: '42000', gto: '', gtoSanatorial: '-', formula: 'directo' },
+  { id: 7, tipo: 'estudio', categoria: 'estudio', codInt: '7', practica: 'ELECTRO ECG', codigo: '17.01.01 42.03.03', gal: '', honMedico: '63690', gto: '', gtoSanatorial: '-', formula: 'directo' },
+  
+  // PENSION
+  { id: 81, tipo: 'pension', categoria: 'pension', codInt: '81', practica: 'DÍA DE PENSION', codigo: '43.01.01', gal: '0', honMedico: '-', gto: '57', gtoSanatorial: '161766', formula: 'pension' },
+  
+  // INSUMOS
+  { id: 83, tipo: 'insumo', categoria: 'insumo', codInt: '83', practica: 'DESCARTABLES', codigo: '43.10.01', gal: '', honMedico: '', gto: '5', gtoSanatorial: '14190', formula: 'directo' },
+  
+  // RX - Con fórmula especial
+  { id: 201, tipo: 'rx', categoria: 'rx', codInt: '201', practica: 'CRANEO MNO, SPN, CARA (FRENTE)', codigo: '34.02.01', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 202, tipo: 'rx', categoria: 'rx', codInt: '202', practica: 'CRANEO MNO, SPN, CARA (PERFIL)', codigo: '34.02.02', gal: '2.25', honMedico: 'CALCULADO', gto: '20.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 204, tipo: 'rx', categoria: 'rx', codInt: '204', practica: 'ART TEMPOROMANDIBULAR', codigo: '34.02.04', gal: '9.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 207, tipo: 'rx', categoria: 'rx', codInt: '207', practica: 'CRANEO ODONTOLOGICO', codigo: '34.02.07', gal: '5.25', honMedico: 'CALCULADO', gto: '60.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 209, tipo: 'rx', categoria: 'rx', codInt: '209', practica: 'COLUMNA (FRENTE)', codigo: '34.02.09', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 210, tipo: 'rx', categoria: 'rx', codInt: '210', practica: 'COLUMNA (PERFIL)', codigo: '34.02.10', gal: '2.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 211, tipo: 'rx', categoria: 'rx', codInt: '211', practica: 'HOBRO, HUMERO, PELVIS, FEMUR, CADERA (FRENTE)', codigo: '34.02.11', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 212, tipo: 'rx', categoria: 'rx', codInt: '212', practica: 'HOBRO, HUMERO, PELVIS, FEMUR, CADERA (PERFIL)', codigo: '34.02.12', gal: '2.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 213, tipo: 'rx', categoria: 'rx', codInt: '213', practica: 'CODO, MANO, MUÑECA, DEDOS, RODILLA, TOBILLO (FRENTE Y PERFIL)', codigo: '34.02.13', gal: '6.75', honMedico: 'CALCULADO', gto: '30.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340301, tipo: 'rx', categoria: 'rx', codInt: '340301', practica: 'TORAX, PARRILLA COSTAL (FRENTE)', codigo: '34.03.01', gal: '6.75', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340302, tipo: 'rx', categoria: 'rx', codInt: '340302', practica: 'TORAX, PARRILLA COSTAL (PERFIL)', codigo: '34.03.02', gal: '2.25', honMedico: 'CALCULADO', gto: '21.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340418, tipo: 'rx', categoria: 'rx', codInt: '340418', practica: 'COLANGIO POST-OP', codigo: '34.04.18', gal: '9.75', honMedico: 'CALCULADO', gto: '60.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340421, tipo: 'rx', categoria: 'rx', codInt: '340421', practica: 'ABDOMEN (FRENTE)', codigo: '34.04.21', gal: '5.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340422, tipo: 'rx', categoria: 'rx', codInt: '340422', practica: 'ABDOMEN (PERFIL)', codigo: '34.04.22', gal: '2.25', honMedico: 'CALCULADO', gto: '20.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
+  { id: 340501, tipo: 'rx', categoria: 'rx', codInt: '340501', practica: 'ARBOL URINARIO SIMPLE', codigo: '34.05.01', gal: '5.25', honMedico: 'CALCULADO', gto: '25.00', gtoSanatorial: 'CALCULADO', formula: 'rx' },
 ];
 
 // Convenios disponibles
@@ -48,9 +85,17 @@ const CONVENIOS_OPCIONES = [
   { key: 'PARTICULAR', label: 'PARTICULAR' }
 ];
 
+// Médicos disponibles
+const MEDICOS_OPCIONES = [
+  { id: 'dr_fresco', nombre: 'DR FRESCO' },
+  { id: 'dr_cianciosi', nombre: 'DR CIANCIOSI' },
+  { id: 'dr_general', nombre: 'MÉDICO GENERAL' },
+  { id: 'sin_medico', nombre: 'SIN MÉDICO ASIGNADO' }
+];
+
 // Función money mejorada
 const money = (n) => {
-  if (n == null || n === '' || n === '-') return '-';
+  if (n == null || n === '' || n === '-' || n === 'CALCULADO') return '-';
 
   if (typeof n === 'number') {
     return n.toLocaleString('es-AR', {
@@ -107,20 +152,142 @@ const money = (n) => {
   });
 };
 
+// Datos de laboratorio hardcodeados (en lugar de cargarlos desde archivo)
+const LABORATORIOS_HARDCODEADOS = [
+  { codigo: '1', practica_bioquimica: 'ACTO BIOQUÍMICO.', unidad_bioquimica: 3 },
+  { codigo: '2', practica_bioquimica: 'ACETONURIA.', unidad_bioquimica: 1 },
+  { codigo: '4', practica_bioquimica: 'ACIDIMETRIA GASTRICA, CURVA DE', unidad_bioquimica: 3 },
+  { codigo: '13', practica_bioquimica: 'AGLUTININAS Anti-RH.', unidad_bioquimica: 0 },
+  { codigo: '14', practica_bioquimica: 'AGLUTININAS del SISTEMAS ABO.', unidad_bioquimica: 3 },
+  { codigo: '15', practica_bioquimica: 'ALBUMINA.', unidad_bioquimica: 1.5 },
+  { codigo: '16', practica_bioquimica: 'ALCOHOL DEHIDROGENASA, ADH.', unidad_bioquimica: 10 },
+  { codigo: '17', practica_bioquimica: 'ALCOHOLEMIA.', unidad_bioquimica: 10 },
+  { codigo: '18', practica_bioquimica: 'ALDOLASA.', unidad_bioquimica: 6 },
+  { codigo: '19', practica_bioquimica: 'ALDOSTERONA.', unidad_bioquimica: 15 },
+  { codigo: '20', practica_bioquimica: 'ALFA FETO PROTEINA.', unidad_bioquimica: 10 },
+  { codigo: '22', practica_bioquimica: 'AMILASA - sérica.', unidad_bioquimica: 4 },
+  { codigo: '23', practica_bioquimica: 'AMILASA - urinaria.', unidad_bioquimica: 4 },
+  { codigo: '25', practica_bioquimica: 'AMINOACIDOS FRACCIONADOS', unidad_bioquimica: 12.5 },
+  { codigo: '27', practica_bioquimica: 'AMINOACIDURIA FRACCIONADA', unidad_bioquimica: 12.5 },
+  { codigo: '28', practica_bioquimica: 'AMNIOTICO, LIQUIDO CELULAS NARANJAS.', unidad_bioquimica: 1 },
+  { codigo: '29', practica_bioquimica: 'AMNIOTICO, LIQUIDO ESPECTROFOTOMETRIA', unidad_bioquimica: 5 },
+  { codigo: '30', practica_bioquimica: 'AMNIOTICO, LIQUIDO LECITINA - ESFINGOMIELINA.', unidad_bioquimica: 5 },
+  { codigo: '31', practica_bioquimica: 'AMONEMIA.', unidad_bioquimica: 20 },
+  { codigo: '32', practica_bioquimica: 'AMP CICLICO.', unidad_bioquimica: 15 },
+  { codigo: '33', practica_bioquimica: 'ANGIOTENSINA.', unidad_bioquimica: 15 },
+  { codigo: '34', practica_bioquimica: 'ANHIDRASA CARBONICA B, ERITROCITARIA.', unidad_bioquimica: 2 },
+  { codigo: '35', practica_bioquimica: 'ANTIBIOGRAMA.', unidad_bioquimica: 4 },
+  { codigo: '36', practica_bioquimica: 'ANTIBIOGRAMA BACILO DE KOCH (7)', unidad_bioquimica: 60 },
+  { codigo: '40', practica_bioquimica: 'ANTICUERPOS ANTIGLOMERULAR (IFI)', unidad_bioquimica: 6 },
+  { codigo: '41', practica_bioquimica: 'ANTICUERPOS ANTIMENBRANA BASAL (IFI)', unidad_bioquimica: 6 },
+  { codigo: '42', practica_bioquimica: 'ANTICUERPO ANTIMUSCULO LISO (IFI)', unidad_bioquimica: 7 },
+  { codigo: '43', practica_bioquimica: 'ANTICUERPOS CONTRA CEPA BACTERIANA AISLADA.', unidad_bioquimica: 3 },
+  { codigo: '44', practica_bioquimica: 'ANTICUERPOS ANTIFRACCION MICROSOMAL DE TIROIDES (IFI)', unidad_bioquimica: 6 },
+  { codigo: '46', practica_bioquimica: 'ANTICUERPOS ANTITIROGLOBULINA.', unidad_bioquimica: 6 },
+  { codigo: '49', practica_bioquimica: 'ANTIDESIXIRRIBONUCLEASA - ADNEASA – Anti-DNA.', unidad_bioquimica: 9 },
+  { codigo: '50', practica_bioquimica: 'ANTIESTAFILOLISINA.', unidad_bioquimica: 3 },
+  { codigo: '51', practica_bioquimica: 'ANTIESTREPTOLISINAS "O" (ASTO - AELO)', unidad_bioquimica: 4 },
+  { codigo: '52', practica_bioquimica: 'ANTIESTREPTOQUINASA.', unidad_bioquimica: 3 },
+  { codigo: '54', practica_bioquimica: 'ANTIHIALURONIDASA.', unidad_bioquimica: 4 },
+  { codigo: '55', practica_bioquimica: 'ANTIMITOCONDRIALES, ANTICUERPOS.', unidad_bioquimica: 7 },
+  { codigo: '56', practica_bioquimica: 'ANTINUCLEARES ANTICUERPOS - FAN', unidad_bioquimica: 7 },
+  { codigo: '57', practica_bioquimica: 'ANTITRIPSINA, Alfa 1', unidad_bioquimica: 10 },
+  { codigo: '58', practica_bioquimica: 'ANTITROMBINA III', unidad_bioquimica: 15 },
+  { codigo: '59', practica_bioquimica: 'ARSENICO.', unidad_bioquimica: 15 },
+  { codigo: '60', practica_bioquimica: 'ASCORBICO, ACIDO.', unidad_bioquimica: 18 },
+  { codigo: '61', practica_bioquimica: 'AUTOVACUNA.', unidad_bioquimica: 5 },
+  { codigo: '63', practica_bioquimica: 'ANTICUERPOS Anti-HIV (ELISA)', unidad_bioquimica: 11 },
+  { codigo: '64', practica_bioquimica: 'ANTICUERPOS Anti-HIV (A.D.)', unidad_bioquimica: 11 },
+  { codigo: '101', practica_bioquimica: 'BACILOSCOPIA DIRECTA - ZIEHL NEELSEN', unidad_bioquimica: 2 },
+  { codigo: '102', practica_bioquimica: 'BACILOSCOPIA, DIRECTA y CULTIVO', unidad_bioquimica: 8 },
+  { codigo: '103', practica_bioquimica: 'BACILOSCOPIA (IFI)', unidad_bioquimica: 10 },
+  { codigo: '104', practica_bioquimica: 'BACTERIOLOGIA, DIRECTA (Coloración de Gram)', unidad_bioquimica: 2 },
+  { codigo: '105', practica_bioquimica: 'BACTERIOLOGICO, DIRECTO-CULTIVO e IDENTIFICACIÓN', unidad_bioquimica: 5 },
+  { codigo: '107', practica_bioquimica: 'BARBITURICOS - urinarios.', unidad_bioquimica: 12 },
+  { codigo: '108', practica_bioquimica: 'BENCE-JONES, PROTEINAS DE', unidad_bioquimica: 3 },
+  { codigo: '109', practica_bioquimica: 'BICARBONATO.', unidad_bioquimica: 0 },
+  { codigo: '110', practica_bioquimica: 'BILIRRUBINEMIA TOTAL, DIRECTA E INDIRECTA.', unidad_bioquimica: 1.5 },
+  { codigo: '111', practica_bioquimica: 'BILIRRUBINURIA.', unidad_bioquimica: 1.5 },
+  { codigo: '131', practica_bioquimica: 'CADENA LIVIANA KAPPA Y LAMBDA', unidad_bioquimica: 40 },
+  { codigo: '132', practica_bioquimica: 'CADMIO - urinario.', unidad_bioquimica: 12 },
+  { codigo: '133', practica_bioquimica: 'CALCEMIA TOTAL.', unidad_bioquimica: 1.5 },
+  { codigo: '134', practica_bioquimica: 'CALCIO IONICO.', unidad_bioquimica: 4 },
+  { codigo: '135', practica_bioquimica: 'CALCIO PRUEBA DE LA SOBRECARGA.', unidad_bioquimica: 5 },
+  { codigo: '136', practica_bioquimica: 'CALCIURIA.', unidad_bioquimica: 2 },
+  { codigo: '137', practica_bioquimica: 'CALCITONINA - sérica.', unidad_bioquimica: 16 },
+  { codigo: '138', practica_bioquimica: 'CALCULO - urinario.', unidad_bioquimica: 8 },
+  { codigo: '139', practica_bioquimica: 'CARBONICO, ANDHIDRICO - (PCO2)', unidad_bioquimica: 0 },
+  { codigo: '140', practica_bioquimica: 'CARIOTIPO, MAPA CROMOSOMICO.', unidad_bioquimica: 37 },
+  { codigo: '141', practica_bioquimica: 'CAROTENO BETA - sérico.', unidad_bioquimica: 15 },
+  { codigo: '143', practica_bioquimica: 'CATECOLAMINAS, LIBRES - FRACCIONADAS.', unidad_bioquimica: 25 },
+  { codigo: '144', practica_bioquimica: 'CEA - ANTÍGENO CARCINOEMBRIOGENICO', unidad_bioquimica: 12.5 },
+  { codigo: '148', practica_bioquimica: 'CELULAS NEOPLASICAS - líquidos, exudados, trasudados.', unidad_bioquimica: 9 },
+  { codigo: '150', practica_bioquimica: 'CEREBROSIDOS (Cromatográfico).', unidad_bioquimica: 0 },
+  { codigo: '151', practica_bioquimica: 'CERULOPLASMINA.', unidad_bioquimica: 6 },
+  { codigo: '152', practica_bioquimica: 'CETOGENOESTEROIDES - urinarios.', unidad_bioquimica: 5 },
+  { codigo: '154', practica_bioquimica: 'CETONEMIA.', unidad_bioquimica: 1.5 },
+  { codigo: '157', practica_bioquimica: '17- CETOESTEROIDES NEUTROS TOTALES', unidad_bioquimica: 5 },
+  { codigo: '158', practica_bioquimica: '17 CETOESTER., PRUEBA/Rta. A LA ESTIMULACION CON ACTH', unidad_bioquimica: 5 },
+  { codigo: '159', practica_bioquimica: '17 CETOESTER., PRUEBA/Rta. A LA INHIBIC. CON DEXAMETASONA', unidad_bioquimica: 5 },
+  { codigo: '160', practica_bioquimica: '17 CETOESTER., PRUEBA/Rta. A LA INHIB. Y ESTIMUL.', unidad_bioquimica: 5 },
+];
+
+// Datos de convenios hardcodeados (ejemplo básico)
+const CONVENIOS_HARDCODEADOS = {
+  "IAPS Junio-Septiembre": {
+    valores_generales: {
+      "Galeno_Rx_Practica": 1176,
+      "Galeno_Rx_y_Practica": 1176,
+      "Gasto_Operatorio": 3281,
+      "Gasto_Rx": 1373,
+      "Consulta": 34650,
+      "PENSION": 2838,
+      "Unidad_Bioquimica": 1224.11
+    }
+  },
+  "IAPS Octubre-Actualidad": {
+    valores_generales: {
+      "Galeno_Rx_Practica": 1411,
+      "Galeno_Rx_y_Practica": 1411,
+      "Gasto_Operatorio": 3281,
+      "Gasto_Rx": 1648,
+      "Consulta": 34650,
+      "PENSION": 2838,
+      "Unidad_Bioquimica": 1573
+    }
+  },
+  "ART Junio-Septiembre": {
+    valores_generales: {
+      "Galeno_Rx_Practica": 1430,
+      "Galeno_Rx_y_Practica": 1430,
+      "Gasto_Operatorio": 3281,
+      "Gasto_Rx": 1373,
+      "Consulta": 34650,
+      "PENSION": 2838,
+      "Unidad_Bioquimica": 1224.11
+    }
+  }
+};
+
+// === COMPONENTE PRINCIPAL ===
 export default function FacturacionClinica() {
   // === ESTADOS PRINCIPALES ===
   const [convenioTipo, setConvenioTipo] = useState('');
   const [convenioPeriodo, setConvenioPeriodo] = useState('');
   const [convenioData, setConvenioData] = useState(null);
-  const [todosConvenios, setTodosConvenios] = useState({});
+  const [todosConvenios, setTodosConvenios] = useState(CONVENIOS_HARDCODEADOS);
   const [conveniosFiltrados, setConveniosFiltrados] = useState([]);
 
   const [paciente, setPaciente] = useState({
     apellido: '',
     nombre: '',
     artSeguro: '',
-    nroSiniestro: '',
-    dni: ''
+    nroSiniestro: '',  // STRO del Excel
+    dni: '',
+    fechaAtencion: new Date().toISOString().split('T')[0],
+    medicoAsignado: '',
+    prestador: 'IAPSER', // Default como en Excel
+    totalSiniestro: 0 // TOTAL STRO
   });
 
   const [practicasAgregadas, setPracticasAgregadas] = useState([]);
@@ -129,99 +296,154 @@ export default function FacturacionClinica() {
   const [filtroPracticas, setFiltroPracticas] = useState('');
   const [filtroLaboratorios, setFiltroLaboratorios] = useState('');
   const [filtroMedicamentos, setFiltroMedicamentos] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
   const [presupuestos, setPresupuestos] = useState([]);
   const [activeTab, setActiveTab] = useState('convenio');
 
   // Datos externos
-  const [nomencladorBioquimica, setNomencladorBioquimica] = useState(null);
+  const [nomencladorBioquimica, setNomencladorBioquimica] = useState({
+    practicas: LABORATORIOS_HARDCODEADOS,
+    metadata: {
+      unidad_bioquimica_valor_referencia: 1224.11
+    }
+  });
   const [medicamentosDB, setMedicamentosDB] = useState([]);
   const [descartablesDB, setDescartablesDB] = useState([]);
   const [loading, setLoading] = useState({
-    bioquimica: true,
+    bioquimica: false,
     medicamentos: true
   });
 
   // Generar IDs únicos
   const uniqueId = useId();
 
-  // === CARGAR TODOS LOS DATOS ===
+  // === EFECTOS ===
+
+  // Cargar todos los datos (versión simplificada)
   useEffect(() => {
     const cargarTodosDatos = async () => {
       try {
-        // 1. Cargar convenios
-        const conveniosResponse = await fetch('/datos-clini-default-rtdb-export.json');
-        const conveniosData = await conveniosResponse.json();
-        setTodosConvenios(conveniosData.convenios || {});
-
-        // 2. Cargar nomenclador bioquímico
-        const nomencladorResponse = await fetch('/archivos/NomecladorBioquimica.json');
-        if (nomencladorResponse.ok) {
-          const nomencladorData = await nomencladorResponse.json();
-          setNomencladorBioquimica(nomencladorData);
-        }
-        setLoading(prev => ({ ...prev, bioquimica: false }));
-
+        // 1. Usar convenios hardcodeados
+        setTodosConvenios(CONVENIOS_HARDCODEADOS);
+        
+        // 2. Usar laboratorios hardcodeados
+        setNomencladorBioquimica({
+          practicas: LABORATORIOS_HARDCODEADOS,
+          metadata: {
+            unidad_bioquimica_valor_referencia: 1224.11
+          }
+        });
+        
         // 3. Cargar presupuestos guardados
         const guardados = localStorage.getItem('presupuestosClinica');
         if (guardados) {
-          setPresupuestos(JSON.parse(guardados));
+          try {
+            setPresupuestos(JSON.parse(guardados));
+          } catch (e) {
+            console.log('Error al parsear presupuestos:', e);
+            localStorage.setItem('presupuestosClinica', JSON.stringify([]));
+          }
+        } else {
+          localStorage.setItem('presupuestosClinica', JSON.stringify([]));
         }
       } catch (error) {
         console.error('Error cargando datos:', error);
+        // Fallback a datos hardcodeados
+        setTodosConvenios(CONVENIOS_HARDCODEADOS);
+        setNomencladorBioquimica({
+          practicas: LABORATORIOS_HARDCODEADOS,
+          metadata: {
+            unidad_bioquimica_valor_referencia: 1224.11
+          }
+        });
       }
     };
 
     cargarTodosDatos();
   }, []);
 
-  // === CARGAR MEDICAMENTOS DE FIREBASE ===
+  // Cargar medicamentos de Firebase (mantener como está)
   useEffect(() => {
     const cargarMedicamentos = () => {
       setLoading(prev => ({ ...prev, medicamentos: true }));
 
-      const medicamentosRef = ref(db, 'medydescartables/medicamentos');
-      const descartablesRef = ref(db, 'medydescartables/descartables');
+      try {
+        const medicamentosRef = ref(db, 'medydescartables/medicamentos');
+        const descartablesRef = ref(db, 'medydescartables/descartables');
 
-      const unsubscribeMed = onValue(medicamentosRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.val();
-          const lista = Object.entries(data).map(([key, item]) => ({
-            id: key,
-            nombre: item.nombre || key,
-            precio: item.precioReferencia || item.precio || 0,
-            presentacion: item.presentacion || 'unidad',
-            tipo: 'medicamento'
-          }));
-          setMedicamentosDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        }
-      });
+        const unsubscribeMed = onValue(medicamentosRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.val();
+            const lista = Object.entries(data).map(([key, item]) => ({
+              id: key,
+              nombre: item.nombre || key,
+              precio: item.precioReferencia || item.precio || 0,
+              presentacion: item.presentacion || 'unidad',
+              tipo: 'medicamento'
+            }));
+            setMedicamentosDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+          } else {
+            // Datos de ejemplo si Firebase falla
+            setMedicamentosDB([
+              { id: '1', nombre: 'IODOPOVIDONA', precio: 12000, presentacion: 'FCO', tipo: 'medicamento' },
+              { id: '2', nombre: 'AGUA OXIGENADA', precio: 1130, presentacion: 'FCO', tipo: 'medicamento' },
+              { id: '3', nombre: 'DICLOFENAX', precio: 4750, presentacion: 'AMP', tipo: 'medicamento' },
+              { id: '4', nombre: 'DEXAMETASONA', precio: 12450, presentacion: 'AMP', tipo: 'medicamento' },
+              { id: '5', nombre: 'BETAMETASONA', precio: 9990, presentacion: 'AMP', tipo: 'medicamento' },
+              { id: '6', nombre: 'XILOCAINA 2%', precio: 1690, presentacion: 'AMP', tipo: 'medicamento' },
+            ]);
+          }
+        });
 
-      const unsubscribeDesc = onValue(descartablesRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.val();
-          const lista = Object.entries(data).map(([key, item]) => ({
-            id: key,
-            nombre: item.nombre || key,
-            precio: item.precioReferencia || item.precio || 0,
-            presentacion: item.presentacion || 'unidad',
-            tipo: 'descartable'
-          }));
-          setDescartablesDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        }
-      });
+        const unsubscribeDesc = onValue(descartablesRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.val();
+            const lista = Object.entries(data).map(([key, item]) => ({
+              id: key,
+              nombre: item.nombre || key,
+              precio: item.precioReferencia || item.precio || 0,
+              presentacion: item.presentacion || 'unidad',
+              tipo: 'descartable'
+            }));
+            setDescartablesDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+          } else {
+            // Datos de ejemplo si Firebase falla
+            setDescartablesDB([
+              { id: '1', nombre: 'GASAS ESTERILES', precio: 1000, presentacion: 'DESC', tipo: 'descartable' },
+              { id: '2', nombre: 'VENDAS CAMBRIC 10 CM', precio: 2100, presentacion: 'DESC', tipo: 'descartable' },
+              { id: '3', nombre: 'CINTA HP', precio: 6877, presentacion: 'DESC', tipo: 'descartable' },
+              { id: '4', nombre: 'ABOCATH N20', precio: 4500, presentacion: 'DESC', tipo: 'descartable' },
+              { id: '5', nombre: 'JERINGAS 10 CC', precio: 1300, presentacion: 'DESC', tipo: 'descartable' },
+              { id: '6', nombre: 'MONONYLON 3/0', precio: 25100, presentacion: 'DESC', tipo: 'descartable' },
+            ]);
+          }
+        });
 
-      setLoading(prev => ({ ...prev, medicamentos: false }));
+        setLoading(prev => ({ ...prev, medicamentos: false }));
 
-      return () => {
-        unsubscribeMed();
-        unsubscribeDesc();
-      };
+        return () => {
+          unsubscribeMed();
+          unsubscribeDesc();
+        };
+      } catch (error) {
+        console.error('Error cargando medicamentos:', error);
+        setLoading(prev => ({ ...prev, medicamentos: false }));
+        // Datos de ejemplo
+        setMedicamentosDB([
+          { id: '1', nombre: 'IODOPOVIDONA', precio: 12000, presentacion: 'FCO', tipo: 'medicamento' },
+          { id: '2', nombre: 'AGUA OXIGENADA', precio: 1130, presentacion: 'FCO', tipo: 'medicamento' },
+        ]);
+        setDescartablesDB([
+          { id: '1', nombre: 'GASAS ESTERILES', precio: 1000, presentacion: 'DESC', tipo: 'descartable' },
+          { id: '2', nombre: 'VENDAS CAMBRIC 10 CM', precio: 2100, presentacion: 'DESC', tipo: 'descartable' },
+        ]);
+      }
     };
 
     cargarMedicamentos();
   }, []);
 
-  // === FILTRAR CONVENIOS ===
+  // Filtrar convenios
   useEffect(() => {
     if (!convenioTipo || !todosConvenios) {
       setConveniosFiltrados([]);
@@ -229,14 +451,14 @@ export default function FacturacionClinica() {
     }
 
     const filtrados = Object.keys(todosConvenios)
-      .filter(key => key.includes(convenioTipo))
+      .filter(key => key.toLowerCase().includes(convenioTipo.toLowerCase()))
       .map(key => ({
         key,
         label: key,
         periodo: key.includes('Junio-Sept') ? 'Junio-Septiembre' :
           key.includes('Octubre-Actualidad') ? 'Octubre-Actualidad' :
             key.includes('Febrero-Mayo') ? 'Febrero-Mayo' :
-              key.includes('Junio-Septiembre') ? 'Junio-Septiembre' : 'Otro'
+              key.includes('Junio-Septiembre') ? 'Junio-Septiembre' : key
       }));
 
     setConveniosFiltrados(filtrados);
@@ -250,7 +472,9 @@ export default function FacturacionClinica() {
     }
   }, [convenioTipo, todosConvenios]);
 
-  // === CARGAR CONVENIO ESPECÍFICO ===
+  // === FUNCIONES PRINCIPALES ===
+
+  // Cargar convenio específico
   const cargarConvenioEspecifico = (convenioKey) => {
     if (!convenioKey || !todosConvenios[convenioKey]) {
       setConvenioData(null);
@@ -258,16 +482,7 @@ export default function FacturacionClinica() {
     }
 
     const convenio = todosConvenios[convenioKey];
-    const valoresGenerales = {};
-
-    Object.entries(convenio.valores_generales || {}).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        const cleaned = value.replace(/\./g, '').replace(',', '.').trim();
-        valoresGenerales[key] = parseFloat(cleaned) || 0;
-      } else {
-        valoresGenerales[key] = Number(value) || 0;
-      }
-    });
+    const valoresGenerales = convenio.valores_generales || {};
 
     // Obtener valor UB del convenio
     const keysPosibles = [
@@ -278,9 +493,10 @@ export default function FacturacionClinica() {
       'UB',
       'Unidad_Bioquimica',
       'Unidad Bioquimica',
+      'Unidad_Bioquimica'
     ];
 
-    let valorUB = 0;
+    let valorUB = 1224.11; // Valor por defecto
     for (const k of keysPosibles) {
       if (valoresGenerales[k] != null) {
         valorUB = valoresGenerales[k];
@@ -297,29 +513,82 @@ export default function FacturacionClinica() {
     setConvenioPeriodo(convenioKey);
   };
 
-  // === CALCULAR VALORES RX ===
+  // Calcular valores RX según fórmula del Excel
   const calcularValoresRX = (practica) => {
     if (!convenioData || practica.formula !== 'rx') {
-      return { honMedico: 0, gtoSanatorial: 0 };
+      return { honMedico: 0, gtoSanatorial: 0, formula: '' };
     }
 
+    // Valores del convenio o valores por defecto del Excel
     const galenoRx = convenioData.valores_generales?.Galeno_Rx_Practica ||
-      convenioData.valores_generales?.Galeno_Rx_y_Practica || 1176;
-    const gtoRx = convenioData.valores_generales?.Gasto_Rx || 1373;
+      convenioData.valores_generales?.Galeno_Rx_y_Practica ||
+      VALORES_CONSTANTES.GALENO_RX; // 1411 del Excel
+    
+    const gtoOp = convenioData.valores_generales?.Gasto_Operatorio ||
+      VALORES_CONSTANTES.GASTOS_OPERATORIOS; // 3281 del Excel
 
     const gal = parseFloat(practica.gal) || 0;
     const gto = parseFloat(practica.gto) || 0;
 
-    const honMedico = (gal * galenoRx) + ((gtoRx * 30) / 2);
-    const gtoSanatorial = (gtoRx * 30) / 2;
+    // Fórmula exacta del Excel (CODIGOS-INTERNOS columna E):
+    // HON. MÉDICO = (GALENO_RX * GAL) + ((GTO_OP * GTO) / 2)
+    const honMedico = (galenoRx * gal) + ((gtoOp * gto) / 2);
+    
+    // Fórmula exacta del Excel (CODIGOS-INTERNOS columna G):
+    // GTO SANATORIAL = (GTO_OP * GTO) / 2
+    const gtoSanatorial = (gtoOp * gto) / 2;
 
     return {
       honMedico: Math.round(honMedico),
-      gtoSanatorial: Math.round(gtoSanatorial)
+      gtoSanatorial: Math.round(gtoSanatorial),
+      formula: `(${galenoRx} × ${gal}) + ((${gtoOp} × ${gto}) / 2) = $${money(honMedico)}`
     };
   };
 
-  // === AGREGAR PRACTICA ===
+  // Calcular valores de pensión
+  const calcularValoresPension = (practica) => {
+    if (practica.formula !== 'pension' || !convenioData) {
+      return { gtoSanatorial: 0 };
+    }
+
+    // Para pensión, usar el valor de PENSION del convenio (2838 del Excel)
+    const valorPension = convenioData.valores_generales?.PENSION || VALORES_CONSTANTES.PENSION;
+    const gto = parseFloat(practica.gto) || 0;
+    
+    const gtoSanatorial = valorPension * gto;
+
+    return {
+      gtoSanatorial: Math.round(gtoSanatorial),
+      formula: `${valorPension} × ${gto} = $${money(gtoSanatorial)}`
+    };
+  };
+
+  // Búsqueda inteligente de prácticas
+  const buscarPracticasInteligente = (termino, categoria = 'todas') => {
+    if (!termino.trim() && categoria === 'todas') {
+      return PRACTICAS_COMPLETAS;
+    }
+
+    const busqueda = termino.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    return PRACTICAS_COMPLETAS.filter(p => {
+      // Filtrar por categoría
+      if (categoria !== 'todas' && p.categoria !== categoria) return false;
+
+      // Si no hay término de búsqueda, mostrar todas de la categoría
+      if (!termino.trim()) return true;
+
+      // Búsqueda en múltiples campos
+      return (
+        (p.codInt && p.codInt.toString().toLowerCase().includes(busqueda)) ||
+        p.practica.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(busqueda) ||
+        p.codigo.toLowerCase().includes(busqueda) ||
+        p.tipo.toLowerCase().includes(busqueda)
+      );
+    });
+  };
+
+  // Agregar práctica con cálculos automáticos
   const agregarPractica = (practica) => {
     if (!convenioData) {
       alert('Primero debe seleccionar un convenio');
@@ -328,19 +597,29 @@ export default function FacturacionClinica() {
 
     let honMedico = 0;
     let gtoSanatorial = 0;
+    let formulaDesc = '';
 
     if (practica.formula === 'rx') {
       const valores = calcularValoresRX(practica);
       honMedico = valores.honMedico;
       gtoSanatorial = valores.gtoSanatorial;
+      formulaDesc = valores.formula;
+    } else if (practica.formula === 'pension') {
+      const valores = calcularValoresPension(practica);
+      gtoSanatorial = valores.gtoSanatorial;
+      formulaDesc = valores.formula;
+      honMedico = 0; // Pension no tiene honorarios médicos
     } else {
-      honMedico = parseFloat(practica.honMedico.replace(/\./g, '').replace(',', '.')) || 0;
-      gtoSanatorial = parseFloat(practica.gtoSanatorial.replace(/\./g, '').replace(',', '.')) || 0;
+      // Prácticas directas
+      honMedico = parseFloat(practica.honMedico.toString().replace(/\./g, '').replace(',', '.')) || 0;
+      gtoSanatorial = parseFloat(practica.gtoSanatorial.toString().replace(/\./g, '').replace(',', '.')) || 0;
+      formulaDesc = 'Valor directo';
     }
 
     const nuevaPractica = {
       id: `${uniqueId}-${practica.id}-${Date.now()}`,
       tipo: 'practica',
+      categoria: practica.categoria,
       codInt: practica.codInt,
       practica: practica.practica,
       codigo: practica.codigo,
@@ -349,16 +628,37 @@ export default function FacturacionClinica() {
       gto: practica.gto,
       gtoSanatorial,
       formula: practica.formula,
+      formulaDesc,
       cantidad: 1,
+      medico: paciente.medicoAsignado || 'MÉDICO GENERAL',
       subtotalHonorarios: honMedico,
       subtotalGastos: gtoSanatorial,
       total: honMedico + gtoSanatorial
     };
 
     setPracticasAgregadas(prev => [...prev, nuevaPractica]);
+    
+    // Actualizar total del siniestro
+    calcularTotalSiniestro();
   };
 
-  // === AGREGAR ESTUDIO DE LABORATORIO ===
+  // Calcular total del siniestro (STRO)
+  const calcularTotalSiniestro = () => {
+    const totalPracticas = practicasAgregadas.reduce((sum, p) => sum + p.total, 0);
+    const totalLaboratorios = laboratoriosAgregados.reduce((sum, l) => sum + l.total, 0);
+    const totalMedicamentos = medicamentosAgregados.reduce((sum, m) => sum + m.total, 0);
+    
+    const totalSiniestro = totalPracticas + totalLaboratorios + totalMedicamentos;
+    
+    setPaciente(prev => ({
+      ...prev,
+      totalSiniestro
+    }));
+    
+    return totalSiniestro;
+  };
+
+  // Agregar estudio de laboratorio
   const agregarLaboratorio = (estudio) => {
     if (!convenioData) {
       alert('Primero debe seleccionar un convenio');
@@ -381,13 +681,15 @@ export default function FacturacionClinica() {
       valorCalculado,
       cantidad: 1,
       subtotal: valorCalculado,
-      total: valorCalculado
+      total: valorCalculado,
+      formula: `${estudio.unidad_bioquimica} × ${money(valorUB)} = $${money(valorCalculado)}`
     };
 
     setLaboratoriosAgregados(prev => [...prev, nuevoLaboratorio]);
+    calcularTotalSiniestro();
   };
 
-  // === AGREGAR MEDICAMENTO O DESCARTABLE ===
+  // Agregar medicamento o descartable
   const agregarMedicamento = (item) => {
     const nuevoMedicamento = {
       id: `${uniqueId}-med-${item.id}-${Date.now()}`,
@@ -401,9 +703,10 @@ export default function FacturacionClinica() {
     };
 
     setMedicamentosAgregados(prev => [...prev, nuevoMedicamento]);
+    calcularTotalSiniestro();
   };
 
-  // === ACTUALIZAR CANTIDAD ===
+  // Actualizar cantidad de cualquier item
   const actualizarCantidad = (tipo, id, nuevaCantidad) => {
     if (nuevaCantidad < 1) return;
 
@@ -459,9 +762,11 @@ export default function FacturacionClinica() {
         );
         break;
     }
+    
+    calcularTotalSiniestro();
   };
 
-  // === ELIMINAR ITEM ===
+  // Eliminar item
   const eliminarItem = (tipo, id) => {
     switch (tipo) {
       case 'practica':
@@ -474,37 +779,40 @@ export default function FacturacionClinica() {
         setMedicamentosAgregados(prev => prev.filter(m => m.id !== id));
         break;
     }
+    
+    calcularTotalSiniestro();
   };
 
-  // === CALCULAR TOTALES ===
+  // Calcular totales con desglose
   const calcularTotales = useMemo(() => {
     const totalPracticas = practicasAgregadas.reduce((sum, p) => sum + p.total, 0);
     const totalLaboratorios = laboratoriosAgregados.reduce((sum, l) => sum + l.total, 0);
     const totalMedicamentos = medicamentosAgregados.reduce((sum, m) => sum + m.total, 0);
     const totalGeneral = totalPracticas + totalLaboratorios + totalMedicamentos;
 
+    // Desglose como en Excel: GASTOS vs HONORARIOS
+    const gastosClinica = practicasAgregadas.reduce((sum, p) => sum + p.subtotalGastos, 0) +
+                         medicamentosAgregados.reduce((sum, m) => sum + m.total, 0);
+    
+    const honorariosMedicos = practicasAgregadas.reduce((sum, p) => sum + p.subtotalHonorarios, 0);
+
     return {
       totalPracticas,
       totalLaboratorios,
       totalMedicamentos,
-      totalGeneral
+      totalGeneral,
+      gastosClinica,
+      honorariosMedicos,
+      estudiosLaboratorio: totalLaboratorios
     };
   }, [practicasAgregadas, laboratoriosAgregados, medicamentosAgregados]);
 
-  // === FILTRAR PRACTICAS ===
+  // Filtrar prácticas con búsqueda inteligente
   const practicasFiltradas = useMemo(() => {
-    if (!filtroPracticas) return PRACTICAS_RAPIDAS;
+    return buscarPracticasInteligente(filtroPracticas, categoriaFiltro);
+  }, [filtroPracticas, categoriaFiltro]);
 
-    const busqueda = filtroPracticas.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-    return PRACTICAS_RAPIDAS.filter(p =>
-      p.codInt.toLowerCase().includes(busqueda) ||
-      p.practica.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(busqueda) ||
-      p.codigo.toLowerCase().includes(busqueda)
-    );
-  }, [filtroPracticas]);
-
-  // === FILTRAR LABORATORIOS ===
+  // Filtrar laboratorios
   const laboratoriosFiltrados = useMemo(() => {
     if (!nomencladorBioquimica?.practicas) return [];
     if (!filtroLaboratorios) return nomencladorBioquimica.practicas.slice(0, 50);
@@ -517,7 +825,7 @@ export default function FacturacionClinica() {
     ).slice(0, 50);
   }, [nomencladorBioquimica, filtroLaboratorios]);
 
-  // === FILTRAR MEDICAMENTOS ===
+  // Filtrar medicamentos
   const medicamentosFiltrados = useMemo(() => {
     const todosItems = [...medicamentosDB, ...descartablesDB];
 
@@ -531,7 +839,7 @@ export default function FacturacionClinica() {
     ).slice(0, 50);
   }, [medicamentosDB, descartablesDB, filtroMedicamentos]);
 
-  // === GUARDAR PRESUPUESTO ===
+  // Guardar presupuesto
   const guardarPresupuesto = () => {
     if (!paciente.apellido || !paciente.nombre || !paciente.dni) {
       alert('Complete los datos del paciente');
@@ -553,7 +861,7 @@ export default function FacturacionClinica() {
     const nuevoPresupuesto = {
       id: `pres-${Date.now()}`,
       fecha: new Date().toISOString(),
-      paciente: { ...paciente },
+      paciente: { ...paciente, totalSiniestro: calcularTotalSiniestro() },
       convenio: convenioPeriodo,
       convenioData: convenioData?.valores_generales,
       practicas: [...practicasAgregadas],
@@ -571,8 +879,8 @@ export default function FacturacionClinica() {
     alert('Presupuesto guardado exitosamente');
   };
 
-  // === GENERAR EXCEL ===
-  const generarExcel = () => {
+  // Generar Excel con estructura similar al original
+  const generarExcelCompleto = () => {
     if (!paciente.apellido) {
       alert('Complete datos del paciente');
       return;
@@ -580,8 +888,97 @@ export default function FacturacionClinica() {
 
     const wb = XLSX.utils.book_new();
 
-    // Hoja principal
-    const hojaData = [
+    // === HOJA "AGREGAR" (similar a la hoja AGREGAR del Excel) ===
+    const hojaAgregar = [
+      ['', 'PACIENTE', 'DNI', 'STRO', 'TOTAL STRO', 'C-I', 'DETALLE', 'PRESTACION', 'U', 'MONTO', 'TOTAL', 'MEDICO', '', 'CLINICA', 'HON MED', 'TOTAL'],
+      ['CdU', `${paciente.apellido}, ${paciente.nombre}`, paciente.dni, paciente.nroSiniestro, 
+       paciente.totalSiniestro || calcularTotalSiniestro(), '12', 'PRACTICA', '', '', '', '', 
+       paciente.medicoAsignado || 'MÉDICO GENERAL', '', '', '', '']
+    ];
+
+    // Agregar prácticas
+    practicasAgregadas.forEach((p, idx) => {
+      hojaAgregar.push([
+        '', // CdU
+        '', // PACIENTE (vacío después del primero)
+        '', // DNI
+        '', // STRO
+        p.total, // TOTAL STRO (individual)
+        '12', // C-I (asumido)
+        p.practica, // DETALLE
+        p.codigo, // PRESTACION
+        p.cantidad, // U
+        '', // MONTO
+        p.total, // TOTAL
+        p.medico, // MEDICO
+        '', // (vacío)
+        p.formula === 'rx' ? `RX: ${p.formulaDesc}` : '', // CLINICA (info adicional)
+        p.honMedico, // HON MED
+        p.total // TOTAL
+      ]);
+    });
+
+    const wsAgregar = XLSX.utils.aoa_to_sheet(hojaAgregar);
+    XLSX.utils.book_append_sheet(wb, wsAgregar, 'AGREGAR');
+
+    // === HOJA "DETALLE" (similar a la hoja DETALLE del Excel) ===
+    const hojaDetalle = [
+      ['', 'PACIENTE', 'DNI', 'STRO', 'TOTAL STRO', 'C-I', 'DETALLE', 'PRESTACION', 'U', 'MONTO', 'TOTAL', 'MEDICO', 'CLINICA', 'HON MED', 'TOTAL'],
+      ['', `${paciente.apellido}, ${paciente.nombre}`, paciente.dni, paciente.nroSiniestro, 
+       paciente.totalSiniestro || calcularTotalSiniestro(), '12', 'PRACTICA', '', '', '', '', 
+       paciente.medicoAsignado || 'MÉDICO GENERAL', '', '', '']
+    ];
+
+    // Combinar todos los items
+    const todosItems = [
+      ...practicasAgregadas.map(p => ({ ...p, tipoItem: 'PRACTICA' })),
+      ...laboratoriosAgregados.map(l => ({ ...l, tipoItem: 'LABORATORIO' })),
+      ...medicamentosAgregados.map(m => ({ ...m, tipoItem: 'MEDICAMENTO' }))
+    ];
+
+    todosItems.forEach(item => {
+      hojaDetalle.push([
+        '', // (vacío)
+        '', // PACIENTE
+        '', // DNI
+        '', // STRO
+        item.total, // TOTAL STRO
+        '12', // C-I
+        item.tipoItem === 'PRACTICA' ? item.practica : 
+          item.tipoItem === 'LABORATORIO' ? item.practica : item.nombre, // DETALLE
+        item.tipoItem === 'PRACTICA' ? item.codigo : 
+          item.tipoItem === 'LABORATORIO' ? item.codigo : item.tipo, // PRESTACION
+        item.cantidad, // U
+        item.tipoItem === 'PRACTICA' ? (item.honMedico + item.gtoSanatorial) : 
+          item.tipoItem === 'LABORATORIO' ? item.valorCalculado : item.precio, // MONTO
+        item.total, // TOTAL
+        item.tipoItem === 'PRACTICA' ? item.medico : '', // MEDICO
+        item.tipoItem === 'PRACTICA' ? item.gtoSanatorial : 
+          item.tipoItem === 'MEDICAMENTO' ? item.total : '', // CLINICA
+        item.tipoItem === 'PRACTICA' ? item.honMedico : '', // HON MED
+        item.total // TOTAL
+      ]);
+    });
+
+    const wsDetalle = XLSX.utils.aoa_to_sheet(hojaDetalle);
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'DETALLE');
+
+    // === HOJA "MENSUAL" (resumen) ===
+    const hojaMensual = [
+      ['PRESTADOR IAPSER'],
+      ['PRESTADOR | PACIENTE', 'DNI', 'STRO', 'GASTOS', 'HONORARIOS', 'TOTAL'],
+      [`${paciente.prestador} | ${paciente.apellido}, ${paciente.nombre}`, 
+       paciente.dni, paciente.nroSiniestro, 
+       calcularTotales.gastosClinica, 
+       calcularTotales.honorariosMedicos, 
+       calcularTotales.totalGeneral]
+    ];
+
+    const wsMensual = XLSX.utils.aoa_to_sheet(hojaMensual);
+    XLSX.utils.book_append_sheet(wb, wsMensual, 'MENSUAL');
+
+    // === HOJA "RESUMEN" (detallado para el usuario) ===
+    const hojaResumen = [
       ['FACTURA CLÍNICA - PRESUPUESTO COMPLETO'],
       [`Convenio: ${convenioPeriodo || 'No seleccionado'}`],
       [`Fecha: ${new Date().toLocaleString('es-AR')}`],
@@ -590,98 +987,44 @@ export default function FacturacionClinica() {
       ['Apellido y Nombre', `${paciente.apellido}, ${paciente.nombre}`],
       ['DNI', paciente.dni],
       ['ART/Seguro', paciente.artSeguro],
-      ['N° Siniestro', paciente.nroSiniestro],
-      [],
-      ['1. PRÁCTICAS MÉDICAS'],
-      ['COD INT.', 'PRÁCTICA', 'CÓDIGO', 'CANT.', 'HON. MÉDICO', 'GTO SANAT.', 'TOTAL']
-    ];
-
-    // Prácticas médicas
-    practicasAgregadas.forEach(p => {
-      hojaData.push([
-        p.codInt,
-        p.practica,
-        p.codigo,
-        p.cantidad,
-        p.honMedico,
-        p.gtoSanatorial,
-        p.total
-      ]);
-    });
-
-    // Laboratorios
-    if (laboratoriosAgregados.length > 0) {
-      hojaData.push([], ['2. ESTUDIOS DE LABORATORIO']);
-      hojaData.push(['CÓDIGO', 'PRÁCTICA', 'U.B.', 'VALOR UB', 'VALOR', 'CANT.', 'TOTAL']);
-
-      laboratoriosAgregados.forEach(l => {
-        hojaData.push([
-          l.codigo,
-          l.practica,
-          l.unidad_bioquimica,
-          l.valorUB,
-          l.valorCalculado,
-          l.cantidad,
-          l.total
-        ]);
-      });
-    }
-
-    // Medicamentos
-    if (medicamentosAgregados.length > 0) {
-      hojaData.push([], ['3. MEDICAMENTOS Y DESCARTABLES']);
-      hojaData.push(['TIPO', 'NOMBRE', 'PRESENTACIÓN', 'PRECIO UNIT.', 'CANT.', 'TOTAL']);
-
-      medicamentosAgregados.forEach(m => {
-        hojaData.push([
-          m.tipo === 'medicamento' ? 'Medicamento' : 'Descartable',
-          m.nombre,
-          m.presentacion,
-          m.precio,
-          m.cantidad,
-          m.total
-        ]);
-      });
-    }
-
-    // Totales
-    hojaData.push(
+      ['N° Siniestro (STRO)', paciente.nroSiniestro],
+      ['Total Siniestro (TOTAL STRO)', paciente.totalSiniestro || calcularTotalSiniestro()],
+      ['Médico Asignado', paciente.medicoAsignado || 'MÉDICO GENERAL'],
+      ['Prestador', paciente.prestador],
       [],
       ['RESUMEN FINANCIERO'],
-      ['', '', '', '', '', '', 'TOTAL PRÁCTICAS:', calcularTotales.totalPracticas],
-      ['', '', '', '', '', '', 'TOTAL LABORATORIOS:', calcularTotales.totalLaboratorios],
-      ['', '', '', '', '', '', 'TOTAL MEDICAMENTOS:', calcularTotales.totalMedicamentos],
-      ['', '', '', '', '', '', 'TOTAL GENERAL:', calcularTotales.totalGeneral]
-    );
+      ['', '', '', '', '', '', 'GASTOS CLÍNICA:', money(calcularTotales.gastosClinica)],
+      ['', '', '', '', '', '', 'HONORARIOS MÉDICOS:', money(calcularTotales.honorariosMedicos)],
+      ['', '', '', '', '', '', 'ESTUDIOS LABORATORIO:', money(calcularTotales.estudiosLaboratorio)],
+      ['', '', '', '', '', '', 'TOTAL GENERAL:', money(calcularTotales.totalGeneral)]
+    ];
 
-    const ws = XLSX.utils.aoa_to_sheet(hojaData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Presupuesto');
+    const wsResumen = XLSX.utils.aoa_to_sheet(hojaResumen);
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'RESUMEN');
 
-    // Hoja de convenio
-    if (convenioData?.valores_generales) {
-      const convenioDataSheet = [
-        ['VALORES DEL CONVENIO'],
-        [`Convenio: ${convenioPeriodo}`],
-        [`Unidad Bioquímica: ${convenioData.unidad_bioquimica}`],
-        [],
-        ['ITEM', 'VALOR']
-      ];
-
-      Object.entries(convenioData.valores_generales).forEach(([key, value]) => {
-        convenioDataSheet.push([key, value]);
-      });
-
-      const ws2 = XLSX.utils.aoa_to_sheet(convenioDataSheet);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Convenio');
-    }
-
-    const nombreArchivo = `Presupuesto_${paciente.apellido}_${paciente.nombre}_${Date.now()}.xlsx`;
+    // Nombre del archivo similar al Excel original
+    const nombreArchivo = `FACTURACION_${paciente.apellido}_${paciente.dni}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
+  };
+
+  // Limpiar todos los datos
+  const limpiarTodo = () => {
+    if (window.confirm('¿Está seguro de que desea limpiar todos los datos?')) {
+      setPracticasAgregadas([]);
+      setLaboratoriosAgregados([]);
+      setMedicamentosAgregados([]);
+      setPaciente(prev => ({
+        ...prev,
+        nroSiniestro: '',
+        totalSiniestro: 0
+      }));
+      alert('Todos los datos han sido limpiados');
+    }
   };
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.titulo}>🏥 Sistema de Facturación Clínica</h1>
+      <h1 className={styles.titulo}>🏥 Sistema de Facturación Clínica IAPSER</h1>
 
       {/* === TABS DE NAVEGACIÓN === */}
       <div className={styles.tabsNavegacion}>
@@ -768,23 +1111,32 @@ export default function FacturacionClinica() {
             <div className={styles.infoConvenio}>
               <h4>✅ Convenio seleccionado:</h4>
               <p><strong>Nombre:</strong> {convenioPeriodo}</p>
+              
               <div className={styles.valoresDestacados}>
                 <div className={styles.valorItem}>
                   <span>Galeno Rx:</span>
                   <strong>{money(convenioData.valores_generales?.Galeno_Rx_Practica ||
-                    convenioData.valores_generales?.Galeno_Rx_y_Practica || 0)}</strong>
+                    convenioData.valores_generales?.Galeno_Rx_y_Practica || VALORES_CONSTANTES.GALENO_RX)}</strong>
+                </div>
+                <div className={styles.valorItem}>
+                  <span>Gasto Operatorio:</span>
+                  <strong>{money(convenioData.valores_generales?.Gasto_Operatorio || VALORES_CONSTANTES.GASTOS_OPERATORIOS)}</strong>
                 </div>
                 <div className={styles.valorItem}>
                   <span>Gasto Rx:</span>
-                  <strong>{money(convenioData.valores_generales?.Gasto_Rx || 0)}</strong>
+                  <strong>{money(convenioData.valores_generales?.Gasto_Rx || VALORES_CONSTANTES.GASTOS_RX)}</strong>
                 </div>
                 <div className={styles.valorItem}>
                   <span>Consulta:</span>
-                  <strong>{money(convenioData.valores_generales?.Consulta || 0)}</strong>
+                  <strong>{money(convenioData.valores_generales?.Consulta || '34650')}</strong>
                 </div>
                 <div className={styles.valorItem}>
                   <span>Unidad Bioquímica:</span>
-                  <strong>{money(convenioData.unidad_bioquimica || 0)}</strong>
+                  <strong>{money(convenioData.unidad_bioquimica || 1224.11)}</strong>
+                </div>
+                <div className={styles.valorItem}>
+                  <span>Pensión:</span>
+                  <strong>{money(convenioData.valores_generales?.PENSION || VALORES_CONSTANTES.PENSION)}</strong>
                 </div>
               </div>
 
@@ -826,6 +1178,16 @@ export default function FacturacionClinica() {
             </div>
 
             <div className={styles.formGroup}>
+              <label>DNI:</label>
+              <input
+                type="text"
+                placeholder="DNI"
+                value={paciente.dni}
+                onChange={(e) => setPaciente(prev => ({ ...prev, dni: e.target.value }))}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
               <label>ART/Seguro Personal:</label>
               <input
                 type="text"
@@ -836,7 +1198,7 @@ export default function FacturacionClinica() {
             </div>
 
             <div className={styles.formGroup}>
-              <label>N° Siniestro:</label>
+              <label>N° Siniestro (STRO):</label>
               <input
                 type="text"
                 placeholder="N° Siniestro"
@@ -846,12 +1208,34 @@ export default function FacturacionClinica() {
             </div>
 
             <div className={styles.formGroup}>
-              <label>DNI:</label>
+              <label>Fecha de Atención:</label>
+              <input
+                type="date"
+                value={paciente.fechaAtencion}
+                onChange={(e) => setPaciente(prev => ({ ...prev, fechaAtencion: e.target.value }))}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Médico Asignado:</label>
+              <select
+                value={paciente.medicoAsignado}
+                onChange={(e) => setPaciente(prev => ({ ...prev, medicoAsignado: e.target.value }))}
+              >
+                <option value="">Seleccionar médico...</option>
+                {MEDICOS_OPCIONES.map(m => (
+                  <option key={m.id} value={m.nombre}>{m.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Prestador:</label>
               <input
                 type="text"
-                placeholder="DNI"
-                value={paciente.dni}
-                onChange={(e) => setPaciente(prev => ({ ...prev, dni: e.target.value }))}
+                placeholder="Prestador (ej: IAPSER)"
+                value={paciente.prestador}
+                onChange={(e) => setPaciente(prev => ({ ...prev, prestador: e.target.value }))}
               />
             </div>
           </div>
@@ -866,7 +1250,7 @@ export default function FacturacionClinica() {
             <button
               className={styles.btnSiguiente}
               onClick={() => setActiveTab('practicas')}
-              disabled={!paciente.apellido || !paciente.nombre}
+              disabled={!paciente.apellido || !paciente.nombre || !paciente.dni}
             >
               Siguiente → Prácticas
             </button>
@@ -880,13 +1264,30 @@ export default function FacturacionClinica() {
           <h3>🏥 Prácticas Médicas</h3>
 
           <div className={styles.buscadorPracticas}>
-            <input
-              type="text"
-              placeholder="Buscar práctica por código o descripción..."
-              value={filtroPracticas}
-              onChange={(e) => setFiltroPracticas(e.target.value)}
-              className={styles.inputBusqueda}
-            />
+            <div className={styles.filtrosSuperiores}>
+              <input
+                type="text"
+                placeholder="Buscar por código interno, práctica o nomenclador..."
+                value={filtroPracticas}
+                onChange={(e) => setFiltroPracticas(e.target.value)}
+                className={styles.inputBusqueda}
+              />
+              
+              <select
+                value={categoriaFiltro}
+                onChange={(e) => setCategoriaFiltro(e.target.value)}
+                className={styles.selectCategoria}
+              >
+                {CATEGORIAS_PRACTICAS.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.infoPanel}>
+            <p><strong>Convenio activo:</strong> {convenioPeriodo}</p>
+            <p><em>Las prácticas con fórmula RX se calculan automáticamente según el convenio</em></p>
           </div>
 
           <div className={styles.tablaPracticas}>
@@ -896,29 +1297,46 @@ export default function FacturacionClinica() {
                   <th>COD INT.</th>
                   <th>PRÁCTICA</th>
                   <th>CÓDIGO</th>
+                  <th>CATEGORÍA</th>
                   <th>GAL</th>
                   <th>HON. MÉDICO</th>
                   <th>GTO</th>
+                  <th>FÓRMULA</th>
                   <th>ACCIÓN</th>
                 </tr>
               </thead>
               <tbody>
                 {practicasFiltradas.map(p => (
                   <tr key={p.id}>
-                    <td>{p.codInt}</td>
+                    <td>{p.codInt || '-'}</td>
                     <td>{p.practica}</td>
                     <td>{p.codigo}</td>
-                    <td>{p.gal}</td>
+                    <td>
+                      <span className={`${styles.badgeCategoria}`}>
+                        {p.categoria}
+                      </span>
+                    </td>
+                    <td>{p.gal || '-'}</td>
                     <td>
                       {p.formula === 'rx' ? (
-                        <span className={styles.calculado}>CALCULADO</span>
-                      ) : p.honMedico}
+                        <span className={styles.calculado} title="Se calculará según convenio">CALCULADO</span>
+                      ) : p.honMedico === '-' ? '-' : money(p.honMedico)}
                     </td>
-                    <td>{p.gto}</td>
+                    <td>{p.gto || '-'}</td>
+                    <td>
+                      {p.formula === 'rx' ? (
+                        <span className={styles.formulaRx} title="Fórmula RX: (Galeno_Rx × GAL) + ((GTO_Op × GTO) / 2)">RX</span>
+                      ) : p.formula === 'pension' ? (
+                        <span className={styles.formulaPension} title="Fórmula PENSION: PENSION × GTO">PENSIÓN</span>
+                      ) : (
+                        <span>DIRECTO</span>
+                      )}
+                    </td>
                     <td>
                       <button
                         className={styles.btnAgregar}
                         onClick={() => agregarPractica(p)}
+                        title={`Agregar ${p.practica}`}
                       >
                         ➕
                       </button>
@@ -1108,27 +1526,34 @@ export default function FacturacionClinica() {
 
           {/* Datos del paciente */}
           <div className={styles.resumenPaciente}>
-            <h4>Paciente:</h4>
-            <p><strong>Nombre:</strong> {paciente.apellido}, {paciente.nombre}</p>
-            <p><strong>DNI:</strong> {paciente.dni}</p>
-            <p><strong>ART/Seguro:</strong> {paciente.artSeguro}</p>
-            <p><strong>Siniestro:</strong> {paciente.nroSiniestro}</p>
-            <p><strong>Convenio:</strong> {convenioPeriodo}</p>
-            <p><strong>Unidad Bioquímica:</strong> ${money(convenioData?.unidad_bioquimica || 0)}</p>
+            <h4>📋 Datos del Paciente:</h4>
+            <div className={styles.gridResumen}>
+              <div><strong>Nombre:</strong> {paciente.apellido}, {paciente.nombre}</div>
+              <div><strong>DNI:</strong> {paciente.dni}</div>
+              <div><strong>ART/Seguro:</strong> {paciente.artSeguro || '-'}</div>
+              <div><strong>Siniestro (STRO):</strong> {paciente.nroSiniestro || '-'}</div>
+              <div><strong>Total Siniestro:</strong> ${money(paciente.totalSiniestro)}</div>
+              <div><strong>Médico:</strong> {paciente.medicoAsignado || 'MÉDICO GENERAL'}</div>
+              <div><strong>Prestador:</strong> {paciente.prestador}</div>
+              <div><strong>Convenio:</strong> {convenioPeriodo}</div>
+              <div><strong>Fecha:</strong> {paciente.fechaAtencion}</div>
+            </div>
           </div>
 
           {/* Prácticas agregadas */}
           {practicasAgregadas.length > 0 && (
             <div className={styles.seccionAgregados}>
-              <h4>🏥 Prácticas Médicas</h4>
+              <h4>🏥 Prácticas Médicas ({practicasAgregadas.length})</h4>
               <div className={styles.tablaAgregadas}>
                 <table className={styles.tabla}>
                   <thead>
                     <tr>
                       <th>PRÁCTICA</th>
+                      <th>COD</th>
                       <th>CANT.</th>
                       <th>HON. MÉDICO</th>
                       <th>GTO SANAT.</th>
+                      <th>FÓRMULA</th>
                       <th>TOTAL</th>
                       <th>ACCIÓN</th>
                     </tr>
@@ -1137,6 +1562,7 @@ export default function FacturacionClinica() {
                     {practicasAgregadas.map(p => (
                       <tr key={p.id}>
                         <td>{p.practica}</td>
+                        <td>{p.codigo}</td>
                         <td>
                           <input
                             type="number"
@@ -1148,11 +1574,15 @@ export default function FacturacionClinica() {
                         </td>
                         <td>${money(p.honMedico)}</td>
                         <td>${money(p.gtoSanatorial)}</td>
+                        <td className={styles.celdaFormula} title={p.formulaDesc}>
+                          {p.formula === 'rx' ? 'RX' : p.formula === 'pension' ? 'PENSIÓN' : 'DIRECTO'}
+                        </td>
                         <td>${money(p.total)}</td>
                         <td>
                           <button
                             className={styles.btnEliminar}
                             onClick={() => eliminarItem('practica', p.id)}
+                            title="Eliminar práctica"
                           >
                             ❌
                           </button>
@@ -1168,12 +1598,13 @@ export default function FacturacionClinica() {
           {/* Laboratorios agregados */}
           {laboratoriosAgregados.length > 0 && (
             <div className={styles.seccionAgregados}>
-              <h4>🧪 Estudios de Laboratorio</h4>
+              <h4>🧪 Estudios de Laboratorio ({laboratoriosAgregados.length})</h4>
               <div className={styles.tablaAgregadas}>
                 <table className={styles.tabla}>
                   <thead>
                     <tr>
                       <th>ESTUDIO</th>
+                      <th>COD</th>
                       <th>U.B.</th>
                       <th>VALOR UB</th>
                       <th>CANT.</th>
@@ -1185,6 +1616,7 @@ export default function FacturacionClinica() {
                     {laboratoriosAgregados.map(l => (
                       <tr key={l.id}>
                         <td>{l.practica}</td>
+                        <td>{l.codigo}</td>
                         <td>{l.unidad_bioquimica}</td>
                         <td>${money(l.valorUB)}</td>
                         <td>
@@ -1201,6 +1633,7 @@ export default function FacturacionClinica() {
                           <button
                             className={styles.btnEliminar}
                             onClick={() => eliminarItem('laboratorio', l.id)}
+                            title="Eliminar estudio"
                           >
                             ❌
                           </button>
@@ -1216,7 +1649,7 @@ export default function FacturacionClinica() {
           {/* Medicamentos agregados */}
           {medicamentosAgregados.length > 0 && (
             <div className={styles.seccionAgregados}>
-              <h4>💊 Medicamentos y Descartables</h4>
+              <h4>💊 Medicamentos y Descartables ({medicamentosAgregados.length})</h4>
               <div className={styles.tablaAgregadas}>
                 <table className={styles.tabla}>
                   <thead>
@@ -1233,7 +1666,7 @@ export default function FacturacionClinica() {
                   <tbody>
                     {medicamentosAgregados.map(m => (
                       <tr key={m.id}>
-                        <td>{m.tipo === 'medicamento' ? '💊' : '🧷'} {m.tipo}</td>
+                        <td>{m.tipo === 'medicamento' ? '💊 Medicamento' : '🧷 Descartable'}</td>
                         <td>{m.nombre}</td>
                         <td>{m.presentacion}</td>
                         <td>${money(m.precio)}</td>
@@ -1251,6 +1684,7 @@ export default function FacturacionClinica() {
                           <button
                             className={styles.btnEliminar}
                             onClick={() => eliminarItem('medicamento', m.id)}
+                            title="Eliminar item"
                           >
                             ❌
                           </button>
@@ -1263,27 +1697,25 @@ export default function FacturacionClinica() {
             </div>
           )}
 
-          {/* Totales */}
+          {/* Totales con desglose como en Excel */}
           <div className={styles.totales}>
-            <h4>💰 Resumen Financiero</h4>
+            <h4>💰 Resumen Financiero (Formato IAPS)</h4>
             <div className={styles.lineaTotal}>
-              <span>Total Prácticas Médicas:</span>
-              <span>${money(calcularTotales.totalPracticas)}</span>
+              <span>GASTOS CLÍNICA:</span>
+              <span>${money(calcularTotales.gastosClinica)}</span>
+            </div>
+            <div className={styles.lineaTotal}>
+              <span>HONORARIOS MÉDICOS:</span>
+              <span>${money(calcularTotales.honorariosMedicos)}</span>
             </div>
             {laboratoriosAgregados.length > 0 && (
               <div className={styles.lineaTotal}>
-                <span>Total Estudios de Laboratorio:</span>
-                <span>${money(calcularTotales.totalLaboratorios)}</span>
-              </div>
-            )}
-            {medicamentosAgregados.length > 0 && (
-              <div className={styles.lineaTotal}>
-                <span>Total Medicamentos y Descartables:</span>
-                <span>${money(calcularTotales.totalMedicamentos)}</span>
+                <span>ESTUDIOS DE LABORATORIO:</span>
+                <span>${money(calcularTotales.estudiosLaboratorio)}</span>
               </div>
             )}
             <div className={styles.lineaTotalPrincipal}>
-              <strong>TOTAL GENERAL:</strong>
+              <strong>TOTAL STRO (TOTAL SINIESTRO):</strong>
               <strong>${money(calcularTotales.totalGeneral)}</strong>
             </div>
           </div>
@@ -1297,6 +1729,13 @@ export default function FacturacionClinica() {
               ← Volver a Medicamentos
             </button>
             <button
+              className={styles.btnLimpiar}
+              onClick={limpiarTodo}
+              title="Limpiar todos los datos"
+            >
+              🗑️ Limpiar Todo
+            </button>
+            <button
               className={styles.btnGuardar}
               onClick={guardarPresupuesto}
               disabled={!paciente.apellido ||
@@ -1308,12 +1747,13 @@ export default function FacturacionClinica() {
             </button>
             <button
               className={styles.btnExcel}
-              onClick={generarExcel}
+              onClick={generarExcelCompleto}
               disabled={practicasAgregadas.length === 0 &&
                 laboratoriosAgregados.length === 0 &&
                 medicamentosAgregados.length === 0}
+              title="Generar Excel con estructura IAPS"
             >
-              📊 Generar Excel
+              📊 Generar Excel IAPS
             </button>
           </div>
         </div>
