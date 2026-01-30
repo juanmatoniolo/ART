@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import styles from './page.module.css';
 
-/* === Utils === */
+/* ================= Utils ================= */
 const parseNumber = (val) =>
   typeof val === 'number'
     ? val
@@ -14,27 +14,31 @@ const parseNumber = (val) =>
 
 const money = (n) =>
   typeof n === 'number' && !isNaN(n)
-    ? `$${n.toLocaleString('es-AR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      })}`
+    ? `$${n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
     : '—';
 
 const normalize = (s) =>
-  (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  (s || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
-/* 👇 No eliminamos símbolos, solo espacios */
-const normalizeCode = (s) => normalize(s).replace(/\s+/g, '').trim();
+/** Código: elimina todo lo NO alfanumérico (puntos, guiones, espacios, etc.) */
+const normalizeCode = (s) => normalize(s).replace(/[^a-z0-9]/g, '');
 
-/* 🔍 Resalta TODAS las coincidencias en el texto */
+/** Escapa RegExp para que el highlight no rompa con ., +, (, [, etc. */
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const highlight = (text, q) => {
   if (!text || !q) return text;
 
-  const regex = new RegExp(`(${q})`, 'gi');
-  const parts = text.split(regex);
+  const safe = escapeRegExp(q);
+  const regex = new RegExp(`(${safe})`, 'gi');
+  const parts = String(text).split(regex);
 
   return parts.map((part, i) =>
-    part.toLowerCase() === q.toLowerCase() ? (
+    part.toLowerCase() === String(q).toLowerCase() ? (
       <mark key={i} className={styles.highlight}>
         {part}
       </mark>
@@ -49,11 +53,12 @@ export default function AOTER() {
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
   const [query, setQuery] = useState('');
-  const [modoBusqueda, setModoBusqueda] = useState(true);
+  const [modoBusqueda, setModoBusqueda] = useState(true); // true: búsqueda global (tu comportamiento original)
+  const [mostrarTodas, setMostrarTodas] = useState(false); // ✅ nuevo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  /* === 1️⃣ Cargar nomenclador === */
+  /* === 1) Cargar nomenclador === */
   useEffect(() => {
     const loadJSON = async () => {
       try {
@@ -105,41 +110,45 @@ export default function AOTER() {
     loadJSON();
   }, []);
 
-  /* === 2️⃣ Cargar convenios desde Firebase === */
+  /* === 2) Cargar convenios desde Firebase === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const unsub = onValue(conveniosRef, (snap) => {
       const val = snap.exists() ? snap.val() : {};
       setConvenios(val);
+
       const stored = localStorage.getItem('convenioActivo');
       const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
       setConvenioSel(elegir);
     });
+
     return () => unsub();
   }, []);
 
-  /* === 3️⃣ Procesar honorarios con campos con "_" === */
-  const honorariosConvenio = useMemo(() => {
+  /* === 3) Honorarios (FIX: 1-based) === */
+  const honorariosPorNivel = useMemo(() => {
     const conv = convenios[convenioSel];
     const niveles = conv?.honorarios_medicos;
+    const m = new Map();
 
     if (Array.isArray(niveles)) {
-      return niveles.map((n, i) => ({
-        nivel: i,
-        cirujano: parseNumber(n.Cirujano),
-        ayudante1: parseNumber(n.Ayudante_1 || n['Ayudante 1']),
-        ayudante2: parseNumber(n.Ayudante_2 || n['Ayudante 2']),
-      }));
+      niveles.forEach((n, i) => {
+        m.set(i + 1, {
+          cirujano: parseNumber(n.Cirujano),
+          ayudante1: parseNumber(n.Ayudante_1 || n['Ayudante 1']),
+          ayudante2: parseNumber(n.Ayudante_2 || n['Ayudante 2']),
+        });
+      });
     }
-    return [];
+    return m;
   }, [convenios, convenioSel]);
 
   const getHonorarios = (complejidad) => {
-    const reg = honorariosConvenio.find((n) => n.nivel === Number(complejidad));
-    return reg || { cirujano: null, ayudante1: null, ayudante2: null };
+    const nivel = Number(String(complejidad).trim());
+    return honorariosPorNivel.get(nivel) || { cirujano: null, ayudante1: null, ayudante2: null };
   };
 
-  /* === 4️⃣ Crear lista plana para búsqueda === */
+  /* === 4) Lista plana === */
   const allPractices = useMemo(() => {
     if (!Array.isArray(data)) return [];
     return data.flatMap((region) =>
@@ -148,182 +157,232 @@ export default function AOTER() {
           ...p,
           codigoNormalizado: normalizeCode(p.codigo),
           descripcionNormalizada: normalize(p.descripcion),
-          region: region.region,
           region_nombre: region.region_nombre,
+          region_nombre_norm: normalize(region.region_nombre),
           complejidad: bloque.complejidad,
         }))
       )
     );
   }, [data]);
 
-  /* === 5️⃣ Buscador mejorado con orden de relevancia === */
-  const resultados = useMemo(() => {
-    const q = query.trim();
-    if (!q) return [];
+  /* === 4.1) Fuse (una vez por data) === */
+  const fuse = useMemo(() => {
+    if (!allPractices.length) return null;
+    return new Fuse(allPractices, {
+      keys: [
+        { name: 'codigoNormalizado', weight: 0.65 },
+        { name: 'descripcionNormalizada', weight: 0.3 },
+        { name: 'region_nombre_norm', weight: 0.05 },
+      ],
+      threshold: 0.28,
+      distance: 120,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    });
+  }, [allPractices]);
 
-    const qNorm = normalizeCode(q);
-    const qNormLower = normalize(q);
+  /* === 5) Resultados: buscar o mostrar todo === */
+  const resultados = useMemo(() => {
+    const qTrim = query.trim();
+    const showAll = mostrarTodas && !qTrim;
+
+    if (!qTrim && !showAll) return [];
+
+    // Si el usuario quiere ver todo
+    if (showAll) {
+      // opcional: ordenar por región > comp > código
+      return [...allPractices].sort((a, b) => {
+        const r = a.region_nombre.localeCompare(b.region_nombre);
+        if (r !== 0) return r;
+        const c = Number(a.complejidad) - Number(b.complejidad);
+        if (c !== 0) return c;
+        return String(a.codigo).localeCompare(String(b.codigo));
+      });
+    }
+
+    const qCode = normalizeCode(qTrim);
+    const qText = normalize(qTrim);
 
     const exact = allPractices
       .filter((p) => {
-        const codigoNorm = normalizeCode(p.codigo);
-        const descNorm = normalize(p.descripcion);
-        const regionNorm = normalize(p.region_nombre);
+        const codigoNorm = p.codigoNormalizado;
+        const descNorm = p.descripcionNormalizada;
+        const regionNorm = p.region_nombre_norm;
 
         return (
-          codigoNorm.startsWith(qNorm) ||
-          codigoNorm.includes(qNorm) ||
-          descNorm.includes(qNormLower) ||
-          regionNorm.includes(qNormLower)
+          (qCode && (codigoNorm.startsWith(qCode) || codigoNorm.includes(qCode))) ||
+          (qText && (descNorm.includes(qText) || regionNorm.includes(qText)))
         );
       })
-      // 🔹 Ordenar: primero los que empiezan con el código, luego los demás
       .sort((a, b) => {
-        const aStarts = normalizeCode(a.codigo).startsWith(qNorm) ? 0 : 1;
-        const bStarts = normalizeCode(b.codigo).startsWith(qNorm) ? 0 : 1;
-        return aStarts - bStarts;
+        // Prioridad #1: match exacto de código
+        const aExact = qCode && a.codigoNormalizado === qCode ? 0 : 1;
+        const bExact = qCode && b.codigoNormalizado === qCode ? 0 : 1;
+        if (aExact !== bExact) return aExact - bExact;
+
+        // Prioridad #2: empieza con
+        const aStarts = qCode && a.codigoNormalizado.startsWith(qCode) ? 0 : 1;
+        const bStarts = qCode && b.codigoNormalizado.startsWith(qCode) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+
+        return 0;
       });
 
-    const fuse = new Fuse(allPractices, {
-      keys: [
-        { name: 'codigoNormalizado', weight: 0.6 },
-        { name: 'descripcionNormalizada', weight: 0.35 },
-        { name: 'region_nombre', weight: 0.05 },
-      ],
-      threshold: 0.2,
-      distance: 80,
-      ignoreLocation: true,
-    });
+    const fuzzyText = fuse ? fuse.search(qText).map((r) => r.item) : [];
+    const fuzzyCode = fuse && qCode ? fuse.search(qCode).map((r) => r.item) : [];
 
-    const fuzzy = fuse.search(qNorm).map((r) => r.item);
-
+    // Dedupe robusto (evita removeChild por keys/colisiones)
     const seen = new Set();
-    return [...exact, ...fuzzy].filter((p) => {
-      if (seen.has(p.codigo)) return false;
-      seen.add(p.codigo);
+    return [...exact, ...fuzzyText, ...fuzzyCode].filter((p) => {
+      const key = `${p.region_nombre}|${p.complejidad}|${p.codigo}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
-  }, [query, allPractices]);
+  }, [query, mostrarTodas, allPractices, fuse]);
 
   /* === Render === */
   if (loading)
     return (
-      <div className={styles.wrapper}>
-        <p className={styles.info}>Cargando nomenclador AOTER...</p>
+      <div className={styles.page}>
+        <p className={styles.info}>Cargando nomenclador AOTER…</p>
       </div>
     );
 
   if (error)
     return (
-      <div className={styles.wrapper}>
+      <div className={styles.page}>
         <p className={styles.error}>{error}</p>
       </div>
     );
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.page}>
       <div className={styles.header}>
-        <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
+        <div className={styles.titleRow}>
+          <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
 
-        <div className={styles.filters}>
-          <label>Convenio:</label>
-          <select
-            className={styles.select}
-            value={convenioSel}
-            onChange={(e) => setConvenioSel(e.target.value)}
-          >
-            {Object.keys(convenios).map((k) => (
-              <option key={k}>{k}</option>
-            ))}
-          </select>
+          <button className={styles.modeBtn} onClick={() => setModoBusqueda((p) => !p)}>
+            {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
+          </button>
         </div>
 
-        <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
-          {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
-        </button>
+        <div className={styles.controls}>
+          <div className={styles.controlBlock}>
+            <label className={styles.label}>Convenio</label>
+            <select
+              className={styles.select}
+              value={convenioSel}
+              onChange={(e) => setConvenioSel(e.target.value)}
+            >
+              {Object.keys(convenios).map((k) => (
+                <option key={k}>{k}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.controlBlock}>
+            <label className={styles.label}>Mostrar todo</label>
+            <button
+              className={`${styles.toggle} ${mostrarTodas ? styles.toggleOn : ''}`}
+              onClick={() => setMostrarTodas((v) => !v)}
+              type="button"
+              aria-pressed={mostrarTodas}
+            >
+              <span className={styles.toggleKnob} />
+              <span className={styles.toggleText}>{mostrarTodas ? 'Activado' : 'Desactivado'}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {modoBusqueda ? (
         <>
           <input
             type="text"
-            className={styles.input}
-            placeholder="Buscar código o descripción (ej: R0, MS0201, artroscopia...)"
+            className={styles.search}
+            placeholder="Buscar código o descripción (ej: MS0213, MS.02.13, artroscopia…)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="search"
           />
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Región</th>
-                  <th>Código</th>
-                  <th>Descripción</th>
-                  <th>Comp.</th>
-                  <th>Cirujano</th>
-                  <th>Ayud. 1</th>
-                  <th>Ayud. 2</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultados.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className={styles.noResults}>
-                      Sin resultados.
-                    </td>
-                  </tr>
-                ) : (
-                  resultados.map((p, i) => {
-                    const { cirujano, ayudante1, ayudante2 } = getHonorarios(p.complejidad);
-                    return (
-                      <tr key={i}>
-                        <td>{p.region_nombre}</td>
-                        <td>{highlight(p.codigo, query)}</td>
-                        <td>{highlight(p.descripcion, query)}</td>
-                        <td>{p.complejidad}</td>
-                        <td className={styles.numeric}>{money(cirujano)}</td>
-                        <td className={styles.numeric}>{money(ayudante1)}</td>
-                        <td className={styles.numeric}>{money(ayudante2)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          {resultados.length === 0 ? (
+            <div className={styles.empty}>
+              {mostrarTodas ? 'No hay prácticas para mostrar.' : 'Sin resultados.'}
+            </div>
+          ) : (
+            <div className={styles.results}>
+              {resultados.map((p) => {
+                const rowKey = `${p.region_nombre}|${p.complejidad}|${p.codigo}`;
+                const isExact = normalizeCode(p.codigo) === normalizeCode(query);
+                const { cirujano, ayudante1, ayudante2 } = getHonorarios(p.complejidad);
+
+                return (
+                  <article key={rowKey} className={`${styles.card} ${isExact ? styles.exactMatch : ''}`}>
+                    <div className={styles.cardTop}>
+                      <div className={styles.region}>{p.region_nombre}</div>
+                      <div className={styles.code}>{highlight(p.codigo, query)}</div>
+                    </div>
+
+                    <div className={styles.desc}>{highlight(p.descripcion, query)}</div>
+
+                    <div className={styles.metaRow}>
+                      <span className={styles.badge}>Comp. {p.complejidad}</span>
+                      {isExact && <span className={styles.badgeOk}>✅ Coincidencia exacta</span>}
+                    </div>
+
+                    <div className={styles.prices}>
+                      <div className={styles.priceItem}>
+                        <span className={styles.priceLabel}>Cirujano</span>
+                        <span className={styles.priceValue}>{money(cirujano)}</span>
+                      </div>
+                      <div className={styles.priceItem}>
+                        <span className={styles.priceLabel}>Ayud. 1</span>
+                        <span className={styles.priceValue}>{money(ayudante1)}</span>
+                      </div>
+                      <div className={styles.priceItem}>
+                        <span className={styles.priceLabel}>Ayud. 2</span>
+                        <span className={styles.priceValue}>{money(ayudante2)}</span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </>
       ) : (
         <div className={styles.accordion}>
-          {data.map((region, rIndex) => (
-            <details key={rIndex} className={styles.accordionItem}>
+          {data.map((region) => (
+            <details key={region.region_nombre} className={styles.accordionItem}>
               <summary className={styles.accordionHeader}>{region.region_nombre}</summary>
-              {region.complejidades.map((bloque, bIndex) => {
+
+              {region.complejidades.map((bloque) => {
+                const key = `${region.region_nombre}|${bloque.complejidad}`;
                 const { cirujano, ayudante1, ayudante2 } = getHonorarios(bloque.complejidad);
                 return (
-                  <div key={bIndex} className={styles.accordionBody}>
-                    <h6 className={styles.complexTitle}>
-                      Complejidad {bloque.complejidad}{' '}
-                      <small>
-                        ({money(cirujano)} / {money(ayudante1)} / {money(ayudante2)})
-                      </small>
-                    </h6>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Código</th>
-                          <th>Descripción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bloque.practicas.map((p, i) => (
-                          <tr key={i}>
-                            <td>{p.codigo}</td>
-                            <td>{p.descripcion}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div key={key} className={styles.accordionBody}>
+                    <div className={styles.complexHeader}>
+                      <div className={styles.complexTitle}>Complejidad {bloque.complejidad}</div>
+                      <div className={styles.complexPrices}>
+                        {money(cirujano)} / {money(ayudante1)} / {money(ayudante2)}
+                      </div>
+                    </div>
+
+                    <div className={styles.simpleList}>
+                      {bloque.practicas.map((p) => (
+                        <div
+                          key={`${region.region_nombre}|${bloque.complejidad}|${p.codigo}`}
+                          className={styles.simpleItem}
+                        >
+                          <div className={styles.simpleCode}>{p.codigo}</div>
+                          <div className={styles.simpleDesc}>{p.descripcion}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               })}

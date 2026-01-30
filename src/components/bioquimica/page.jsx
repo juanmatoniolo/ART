@@ -14,33 +14,96 @@ const normalize = (s) =>
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
 
+/** Escapa RegExp para evitar bugs con ., +, (, etc. */
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Highlight seguro (no rompe input, ni regex) */
 const highlight = (text, query) => {
-    if (!query) return text;
-    const normText = normalize(text);
-    const normQuery = normalize(query);
-    const idx = normText.indexOf(normQuery);
-    if (idx === -1) return text;
+    if (!text || !query) return text;
+    const safe = escapeRegExp(query);
+    const regex = new RegExp(`(${safe})`, 'gi');
+    const parts = String(text).split(regex);
 
-    const before = text.slice(0, idx);
-    const match = text.slice(idx, idx + query.length);
-    const after = text.slice(idx + query.length);
-
-    return (
-        <>
-            {before}
-            <mark className={styles.highlight}>{match}</mark>
-            {after}
-        </>
+    return parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={i} className={styles.highlight}>
+                {part}
+            </mark>
+        ) : (
+            part
+        )
     );
 };
 
+// CORRECCIÓN PRINCIPAL: Función money mejorada
 const money = (n) => {
     if (n == null || n === '' || n === '-') return '-';
-    const num = parseFloat(n.toString().replace(',', '.'));
-    if (isNaN(num)) return n;
-    return num.toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+    
+    // Si ya es número, formatearlo directamente
+    if (typeof n === 'number') {
+        return n.toLocaleString('es-AR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
+    }
+    
+    const str = String(n).trim();
+    
+    // Detectar si es un número con formato argentino (puntos como separadores de miles, coma decimal)
+    // Ejemplo: "1.234,56" o "1.234" o "1234,56"
+    
+    // Si tiene punto y coma, es formato argentino completo
+    if (str.includes('.') && str.includes(',')) {
+        // Eliminar puntos de miles (solo los que tienen 3 dígitos después)
+        const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
+        // Reemplazar coma decimal por punto
+        const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
+        const num = parseFloat(conPuntoDecimal);
+        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
+    }
+    
+    // Si solo tiene coma (puede ser decimal o separador de miles)
+    if (str.includes(',')) {
+        // Verificar si la coma es decimal (1-2 dígitos después de la coma)
+        const partes = str.split(',');
+        if (partes.length === 2) {
+            const despuesComa = partes[1];
+            // Si tiene 1-2 dígitos después de la coma, es decimal
+            if (despuesComa.length <= 2) {
+                const num = parseFloat(str.replace(',', '.'));
+                return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                });
+            }
+        }
+        // Si no, eliminar comas y tratar como número entero
+        const sinComas = str.replace(/,/g, '');
+        const num = parseFloat(sinComas);
+        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0 
+        });
+    }
+    
+    // Si solo tiene puntos, eliminar puntos (son separadores de miles)
+    if (str.includes('.')) {
+        const sinPuntos = str.replace(/\./g, '');
+        const num = parseFloat(sinPuntos);
+        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0 
+        });
+    }
+    
+    // Si no tiene puntos ni comas, parsear directamente
+    const num = parseFloat(str);
+    return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
     });
 };
 
@@ -75,7 +138,6 @@ export default function NomencladorBioquimica() {
         const unsub = onValue(conveniosRef, (snap) => {
             const val = snap.exists() ? snap.val() : {};
 
-            // 🔹 Limpia claves con espacios o caracteres extraños
             const normalizado = Object.keys(val).reduce((acc, key) => {
                 const cleanKey = key.trim();
                 acc[cleanKey] = val[key];
@@ -85,8 +147,7 @@ export default function NomencladorBioquimica() {
             setConvenios(normalizado);
 
             const stored = localStorage.getItem('convenioActivo');
-            const elegir =
-                stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
+            const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
             setConvenioSel(elegir);
         });
         return () => unsub();
@@ -100,8 +161,6 @@ export default function NomencladorBioquimica() {
         }
 
         const vg = convenios[convenioSel]?.valores_generales || {};
-
-        // 🔹 Acepta claves con guiones bajos o espacios
         const keysPosibles = [
             'Laboratorios_NBU_T',
             'Laboratorios_NBU',
@@ -109,53 +168,92 @@ export default function NomencladorBioquimica() {
             'Laboratorios NBU',
             'UB',
             'Unidad_Bioquimica',
-            'Unidad Bioquimica'
+            'Unidad Bioquimica',
         ];
 
         let nbu = 0;
-
         for (const k of keysPosibles) {
-            if (vg[k]) {
-                nbu = parseFloat(vg[k].toString().replace('.', '').replace(',', '.')) || 0;
+            if (vg[k] != null && vg[k] !== '') {
+                // Usar la misma lógica de parsing que en money()
+                const str = String(vg[k]).trim();
+                let valorNumerico = 0;
+                
+                if (str.includes('.') && str.includes(',')) {
+                    // Formato: "1.234,56"
+                    const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
+                    const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
+                    valorNumerico = parseFloat(conPuntoDecimal) || 0;
+                } else if (str.includes(',')) {
+                    // Formato: "1234,56" o "1,234"
+                    const partes = str.split(',');
+                    if (partes.length === 2 && partes[1].length <= 2) {
+                        // Es decimal
+                        valorNumerico = parseFloat(str.replace(',', '.')) || 0;
+                    } else {
+                        // Eliminar comas y tratar como entero
+                        valorNumerico = parseFloat(str.replace(/,/g, '')) || 0;
+                    }
+                } else if (str.includes('.')) {
+                    // Eliminar puntos de miles
+                    valorNumerico = parseFloat(str.replace(/\./g, '')) || 0;
+                } else {
+                    valorNumerico = parseFloat(str) || 0;
+                }
+                
+                nbu = valorNumerico;
                 break;
             }
         }
 
-        // ✅ Eliminado el escalado por 1000
-        // Si el valor es decimal (ej. 1.22) no se multiplica automáticamente
-
-        if (nbu > 0) setValorUB(nbu);
+        setValorUB(nbu > 0 ? nbu : 0);
     }, [convenioSel, convenios]);
 
-    /* === Filtrado y búsqueda === */
-    const practicasFiltradas = useMemo(() => {
-        if (!data?.practicas) return [];
-        const practicas = data.practicas;
-        const q = filtro.trim();
+    const valorPorDefecto = data?.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
 
-        if (!q && !soloUrgencia) return practicas;
+    /* === Fuse preconstruido (performance) === */
+    const fuse = useMemo(() => {
+        const practicas = data?.practicas || [];
+        if (!practicas.length) return null;
 
-        const filtroUrg = (p) => !soloUrgencia || p.urgencia === true || p.urgencia === 'U';
-
-        const exact = practicas.filter(
-            (p) =>
-                normalize(`${p.codigo} ${p.practica_bioquimica}`).includes(normalize(q)) &&
-                filtroUrg(p)
-        );
-
-        const fuse = new Fuse(practicas, {
+        return new Fuse(practicas, {
             keys: ['codigo', 'practica_bioquimica'],
             threshold: 0.3,
             ignoreLocation: true,
+            minMatchCharLength: 2,
+        });
+    }, [data]);
+
+    /* === Filtrado y búsqueda === */
+    const practicasFiltradas = useMemo(() => {
+        const practicas = data?.practicas || [];
+        const q = filtro.trim();
+
+        const filtroUrg = (p) => !soloUrgencia || p.urgencia === true || p.urgencia === 'U';
+
+        if (!q) return practicas.filter(filtroUrg);
+
+        const qNorm = normalize(q);
+
+        const exact = practicas.filter((p) => {
+            const hay = normalize(`${p.codigo} ${p.practica_bioquimica}`).includes(qNorm);
+            return hay && filtroUrg(p);
         });
 
         const fuzzy = fuse
-            .search(q)
-            .map((r) => r.item)
-            .filter((p) => filtroUrg(p) && !exact.includes(p));
+            ? fuse
+                .search(q)
+                .map((r) => r.item)
+                .filter((p) => filtroUrg(p))
+            : [];
 
-        return [...exact, ...fuzzy];
-    }, [filtro, soloUrgencia, data]);
+        const seen = new Set();
+        return [...exact, ...fuzzy].filter((p) => {
+            const k = `${p.codigo}|${p.practica_bioquimica}`;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
+    }, [filtro, soloUrgencia, data, fuse]);
 
     if (error)
         return (
@@ -171,39 +269,47 @@ export default function NomencladorBioquimica() {
             </div>
         );
 
-    const valorPorDefecto = data.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
-
-    /* === Render === */
     return (
         <div className={styles.wrapper}>
+            {/* Header */}
             <div className={styles.header}>
                 <h2 className={styles.title}>🧪 Nomenclador Bioquímico</h2>
 
                 <div className={styles.filters}>
-                    <label>Convenio:</label>
-                    <select
-                        className={styles.select}
-                        value={convenioSel}
-                        onChange={(e) => setConvenioSel(e.target.value)}
-                    >
-                        {Object.keys(convenios).map((k) => (
-                            <option key={k}>{k}</option>
-                        ))}
-                    </select>
-                    <span className={styles.badgeGreen}>
-                        UB: ${valorUB ? money(valorUB) : money(valorPorDefecto)}
-                    </span>
+                    <div className={styles.filterBlock}>
+                        <label className={styles.label}>Convenio</label>
+                        <select
+                            className={styles.select}
+                            value={convenioSel}
+                            onChange={(e) => setConvenioSel(e.target.value)}
+                        >
+                            {Object.keys(convenios).map((k) => (
+                                <option key={k}>{k}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className={styles.ubBlock}>
+                        <span className={styles.badgeGreen}>
+                            UB: ${money(valorUB ? valorUB : valorPorDefecto)}
+                        </span>
+                    </div>
                 </div>
             </div>
 
+            {/* Controls */}
             <div className={styles.controls}>
                 <input
                     type="text"
                     className={styles.input}
-                    placeholder="Buscar código o práctica..."
+                    placeholder="Buscar código o práctica…"
                     value={filtro}
                     onChange={(e) => setFiltro(e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    inputMode="search"
                 />
+
                 <label className={styles.checkbox}>
                     <input
                         type="checkbox"
@@ -214,7 +320,50 @@ export default function NomencladorBioquimica() {
                 </label>
             </div>
 
-            <div className={styles.tableWrapper}>
+            {/* Mobile cards */}
+            <div className={styles.mobileList} aria-label="Listado mobile">
+                {practicasFiltradas.length === 0 ? (
+                    <div className={styles.noResults}>No se encontraron resultados.</div>
+                ) : (
+                    practicasFiltradas.map((p) => {
+                        const valorCalculado =
+                            p.unidad_bioquimica && (valorUB || valorPorDefecto)
+                                ? p.unidad_bioquimica * (valorUB || valorPorDefecto)
+                                : null;
+
+                        return (
+                            <article key={`${p.codigo}|${p.practica_bioquimica}`} className={styles.card}>
+                                <div className={styles.cardTop}>
+                                    <div className={styles.code}>{highlight(String(p.codigo), filtro)}</div>
+                                    {p.urgencia ? <span className={styles.badgeRed}>U</span> : <span className={styles.badgeGhost}>—</span>}
+                                </div>
+
+                                <div className={styles.practice}>{highlight(p.practica_bioquimica, filtro)}</div>
+
+                                <div className={styles.cardMeta}>
+                                    <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>N/I</span>
+                                        <span className={styles.metaValue}>{p.nota_N_I || '—'}</span>
+                                    </div>
+                                    <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>U.B.</span>
+                                        <span className={styles.metaValue}>{money(p.unidad_bioquimica)}</span>
+                                    </div>
+                                    <div className={styles.metaItem}>
+                                        <span className={styles.metaLabel}>Valor</span>
+                                        <span className={styles.metaValue}>
+                                            {valorCalculado ? `$${money(valorCalculado)}` : '—'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </article>
+                        );
+                    })
+                )}
+            </div>
+
+            {/* Desktop table */}
+            <div className={styles.tableWrapper} aria-label="Tabla desktop">
                 <table className={styles.table}>
                     <thead>
                         <tr>
@@ -236,19 +385,20 @@ export default function NomencladorBioquimica() {
                         ) : (
                             practicasFiltradas.map((p) => {
                                 const valorCalculado =
-                                    p.unidad_bioquimica && valorUB ? p.unidad_bioquimica * valorUB : null;
+                                    p.unidad_bioquimica && (valorUB || valorPorDefecto)
+                                        ? p.unidad_bioquimica * (valorUB || valorPorDefecto)
+                                        : null;
+
                                 return (
-                                    <tr key={p.codigo}>
-                                        <td className={styles.bold}>{highlight(p.codigo.toString(), filtro)}</td>
-                                        <td>{highlight(p.practica_bioquimica, filtro)}</td>
-                                        <td className="text-center">
+                                    <tr key={`${p.codigo}|${p.practica_bioquimica}`}>
+                                        <td className={styles.bold}>{highlight(String(p.codigo), filtro)}</td>
+                                        <td className={styles.practiceCell}>{highlight(p.practica_bioquimica, filtro)}</td>
+                                        <td className={styles.center}>
                                             {p.urgencia ? <span className={styles.badgeRed}>U</span> : ''}
                                         </td>
                                         <td>{p.nota_N_I || ''}</td>
                                         <td>{money(p.unidad_bioquimica)}</td>
-                                        <td className={styles.numeric}>
-                                            {valorCalculado ? `$${money(valorCalculado)}` : '-'}
-                                        </td>
+                                        <td className={styles.numeric}>{valorCalculado ? `$${money(valorCalculado)}` : '-'}</td>
                                     </tr>
                                 );
                             })
