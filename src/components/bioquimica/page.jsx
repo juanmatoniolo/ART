@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
 
-/* === Utils === */
+/* ================= Utils ================= */
 const normalize = (s) =>
     (s ?? '')
         .toString()
@@ -14,10 +14,8 @@ const normalize = (s) =>
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
 
-/** Escapa RegExp para evitar bugs con ., +, (, etc. */
 const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Highlight seguro (no rompe input, ni regex) */
 const highlight = (text, query) => {
     if (!text || !query) return text;
     const safe = escapeRegExp(query);
@@ -25,7 +23,7 @@ const highlight = (text, query) => {
     const parts = String(text).split(regex);
 
     return parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
+        part.toLowerCase() === String(query).toLowerCase() ? (
             <mark key={i} className={styles.highlight}>
                 {part}
             </mark>
@@ -35,78 +33,87 @@ const highlight = (text, query) => {
     );
 };
 
-// CORRECCIÓN PRINCIPAL: Función money mejorada
-const money = (n) => {
-    if (n == null || n === '' || n === '-') return '-';
-    
-    // Si ya es número, formatearlo directamente
-    if (typeof n === 'number') {
-        return n.toLocaleString('es-AR', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        });
-    }
-    
-    const str = String(n).trim();
-    
-    // Detectar si es un número con formato argentino (puntos como separadores de miles, coma decimal)
-    // Ejemplo: "1.234,56" o "1.234" o "1234,56"
-    
-    // Si tiene punto y coma, es formato argentino completo
-    if (str.includes('.') && str.includes(',')) {
-        // Eliminar puntos de miles (solo los que tienen 3 dígitos después)
-        const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
-        // Reemplazar coma decimal por punto
-        const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
-        const num = parseFloat(conPuntoDecimal);
-        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        });
-    }
-    
-    // Si solo tiene coma (puede ser decimal o separador de miles)
-    if (str.includes(',')) {
-        // Verificar si la coma es decimal (1-2 dígitos después de la coma)
-        const partes = str.split(',');
-        if (partes.length === 2) {
-            const despuesComa = partes[1];
-            // Si tiene 1-2 dígitos después de la coma, es decimal
-            if (despuesComa.length <= 2) {
-                const num = parseFloat(str.replace(',', '.'));
-                return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                });
-            }
+/**
+ * ✅ Parser numérico robusto:
+ * - "1088.10" => 1088.10 (punto decimal)
+ * - "1.088,10" => 1088.10 (AR)
+ * - "1,088.10" => 1088.10 (US)
+ * - "$ 1.088,10" => 1088.10
+ * - "10.881" (miles) => 10881
+ */
+const parseNumber = (val) => {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+
+    let s = String(val).trim();
+    if (!s) return 0;
+
+    // Dejar solo dígitos, separadores y signo
+    s = s.replace(/[^\d.,-]/g, '');
+
+    const hasComma = s.includes(',');
+    const hasDot = s.includes('.');
+
+    // Caso: tiene coma y punto => decidir por la última aparición
+    if (hasComma && hasDot) {
+        const lastComma = s.lastIndexOf(',');
+        const lastDot = s.lastIndexOf('.');
+
+        // Si la coma aparece después del punto => formato AR "1.234,56"
+        if (lastComma > lastDot) {
+            s = s.replace(/\./g, '').replace(',', '.'); // miles '.' -> nada, decimal ',' -> '.'
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : 0;
         }
-        // Si no, eliminar comas y tratar como número entero
-        const sinComas = str.replace(/,/g, '');
-        const num = parseFloat(sinComas);
-        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 0 
-        });
+
+        // Si el punto aparece después de la coma => formato US "1,234.56"
+        s = s.replace(/,/g, ''); // miles ',' -> nada
+        const n = parseFloat(s);
+        return Number.isFinite(n) ? n : 0;
     }
-    
-    // Si solo tiene puntos, eliminar puntos (son separadores de miles)
-    if (str.includes('.')) {
-        const sinPuntos = str.replace(/\./g, '');
-        const num = parseFloat(sinPuntos);
-        return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 0 
-        });
+
+    // Caso: solo coma
+    if (hasComma) {
+        const parts = s.split(',');
+        // Si hay 1-2 dígitos después de la coma => coma decimal
+        if (parts.length === 2 && parts[1].length > 0 && parts[1].length <= 2) {
+            const n = parseFloat(s.replace(',', '.'));
+            return Number.isFinite(n) ? n : 0;
+        }
+        // Si no, asumimos coma como miles (ej: 1,088)
+        const n = parseFloat(s.replace(/,/g, ''));
+        return Number.isFinite(n) ? n : 0;
     }
-    
-    // Si no tiene puntos ni comas, parsear directamente
-    const num = parseFloat(str);
-    return Number.isNaN(num) ? str : num.toLocaleString('es-AR', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-    });
+
+    // Caso: solo punto
+    if (hasDot) {
+        const lastDot = s.lastIndexOf('.');
+        const decimals = s.slice(lastDot + 1);
+
+        // Si parece decimal (1-2 dígitos) => punto decimal
+        if (decimals.length > 0 && decimals.length <= 2) {
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        // Si no, asumimos puntos como miles (ej: 10.881)
+        const n = parseFloat(s.replace(/\./g, ''));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    // Solo números
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : 0;
 };
 
+const money = (n) => {
+    if (n == null || n === '' || n === '-') return '—';
+    const num = typeof n === 'number' ? n : parseNumber(n);
+    if (!Number.isFinite(num)) return '—';
+    return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+/* ================= Page ================= */
 export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
     const [filtro, setFiltro] = useState('');
@@ -147,13 +154,14 @@ export default function NomencladorBioquimica() {
             setConvenios(normalizado);
 
             const stored = localStorage.getItem('convenioActivo');
-            const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
+            const elegir =
+                stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
             setConvenioSel(elegir);
         });
         return () => unsub();
     }, []);
 
-    /* === Detectar valor UB del convenio activo === */
+    /* === Detectar valor UB del convenio activo (FIX) === */
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setValorUB(0);
@@ -171,41 +179,15 @@ export default function NomencladorBioquimica() {
             'Unidad Bioquimica',
         ];
 
-        let nbu = 0;
+        let ub = 0;
         for (const k of keysPosibles) {
             if (vg[k] != null && vg[k] !== '') {
-                // Usar la misma lógica de parsing que en money()
-                const str = String(vg[k]).trim();
-                let valorNumerico = 0;
-                
-                if (str.includes('.') && str.includes(',')) {
-                    // Formato: "1.234,56"
-                    const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
-                    const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
-                    valorNumerico = parseFloat(conPuntoDecimal) || 0;
-                } else if (str.includes(',')) {
-                    // Formato: "1234,56" o "1,234"
-                    const partes = str.split(',');
-                    if (partes.length === 2 && partes[1].length <= 2) {
-                        // Es decimal
-                        valorNumerico = parseFloat(str.replace(',', '.')) || 0;
-                    } else {
-                        // Eliminar comas y tratar como entero
-                        valorNumerico = parseFloat(str.replace(/,/g, '')) || 0;
-                    }
-                } else if (str.includes('.')) {
-                    // Eliminar puntos de miles
-                    valorNumerico = parseFloat(str.replace(/\./g, '')) || 0;
-                } else {
-                    valorNumerico = parseFloat(str) || 0;
-                }
-                
-                nbu = valorNumerico;
+                ub = parseNumber(vg[k]); // ✅ acá estaba el bug (antes se rompía 1088.10)
                 break;
             }
         }
 
-        setValorUB(nbu > 0 ? nbu : 0);
+        setValorUB(ub > 0 ? ub : 0);
     }, [convenioSel, convenios]);
 
     const valorPorDefecto = data?.metadata?.unidad_bioquimica_valor_referencia || 1224.11;
@@ -240,10 +222,7 @@ export default function NomencladorBioquimica() {
         });
 
         const fuzzy = fuse
-            ? fuse
-                .search(q)
-                .map((r) => r.item)
-                .filter((p) => filtroUrg(p))
+            ? fuse.search(q).map((r) => r.item).filter((p) => filtroUrg(p))
             : [];
 
         const seen = new Set();
@@ -269,6 +248,8 @@ export default function NomencladorBioquimica() {
             </div>
         );
 
+    const ubUsar = valorUB || valorPorDefecto;
+
     return (
         <div className={styles.wrapper}>
             {/* Header */}
@@ -290,9 +271,7 @@ export default function NomencladorBioquimica() {
                     </div>
 
                     <div className={styles.ubBlock}>
-                        <span className={styles.badgeGreen}>
-                            UB: ${money(valorUB ? valorUB : valorPorDefecto)}
-                        </span>
+                        <span className={styles.badgeGreen}>UB: ${money(ubUsar)}</span>
                     </div>
                 </div>
             </div>
@@ -326,16 +305,18 @@ export default function NomencladorBioquimica() {
                     <div className={styles.noResults}>No se encontraron resultados.</div>
                 ) : (
                     practicasFiltradas.map((p) => {
-                        const valorCalculado =
-                            p.unidad_bioquimica && (valorUB || valorPorDefecto)
-                                ? p.unidad_bioquimica * (valorUB || valorPorDefecto)
-                                : null;
+                        const ub = parseNumber(p.unidad_bioquimica);
+                        const valorCalculado = ub ? ub * ubUsar : null;
 
                         return (
                             <article key={`${p.codigo}|${p.practica_bioquimica}`} className={styles.card}>
                                 <div className={styles.cardTop}>
                                     <div className={styles.code}>{highlight(String(p.codigo), filtro)}</div>
-                                    {p.urgencia ? <span className={styles.badgeRed}>U</span> : <span className={styles.badgeGhost}>—</span>}
+                                    {p.urgencia ? (
+                                        <span className={styles.badgeRed}>U</span>
+                                    ) : (
+                                        <span className={styles.badgeGhost}>—</span>
+                                    )}
                                 </div>
 
                                 <div className={styles.practice}>{highlight(p.practica_bioquimica, filtro)}</div>
@@ -347,12 +328,12 @@ export default function NomencladorBioquimica() {
                                     </div>
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>U.B.</span>
-                                        <span className={styles.metaValue}>{money(p.unidad_bioquimica)}</span>
+                                        <span className={styles.metaValue}>{money(ub)}</span>
                                     </div>
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Valor</span>
                                         <span className={styles.metaValue}>
-                                            {valorCalculado ? `$${money(valorCalculado)}` : '—'}
+                                            {valorCalculado != null ? `$${money(valorCalculado)}` : '—'}
                                         </span>
                                     </div>
                                 </div>
@@ -384,21 +365,23 @@ export default function NomencladorBioquimica() {
                             </tr>
                         ) : (
                             practicasFiltradas.map((p) => {
-                                const valorCalculado =
-                                    p.unidad_bioquimica && (valorUB || valorPorDefecto)
-                                        ? p.unidad_bioquimica * (valorUB || valorPorDefecto)
-                                        : null;
+                                const ub = parseNumber(p.unidad_bioquimica);
+                                const valorCalculado = ub ? ub * ubUsar : null;
 
                                 return (
                                     <tr key={`${p.codigo}|${p.practica_bioquimica}`}>
                                         <td className={styles.bold}>{highlight(String(p.codigo), filtro)}</td>
-                                        <td className={styles.practiceCell}>{highlight(p.practica_bioquimica, filtro)}</td>
+                                        <td className={styles.practiceCell}>
+                                            {highlight(p.practica_bioquimica, filtro)}
+                                        </td>
                                         <td className={styles.center}>
                                             {p.urgencia ? <span className={styles.badgeRed}>U</span> : ''}
                                         </td>
                                         <td>{p.nota_N_I || ''}</td>
-                                        <td>{money(p.unidad_bioquimica)}</td>
-                                        <td className={styles.numeric}>{valorCalculado ? `$${money(valorCalculado)}` : '-'}</td>
+                                        <td>{money(ub)}</td>
+                                        <td className={styles.numeric}>
+                                            {valorCalculado != null ? `$${money(valorCalculado)}` : '—'}
+                                        </td>
                                     </tr>
                                 );
                             })
@@ -409,7 +392,7 @@ export default function NomencladorBioquimica() {
 
             <p className={styles.footerNote}>
                 * Valor calculado según la Unidad Bioquímica del convenio seleccionado:{' '}
-                <strong>${money(valorUB || valorPorDefecto)}</strong>
+                <strong>${money(ubUsar)}</strong>
             </p>
         </div>
     );
