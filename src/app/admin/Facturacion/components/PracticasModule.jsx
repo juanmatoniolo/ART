@@ -1,12 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useConvenio } from './ConvenioContext';
-import { money, normalize } from '../utils/calculos';
+import { onValue, ref } from 'firebase/database';
+import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './facturacion.module.css';
 
 /* ================= Utils ================= */
+const normalize = (s) =>
+  (s ?? '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function highlight(text, q) {
@@ -58,6 +65,11 @@ const parseNumber = (val) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const money = (n) => {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const isRadiografia = (item) => {
   const d = normalize(item?.descripcion);
   return d.includes('radiograf') || d.includes('rx');
@@ -69,7 +81,7 @@ const isSubsiguiente = (item) => {
 };
 
 const vincularSubsiguientes = (item, data) => {
-  const idx = data.findIndex((d) => d.__key === item.__key);
+  const idx = data.findIndex((d) => (item.__key ? d.__key === item.__key : d.codigo === item.codigo));
   if (idx === -1) return [item];
 
   const prev = data[idx - 1];
@@ -80,90 +92,6 @@ const vincularSubsiguientes = (item, data) => {
   return [item];
 };
 
-/* ================= Prácticas Moduladas ================= */
-const PRACTICAS_MODULADAS = [
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-001',
-    descripcion: 'Artroscopia Hombro',
-    valor: 1232200,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-002',
-    descripcion: 'Artroscopia Simple Gastos Sanatoriales',
-    valor: 900000,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-003',
-    descripcion: 'Consulta',
-    valor: 34650,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-004',
-    descripcion: 'Curaciones Quemados',
-    valor: 15540,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-005',
-    descripcion: 'Curaciones R',
-    valor: 8820,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-006',
-    descripcion: 'ECG Y EX EN CV',
-    valor: 63690,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-007',
-    descripcion: 'Ecografia Partes Blandas No Moduladas',
-    valor: 42000,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-008',
-    descripcion: 'FKT',
-    valor: 13486,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-009',
-    descripcion: 'FKT + MGT',
-    valor: 19250,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  },
-  {
-    tipo: 'modulada',
-    codigo: 'MOD-010',
-    descripcion: 'Lig Cruzado Gastos Sanatoriales',
-    valor: 1123200,
-    capitulo: 'MOD',
-    capituloNombre: 'Prácticas Moduladas'
-  }
-];
-
 /* ================= Componente Principal ================= */
 export default function PracticasModule({ 
   practicasAgregadas, 
@@ -171,7 +99,6 @@ export default function PracticasModule({
   onAtras, 
   onSiguiente 
 }) {
-  const { valoresConvenio } = useConvenio();
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
@@ -180,7 +107,20 @@ export default function PracticasModule({
   const [capituloQueries, setCapituloQueries] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Cargar nomenclador nacional
+  // Firebase
+  const [convenios, setConvenios] = useState({});
+  const [convenioSel, setConvenioSel] = useState('');
+  const [alerta, setAlerta] = useState('');
+
+  // Valores del convenio
+  const [gastoRx, setGastoRx] = useState(0);
+  const [galenoRxPractica, setGalenoRxPractica] = useState(0);
+  const [gastoOperatorio, setGastoOperatorio] = useState(0);
+  const [galenoQuir, setGalenoQuir] = useState(0);
+  const [diaPension, setDiaPension] = useState(0);
+  const [otrosGastos, setOtrosGastos] = useState(0);
+
+  /* === CARGA JSON BASE (con __key único) === */
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
@@ -188,6 +128,7 @@ export default function PracticasModule({
         setCapitulos(json);
 
         const counts = new Map();
+
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => {
             const cap = String(c.capitulo ?? '').trim();
@@ -198,42 +139,77 @@ export default function PracticasModule({
             counts.set(base, n);
 
             return {
-              tipo: 'nacional',
               ...p,
               capitulo: c.capitulo,
               capituloNombre: c.descripcion,
-              qgal: parseNumber(p.q_gal || p.qgal),
-              gto: parseNumber(p.gto),
-              __key: `${base}#${n}`,
+              __key: `${base}#${n}`, // ✅ key única
             };
           })
         );
 
-        // Combinar con prácticas moduladas
-        const allData = [...PRACTICAS_MODULADAS, ...flat];
-        setData(allData);
+        setData(flat);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error cargando JSON:', err);
-        // Usar datos de ejemplo para desarrollo
-        const datosEjemplo = [
-          {
-            tipo: 'nacional',
-            capitulo: '34',
-            capituloNombre: 'Radiología',
-            codigo: '34.02.13',
-            descripcion: 'CODO, MANO, MUÑECA, DEDOS, RODILLA, TOBILLO (FRENTE Y PERFIL)',
-            qgal: 6.75,
-            gto: 30,
-            __key: '34|34.02.13#1'
-          },
-          ...PRACTICAS_MODULADAS
-        ];
-        setData(datosEjemplo);
+        setAlerta('No se pudo cargar el Nomenclador Nacional.');
         setLoading(false);
       });
   }, []);
+
+  /* === CONVENIOS FIREBASE === */
+  useEffect(() => {
+    const conveniosRef = ref(db, 'convenios');
+    const off = onValue(conveniosRef, (snap) => {
+      const val = snap.exists() ? snap.val() : {};
+      const normalizado = Object.keys(val).reduce((acc, key) => {
+        const cleanKey = key.trim();
+        acc[cleanKey] = val[key];
+        return acc;
+      }, {});
+      setConvenios(normalizado);
+
+      const stored = localStorage.getItem('convenioActivo');
+      const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
+      setConvenioSel(elegir);
+    });
+
+    return () => off();
+  }, []);
+
+  /* === FACTORES SEGÚN CONVENIO === */
+  useEffect(() => {
+    if (!convenioSel || !convenios[convenioSel]) return;
+    const vg = convenios[convenioSel]?.valores_generales || {};
+
+    const pick = (keys) => {
+      for (const k of keys) {
+        if (vg[k] != null && vg[k] !== '') return vg[k];
+      }
+      return null;
+    };
+
+    const gastoRaw = pick(['Gasto_Rx', 'Gastos_Rx', 'Gasto Rx', 'Gastos Rx']);
+    const galenoRaw = pick([
+      'Galeno_Rx_Practica',
+      'Galeno_Rx_y_Practica',
+      'Galeno Rx Practica',
+      'Galeno Rx y Practica',
+    ]);
+    const gastoOpRaw = pick(['Gasto_Operatorio', 'Gasto Operatorio', 'Gastos Operatorios']);
+    const galenoQuirRaw = pick(['Galeno_Quir', 'Galeno Quir', 'Galeno Quirúrgico', 'Galeno Quirurgico']);
+    const pensionRaw = pick(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión', 'Dia Pension', 'Día Pension']);
+    const otrosGastosRaw = pick(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos', 'Otros Gastos Medicos']);
+
+    setGastoRx(parseNumber(gastoRaw));
+    setGalenoRxPractica(parseNumber(galenoRaw));
+    setGastoOperatorio(parseNumber(gastoOpRaw));
+    setGalenoQuir(parseNumber(galenoQuirRaw));
+    setDiaPension(parseNumber(pensionRaw));
+    setOtrosGastos(parseNumber(otrosGastosRaw));
+
+    localStorage.setItem('convenioActivo', convenioSel);
+  }, [convenioSel, convenios]);
 
   /* === FUSE (global) === */
   const fuseGlobal = useMemo(() => {
@@ -263,149 +239,130 @@ export default function PracticasModule({
     let results = [];
 
     if (exact.length) {
-      for (const it of exact) {
-        // Solo vincular subsiguientes para prácticas nacionales
-        if (it.tipo === 'nacional') {
-          results.push(...vincularSubsiguientes(it, data.filter(d => d.tipo === 'nacional')));
-        } else {
-          results.push(it);
-        }
-      }
+      for (const it of exact) results.push(...vincularSubsiguientes(it, data));
     } else if (fuseGlobal) {
       const found = fuseGlobal.search(q).map((r) => r.item);
-      for (const it of found) {
-        if (it.tipo === 'nacional') {
-          results.push(...vincularSubsiguientes(it, data.filter(d => d.tipo === 'nacional')));
-        } else {
-          results.push(it);
-        }
-      }
+      for (const it of found) results.push(...vincularSubsiguientes(it, data));
     }
 
-    // Eliminar duplicados por __key
-    const unique = Array.from(new Map(results.map((it) => [it.__key || it.codigo, it])).values());
+    const unique = Array.from(new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values());
 
-    // Ordenar: RX primero, luego moduladas, luego otras
-    return unique.sort((a, b) => {
-      const aIsRx = isRadiografia(a);
-      const bIsRx = isRadiografia(b);
-      const aIsMod = a.tipo === 'modulada';
-      const bIsMod = b.tipo === 'modulada';
-      
-      if (aIsRx && !bIsRx) return -1;
-      if (!aIsRx && bIsRx) return 1;
-      if (aIsMod && !bIsMod) return -1;
-      if (!aIsMod && bIsMod) return 1;
-      return 0;
-    });
+    // RX arriba
+    return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  /* === CÁLCULO DE VALORES === */
-  const calcularValorPractica = (item) => {
-    if (item.tipo === 'modulada') {
-      return item.valor;
-    }
+  /* === COSTOS + EXTRAS (Cap 34 y Cap 12/13) === */
+  const computeExtras = (it) => {
+    const gto = parseNumber(it.gto);
+    const gal = parseNumber(it.q_gal);
 
-    // Para prácticas nacionales
-    const capituloNum = Number(String(item.capitulo ?? '').replace(/\D/g, '')) || 0;
-    const capituloNombre = item.capituloNombre ?? '';
-    const esCapitulo34 = normalize(capituloNombre).includes('radiologia') ||
-                         normalize(capituloNombre).includes('diagnostico por imagenes');
+    const capituloNum = Number(String(it.capitulo ?? '').replace(/\D/g, '')) || 0;
+    const capituloNombre = it.capituloNombre ?? '';
+
+    const esCapitulo34 =
+      normalize(capituloNombre).includes('radiologia') ||
+      normalize(capituloNombre).includes('diagnostico por imagenes') ||
+      normalize(capituloNombre).includes('diagnóstico por imagenes');
+
     const esCap12o13 = capituloNum === 12 || capituloNum === 13;
 
+    let extraGal = null;
+    let extraGto = null;
+
     if (esCapitulo34) {
-      const gastoOp = (valoresConvenio.gastoRx * item.gto) / 2;
-      const honorario = valoresConvenio.galenoRx * item.qgal + gastoOp;
-      return honorario + gastoOp;
+      const gastoOp = (gastoRx * gto) / 2;
+      const honorario = galenoRxPractica * gal + gastoOp;
+      extraGal = honorario;
+      extraGto = gastoOp;
     }
 
     if (esCap12o13) {
-      const honorario = valoresConvenio.galenoQuir * item.qgal;
-      const gasto = valoresConvenio.gastoOperatorio * item.gto;
-      return honorario + gasto;
+      extraGal = galenoQuir * gal;
+      extraGto = gastoOperatorio * gto;
     }
 
-    // Para otras prácticas
-    return valoresConvenio.otrosGastos * (item.qgal + item.gto);
+    return { gal, gto, extraGal, extraGto };
   };
 
   /* === AGREGAR PRÁCTICA === */
   const handleAgregar = (practica) => {
-    const valor = calcularValorPractica(practica);
+    const { gal, gto, extraGal, extraGto } = computeExtras(practica);
+    
+    // NO calculamos ningún valor total, solo pasamos los datos
     const nuevaPractica = {
       id: `pract-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...practica,
-      valorCalculado: valor,
-      total: valor,
-      cantidad: 1,
-      esModulada: practica.tipo === 'modulada',
-      valoresUsados: { ...valoresConvenio }
+      // Solo pasamos los valores calculados para referencia
+      valoresCalculados: {
+        gal: gal,
+        gto: gto,
+        extraGal: extraGal,
+        extraGto: extraGto,
+        esRadiografia: isRadiografia(practica),
+        esSubsiguiente: isSubsiguiente(practica),
+        esCap34: normalize(practica.capituloNombre ?? '').includes('radiologia') ||
+                normalize(practica.capituloNombre ?? '').includes('diagnostico por imagenes'),
+        esCap12o13: Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 12 ||
+                   Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 13
+      },
+      // Valores del convenio para referencia futura
+      convenio: convenioSel,
+      valoresConvenio: {
+        gastoRx,
+        galenoRxPractica,
+        gastoOperatorio,
+        galenoQuir,
+        diaPension,
+        otrosGastos
+      }
     };
+    
     agregarPractica(nuevaPractica);
   };
 
-  /* === RENDERIZAR ITEM === */
+  const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
+
+  /* === RENDER ITEM === */
   const renderItem = (item, isMobile = false, queryLocal = '') => {
-    const valor = calcularValorPractica(item);
+    const { gal, gto, extraGal, extraGto } = computeExtras(item);
+    const key = item.__key ?? `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
-    const esModulada = item.tipo === 'modulada';
     const esSubs = isSubsiguiente(item);
 
     if (isMobile) {
       return (
         <article
-          key={item.__key || item.codigo}
-          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''} ${esModulada ? styles.moduladaCard : ''}`}
+          key={key}
+          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''}`}
         >
           <div className={styles.cardTop}>
             <div className={styles.code}>{highlight(item.codigo, queryLocal || query)}</div>
-            <span className={`${styles.capBadge} ${esModulada ? styles.moduladaBadge : ''}`}>
-              {item.capitulo} – {item.capituloNombre}
-            </span>
+            <span className={styles.capBadge}>{capLabel(item)}</span>
           </div>
 
           <div className={styles.desc}>{highlight(item.descripcion, queryLocal || query)}</div>
 
           <div className={styles.costGrid}>
-            {esModulada ? (
-              <div className={styles.costBox}>
-                <span className={styles.costLabel}>VALOR</span>
-                <span className={`${styles.costValue} ${styles.moduladaValue}`}>
-                  ${money(valor)}
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className={styles.costBox}>
-                  <span className={styles.costLabel}>GAL</span>
-                  <span className={styles.costValue}>{money(item.qgal || 0)}</span>
-                  {esRX && (
-                    <span className={styles.subValue}>
-                      ${money(valoresConvenio.galenoRx * item.qgal)}
-                    </span>
-                  )}
-                </div>
+            <div className={styles.costBox}>
+              <span className={styles.costLabel}>GAL</span>
+              <span className={styles.costValue}>{money(gal)}</span>
+              {extraGal != null && <span className={styles.subValue}>${money(extraGal)}</span>}
+            </div>
 
-                <div className={styles.costBox}>
-                  <span className={styles.costLabel}>GTO</span>
-                  <span className={styles.costValue}>{money(item.gto || 0)}</span>
-                  {esRX && (
-                    <span className={styles.subValue}>
-                      ${money((valoresConvenio.gastoRx * item.gto) / 2)}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
+            <div className={styles.costBox}>
+              <span className={styles.costLabel}>GTO</span>
+              <span className={styles.costValue}>{money(gto)}</span>
+              {extraGto != null && <span className={styles.subValue}>${money(extraGto)}</span>}
+            </div>
           </div>
 
           <div className={styles.cardActions}>
             <button
               onClick={() => handleAgregar(item)}
-              className={`${styles.btnAgregar} ${esModulada ? styles.btnModulada : ''}`}
+              className={styles.btnAgregar}
               title="Agregar a factura"
             >
-              ➕ Agregar (${money(valor)})
+              ➕ Agregar
             </button>
           </div>
         </article>
@@ -415,46 +372,26 @@ export default function PracticasModule({
     // Desktop table row
     return (
       <tr
-        key={item.__key || item.codigo}
-        className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${esModulada ? styles.moduladaRow : ''}`}
+        key={key}
+        className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''}`}
       >
+        <td>{highlight(item.codigo, queryLocal || query)}</td>
+        <td className={styles.descCell}>{highlight(item.descripcion, queryLocal || query)}</td>
         <td>
-          {highlight(item.codigo, queryLocal || query)}
-          {esModulada && <span className={styles.badgeModulada}>M</span>}
+          <span className={styles.capBadge}>{capLabel(item)}</span>
         </td>
-        <td className={styles.descCell}>
-          {highlight(item.descripcion, queryLocal || query)}
-        </td>
-        <td>
-          <span className={`${styles.capBadge} ${esModulada ? styles.moduladaBadge : ''}`}>
-            {item.capitulo} – {item.capituloNombre}
-          </span>
-        </td>
-        {esModulada ? (
-          <>
-            <td className={styles.numeric}>—</td>
-            <td className={styles.numeric}>—</td>
-          </>
-        ) : (
-          <>
-            <td className={styles.numeric}>{money(item.qgal || 0)}</td>
-            <td className={styles.numeric}>{money(item.gto || 0)}</td>
-          </>
-        )}
         <td className={styles.numeric}>
-          <strong>${money(valor)}</strong>
-          {esModulada ? (
-            <div className={styles.formulaPequeña}>Valor fijo</div>
-          ) : esRX ? (
-            <div className={styles.formulaPequeña}>
-              GAL × ${money(valoresConvenio.galenoRx)} + GTO × ${money(valoresConvenio.gastoRx)}/2
-            </div>
-          ) : null}
+          {money(gal)}
+          {extraGal != null && <div className={styles.subValue}>${money(extraGal)}</div>}
+        </td>
+        <td className={styles.numeric}>
+          {money(gto)}
+          {extraGto != null && <div className={styles.subValue}>${money(extraGto)}</div>}
         </td>
         <td>
           <button
             onClick={() => handleAgregar(item)}
-            className={`${styles.btnAgregarTabla} ${esModulada ? styles.btnModulada : ''}`}
+            className={styles.btnAgregarTabla}
             title="Agregar a factura"
           >
             ➕
@@ -468,50 +405,43 @@ export default function PracticasModule({
     <div className={styles.tabContent}>
       <h2>🏥 Prácticas Médicas</h2>
 
-      {/* Valores del convenio */}
-      <div className={styles.valoresConvenio}>
-        <div className={styles.valorItem}>
-          <span>Galeno Rx:</span>
-          <strong>${money(valoresConvenio.galenoRx)}</strong>
+      {/* Header similar al original */}
+      <div className={styles.header}>
+        <div className={styles.titleRow}>
+          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
+            {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
+          </button>
         </div>
-        <div className={styles.valorItem}>
-          <span>Gasto Rx:</span>
-          <strong>${money(valoresConvenio.gastoRx)}</strong>
-        </div>
-        <div className={styles.valorItem}>
-          <span>Galeno Quir:</span>
-          <strong>${money(valoresConvenio.galenoQuir)}</strong>
-        </div>
-        <div className={styles.valorItem}>
-          <span>Gasto Op:</span>
-          <strong>${money(valoresConvenio.gastoOperatorio)}</strong>
-        </div>
-        <div className={styles.valorItem}>
-          <span>Otros gastos:</span>
-          <strong>${money(valoresConvenio.otrosGastos)}</strong>
-        </div>
-      </div>
 
-      {/* Info prácticas moduladas */}
-      <div className={styles.infoBox}>
-        <h3>📋 Prácticas Moduladas</h3>
-        <p>Estas prácticas tienen valores fijos y no dependen de GAL/GTO.</p>
-      </div>
+        <div className={styles.filters}>
+          <div className={styles.controlBlock}>
+            <label className={styles.label}>Convenio</label>
+            <select
+              className={styles.select}
+              value={convenioSel}
+              onChange={(e) => setConvenioSel(e.target.value)}
+            >
+              {Object.keys(convenios)
+                .sort()
+                .map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+            </select>
+          </div>
 
-      {/* Modo búsqueda/exploración */}
-      <div className={styles.modoContainer}>
-        <button 
-          className={`${styles.modoButton} ${modoBusqueda ? styles.modoActive : ''}`}
-          onClick={() => setModoBusqueda(true)}
-        >
-          🔍 Búsqueda global
-        </button>
-        <button 
-          className={`${styles.modoButton} ${!modoBusqueda ? styles.modoActive : ''}`}
-          onClick={() => setModoBusqueda(false)}
-        >
-          📂 Explorar por capítulos
-        </button>
+          <div className={styles.badges}>
+            <span className={`${styles.badge} ${styles.badgeGreen}`}>Gasto Rx: {money(gastoRx)}</span>
+            <span className={`${styles.badge} ${styles.badgeBlue}`}>Galeno Rx: {money(galenoRxPractica)}</span>
+            <span className={`${styles.badge} ${styles.badgePurple}`}>Gasto Op: {money(gastoOperatorio)}</span>
+            <span className={`${styles.badge} ${styles.badgeOrange}`}>Galeno Quir: {money(galenoQuir)}</span>
+            <span className={`${styles.badge} ${styles.badgeTeal}`}>Pensión: {money(diaPension)}</span>
+            <span className={`${styles.badge} ${styles.badgeGray}`}>Otros gastos: {money(otrosGastos)}</span>
+          </div>
+        </div>
+
+        {alerta && <div className={styles.alert}>{alerta}</div>}
       </div>
 
       {loading ? (
@@ -520,21 +450,20 @@ export default function PracticasModule({
         </div>
       ) : modoBusqueda ? (
         <>
-          {/* Buscador global */}
-          <div className={styles.buscadorContainer}>
-            <input
-              type="text"
-              placeholder="Buscar práctica por código o descripción..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className={styles.buscadorInput}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <div className={styles.buscadorInfo}>
-              {resultadosGlobales.length} prácticas encontradas
-              {query && ` para "${query}"`}
-            </div>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Buscar código o descripción…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="search"
+          />
+
+          <div className={styles.buscadorInfo}>
+            {resultadosGlobales.length} prácticas encontradas
+            {query && ` para "${query}"`}
           </div>
 
           {/* Mobile cards */}
@@ -558,14 +487,13 @@ export default function PracticasModule({
                   <th>Capítulo</th>
                   <th className={styles.numeric}>GAL</th>
                   <th className={styles.numeric}>GTO</th>
-                  <th className={styles.numeric}>Valor</th>
                   <th>Agregar</th>
                 </tr>
               </thead>
               <tbody>
                 {resultadosGlobales.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className={styles.noResultsCell}>
+                    <td colSpan={6} className={styles.noResultsCell}>
                       {query ? `No hay resultados para "${query}"` : 'Ingrese un término de búsqueda'}
                     </td>
                   </tr>
@@ -578,18 +506,17 @@ export default function PracticasModule({
         </>
       ) : (
         <>
-          {/* Buscador por capítulos */}
           <input
             type="text"
-            placeholder="Buscar capítulo..."
+            className={styles.input}
+            placeholder="Buscar capítulo…"
             value={filtroCapitulo}
             onChange={(e) => setFiltroCapitulo(e.target.value)}
-            className={styles.buscadorInput}
             autoComplete="off"
             spellCheck={false}
+            inputMode="search"
           />
 
-          {/* Lista de capítulos */}
           {capitulos
             .filter((c) => {
               if (!filtroCapitulo) return true;
@@ -600,7 +527,7 @@ export default function PracticasModule({
               );
             })
             .map((c) => {
-              const practicas = data.filter(p => p.capitulo === c.capitulo && p.tipo === 'nacional');
+              const practicas = data.filter(p => p.capitulo === c.capitulo);
               const qLocal = capituloQueries[c.capitulo] || '';
               const qLocalNorm = normalize(qLocal);
 
@@ -618,6 +545,7 @@ export default function PracticasModule({
                   <div className={styles.accordionBody}>
                     <input
                       type="text"
+                      className={styles.input}
                       placeholder={`Buscar en ${c.descripcion}…`}
                       value={qLocal}
                       onChange={(e) =>
@@ -626,9 +554,9 @@ export default function PracticasModule({
                           [c.capitulo]: e.target.value,
                         }))
                       }
-                      className={styles.buscadorInput}
                       autoComplete="off"
                       spellCheck={false}
+                      inputMode="search"
                     />
 
                     {/* Mobile cards */}
@@ -636,7 +564,11 @@ export default function PracticasModule({
                       {practicasFiltradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados en este capítulo.</div>
                       ) : (
-                        practicasFiltradas.map((item) => renderItem(item, true, qLocal))
+                        practicasFiltradas.map((item, j) => {
+                          const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
+                          const itemWithKey = { ...item, __key: key };
+                          return renderItem(itemWithKey, true, qLocal);
+                        })
                       )}
                     </div>
 
@@ -649,19 +581,22 @@ export default function PracticasModule({
                             <th>Descripción</th>
                             <th className={styles.numeric}>GAL</th>
                             <th className={styles.numeric}>GTO</th>
-                            <th className={styles.numeric}>Valor</th>
                             <th>Agregar</th>
                           </tr>
                         </thead>
                         <tbody>
                           {practicasFiltradas.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className={styles.noResultsCell}>
+                              <td colSpan={5} className={styles.noResultsCell}>
                                 Sin resultados en este capítulo.
                               </td>
                             </tr>
                           ) : (
-                            practicasFiltradas.map((item) => renderItem(item, false, qLocal))
+                            practicasFiltradas.map((item, j) => {
+                              const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
+                              const itemWithKey = { ...item, __key: key };
+                              return renderItem(itemWithKey, false, qLocal);
+                            })
                           )}
                         </tbody>
                       </table>
@@ -670,39 +605,6 @@ export default function PracticasModule({
                 </details>
               );
             })}
-
-          {/* Sección de prácticas moduladas al final */}
-          <details className={styles.accordion} open>
-            <summary className={`${styles.accordionHeader} ${styles.moduladaHeader}`}>
-              MOD — Prácticas Moduladas ({PRACTICAS_MODULADAS.length})
-            </summary>
-
-            <div className={styles.accordionBody}>
-              {/* Mobile cards */}
-              <div className={styles.mobileList}>
-                {PRACTICAS_MODULADAS.map((item) => renderItem(item, true))}
-              </div>
-
-              {/* Desktop table */}
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Código</th>
-                      <th>Descripción</th>
-                      <th className={styles.numeric}>GAL</th>
-                      <th className={styles.numeric}>GTO</th>
-                      <th className={styles.numeric}>Valor</th>
-                      <th>Agregar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PRACTICAS_MODULADAS.map((item) => renderItem(item, false))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </details>
         </>
       )}
 
