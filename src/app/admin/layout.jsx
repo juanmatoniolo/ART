@@ -77,8 +77,8 @@ const isActive = (href) => {
           </Link>
 
           <Link
-            href="/admin/facturacion"
-            className={`${styles.menuItem} ${isActive('/admin/facturacion') ? styles.active : ''}`}
+            href="/admin/Facturacion"
+            className={`${styles.menuItem} ${isActive('/admin/Facturacion') ? styles.active : ''}`}
           >
             <FileText size={20} />
             {!collapsed && <span>Facturación</span>}
