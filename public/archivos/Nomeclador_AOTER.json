@@ -132,6 +132,7 @@
       "region_nombre": "MIEMBRO SUPERIOR",
       "complejidad": 5,
       "practicas": [
+        {"codigo": "MS.05.01", "descripcion": "Fractura expuesta de mano. Tratamiento completo, incluye osteodesis de metacarpianos y falanges (más de 2 osteodesis agregar 30%)"},
         {"codigo": "MS.05.02", "descripcion": "Fractura de clavícula. Reducción y osteosíntesis"},
         {"codigo": "MS.05.03", "descripcion": "Fractura de un hueso del carpo (escafoides, grande, etc.). Reducción abierta y osteosíntesis"},
         {"codigo": "MS.05.04", "descripcion": "Fractura diafisaria de radio o cúbito. Reducción y osteosíntesis"},

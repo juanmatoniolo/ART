@@ -3869,55 +3869,55 @@
 			},
 			{
 				"codigo": "121601",
-				"descripcion": "Interscapulotorácica.",
+				"descripcion": "Amputaciones y desarticulaciones: Interscapulotorácica.",
 				"q_gal": 372.75,
 				"gto": 361.0
 			},
 			{
 				"codigo": "121602",
-				"descripcion": "Hombro.",
+				"descripcion": "Amputaciones y desarticulaciones: Hombro.",
 				"q_gal": 228.0,
 				"gto": 228.0
 			},
 			{
 				"codigo": "121603",
-				"descripcion": "Brazo, codo, antebrazo, mu�eca, mano.",
+				"descripcion": "Amputaciones y desarticulaciones : Brazo, codo, antebrazo, mu�eca, mano.",
 				"q_gal": 119.25,
 				"gto": 179.0
 			},
 			{
 				"codigo": "121604",
-				"descripcion": "Interileoabdominal.",
+				"descripcion": "Amputaciones y desarticulaciones : Interileoabdominal.",
 				"q_gal": 425.25,
 				"gto": 361.0
 			},
 			{
 				"codigo": "121605",
-				"descripcion": "Cadera.",
+				"descripcion": "Amputaciones y desarticulaciones : Cadera.",
 				"q_gal": 303.0,
 				"gto": 361.0
 			},
 			{
 				"codigo": "121606",
-				"descripcion": "Muslo o rodilla.",
+				"descripcion": "Amputaciones y desarticulaciones : Muslo o rodilla.",
 				"q_gal": 178.5,
 				"gto": 267.0
 			},
 			{
 				"codigo": "121607",
-				"descripcion": "Pie o pierna.",
+				"descripcion": "Amputaciones y desarticulaciones : Pie o pierna.",
 				"q_gal": 101.25,
 				"gto": 220.0
 			},
 			{
 				"codigo": "121608",
-				"descripcion": "Dedo de la mano.",
+				"descripcion": "Amputaciones y desarticulaciones : Dedo de la mano.",
 				"q_gal": 61.5,
 				"gto": 65.0
 			},
 			{
 				"codigo": "121609",
-				"descripcion": "Dedo del pie.",
+				"descripcion": "Amputaciones y desarticulaciones : Dedo del pie.",
 				"q_gal": 39.75,
 				"gto": 65.0
 			},
