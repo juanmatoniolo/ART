@@ -33,14 +33,6 @@ const highlight = (text, query) => {
     );
 };
 
-/**
- * ✅ Parser numérico robusto:
- * - "1088.10" => 1088.10 (punto decimal)
- * - "1.088,10" => 1088.10 (AR)
- * - "1,088.10" => 1088.10 (US)
- * - "$ 1.088,10" => 1088.10
- * - "10.881" (miles) => 10881
- */
 const parseNumber = (val) => {
     if (val == null || val === '') return 0;
     if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
@@ -48,60 +40,49 @@ const parseNumber = (val) => {
     let s = String(val).trim();
     if (!s) return 0;
 
-    // Dejar solo dígitos, separadores y signo
     s = s.replace(/[^\d.,-]/g, '');
 
     const hasComma = s.includes(',');
     const hasDot = s.includes('.');
 
-    // Caso: tiene coma y punto => decidir por la última aparición
     if (hasComma && hasDot) {
         const lastComma = s.lastIndexOf(',');
         const lastDot = s.lastIndexOf('.');
 
-        // Si la coma aparece después del punto => formato AR "1.234,56"
         if (lastComma > lastDot) {
-            s = s.replace(/\./g, '').replace(',', '.'); // miles '.' -> nada, decimal ',' -> '.'
+            s = s.replace(/\./g, '').replace(',', '.');
             const n = parseFloat(s);
             return Number.isFinite(n) ? n : 0;
         }
 
-        // Si el punto aparece después de la coma => formato US "1,234.56"
-        s = s.replace(/,/g, ''); // miles ',' -> nada
+        s = s.replace(/,/g, '');
         const n = parseFloat(s);
         return Number.isFinite(n) ? n : 0;
     }
 
-    // Caso: solo coma
     if (hasComma) {
         const parts = s.split(',');
-        // Si hay 1-2 dígitos después de la coma => coma decimal
         if (parts.length === 2 && parts[1].length > 0 && parts[1].length <= 2) {
             const n = parseFloat(s.replace(',', '.'));
             return Number.isFinite(n) ? n : 0;
         }
-        // Si no, asumimos coma como miles (ej: 1,088)
         const n = parseFloat(s.replace(/,/g, ''));
         return Number.isFinite(n) ? n : 0;
     }
 
-    // Caso: solo punto
     if (hasDot) {
         const lastDot = s.lastIndexOf('.');
         const decimals = s.slice(lastDot + 1);
 
-        // Si parece decimal (1-2 dígitos) => punto decimal
         if (decimals.length > 0 && decimals.length <= 2) {
             const n = parseFloat(s);
             return Number.isFinite(n) ? n : 0;
         }
 
-        // Si no, asumimos puntos como miles (ej: 10.881)
         const n = parseFloat(s.replace(/\./g, ''));
         return Number.isFinite(n) ? n : 0;
     }
 
-    // Solo números
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : 0;
 };
@@ -161,7 +142,7 @@ export default function NomencladorBioquimica() {
         return () => unsub();
     }, []);
 
-    /* === Detectar valor UB del convenio activo (FIX) === */
+    /* === Detectar valor UB del convenio activo === */
     useEffect(() => {
         if (!convenioSel || !convenios[convenioSel]) {
             setValorUB(0);
@@ -182,7 +163,7 @@ export default function NomencladorBioquimica() {
         let ub = 0;
         for (const k of keysPosibles) {
             if (vg[k] != null && vg[k] !== '') {
-                ub = parseNumber(vg[k]); // ✅ acá estaba el bug (antes se rompía 1088.10)
+                ub = parseNumber(vg[k]);
                 break;
             }
         }

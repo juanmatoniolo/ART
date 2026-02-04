@@ -36,26 +36,20 @@ function highlight(text, query) {
 const money = (n) => {
     if (n == null || n === '' || n === '-') return '-';
     
-    // Si ya es un número, formatearlo directamente
     if (typeof n === 'number') {
         return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     }
     
-    // Si es string, intentar convertirlo manteniendo las comas como decimales
     const str = String(n).trim();
-    
-    // Remover puntos de separación de miles
     const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
-    
-    // Reemplazar coma decimal por punto
     const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
-    
     const num = parseFloat(conPuntoDecimal);
     
     if (Number.isNaN(num)) return str;
     
     return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
+
 const formatKey = (key) =>
     String(key)
         .replaceAll('_', ' ')
@@ -69,8 +63,6 @@ export default function PrestadoresART() {
     const [data, setData] = useState(null);
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true);
-
-    // ✅ nuevo: mostrar todo sin buscar
     const [mostrarTodo, setMostrarTodo] = useState(false);
 
     // === LECTURA DE CONVENIOS ===
@@ -107,7 +99,7 @@ export default function PrestadoresART() {
         localStorage.setItem('convenioActivo', convenioSel);
     }, [convenioSel, convenios]);
 
-    // === CÁLCULOS DE VALORES (ayudantes como % del cirujano) ===
+    // === CÁLCULOS DE VALORES ===
     const calcularValor = (base, expresion) => {
         const baseNum = typeof base === 'number' ? base : parseFloat(String(base).replace('.', '').replace(',', '.'));
 
@@ -129,13 +121,13 @@ export default function PrestadoresART() {
         return String(expresion ?? '-');
     };
 
-    // === Valores generales: fuente de datos ===
+    // === Valores generales ===
     const valoresGenerales = useMemo(() => {
         if (!data?.valores_generales) return [];
         return Object.entries(data.valores_generales).map(([key, val]) => ({ key, val }));
     }, [data]);
 
-    // Fuse (una vez por convenio)
+    // Fuse
     const fuseVG = useMemo(() => {
         if (!valoresGenerales.length) return null;
         return new Fuse(valoresGenerales, {
@@ -146,7 +138,7 @@ export default function PrestadoresART() {
         });
     }, [valoresGenerales]);
 
-    // === FILTRO Y BÚSQUEDA (valores generales) ===
+    // === FILTRO Y BÚSQUEDA ===
     const resultadosVG = useMemo(() => {
         if (!valoresGenerales.length) return [];
 
@@ -154,7 +146,6 @@ export default function PrestadoresART() {
         const showAll = mostrarTodo && !qTrim;
 
         if (showAll) {
-            // orden por key
             return [...valoresGenerales]
                 .sort((a, b) => String(a.key).localeCompare(String(b.key)))
                 .map((x) => ({ ...x, exact: false }));
@@ -177,7 +168,6 @@ export default function PrestadoresART() {
 
         const seen = new Set();
         return [...exactMatches, ...fuzzy].filter((item) => {
-            // ✅ dedupe estable
             const k = String(item.key);
             if (seen.has(k)) return false;
             seen.add(k);
@@ -185,12 +175,11 @@ export default function PrestadoresART() {
         });
     }, [query, mostrarTodo, valoresGenerales, fuseVG]);
 
-    // === Honorarios Médicos (normalizamos array u objeto) ===
+    // === Honorarios Médicos ===
     const honorarios = useMemo(() => {
         const h = data?.honorarios_medicos;
         if (!h) return [];
 
-        // si es array: [{Cirujano,...}, ...]
         if (Array.isArray(h)) {
             return h.map((row, idx) => ({
                 nivelLabel: `Nivel ${idx + 1}`,
@@ -199,7 +188,6 @@ export default function PrestadoresART() {
             }));
         }
 
-        // si es objeto: {"0": {...}} o {"Nivel_0": {...}}
         return Object.entries(h).map(([nivel, row]) => {
             const n = parseInt(String(nivel).replace(/\D/g, ''), 10);
             const nivelLabel = Number.isFinite(n) ? `Nivel ${n + 1}` : formatKey(nivel);

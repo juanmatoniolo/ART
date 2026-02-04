@@ -37,21 +37,17 @@ const parseNumber = (val) => {
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
 
   let s = String(val).trim();
-  // saca moneda/espacios raros pero conserva . , -
   s = s.replace(/[^\d.,-]/g, '');
 
   const hasComma = s.includes(',');
   const hasDot = s.includes('.');
 
-  // Caso AR clásico: 1.234,56  => 1234.56
   if (hasComma) {
     s = s.replace(/\./g, '').replace(',', '.');
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : 0;
   }
 
-  // Caso con punto decimal: 1304.37 => 1304.37
-  // Si tiene un solo punto y 1-4 dígitos antes y 1-2 después -> decimal
   if (hasDot) {
     const dotCount = (s.match(/\./g) || []).length;
 
@@ -60,13 +56,11 @@ const parseNumber = (val) => {
       return Number.isFinite(n) ? n : 0;
     }
 
-    // Caso miles con punto: 1.234 o 12.345.678 => quitar puntos
     s = s.replace(/\./g, '');
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : 0;
   }
 
-  // Solo dígitos
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
 };
@@ -86,7 +80,6 @@ const isSubsiguiente = (item) => {
   return d.includes('por exposicion subsiguiente') || d.includes('por exposición subsiguiente');
 };
 
-/** Vincula subsiguientes usando índice por __key si existe (evita problemas con códigos duplicados) */
 const vincularSubsiguientes = (item, data) => {
   const idx = data.findIndex((d) => (item.__key ? d.__key === item.__key : d.codigo === item.codigo));
   if (idx === -1) return [item];
@@ -117,9 +110,7 @@ export default function NomencladorNacional() {
   const [galenoRxPractica, setGalenoRxPractica] = useState(0);
   const [gastoOperatorio, setGastoOperatorio] = useState(0);
   const [galenoQuir, setGalenoQuir] = useState(0);
-
-  // ✅ visibles arriba
-  const [diaPension, setDiaPension] = useState(0); // en Firebase: "pension"
+  const [diaPension, setDiaPension] = useState(0);
   const [otrosGastos, setOtrosGastos] = useState(0);
 
   /* === CARGA JSON BASE (con __key único) === */
@@ -129,7 +120,7 @@ export default function NomencladorNacional() {
       .then((json) => {
         setCapitulos(json);
 
-        const counts = new Map(); // contador por capitulo|codigo
+        const counts = new Map();
 
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => {
@@ -144,7 +135,7 @@ export default function NomencladorNacional() {
               ...p,
               capitulo: c.capitulo,
               capituloNombre: c.descripcion,
-              __key: `${base}#${n}`, // ✅ key única
+              __key: `${base}#${n}`,
             };
           })
         );
@@ -198,33 +189,8 @@ export default function NomencladorNacional() {
     ]);
     const gastoOpRaw = pick(['Gasto_Operatorio', 'Gasto Operatorio', 'Gastos Operatorios']);
     const galenoQuirRaw = pick(['Galeno_Quir', 'Galeno Quir', 'Galeno Quirúrgico', 'Galeno Quirurgico']);
-
-    // ✅ Pensión: está guardado como "pension"
-    const pensionRaw = pick([
-      // ✅ lo real en tu DB:
-      'Pension',
-      'pension',
-
-      // por si en algún convenio lo guardan distinto:
-      'Dia_Pension',
-      'Día_Pensión',
-      'Dia Pension',
-      'Día Pension',
-      'Dia_de_Pension',
-      'Día de Pension',
-      'Día de Pensión',
-      'Dia de Pension',
-      'Dia de Pensión',
-    ]);
-
-    const otrosGastosRaw = pick([
-      'Otros_Gastos',
-      'Otros gastos',
-      'Otros_Gastos_Medicos',
-      'Otros Gastos Medicos',
-      'Otros Gastos',
-      'otros_gastos',
-    ]);
+    const pensionRaw = pick(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión', 'Dia Pension', 'Día Pension']);
+    const otrosGastosRaw = pick(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos', 'Otros Gastos Medicos']);
 
     setGastoRx(parseNumber(gastoRaw));
     setGalenoRxPractica(parseNumber(galenoRaw));
@@ -270,15 +236,12 @@ export default function NomencladorNacional() {
       for (const it of found) results.push(...vincularSubsiguientes(it, data));
     }
 
-    // ✅ NO dedupe por codigo/capitulo (porque puede haber duplicados reales)
-    // Solo evitamos duplicar por __key si se repite en results
     const unique = Array.from(new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values());
 
-    // RX arriba
     return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  /* === COSTOS + EXTRAS (Cap 34 y Cap 12/13) === */
+  /* === COSTOS + EXTRAS === */
   const computeExtras = (it) => {
     const gto = parseNumber(it.gto);
     const gal = parseNumber(it.q_gal);
@@ -291,13 +254,11 @@ export default function NomencladorNacional() {
       normalize(capituloNombre).includes('diagnostico por imagenes') ||
       normalize(capituloNombre).includes('diagnóstico por imagenes');
 
-    // ✅ lo que hacía en cap 13 ahora también en cap 12
     const esCap12o13 = capituloNum === 12 || capituloNum === 13;
 
     let extraGal = null;
     let extraGto = null;
 
-    // Cap 34 (tu lógica original)
     if (esCapitulo34) {
       const gastoOp = (gastoRx * gto) / 2;
       const honorario = galenoRxPractica * gal + gastoOp;
@@ -305,10 +266,9 @@ export default function NomencladorNacional() {
       extraGto = gastoOp;
     }
 
-    // ✅ Cap 12 o 13
     if (esCap12o13) {
-      extraGal = galenoQuir * gal; // GAL * Galeno Quirúrgico
-      extraGto = gastoOperatorio * gto; // GTO * Gasto Operatorio
+      extraGal = galenoQuir * gal;
+      extraGto = gastoOperatorio * gto;
     }
 
     return { gal, gto, extraGal, extraGto };
@@ -322,7 +282,11 @@ export default function NomencladorNacional() {
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <h2 className={styles.title}>📘 Nomenclador Nacional</h2>
-          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
+          <button 
+            className={styles.switchButton} 
+            onClick={() => setModoBusqueda((p) => !p)}
+            aria-label={modoBusqueda ? "Cambiar a ver por capítulos" : "Cambiar a modo búsqueda"}
+          >
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
         </div>
@@ -527,7 +491,6 @@ export default function NomencladorNacional() {
                           const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
                           const { gal, gto, extraGal, extraGto } = computeExtras(itFull);
 
-                          // ✅ key única en modo capítulo (cap|cod#indice)
                           const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
 
                           return (

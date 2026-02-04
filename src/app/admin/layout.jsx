@@ -18,43 +18,106 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  // Solo se ejecuta en el cliente
   useEffect(() => {
+    setIsClient(true);
+    
     const s = getSession?.();
-    if (!s) return;
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }, []);
+    if (!s) {
+      router.push('/login');
+      return;
+    }
+    
+    // Verificar tema guardado en localStorage
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme) {
+      // Usar tema guardado
+      if (savedTheme === 'dark') {
+        setDarkMode(true);
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        setDarkMode(false);
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } else {
+      // Si no hay tema guardado, usar preferencia del sistema
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        setDarkMode(true);
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        setDarkMode(false);
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+    }
+  }, [router]);
+
+  // Función para cambiar tema
+  const toggleTheme = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    
+    if (newDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const cerrarSesion = () => {
     clearSession();
     router.push('/login');
   };
 
-const isActive = (href) => {
-  // Evita activar el padre si la ruta tiene más profundidad
-  return pathname === href;
-};
+  const isActive = (href) => {
+    return pathname === href;
+  };
 
+  // Evitar renderizado hasta que estemos en el cliente
+  if (!isClient) {
+    return (
+      <div className={styles.layout}>
+        <div className={styles.loading}>Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.layout}>
       {/* === SIDEBAR === */}
       <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
         <div className={styles.sidebarHeader}>
-          <Image src="/logo.png" alt="Logo" width={42} height={42} className="rounded-2" />
+          <Image 
+            src="/logo.png" 
+            alt="Logo" 
+            width={42} 
+            height={42} 
+            className="rounded-2"
+            priority
+          />
           {!collapsed && <span className={styles.brand}>Clínica Unión</span>}
         </div>
 
         <button
           className={styles.collapseBtn}
           onClick={() => setCollapsed((prev) => !prev)}
-          aria-label="Colapsar menú"
+          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
@@ -122,9 +185,20 @@ const isActive = (href) => {
 
           <div className={styles.sectionTitle}>{!collapsed && 'Usuario'}</div>
 
+          {/* Botón para cambiar tema */}
+          <button
+            className={`${styles.menuItem} ${styles.themeToggleBtn}`}
+            onClick={toggleTheme}
+            aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          >
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {!collapsed && <span>{darkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>}
+          </button>
+
           <button
             className={styles.menuItem}
             onClick={() => router.push('/admin/configuracion')}
+            aria-label="Configuración"
           >
             <Settings size={20} />
             {!collapsed && <span>Configuración</span>}
@@ -133,6 +207,7 @@ const isActive = (href) => {
           <button
             className={`${styles.menuItem} ${styles.logoutBtn}`}
             onClick={cerrarSesion}
+            aria-label="Cerrar sesión"
           >
             <LogOut size={20} />
             {!collapsed && <span>Cerrar sesión</span>}
@@ -142,6 +217,20 @@ const isActive = (href) => {
 
       {/* === CONTENIDO PRINCIPAL === */}
       <main className={styles.main}>
+        {/* Botón de tema flotante - solo visible cuando sidebar está colapsado */}
+        {collapsed && (
+          <div className={styles.floatingThemeToggle}>
+            <button 
+              className={styles.themeSwitch} 
+              onClick={toggleTheme}
+              aria-label={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <span className={styles.themeLabel}>{darkMode ? 'Claro' : 'Oscuro'}</span>
+          </div>
+        )}
+        
         <div className={styles.content}>{children}</div>
         <footer className={styles.footer}>
           © {new Date().getFullYear()} Clínica de la Unión S.A. — Sistema Médico Interno

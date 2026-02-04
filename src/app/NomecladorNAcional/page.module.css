@@ -1,81 +1,103 @@
-.container {
-  padding: 2rem;
-  font-family: Arial, sans-serif;
+/* === CONTENEDOR GENERAL === */
+.wrapper {
+    background: var(--content-bg, #0b1220);
+    min-height: 100vh;
+    padding: 1rem;
+    display: block;
+    color: var(--text-color, #f1f5f9);
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.title {
-  text-align: center;
-  color: #0056b3;
-  margin-bottom: 1rem;
+/* === TARJETA PRINCIPAL === */
+.card {
+    background: var(--section-bg, #1e293b);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    box-shadow: var(--shadow, 0 0 18px rgba(0, 0, 0, 0.4));
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease;
+    overflow: visible;
 }
 
+/* === NAV TABS === */
 .tabs {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, var(--sidebar-bg, #111827) 0%, var(--section-bg, #1a1f2c) 100%);
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    overflow-x: auto;
+    scrollbar-width: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.tabs button {
-  padding: 10px 20px;
-  background-color: #ddd;
-  border: none;
-  cursor: pointer;
-  border-radius: 8px 8px 0 0;
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
-.tabs button.activeTab {
-  background-color: #0056b3;
-  color: white;
+.tabButton {
+    flex: none;
+    color: var(--text-muted, #cbd5e1);
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.95rem;
 }
 
-.panel {
-  background: white;
-  border-radius: 0 8px 8px 8px;
-  padding: 1rem;
+.tabButton:hover {
+    color: var(--color-primary-light, #6fa17b);
+    background: rgba(68, 121, 77, 0.08);
 }
 
-.filters {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
+/* === TAB ACTIVO === */
+.activeTab {
+    color: var(--active-text, #fff);
+    font-weight: 600;
+    background: rgba(68, 121, 77, 0.12);
+    border-bottom: 3px solid var(--color-primary, #44794d);
+    position: relative;
 }
 
-.accordion {
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
+/* === CONTENIDO === */
+.tabContent {
+    background-color: var(--content-bg, #0f172a);
+    color: var(--text-color, #e5e7eb);
+    padding: 1rem 0.5rem;
+    min-height: auto;
+    width: 100%;
+    box-shadow: inset 0 0 15px rgba(68, 121, 77, 0.1);
+    animation: fadeIn 0.4s ease;
 }
 
-.summary {
-  background-color: #0056b3;
-  color: white;
-  padding: 10px;
-  cursor: pointer;
+/* === ANIMACIÓN === */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.tableContainer {
-  padding: 10px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th, .table td {
-  border: 1px solid #e0e0e0;
-  padding: 5px;
-}
-
-.table th {
-  background-color: #0056b3;
-  color: white;
-}
-
-.highlight {
-  background-color: yellow;
-  font-weight: bold;
+/* === RESPONSIVE === */
+@media (max-width: 991px) {
+    .wrapper {
+        padding: 0.5rem;
+    }
+    .tabButton {
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+    }
+    .tabContent {
+        padding: 0.75rem 0.25rem;
+    }
 }

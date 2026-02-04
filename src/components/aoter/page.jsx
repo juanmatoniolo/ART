@@ -24,10 +24,8 @@ const normalize = (s) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
-/** Código: elimina todo lo NO alfanumérico (puntos, guiones, espacios, etc.) */
 const normalizeCode = (s) => normalize(s).replace(/[^a-z0-9]/g, '');
 
-/** Escapa RegExp para que el highlight no rompa con ., +, (, [, etc. */
 const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const highlight = (text, q) => {
@@ -53,8 +51,8 @@ export default function AOTER() {
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
   const [query, setQuery] = useState('');
-  const [modoBusqueda, setModoBusqueda] = useState(true); // true: búsqueda global (tu comportamiento original)
-  const [mostrarTodas, setMostrarTodas] = useState(false); // ✅ nuevo
+  const [modoBusqueda, setModoBusqueda] = useState(true);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -125,7 +123,7 @@ export default function AOTER() {
     return () => unsub();
   }, []);
 
-  /* === 3) Honorarios (FIX: 1-based) === */
+  /* === 3) Honorarios === */
   const honorariosPorNivel = useMemo(() => {
     const conv = convenios[convenioSel];
     const niveles = conv?.honorarios_medicos;
@@ -165,7 +163,7 @@ export default function AOTER() {
     );
   }, [data]);
 
-  /* === 4.1) Fuse (una vez por data) === */
+  /* === 4.1) Fuse === */
   const fuse = useMemo(() => {
     if (!allPractices.length) return null;
     return new Fuse(allPractices, {
@@ -188,9 +186,7 @@ export default function AOTER() {
 
     if (!qTrim && !showAll) return [];
 
-    // Si el usuario quiere ver todo
     if (showAll) {
-      // opcional: ordenar por región > comp > código
       return [...allPractices].sort((a, b) => {
         const r = a.region_nombre.localeCompare(b.region_nombre);
         if (r !== 0) return r;
@@ -215,12 +211,10 @@ export default function AOTER() {
         );
       })
       .sort((a, b) => {
-        // Prioridad #1: match exacto de código
         const aExact = qCode && a.codigoNormalizado === qCode ? 0 : 1;
         const bExact = qCode && b.codigoNormalizado === qCode ? 0 : 1;
         if (aExact !== bExact) return aExact - bExact;
 
-        // Prioridad #2: empieza con
         const aStarts = qCode && a.codigoNormalizado.startsWith(qCode) ? 0 : 1;
         const bStarts = qCode && b.codigoNormalizado.startsWith(qCode) ? 0 : 1;
         if (aStarts !== bStarts) return aStarts - bStarts;
@@ -231,7 +225,6 @@ export default function AOTER() {
     const fuzzyText = fuse ? fuse.search(qText).map((r) => r.item) : [];
     const fuzzyCode = fuse && qCode ? fuse.search(qCode).map((r) => r.item) : [];
 
-    // Dedupe robusto (evita removeChild por keys/colisiones)
     const seen = new Set();
     return [...exact, ...fuzzyText, ...fuzzyCode].filter((p) => {
       const key = `${p.region_nombre}|${p.complejidad}|${p.codigo}`;
@@ -262,7 +255,11 @@ export default function AOTER() {
         <div className={styles.titleRow}>
           <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
 
-          <button className={styles.modeBtn} onClick={() => setModoBusqueda((p) => !p)}>
+          <button 
+            className={styles.modeBtn} 
+            onClick={() => setModoBusqueda((p) => !p)}
+            aria-label={modoBusqueda ? "Cambiar a ver por regiones" : "Cambiar a modo búsqueda global"}
+          >
             {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
           </button>
         </div>

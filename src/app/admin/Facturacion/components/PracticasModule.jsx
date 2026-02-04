@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
-import styles from './facturacion.module.css';
+import styles from './practicas.module.css';
 
 /* ================= Utils ================= */
 const normalize = (s) =>
@@ -106,6 +106,11 @@ export default function PracticasModule({
   const [filtroCapitulo, setFiltroCapitulo] = useState('');
   const [capituloQueries, setCapituloQueries] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState('');
+  const [lastAddedItem, setLastAddedItem] = useState(null);
+  const tooltipTimeoutRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
 
   // Firebase
   const [convenios, setConvenios] = useState({});
@@ -120,11 +125,25 @@ export default function PracticasModule({
   const [diaPension, setDiaPension] = useState(0);
   const [otrosGastos, setOtrosGastos] = useState(0);
 
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   /* === CARGA JSON BASE (con __key único) === */
   useEffect(() => {
-    fetch('/archivos/NomecladorNacional.json')
-      .then((res) => res.json())
-      .then((json) => {
+    let isMounted = true;
+    
+    const loadData = async () => {
+      try {
+        const response = await fetch('/archivos/NomecladorNacional.json');
+        if (!response.ok) throw new Error('Error cargando JSON');
+        
+        const json = await response.json();
+        
+        if (!isMounted) return;
+        
         setCapitulos(json);
 
         const counts = new Map();
@@ -142,25 +161,37 @@ export default function PracticasModule({
               ...p,
               capitulo: c.capitulo,
               capituloNombre: c.descripcion,
-              __key: `${base}#${n}`, // ✅ key única
+              __key: `${base}#${n}`,
             };
           })
         );
 
         setData(flat);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Error cargando JSON:', err);
-        setAlerta('No se pudo cargar el Nomenclador Nacional.');
-        setLoading(false);
-      });
+        if (isMounted) {
+          setAlerta('No se pudo cargar el Nomenclador Nacional.');
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   /* === CONVENIOS FIREBASE === */
   useEffect(() => {
+    if (!mounted) return;
+    
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
+      if (!mounted) return;
+      
       const val = snap.exists() ? snap.val() : {};
       const normalizado = Object.keys(val).reduce((acc, key) => {
         const cleanKey = key.trim();
@@ -175,7 +206,7 @@ export default function PracticasModule({
     });
 
     return () => off();
-  }, []);
+  }, [mounted]);
 
   /* === FACTORES SEGÚN CONVENIO === */
   useEffect(() => {
@@ -284,15 +315,42 @@ export default function PracticasModule({
     return { gal, gto, extraGal, extraGto };
   };
 
+  /* === MOSTRAR TOOLTIP === */
+  const showTooltipMessage = useCallback((message, item) => {
+    // Limpiar timeout anterior
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+
+    setTooltipMessage(message);
+    setLastAddedItem(item);
+    setShowTooltip(true);
+
+    // Ocultar tooltip después de 3 segundos
+    tooltipTimeoutRef.current = setTimeout(() => {
+      if (mounted) {
+        setShowTooltip(false);
+        setTooltipMessage('');
+      }
+    }, 3000);
+  }, [mounted]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
+
   /* === AGREGAR PRÁCTICA === */
-  const handleAgregar = (practica) => {
+  const handleAgregar = useCallback((practica) => {
     const { gal, gto, extraGal, extraGto } = computeExtras(practica);
     
-    // NO calculamos ningún valor total, solo pasamos los datos
     const nuevaPractica = {
       id: `pract-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...practica,
-      // Solo pasamos los valores calculados para referencia
       valoresCalculados: {
         gal: gal,
         gto: gto,
@@ -305,7 +363,6 @@ export default function PracticasModule({
         esCap12o13: Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 12 ||
                    Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 13
       },
-      // Valores del convenio para referencia futura
       convenio: convenioSel,
       valoresConvenio: {
         gastoRx,
@@ -318,7 +375,11 @@ export default function PracticasModule({
     };
     
     agregarPractica(nuevaPractica);
-  };
+    
+    // Mostrar tooltip de confirmación
+    const mensaje = `✓ "${practica.descripcion.substring(0, 50)}${practica.descripcion.length > 50 ? '...' : ''}" agregada`;
+    showTooltipMessage(mensaje, practica);
+  }, [agregarPractica, showTooltipMessage, convenioSel, gastoRx, galenoRxPractica, gastoOperatorio, galenoQuir, diaPension, otrosGastos]);
 
   const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
 
@@ -328,12 +389,15 @@ export default function PracticasModule({
     const key = item.__key ?? `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
+    const isRecentlyAdded = lastAddedItem?.__key === key;
 
     if (isMobile) {
       return (
         <article
           key={key}
-          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''}`}
+          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''} ${
+            isRecentlyAdded ? styles.recentlyAdded : ''
+          }`}
         >
           <div className={styles.cardTop}>
             <div className={styles.code}>{highlight(item.codigo, queryLocal || query)}</div>
@@ -359,10 +423,10 @@ export default function PracticasModule({
           <div className={styles.cardActions}>
             <button
               onClick={() => handleAgregar(item)}
-              className={styles.btnAgregar}
+              className={`${styles.btnAgregar} ${isRecentlyAdded ? styles.btnAgregado : ''}`}
               title="Agregar a factura"
             >
-              ➕ Agregar
+              {isRecentlyAdded ? '✓ Agregado' : '➕ Agregar'}
             </button>
           </div>
         </article>
@@ -373,7 +437,9 @@ export default function PracticasModule({
     return (
       <tr
         key={key}
-        className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''}`}
+        className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${
+          isRecentlyAdded ? styles.recentlyAddedRow : ''
+        }`}
       >
         <td>{highlight(item.codigo, queryLocal || query)}</td>
         <td className={styles.descCell}>{highlight(item.descripcion, queryLocal || query)}</td>
@@ -391,26 +457,48 @@ export default function PracticasModule({
         <td>
           <button
             onClick={() => handleAgregar(item)}
-            className={styles.btnAgregarTabla}
+            className={`${styles.btnAgregarTabla} ${isRecentlyAdded ? styles.btnAgregadoTabla : ''}`}
             title="Agregar a factura"
           >
-            ➕
+            {isRecentlyAdded ? '✓' : '+'}
           </button>
         </td>
       </tr>
     );
   };
 
+  // Contador de prácticas agregadas
+  const practicasCount = practicasAgregadas.length;
+
   return (
     <div className={styles.tabContent}>
       <h2>🏥 Prácticas Médicas</h2>
 
-      {/* Header similar al original */}
+      {/* Tooltip flotante */}
+      {showTooltip && mounted && (
+        <div className={styles.tooltip}>
+          <div className={styles.tooltipContent}>
+            <span className={styles.tooltipIcon}>✓</span>
+            {tooltipMessage}
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
-          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
+          <button 
+            className={styles.switchButton} 
+            onClick={() => setModoBusqueda((p) => !p)}
+          >
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
+          
+          <div className={styles.practicasCounter}>
+            <span className={styles.counterBadge}>
+              {practicasCount} {practicasCount === 1 ? 'práctica' : 'prácticas'} agregada{practicasCount !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
 
         <div className={styles.filters}>
@@ -450,16 +538,25 @@ export default function PracticasModule({
         </div>
       ) : modoBusqueda ? (
         <>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Buscar código o descripción…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            inputMode="search"
-          />
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Buscar código o descripción…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              inputMode="search"
+            />
+            
+            {practicasCount > 0 && (
+              <div className={styles.agregadasInfo}>
+                <span className={styles.agregadasIcon}>📋</span>
+                Tienes {practicasCount} práctica{practicasCount !== 1 ? 's' : ''} en la factura
+              </div>
+            )}
+          </div>
 
           <div className={styles.buscadorInfo}>
             {resultadosGlobales.length} prácticas encontradas

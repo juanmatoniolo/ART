@@ -8,8 +8,6 @@
 html,
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0b1220;
-  color: #f8fafc;
   min-height: 100%;
 }
 
@@ -28,28 +26,106 @@ button {
 }
 
 :global(:root) {
-  --bg-dark: #0b1220;
-  --bg-content: #1a1f2c;
-  --text-light: #f1f5f9;
-  --color-primary: #44794d;
-  --color-primary-light: #6fa17b;
   --color-danger: #ef4444;
   --color-warning: #facc15;
 }
 
-/* === COLORES INSTITUCIONALES === */
+/* === VARIABLES PARA MODO CLARO (default) === */
 :root {
-  --color-primary: #44794D;
-  --color-primary-light: #6FA17B;
-  --bg-dark: #0B1220;
-  --bg-sidebar: #0E1625;
-  --bg-content: #111827;
-  --text-light: #f8fafc;
-  --text-muted: #94a3b8;
+  --color-primary: #44794d;
+  --color-primary-light: #6fa17b;
+  --color-primary-dark: #2d5a35;
+  
+  /* Fondo y texto - MODO CLARO */
+  --bg-color: #f8fafc; /* Fondo claro */
+  --text-color: #1f2937; /* Texto oscuro */
+  --text-muted: #6b7280;
+  
+  /* Sidebar - MODO CLARO */
+  --sidebar-bg: #111827; /* Sidebar siempre oscuro */
+  --sidebar-text: #f8fafc;
+  --sidebar-hover: rgba(68, 121, 77, 0.2);
+  
+  /* Contenido - MODO CLARO */
+  --content-bg: #f1f5f9; /* Fondo contenido claro */
+  --section-bg: #ffffff; /* Secciones blancas */
+  --card-bg: #ffffff;
+  --table-bg: #ffffff;
+  
+  /* Inputs - MODO CLARO */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  
+  /* Bordes y sombras - MODO CLARO */
+  --border-color: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  /* Estados - MODO CLARO */
+  --hover-bg: #f3f4f6;
+  --active-bg: #44794d;
+  --active-text: #ffffff;
+  
+  /* Botones - MODO CLARO */
+  --button-bg: #44794d;
+  --button-text: #ffffff;
+  --button-hover: #3a6a42;
+  
+  /* Tablas - MODO CLARO */
+  --table-header-bg: #f9fafb;
+  --table-header-text: #374151;
+  --table-row-hover: #f9fafb;
+  --table-border: #e5e7eb;
 }
 
+/* === VARIABLES PARA MODO OSCURO === */
+[data-theme="dark"] {
+  /* Fondo y texto - MODO OSCURO */
+  --bg-color: #0b1220;
+  --text-color: #f8fafc; /* Texto claro */
+  --text-muted: #94a3b8;
+  
+  /* Sidebar - MODO OSCURO */
+  --sidebar-bg: #0e1625;
+  --sidebar-text: #f1f5f9;
+  --sidebar-hover: rgba(68, 121, 77, 0.3);
+  
+  /* Contenido - MODO OSCURO */
+  --content-bg: #0f172a;
+  --section-bg: #1a1f2c;
+  --card-bg: #1e293b;
+  --table-bg: #1e293b;
+  
+  /* Inputs - MODO OSCURO */
+  --input-bg: #2d3748;
+  --input-border: #4b5563;
+  
+  /* Bordes y sombras - MODO OSCURO */
+  --border-color: #374151;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  
+  /* Estados - MODO OSCURO */
+  --hover-bg: #2d3748;
+  --active-bg: #6fa17b;
+  --active-text: #ffffff;
+  
+  /* Botones - MODO OSCURO */
+  --button-bg: #6fa17b;
+  --button-text: #ffffff;
+  --button-hover: #5a8f68;
+  
+  /* Tablas - MODO OSCURO */
+  --table-header-bg: #111827;
+  --table-header-text: #f1f5f9;
+  --table-row-hover: #2d3748;
+  --table-border: #374151;
+}
 
-
+/* Aplicar tema al body */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
 /* === SCROLL === */
 ::-webkit-scrollbar {
@@ -57,18 +133,22 @@ button {
   height: 8px;
 }
 
+::-webkit-scrollbar-track {
+  background: var(--content-bg);
+}
+
 ::-webkit-scrollbar-thumb {
-  background: #1f2937;
+  background: var(--border-color);
   border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2d3748;
+  background: var(--color-primary);
 }
 
-
-::-webkit-inner-spin-button,
-::-webkit-outer-spin-button {
+/* === UTILIDADES === */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
