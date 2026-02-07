@@ -444,3 +444,10 @@
     padding: 1.25rem 1.5rem;
   }
 }
+
+
+.iconStack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

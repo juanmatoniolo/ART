@@ -1,24 +1,28 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import '@/app/globals.css';
-import styles from './page.module.css';
-import { clearSession, getSession } from '@/utils/session';
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import "@/app/globals.css";
+import styles from "./page.module.css";
+import { clearSession, getSession } from "@/utils/session";
 
 import {
-  Users,
-  Briefcase,
-  FileText,
-  Library,
-  Handshake,
+  UserRound,        // Pacientes
+  IdCard,           // Empleados
+  ReceiptText,      // Facturación
+  BookOpenText,     // Nomencladores
+  Handshake,        // Convenios
+  StickyNote,       // Utilidades
+  Pill,             // Med
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
+} from "lucide-react";
+
+import UtilidadesDueBadge from "@/components/utilidades/UtilidadesDueBadge";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -31,17 +35,14 @@ export default function AdminLayout({ children }) {
 
     const s = getSession?.();
     if (!s) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
-
-    // Tema fijo: eliminamos data-theme y localStorage
-    // document.documentElement.removeAttribute('data-theme'); // opcional
   }, [router]);
 
   const cerrarSesion = () => {
     clearSession();
-    router.push('/login');
+    router.push("/login");
   };
 
   const isActive = (href) => pathname === href;
@@ -57,14 +58,13 @@ export default function AdminLayout({ children }) {
   return (
     <div className={styles.layout}>
       {/* === SIDEBAR === */}
-      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
+      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
         <div className={styles.sidebarHeader}>
           <Image
             src="/logo.png"
             alt="Logo"
             width={42}
             height={42}
-            className="rounded-2"
             priority
           />
           {!collapsed && <span className={styles.brand}>Clínica Unión</span>}
@@ -72,80 +72,101 @@ export default function AdminLayout({ children }) {
 
         <button
           className={styles.collapseBtn}
-          onClick={() => setCollapsed((prev) => !prev)}
-          aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+          onClick={() => setCollapsed((p) => !p)}
+          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
           type="button"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
 
         <nav className={styles.navMenu}>
+          {/* === PRINCIPAL === */}
           <Link
             href="/admin/pacientes"
-            className={`${styles.menuItem} ${isActive('/admin/pacientes') ? styles.active : ''}`}
+            title={collapsed ? "Pacientes" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/pacientes") ? styles.active : ""}`}
           >
-            <Users size={20} />
+            <UserRound size={20} />
             {!collapsed && <span>Pacientes</span>}
           </Link>
 
           <Link
             href="/admin/empleados"
-            className={`${styles.menuItem} ${isActive('/admin/empleados') ? styles.active : ''}`}
+            title={collapsed ? "Empleados" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/empleados") ? styles.active : ""}`}
           >
-            <Briefcase size={20} />
+            <IdCard size={20} />
             {!collapsed && <span>Empleados</span>}
           </Link>
 
           <Link
             href="/admin/Facturacion"
-            className={`${styles.menuItem} ${isActive('/admin/Facturacion') ? styles.active : ''}`}
+            title={collapsed ? "Facturación" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/Facturacion") ? styles.active : ""}`}
           >
-            <FileText size={20} />
+            <ReceiptText size={20} />
             {!collapsed && <span>Facturación</span>}
           </Link>
 
-          <div className={styles.sectionTitle}>{!collapsed && 'Nomencladores'}</div>
+          {/* === NOMENCLADORES === */}
+          <div className={styles.sectionTitle}>{!collapsed && "Nomencladores"}</div>
 
           <Link
             href="/admin/nomencladores"
-            className={`${styles.menuItem} ${isActive('/admin/nomencladores') ? styles.active : ''}`}
+            title={collapsed ? "Nomencladores" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/nomencladores") ? styles.active : ""}`}
           >
-            <Library size={20} />
+            <BookOpenText size={20} />
             {!collapsed && <span>Nomencladores</span>}
           </Link>
 
           <Link
             href="/admin/nomencladores/editar"
-            className={`${styles.menuItem} ${isActive('/admin/nomencladores/editar') ? styles.active : ''}`}
+            title={collapsed ? "Convenios" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/nomencladores/editar") ? styles.active : ""}`}
           >
             <Handshake size={20} />
             {!collapsed && <span>Convenios</span>}
           </Link>
 
-          <div className={styles.sectionTitle}>{!collapsed && 'Utilidades'}</div>
+          {/* === UTILIDADES === */}
+          <div className={styles.sectionTitle}>{!collapsed && "Utilidades"}</div>
 
           <Link
             href="/admin/utilidades"
-            className={`${styles.menuItem} ${isActive('/admin/utilidades') ? styles.active : ''}`}
+            title={collapsed ? "Utilidades" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/utilidades") ? styles.active : ""}`}
           >
-            <Settings size={20} />
-            {!collapsed && <span>Utilidades</span>}
+            <StickyNote size={20} />
+
+            {!collapsed ? (
+              <span className={styles.menuText}>
+                Utilidades
+                <UtilidadesDueBadge className={styles.utilBadge} />
+              </span>
+            ) : (
+              <UtilidadesDueBadge className={styles.utilBadgeCollapsed} />
+            )}
           </Link>
 
           <Link
             href="/admin/med-descartables"
-            className={`${styles.menuItem} ${isActive('/admin/med-descartables') ? styles.active : ''}`}
+            title={collapsed ? "Med + Descartables" : undefined}
+            className={`${styles.menuItem} ${isActive("/admin/med-descartables") ? styles.active : ""}`}
           >
-            <Library size={20} />
+            <span className={styles.iconStack} aria-hidden="true">
+              <Pill size={18} />
+            </span>
             {!collapsed && <span>Med + Descartables</span>}
           </Link>
 
-          <div className={styles.sectionTitle}>{!collapsed && 'Usuario'}</div>
+          {/* === USUARIO === */}
+          <div className={styles.sectionTitle}>{!collapsed && "Usuario"}</div>
 
           <button
             className={styles.menuItem}
-            onClick={() => router.push('/admin/configuracion')}
-            aria-label="Configuración"
+            onClick={() => router.push("/admin/configuracion")}
+            title={collapsed ? "Configuración" : undefined}
             type="button"
           >
             <Settings size={20} />
@@ -155,7 +176,7 @@ export default function AdminLayout({ children }) {
           <button
             className={`${styles.menuItem} ${styles.logoutBtn}`}
             onClick={cerrarSesion}
-            aria-label="Cerrar sesión"
+            title={collapsed ? "Cerrar sesión" : undefined}
             type="button"
           >
             <LogOut size={20} />
@@ -164,7 +185,7 @@ export default function AdminLayout({ children }) {
         </nav>
       </aside>
 
-      {/* === CONTENIDO PRINCIPAL === */}
+      {/* === CONTENIDO === */}
       <main className={styles.main}>
         <div className={styles.content}>{children}</div>
         <footer className={styles.footer}>

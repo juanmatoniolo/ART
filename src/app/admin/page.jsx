@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import Link from "next/link";
-import styles from "./homePacientes.module.css";
+import styles from "./page.module.css";
+import { Settings } from "lucide-react";
+import UtilidadesDueBadge from "@/components/utilidades/UtilidadesDueBadge";
 
 export default function HomePacientes() {
     const [pacientes, setPacientes] = useState([]);
@@ -181,11 +183,22 @@ export default function HomePacientes() {
                                     </div>
 
                                     <Link
-                                        href={`/admin/pacientes/${paciente.id}`}
-                                        className={`${styles.btn} ${styles.btnOutlineDanger}`}
+                                        href="/admin/utilidades"
+                                        className={`${styles.menuItem} ${isActive("/admin/utilidades") ? styles.active : ""}`}
                                     >
-                                        Ver ficha
+                                        <Settings size={20} />
+
+                                        {!collapsed ? (
+                                            <span className={styles.menuText}>
+                                                Utilidades
+                                                <UtilidadesDueBadge className={styles.utilBadge} />
+                                            </span>
+                                        ) : (
+                                            <UtilidadesDueBadge className={styles.utilBadgeCollapsed} />
+                                        )}
                                     </Link>
+
+
                                 </li>
                             ))}
                         </ul>

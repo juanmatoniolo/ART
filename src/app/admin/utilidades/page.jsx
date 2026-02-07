@@ -1,9 +1,6 @@
-import React from 'react'
+import React from "react";
+import UtilidadesShell from "@/components/utilidades/UtilidadesShell";
 
-export default function page() {
-    return (
-        <div>
-
-        </div>
-    )
+export default function UtilidadesPage() {
+    return <UtilidadesShell />;
 }
