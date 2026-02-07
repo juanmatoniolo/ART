@@ -1,36 +1,36 @@
 /* Fondo general */
 .container {
-  min-height: 100vh;
+  min-height: 100svh;
+  /* mejor que 100vh en mobile */
   background-color: var(--content-bg, #e8f0fe);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
-  transition: background-color 0.3s ease;
+  padding: 16px;
 }
 
 /* Tarjeta */
 .card {
   background: var(--section-bg, #ffffff);
-  padding: 28px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
+  padding: clamp(18px, 4vw, 28px);
   border-radius: 18px;
-  box-shadow: var(--shadow, 0px 4px 16px rgba(0, 60, 120, 0.18));
   border-top: 6px solid var(--color-primary, #0057b8);
-  transition: all 0.3s ease;
+  box-shadow: 0px 4px 16px rgba(0, 60, 120, 0.18);
 }
 
 /* Título */
 .title {
   color: var(--color-primary, #003f87);
   text-align: center;
-  font-size: 26px;
+  font-size: clamp(20px, 4vw, 26px);
   font-weight: 800;
   margin-bottom: 20px;
+  line-height: 1.2;
 }
 
-/* Inputs y select */
+/* Inputs y selects */
 .input {
   width: 100%;
   padding: 12px;
@@ -39,66 +39,92 @@
   color: var(--text-color, #333333);
   border: 1px solid var(--border-color, #b8c6e0);
   border-radius: 10px;
-  font-size: 15px;
-  transition: all 0.2s ease-in-out;
+  font-size: clamp(14px, 3.5vw, 15px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .input:focus {
   border-color: var(--color-primary, #0057b8);
   outline: none;
-  box-shadow: 0 0 4px rgba(0, 87, 184, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.25);
 }
 
-/* Botón WhatsApp */
-.button {
-  display: block;
-  text-align: center;
-  background: #25d366;
-  color: white;
-  padding: 14px;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: 0.2s;
-}
-
-.button:hover {
-  background: #1ebe5d;
-}
-
-/* Preview Box */
+/* Preview */
 .previewBox {
   width: 100%;
-  margin-bottom: 20px;
+  margin: 16px 0 20px;
 }
 
 .textarea {
   width: 100%;
-  height: 220px;
+  min-height: 180px;
+  height: clamp(200px, 35vh, 340px);
   background-color: var(--input-bg, #fafafa);
   color: var(--text-color, #333333);
   border: 1px solid var(--border-color, #ccc);
   border-radius: 10px;
-  padding: 10px;
-  font-size: 15px;
-  resize: none;
+  padding: 12px;
+  font-size: clamp(14px, 3.5vw, 15px);
+  line-height: 1.35;
+  resize: vertical;
   white-space: pre-wrap;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Responsive */
+.textarea:focus {
+  border-color: var(--color-primary, #0057b8);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.25);
+}
+
+/* Botón WhatsApp */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px;
+  background-color: #25d366;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button:hover {
+  background-color: #1ebe5d;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* Tablets */
 @media (max-width: 768px) {
   .card {
-    padding: 20px;
     max-width: 95%;
   }
-  
-  .title {
-    font-size: 22px;
+}
+
+/* Mobile chico */
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
   }
-  
-  .input, .textarea {
-    font-size: 14px;
+
+  .card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .previewBox {
+    margin: 12px 0 16px;
   }
 }

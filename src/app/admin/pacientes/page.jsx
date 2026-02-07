@@ -14,9 +14,12 @@ export default function Home() {
 
   const [preview, setPreview] = useState("");
 
+  const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
+
   useEffect(() => {
     const base = buildMessage();
     setPreview(base);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
   const buildMessage = () => {
@@ -45,7 +48,7 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 
 *Indicaciones importantes:*
 • Límite de peso: *140 kg*
-• Asistir con ropa cómoda  y *DNI fisico*
+• Asistir con ropa cómoda y *DNI físico*
 • Llegar *15 minutos antes* del turno
 • *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes
 • Puede asistir con *un acompañante* (en sala de espera)
@@ -119,13 +122,53 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
 • Llegar 10 a 15 minutos antes`;
     }
 
+    // ✅ NUEVO: Mensaje 7 – Cirugía Aprobada
+    if (mensaje === "7") {
+      text = `CLÍNICA DE LA UNIÓN S.A.
+
+Buen día, *${name}*.
+
+Le informamos que su *intervención quirúrgica ha sido aprobada*.
+
+Para continuar con el circuito administrativo y la programación, le solicitamos que se presente el *${dia} a las ${hora}*. 
+
+Favor de completar y enviar por este medio los siguietes datos:
+
+
+• Apellido:
+• Nombre:
+• DNI / CUIL:
+• Fecha de nacimiento (dd/mm/aaaa):
+• Edad actual:
+• Lugar de nacimiento (ciudad, provincia, país):
+
+
+• Domicilio habitual:
+• Localidad:
+• Provincia:
+
+• Teléfono (con característica):
+
+*IMPORTANTE*
+El día de la cirugía deberá presentar obligatoriamente:
+• DNI físico original
+• Fotocopia del DNI (frente y dorso)
+
+Quedamos a la espera de su información para avanzar.
+
+Muchas gracias.`;
+    }
+
     return text;
   };
 
   const createWaLink = () => {
     if (!phone) return "";
     return `https://wa.me/${phone}?text=${encodeURIComponent(preview)}`;
+    // Si querés, podés sanitizar el phone (solo números) antes.
   };
+
+  const canSend = phone && name && (!requiresDateTime || (dia && hora));
 
   return (
     <div className={styles.container}>
@@ -148,7 +191,7 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
           onChange={(e) => setName(e.target.value)}
         />
 
-        {(mensaje === "2" || mensaje === "4" || mensaje === "5" || mensaje === "6") && (
+        {requiresDateTime && (
           <>
             <input
               type="text"
@@ -201,6 +244,7 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
           <option value="4">Mensaje 4 – Electrocardiograma</option>
           <option value="5">Mensaje 5 – Estudios Laboratorio</option>
           <option value="6">Mensaje 6 – Ecografía Aprobada</option>
+          <option value="7">Mensaje 7 – Cirugía Aprobada</option>
         </select>
 
         <div className={styles.previewBox}>
@@ -211,7 +255,15 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
           />
         </div>
 
-        <a href={createWaLink()} target="_blank" className={styles.button}>
+        <a
+          href={canSend ? createWaLink() : "#"}
+          target="_blank"
+          className={styles.button}
+          onClick={(e) => {
+            if (!canSend) e.preventDefault();
+          }}
+          rel="noreferrer"
+        >
           Enviar WhatsApp
         </a>
       </div>
