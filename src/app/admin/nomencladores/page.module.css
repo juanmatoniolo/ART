@@ -1,109 +1,182 @@
-/* === CONTENEDOR GENERAL === */
+/* =========================
+   Nomenclador Global – CSS Module
+   Sobrio / Mobile-first / No Scroll X
+   Paleta consistente con Admin Layout
+   ========================= */
+
 .wrapper {
     background: radial-gradient(circle at 10% 20%, #0b1220 0%, #0e1625 100%);
     min-height: 100vh;
-    padding: 1rem;
-    display: block;
-    /* ✅ elimina el centrado forzado */
-    color: var(--text-light);
+    padding: 0.75rem;
+    color: #e5e7eb;
     overflow-x: hidden;
-    /* ✅ evita recortes laterales */
 }
 
-/* === TARJETA PRINCIPAL === */
+/* Card principal */
 .card {
-    background: var(--bg-content, #1e293b);
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 18px rgba(0, 0, 0, 0.4);
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    animation: fadeIn 0.4s ease;
-    overflow: visible;
-    /* ✅ permite que los contenidos se expandan correctamente */
+
+    background: #0f172a;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    /* ✅ tabs + content quedan prolijos */
 }
 
-/* === NAV TABS === */
+/* Header sobrio */
+.cardHeader {
+    padding: 1rem 1rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(17, 24, 39, 0.35);
+}
+
+.title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    color: #f1f5f9;
+}
+
+.subtitle {
+    margin: 0.45rem 0 0;
+    color: #9ca3af;
+    line-height: 1.45;
+    font-size: 0.95rem;
+}
+
+/* Tabs: segmented, con scroll horizontal si hace falta */
+.tabsWrap {
+    padding: 0.75rem 0.75rem 0.25rem;
+    background: rgba(17, 24, 39, 0.22);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .tabs {
     display: flex;
-    align-items: center;
-    background: linear-gradient(90deg, #111827 0%, #1a1f2c 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0.35rem;
+    margin: 0;
+
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+
     overflow-x: auto;
     scrollbar-width: none;
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tabs::-webkit-scrollbar {
     display: none;
 }
 
+.tabItem {
+    flex: 0 0 auto;
+}
+
+/* Botón tab sobrio */
 .tabButton {
-    flex: none;
-    color: #cbd5e1;
-    font-weight: 500;
+    appearance: none;
+    border: 1px solid transparent;
     background: transparent;
-    border: none;
-    padding: 1rem 1.5rem;
+    color: #cbd5e1;
+
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.25s ease;
-    font-size: 0.95rem;
+
+    font-size: 0.92rem;
+    font-weight: 800;
+    white-space: nowrap;
+
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
+        transform 120ms ease;
 }
 
 .tabButton:hover {
-    color: var(--color-primary-light);
-    background: rgba(68, 121, 77, 0.08);
+    background: rgba(111, 161, 123, 0.10);
+    border-color: rgba(111, 161, 123, 0.18);
+    color: #e5e7eb;
 }
 
-/* === TAB ACTIVO === */
+.tabButton:active {
+    transform: translateY(1px);
+}
+
+/* Activo: fill leve + indicador inferior */
 .activeTab {
-    color: #fff;
-    font-weight: 600;
-    background: rgba(68, 121, 77, 0.12);
-    border-bottom: 3px solid var(--color-primary);
+    background: rgba(111, 161, 123, 0.12);
+    border-color: rgba(111, 161, 123, 0.22);
+    color: #ffffff;
     position: relative;
 }
 
-/* === CONTENIDO === */
+.activeTab::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 6px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #44794d, #6fa17b);
+}
+
+/* Contenido */
 .tabContent {
-    background-color: var(--bg-dark, #0f172a);
-    color: var(--text-light, #e5e7eb);
-    padding: 1rem 0.5rem;
-    /* ✅ menos padding, más espacio útil */
-    min-height: auto;
-    width: 100%;
-    box-shadow: inset 0 0 15px rgba(68, 121, 77, 0.1);
-    animation: fadeIn 0.4s ease;
+    padding: 0.85rem 0.75rem 1rem;
+    background: #0f172a;
+    color: #e5e7eb;
+    min-height: 220px;
 }
 
-/* === ANIMACIÓN === */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
+/* Reduce animaciones si el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    .tabButton,
+    .activeTab::after {
+        transition: none;
     }
 }
 
-/* === RESPONSIVE === */
-@media (max-width: 991px) {
+/* =========================
+   Responsive
+   ========================= */
+
+@media (min-width: 640px) {
     .wrapper {
-        padding: 0.5rem;
+        padding: 1rem;
     }
 
-    .tabButton {
-        padding: 0.8rem 1rem;
-        font-size: 0.9rem;
+    .cardHeader {
+        padding: 1.1rem 1.1rem 0.9rem;
+    }
+
+    .title {
+        font-size: 1.25rem;
+    }
+
+    .tabsWrap {
+        padding: 0.9rem 1rem 0.35rem;
     }
 
     .tabContent {
-        padding: 0.75rem 0.25rem;
+        padding: 1rem 1rem 1.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .tabButton {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .tabContent {
+        padding: 1.15rem 1.25rem 1.5rem;
     }
 }

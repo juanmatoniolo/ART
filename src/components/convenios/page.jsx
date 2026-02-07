@@ -35,18 +35,18 @@ function highlight(text, query) {
 
 const money = (n) => {
     if (n == null || n === '' || n === '-') return '-';
-    
+
     if (typeof n === 'number') {
         return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     }
-    
+
     const str = String(n).trim();
     const sinPuntosMiles = str.replace(/\.(?=\d{3})/g, '');
     const conPuntoDecimal = sinPuntosMiles.replace(',', '.');
     const num = parseFloat(conPuntoDecimal);
-    
+
     if (Number.isNaN(num)) return str;
-    
+
     return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
@@ -55,6 +55,13 @@ const formatKey = (key) =>
         .replaceAll('_', ' ')
         .replace(/\s+/g, ' ')
         .replace(/\b([a-z])/g, (c) => c.toUpperCase())
+        .trim();
+
+// ✅ para mostrar en el select (no cambia value real)
+const formatConvenioLabel = (s) =>
+    String(s ?? '')
+        .replace(/_+/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
 
 export default function PrestadoresART() {
@@ -101,7 +108,8 @@ export default function PrestadoresART() {
 
     // === CÁLCULOS DE VALORES ===
     const calcularValor = (base, expresion) => {
-        const baseNum = typeof base === 'number' ? base : parseFloat(String(base).replace('.', '').replace(',', '.'));
+        const baseNum =
+            typeof base === 'number' ? base : parseFloat(String(base).replace('.', '').replace(',', '.'));
 
         if (!Number.isFinite(baseNum)) return String(expresion ?? '-');
         if (typeof expresion === 'number') return `$${money(expresion)}`;
@@ -197,49 +205,44 @@ export default function PrestadoresART() {
 
     if (loading)
         return (
-            <div className={styles.wrapper}>
-                <p className={styles.info}>Cargando convenios...</p>
+            <div className={styles.page}>
+                <div className={styles.stateBox}>Cargando convenios...</div>
             </div>
         );
 
     if (!data)
         return (
-            <div className={styles.wrapper}>
-                <p className={styles.error}>No se encontraron convenios.</p>
+            <div className={styles.page}>
+                <div className={styles.stateBoxError}>No se encontraron convenios.</div>
             </div>
         );
 
     return (
-        <div className={styles.wrapper}>
+        <div className={styles.page}>
             {/* Header */}
             <div className={styles.header}>
-                <div className={styles.titleRow}>
-                    <h2 className={styles.title}>🩺 Convenios ART</h2>
 
-                    <button
-                        type="button"
-                        className={`${styles.toggle} ${mostrarTodo ? styles.toggleOn : ''}`}
-                        onClick={() => setMostrarTodo((v) => !v)}
-                        aria-pressed={mostrarTodo}
-                    >
-                        <span className={styles.toggleKnob} />
-                        <span className={styles.toggleText}>Mostrar todo</span>
-                    </button>
+                <div className={styles.heading}>
+                    <h2 className={styles.title}>🩺 Convenios ART</h2>
+                    <p className={styles.subtitle}>
+                        Consultá valores generales, honorarios médicos y condiciones por convenio.
+                    </p>
+
+
+
                 </div>
 
-                <div className={styles.topControls}>
+                <div className={styles.toolbar}>
                     <div className={styles.controlBlock}>
                         <label className={styles.label}>Convenio</label>
-                        <select
-                            className={styles.select}
-                            value={convenioSel}
-                            onChange={(e) => setConvenioSel(e.target.value)}
-                        >
-                            {Object.keys(convenios).map((k) => (
-                                <option key={k} value={k}>
-                                    {k}
-                                </option>
-                            ))}
+                        <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
+                            {Object.keys(convenios)
+                                .sort()
+                                .map((k) => (
+                                    <option key={k} value={k}>
+                                        {formatConvenioLabel(k)}
+                                    </option>
+                                ))}
                         </select>
                     </div>
 
@@ -270,7 +273,11 @@ export default function PrestadoresART() {
                             <article key={`vg-${key}`} className={`${styles.card} ${exact ? styles.exactCard : ''}`}>
                                 <div className={styles.cardTop}>
                                     <div className={styles.cardKey}>{highlight(formatKey(key), query)}</div>
-                                    {exact ? <span className={styles.badgeOk}>✅</span> : <span className={styles.badgeGhost}>•</span>}
+                                    {exact ? (
+                                        <span className={styles.badgeOk}>✅</span>
+                                    ) : (
+                                        <span className={styles.badgeGhost}>•</span>
+                                    )}
                                 </div>
                                 <div className={styles.cardVal}>{highlight(money(val?.toString() || '-'), query)}</div>
                             </article>
@@ -299,7 +306,7 @@ export default function PrestadoresART() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="2" className={styles.noResults}>
+                                    <td colSpan="2" className={styles.noResultsCell}>
                                         No se encontraron coincidencias.
                                     </td>
                                 </tr>

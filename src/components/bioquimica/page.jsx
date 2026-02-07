@@ -94,6 +94,13 @@ const money = (n) => {
     return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+// ✅ solo visual (no cambia value)
+const formatConvenioLabel = (s) =>
+    String(s ?? '')
+        .replace(/_+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
 /* ================= Page ================= */
 export default function NomencladorBioquimica() {
     const [data, setData] = useState(null);
@@ -135,8 +142,7 @@ export default function NomencladorBioquimica() {
             setConvenios(normalizado);
 
             const stored = localStorage.getItem('convenioActivo');
-            const elegir =
-                stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
+            const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
             setConvenioSel(elegir);
         });
         return () => unsub();
@@ -202,9 +208,7 @@ export default function NomencladorBioquimica() {
             return hay && filtroUrg(p);
         });
 
-        const fuzzy = fuse
-            ? fuse.search(q).map((r) => r.item).filter((p) => filtroUrg(p))
-            : [];
+        const fuzzy = fuse ? fuse.search(q).map((r) => r.item).filter((p) => filtroUrg(p)) : [];
 
         const seen = new Set();
         return [...exact, ...fuzzy].filter((p) => {
@@ -217,67 +221,75 @@ export default function NomencladorBioquimica() {
 
     if (error)
         return (
-            <div className={styles.wrapper}>
-                <p className={styles.error}>{error}</p>
+            <div className={styles.page}>
+                <div className={styles.stateBoxError}>{error}</div>
             </div>
         );
 
     if (!data)
         return (
-            <div className={styles.wrapper}>
-                <p className={styles.info}>Cargando nomenclador bioquímico...</p>
+            <div className={styles.page}>
+                <div className={styles.stateBox}>Cargando nomenclador bioquímico...</div>
             </div>
         );
 
     const ubUsar = valorUB || valorPorDefecto;
 
     return (
-        <div className={styles.wrapper}>
+        <div className={styles.page}>
             {/* Header */}
             <div className={styles.header}>
-                <h2 className={styles.title}>🧪 Nomenclador Bioquímico</h2>
+                <div className={styles.headerTop}>
+                    <div className={styles.heading}>
+                        <h2 className={styles.title}>🧪 Nomenclador Bioquímico</h2>
+                        <p className={styles.subtitle}>
+                            Buscá por código o práctica. El valor se calcula usando la UB del convenio seleccionado.
+                        </p>
+                    </div>
 
-                <div className={styles.filters}>
-                    <div className={styles.filterBlock}>
+                    <div className={styles.ubChip} title="Unidad Bioquímica vigente">
+                        <span className={styles.ubChipLabel}>UB</span>
+                        <span className={styles.ubChipValue}>${money(ubUsar)}</span>
+                    </div>
+                </div>
+
+                <div className={styles.toolbar}>
+                    <div className={styles.controlBlock}>
                         <label className={styles.label}>Convenio</label>
-                        <select
-                            className={styles.select}
-                            value={convenioSel}
-                            onChange={(e) => setConvenioSel(e.target.value)}
-                        >
-                            {Object.keys(convenios).map((k) => (
-                                <option key={k}>{k}</option>
-                            ))}
+                        <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
+                            {Object.keys(convenios)
+                                .sort()
+                                .map((k) => (
+                                    <option key={k} value={k}>
+                                        {formatConvenioLabel(k)}
+                                    </option>
+                                ))}
                         </select>
                     </div>
 
-                    <div className={styles.ubBlock}>
-                        <span className={styles.badgeGreen}>UB: ${money(ubUsar)}</span>
+                    <div className={styles.controlBlock}>
+                        <label className={styles.label}>Buscar</label>
+                        <input
+                            type="text"
+                            className={styles.input}
+                            placeholder="Buscar código o práctica…"
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                            autoComplete="off"
+                            spellCheck={false}
+                            inputMode="search"
+                        />
                     </div>
+
+                    <label className={styles.checkbox}>
+                        <input
+                            type="checkbox"
+                            checked={soloUrgencia}
+                            onChange={(e) => setSoloUrgencia(e.target.checked)}
+                        />
+                        Solo urgencias
+                    </label>
                 </div>
-            </div>
-
-            {/* Controls */}
-            <div className={styles.controls}>
-                <input
-                    type="text"
-                    className={styles.input}
-                    placeholder="Buscar código o práctica…"
-                    value={filtro}
-                    onChange={(e) => setFiltro(e.target.value)}
-                    autoComplete="off"
-                    spellCheck={false}
-                    inputMode="search"
-                />
-
-                <label className={styles.checkbox}>
-                    <input
-                        type="checkbox"
-                        checked={soloUrgencia}
-                        onChange={(e) => setSoloUrgencia(e.target.checked)}
-                    />
-                    Solo urgencias
-                </label>
             </div>
 
             {/* Mobile cards */}
@@ -293,11 +305,7 @@ export default function NomencladorBioquimica() {
                             <article key={`${p.codigo}|${p.practica_bioquimica}`} className={styles.card}>
                                 <div className={styles.cardTop}>
                                     <div className={styles.code}>{highlight(String(p.codigo), filtro)}</div>
-                                    {p.urgencia ? (
-                                        <span className={styles.badgeRed}>U</span>
-                                    ) : (
-                                        <span className={styles.badgeGhost}>—</span>
-                                    )}
+                                    {p.urgencia ? <span className={styles.badgeUrg}>U</span> : <span className={styles.badgeGhost}>—</span>}
                                 </div>
 
                                 <div className={styles.practice}>{highlight(p.practica_bioquimica, filtro)}</div>
@@ -314,7 +322,11 @@ export default function NomencladorBioquimica() {
                                     <div className={styles.metaItem}>
                                         <span className={styles.metaLabel}>Valor</span>
                                         <span className={styles.metaValue}>
-                                            {valorCalculado != null ? `$${money(valorCalculado)}` : '—'}
+                                            {valorCalculado != null ? (
+                                                <span className={styles.valueChip}>${money(valorCalculado)}</span>
+                                            ) : (
+                                                '—'
+                                            )}
                                         </span>
                                     </div>
                                 </div>
@@ -331,16 +343,16 @@ export default function NomencladorBioquimica() {
                         <tr>
                             <th>Código</th>
                             <th>Práctica Bioquímica</th>
-                            <th>Urgencia</th>
+                            <th className={styles.center}>Urg.</th>
                             <th>N/I</th>
-                            <th>U.B.</th>
-                            <th>Valor Estimado</th>
+                            <th className={styles.numeric}>U.B.</th>
+                            <th className={styles.numeric}>Valor</th>
                         </tr>
                     </thead>
                     <tbody>
                         {practicasFiltradas.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className={styles.noResults}>
+                                <td colSpan="6" className={styles.noResultsCell}>
                                     No se encontraron resultados.
                                 </td>
                             </tr>
@@ -351,17 +363,13 @@ export default function NomencladorBioquimica() {
 
                                 return (
                                     <tr key={`${p.codigo}|${p.practica_bioquimica}`}>
-                                        <td className={styles.bold}>{highlight(String(p.codigo), filtro)}</td>
-                                        <td className={styles.practiceCell}>
-                                            {highlight(p.practica_bioquimica, filtro)}
-                                        </td>
-                                        <td className={styles.center}>
-                                            {p.urgencia ? <span className={styles.badgeRed}>U</span> : ''}
-                                        </td>
-                                        <td>{p.nota_N_I || ''}</td>
-                                        <td>{money(ub)}</td>
+                                        <td className={styles.codeCell}>{highlight(String(p.codigo), filtro)}</td>
+                                        <td className={styles.practiceCell}>{highlight(p.practica_bioquimica, filtro)}</td>
+                                        <td className={styles.center}>{p.urgencia ? <span className={styles.badgeUrg}>U</span> : ''}</td>
+                                        <td className={styles.niCell}>{p.nota_N_I || ''}</td>
+                                        <td className={styles.numeric}>{money(ub)}</td>
                                         <td className={styles.numeric}>
-                                            {valorCalculado != null ? `$${money(valorCalculado)}` : '—'}
+                                            {valorCalculado != null ? <span className={styles.valueChip}>${money(valorCalculado)}</span> : '—'}
                                         </td>
                                     </tr>
                                 );
@@ -372,8 +380,7 @@ export default function NomencladorBioquimica() {
             </div>
 
             <p className={styles.footerNote}>
-                * Valor calculado según la Unidad Bioquímica del convenio seleccionado:{' '}
-                <strong>${money(ubUsar)}</strong>
+                * Valor calculado según la Unidad Bioquímica del convenio seleccionado: <strong>${money(ubUsar)}</strong>
             </p>
         </div>
     );

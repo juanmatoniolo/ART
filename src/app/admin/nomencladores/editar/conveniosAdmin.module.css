@@ -1,236 +1,161 @@
-/* === CONTENEDOR PRINCIPAL === */
+/* =========================
+   Convenios Admin – CSS Module
+   Sobrio / Admin / Sin transparencias raras
+   ========================= */
+
+/* ===== Wrapper ===== */
 .wrapper {
-    background: var(--bg-color);
-    color: var(--text-color);
-    padding: 2rem 1rem;
-    border-radius: 1rem;
-    min-height: 90vh;
-    font-family: "Inter", system-ui, sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    color: #e5e7eb;
 }
 
-/* === TITULOS Y TEXTOS === */
+/* ===== Title ===== */
 .title {
     font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
-    text-align: center;
-}
-
-.message {
-    background: rgba(68, 121, 77, 0.2);
-    border: 1px solid var(--color-primary-light);
-    color: var(--text-color);
-    padding: 0.7rem 1rem;
-    border-radius: 10px;
+    font-weight: 900;
     margin-bottom: 1rem;
-    text-align: center;
-    font-size: 0.95rem;
+    color: #6fa17b;
 }
 
-/* === NUEVO CONVENIO === */
+/* ===== Message ===== */
+.message {
+    background: rgba(111, 161, 123, 0.15);
+    border: 1px solid rgba(111, 161, 123, 0.35);
+    color: #eaf7ef;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+/* ===== Create Row ===== */
 .newRow {
     display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
-    gap: 0.7rem;
-    margin-bottom: 1.5rem;
-    justify-content: center;
 }
 
 .input {
     flex: 1;
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    border: 1px solid var(--input-border);
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
+    min-width: 220px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+    color: #e5e7eb;
     font-size: 0.95rem;
-    transition: all 0.2s ease-in-out;
 }
 
 .input:focus {
     outline: none;
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(68, 121, 77, 0.3);
+    border-color: rgba(111, 161, 123, 0.6);
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.25);
 }
 
-.errorInput {
-    border-color: var(--color-danger) !important;
-}
-
-/* === BOTONES === */
+/* ===== Buttons ===== */
 .btnPrimary,
 .btnSecondary,
 .btnDanger,
 .btnWarning {
-    padding: 0.55rem 1rem;
-    border-radius: 8px;
     border: none;
-    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-weight: 900;
     cursor: pointer;
     font-size: 0.95rem;
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.12s ease, opacity 0.15s ease;
 }
 
 .btnPrimary {
-    background: var(--button-bg);
-    color: var(--button-text);
+    background: #6fa17b;
+    color: #0b1220;
 }
 
 .btnPrimary:hover {
-    background: var(--button-hover);
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .btnSecondary {
-    background: var(--hover-bg);
-    color: var(--text-color);
+    background: #1f2937;
+    color: #e5e7eb;
 }
 
 .btnSecondary:hover {
-    background: #4b5563;
-}
-
-.btnDanger {
-    background: var(--color-danger);
-    color: var(--button-text);
-}
-
-.btnDanger:hover {
     opacity: 0.9;
 }
 
-.btnWarning {
-    background: var(--color-warning);
-    color: #000;
-    font-weight: 700;
+.btnDanger {
+    background: #ef4444;
+    color: #fff;
 }
 
-/* === TABLAS === */
+.btnWarning {
+    background: #facc15;
+    color: #0b1220;
+}
+
+/* ===== Table ===== */
 .tableWrapper {
-    overflow-x: auto;
-    border-radius: 8px;
-    background: var(--section-bg);
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
+    background: #0f172a;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    border-radius: 8px;
-    overflow: hidden;
     font-size: 0.95rem;
 }
 
 .table th,
 .table td {
-    padding: 0.7rem 0.9rem;
-    border-bottom: 1px solid var(--table-border);
-    text-align: left;
+    padding: 0.75rem 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .table th {
-    background: var(--table-header-bg);
-    color: var(--table-header-text);
-    font-weight: 600;
+    background: #111827;
     text-transform: uppercase;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
 }
 
 .table tr:hover {
-    background-color: var(--table-row-hover);
-}
-
-.table td {
-    color: var(--text-color);
+    background: rgba(111, 161, 123, 0.08);
 }
 
 .actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .actions button {
-    background: none;
-    color: var(--text-muted);
+    background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    font-size: 1.1rem;
+    padding: 0.2rem 0.4rem;
 }
 
-.actions button:hover {
-    color: var(--color-primary-light);
-    background: rgba(68, 121, 77, 0.1);
-}
-
-/* === MODAL === */
-.modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(11, 18, 32, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-
-.modal {
-    background: var(--section-bg);
-    color: var(--text-color);
-    border-radius: 12px;
-    padding: 1.5rem;
-    width: 95%;
-    max-width: 420px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-}
-
-.modal h4 {
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
-    color: var(--color-primary-light);
-    text-align: center;
-}
-
-.modalBody {
-    margin-bottom: 1.2rem;
-    color: var(--text-color);
-    font-size: 0.95rem;
-}
-
-.modalActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-}
-
-/* === EDITOR === */
+/* ===== Editor ===== */
 .editorCard {
     margin-top: 2rem;
-    background: var(--section-bg);
-    border: 1px solid var(--border-color);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    padding: 1.25rem;
 }
 
 .editorCard h4 {
-    color: var(--color-primary-light);
-    font-size: 1.3rem;
     margin-bottom: 1rem;
-}
-
-.editorCard h5 {
-    font-size: 1.1rem;
-    color: var(--text-color);
-    margin: 1rem 0 0.6rem;
+    font-size: 1.25rem;
+    color: #6fa17b;
 }
 
 .editorActions {
@@ -240,51 +165,65 @@
     margin-top: 1rem;
 }
 
-/* === RESPONSIVE === */
-@media (max-width: 768px) {
-    .wrapper {
-        padding: 1rem;
-    }
-    .title {
-        font-size: 1.3rem;
-    }
-    .table th,
-    .table td {
-        padding: 0.6rem;
-        font-size: 0.85rem;
-    }
-    .btnPrimary,
-    .btnSecondary,
-    .btnDanger,
-    .btnWarning {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.85rem;
-    }
-    .input {
-        font-size: 0.85rem;
-    }
-    .editorCard {
-        padding: 1rem;
-    }
+/* ===== Modal Overlay ===== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 18, 32, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
 }
 
-@media (max-width: 480px) {
+/* ===== Modal ===== */
+.modal {
+    background: #0b1220;
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 95%;
+    max-width: 420px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modal h4 {
+    margin-bottom: 0.75rem;
+    font-size: 1.2rem;
+    color: #6fa17b;
+}
+
+.modalBody {
+    margin-bottom: 1.2rem;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+/* ===== SOLID VARIANT (Renombrar) ===== */
+.modalOverlaySolid {
+    background: transparent;
+}
+
+.modalSolid {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
     .newRow {
         flex-direction: column;
-        align-items: stretch;
     }
+
     .actions {
-        flex-direction: row;
         flex-wrap: wrap;
     }
-    .modal {
-        width: 90%;
-        padding: 1rem;
-    }
-    .editorCard {
-        padding: 0.8rem;
-    }
+
     .title {
-        text-align: left;
+        font-size: 1.35rem;
     }
 }

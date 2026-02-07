@@ -13,7 +13,7 @@ const parseNumber = (val) =>
     : parseFloat(String(val).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
 
 const money = (n) =>
-  typeof n === 'number' && !isNaN(n)
+  typeof n === 'number' && !Number.isNaN(n)
     ? `$${n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
     : '—';
 
@@ -30,7 +30,6 @@ const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const highlight = (text, q) => {
   if (!text || !q) return text;
-
   const safe = escapeRegExp(q);
   const regex = new RegExp(`(${safe})`, 'gi');
   const parts = String(text).split(regex);
@@ -46,6 +45,14 @@ const highlight = (text, q) => {
   );
 };
 
+// ✅ Solo para mostrar (no cambia el value real)
+const formatConvenioLabel = (s) =>
+  String(s ?? '')
+    .replace(/_+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/* ================= Page ================= */
 export default function AOTER() {
   const [data, setData] = useState([]);
   const [convenios, setConvenios] = useState({});
@@ -77,15 +84,16 @@ export default function AOTER() {
             };
           }
 
-          if (!regionesMap[region].complejidades[p.complejidad]) {
-            regionesMap[region].complejidades[p.complejidad] = {
-              complejidad: p.complejidad,
+          const compKey = String(p.complejidad ?? '').trim() || '—';
+          if (!regionesMap[region].complejidades[compKey]) {
+            regionesMap[region].complejidades[compKey] = {
+              complejidad: compKey,
               practicas: [],
             };
           }
 
           p.practicas?.forEach((pr) => {
-            regionesMap[region].complejidades[p.complejidad].practicas.push({
+            regionesMap[region].complejidades[compKey].practicas.push({
               codigo: pr.codigo,
               descripcion: pr.descripcion,
             });
@@ -96,6 +104,12 @@ export default function AOTER() {
           ...region,
           complejidades: Object.values(region.complejidades),
         }));
+
+        // opcional: ordenar regiones y complejidades
+        parsed.sort((a, b) => String(a.region_nombre).localeCompare(String(b.region_nombre)));
+        parsed.forEach((r) => {
+          r.complejidades.sort((a, b) => Number(a.complejidad) - Number(b.complejidad));
+        });
 
         setData(parsed);
       } catch (err) {
@@ -113,10 +127,18 @@ export default function AOTER() {
     const conveniosRef = ref(db, 'convenios');
     const unsub = onValue(conveniosRef, (snap) => {
       const val = snap.exists() ? snap.val() : {};
-      setConvenios(val);
+
+      // normaliza keys con trim
+      const normalizado = Object.keys(val).reduce((acc, k) => {
+        const clean = k.trim();
+        acc[clean] = val[k];
+        return acc;
+      }, {});
+
+      setConvenios(normalizado);
 
       const stored = localStorage.getItem('convenioActivo');
-      const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
+      const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
       setConvenioSel(elegir);
     });
 
@@ -151,7 +173,7 @@ export default function AOTER() {
     if (!Array.isArray(data)) return [];
     return data.flatMap((region) =>
       region.complejidades.flatMap((bloque) =>
-        bloque.practicas.map((p) => ({
+        (bloque.practicas || []).map((p) => ({
           ...p,
           codigoNormalizado: normalizeCode(p.codigo),
           descripcionNormalizada: normalize(p.descripcion),
@@ -201,13 +223,9 @@ export default function AOTER() {
 
     const exact = allPractices
       .filter((p) => {
-        const codigoNorm = p.codigoNormalizado;
-        const descNorm = p.descripcionNormalizada;
-        const regionNorm = p.region_nombre_norm;
-
         return (
-          (qCode && (codigoNorm.startsWith(qCode) || codigoNorm.includes(qCode))) ||
-          (qText && (descNorm.includes(qText) || regionNorm.includes(qText)))
+          (qCode && (p.codigoNormalizado.startsWith(qCode) || p.codigoNormalizado.includes(qCode))) ||
+          (qText && (p.descripcionNormalizada.includes(qText) || p.region_nombre_norm.includes(qText)))
         );
       })
       .sort((a, b) => {
@@ -235,81 +253,83 @@ export default function AOTER() {
   }, [query, mostrarTodas, allPractices, fuse]);
 
   /* === Render === */
-  if (loading)
+  if (loading) {
     return (
       <div className={styles.page}>
-        <p className={styles.info}>Cargando nomenclador AOTER…</p>
+        <div className={styles.stateBox}>Cargando nomenclador AOTER…</div>
       </div>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
       <div className={styles.page}>
-        <p className={styles.error}>{error}</p>
+        <div className={styles.stateBoxError}>{error}</div>
       </div>
     );
+  }
 
   return (
     <div className={styles.page}>
+      {/* Header */}
       <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
+        <div className={styles.headerTop}>
+          <div className={styles.heading}>
+            <h2 className={styles.title}>🦴 Nomenclador AOTER</h2>
+            <p className={styles.subtitle}>
+              Buscá por código o descripción. También podés navegar por regiones y complejidad.
+            </p>
+          </div>
 
-          <button 
-            className={styles.modeBtn} 
+
+        </div>
+
+        <div className={styles.toolbar}>
+          <div className={styles.controlBlock}>
+            <label className={styles.label}>Convenio</label>
+            <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
+              {Object.keys(convenios)
+                .sort()
+                .map((k) => (
+                  <option key={k} value={k}>
+                    {formatConvenioLabel(k)}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <button
+            className={styles.modeBtn}
             onClick={() => setModoBusqueda((p) => !p)}
-            aria-label={modoBusqueda ? "Cambiar a ver por regiones" : "Cambiar a modo búsqueda global"}
+            aria-label={modoBusqueda ? 'Cambiar a ver por regiones' : 'Cambiar a modo búsqueda global'}
+            type="button"
           >
             {modoBusqueda ? '📂 Ver por regiones' : '🔍 Modo búsqueda global'}
           </button>
         </div>
-
-        <div className={styles.controls}>
-          <div className={styles.controlBlock}>
-            <label className={styles.label}>Convenio</label>
-            <select
-              className={styles.select}
-              value={convenioSel}
-              onChange={(e) => setConvenioSel(e.target.value)}
-            >
-              {Object.keys(convenios).map((k) => (
-                <option key={k}>{k}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.controlBlock}>
-            <label className={styles.label}>Mostrar todo</label>
-            <button
-              className={`${styles.toggle} ${mostrarTodas ? styles.toggleOn : ''}`}
-              onClick={() => setMostrarTodas((v) => !v)}
-              type="button"
-              aria-pressed={mostrarTodas}
-            >
-              <span className={styles.toggleKnob} />
-              <span className={styles.toggleText}>{mostrarTodas ? 'Activado' : 'Desactivado'}</span>
-            </button>
-          </div>
-        </div>
       </div>
 
+      {/* ===== MODO BUSQUEDA ===== */}
       {modoBusqueda ? (
         <>
-          <input
-            type="text"
-            className={styles.search}
-            placeholder="Buscar código o descripción (ej: MS0213, MS.02.13, artroscopia…)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            inputMode="search"
-          />
+          <div className={styles.searchRow}>
+            <input
+              type="text"
+              className={styles.search}
+              placeholder="Buscar código o descripción…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              inputMode="search"
+            />
+            <button className={styles.clearBtn} type="button" onClick={() => setQuery('')} disabled={!query}>
+              Limpiar
+            </button>
+          </div>
 
           {resultados.length === 0 ? (
-            <div className={styles.empty}>
-              {mostrarTodas ? 'No hay prácticas para mostrar.' : 'Sin resultados.'}
-            </div>
+            <div className={styles.empty}>{mostrarTodas ? 'No hay prácticas para mostrar.' : 'Sin resultados.'}</div>
           ) : (
             <div className={styles.results}>
               {resultados.map((p) => {
@@ -321,14 +341,16 @@ export default function AOTER() {
                   <article key={rowKey} className={`${styles.card} ${isExact ? styles.exactMatch : ''}`}>
                     <div className={styles.cardTop}>
                       <div className={styles.region}>{p.region_nombre}</div>
-                      <div className={styles.code}>{highlight(p.codigo, query)}</div>
+                      <div className={styles.code} title={p.codigo}>
+                        {highlight(p.codigo, query)}
+                      </div>
                     </div>
 
                     <div className={styles.desc}>{highlight(p.descripcion, query)}</div>
 
                     <div className={styles.metaRow}>
                       <span className={styles.badge}>Comp. {p.complejidad}</span>
-                      {isExact && <span className={styles.badgeOk}>✅ Coincidencia exacta</span>}
+                      {isExact && <span className={styles.badgeOk}>✅ Exacta</span>}
                     </div>
 
                     <div className={styles.prices}>
@@ -352,6 +374,7 @@ export default function AOTER() {
           )}
         </>
       ) : (
+        /* ===== MODO REGIONES ===== */
         <div className={styles.accordion}>
           {data.map((region) => (
             <details key={region.region_nombre} className={styles.accordionItem}>
@@ -360,12 +383,14 @@ export default function AOTER() {
               {region.complejidades.map((bloque) => {
                 const key = `${region.region_nombre}|${bloque.complejidad}`;
                 const { cirujano, ayudante1, ayudante2 } = getHonorarios(bloque.complejidad);
+
                 return (
                   <div key={key} className={styles.accordionBody}>
                     <div className={styles.complexHeader}>
                       <div className={styles.complexTitle}>Complejidad {bloque.complejidad}</div>
                       <div className={styles.complexPrices}>
-                        {money(cirujano)} / {money(ayudante1)} / {money(ayudante2)}
+                        {money(cirujano)} <span className={styles.sep}>/</span> {money(ayudante1)}{' '}
+                        <span className={styles.sep}>/</span> {money(ayudante2)}
                       </div>
                     </div>
 
@@ -375,7 +400,9 @@ export default function AOTER() {
                           key={`${region.region_nombre}|${bloque.complejidad}|${p.codigo}`}
                           className={styles.simpleItem}
                         >
-                          <div className={styles.simpleCode}>{p.codigo}</div>
+                          <div className={styles.simpleCode} title={p.codigo}>
+                            {p.codigo}
+                          </div>
                           <div className={styles.simpleDesc}>{p.descripcion}</div>
                         </div>
                       ))}

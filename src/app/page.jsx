@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import styles from './page.module.css';
-import { Stethoscope, LogIn, UserPlus } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import Header from '@/components/Header/Header';
 
 export default function HomePage() {
   return (
     <div className={styles.wrapper}>
-  <Header/>
+      <Header />
 
-      {/* Main */}
       <main className={styles.main}>
         <section className={styles.card} aria-labelledby="title">
           <h1 id="title" className={styles.title}>
@@ -21,20 +20,13 @@ export default function HomePage() {
             Acceda para gestionar pacientes y registros clínicos.
           </p>
 
-  
-            <Link
-              href="/login"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-            >
-              <LogIn size={18} aria-hidden="true" />
-              Ingresar
-            </Link>
-
-
+          <Link href="/login" className={`${styles.btn} ${styles.btnSecondary}`}>
+            <LogIn size={18} aria-hidden="true" />
+            Ingresar
+          </Link>
         </section>
       </main>
 
-      {/* Footer */}
       <footer className={styles.footer}>
         © {new Date().getFullYear()} Clínica de la Unión S.A.
       </footer>

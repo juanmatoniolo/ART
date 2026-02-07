@@ -10,7 +10,6 @@ export default function HomePacientes() {
     const [query, setQuery] = useState("");
     const [resultados, setResultados] = useState([]);
 
-    // 🔹 Obtener pacientes desde Firebase
     useEffect(() => {
         const fetchPacientes = async () => {
             try {
@@ -19,10 +18,12 @@ export default function HomePacientes() {
                 );
                 const data = await res.json();
                 if (!data) return;
+
                 const lista = Object.entries(data).map(([id, valores]) => ({
                     id,
                     ...valores,
                 }));
+
                 setPacientes(lista);
             } catch (error) {
                 console.error("Error al obtener pacientes:", error);
@@ -32,7 +33,6 @@ export default function HomePacientes() {
         fetchPacientes();
     }, []);
 
-    // 🔹 Buscar pacientes
     useEffect(() => {
         if (!query.trim()) {
             setResultados([]);
@@ -48,7 +48,6 @@ export default function HomePacientes() {
         setResultados(fuse.search(query));
     }, [query, pacientes]);
 
-    // 🔹 Resaltar coincidencias
     const highlight = (text, match) => {
         if (!match || !text) return text;
         const indices = match.indices;
@@ -73,23 +72,28 @@ export default function HomePacientes() {
     return (
         <div className={styles.wrapper}>
             <div className={styles.content}>
-                <h1 className={styles.title}>📋 Pacientes</h1>
-                <p className={styles.subtitle}>
-                    Busque y acceda rápidamente a la ficha de cada paciente.
-                </p>
+                <div className={styles.headerBlock}>
+                    <h1 className={styles.title}>📋 Pacientes</h1>
+                    <p className={styles.subtitle}>
+                        Busque y acceda rápidamente a la ficha de cada paciente.
+                    </p>
 
-                {/* 🔍 Buscador */}
-                <input
-                    type="text"
-                    className={styles.search}
-                    placeholder="Buscar paciente por nombre, apellido, DNI, empleador o estado..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
+                    <input
+                        type="text"
+                        className={styles.search}
+                        aria-label="Buscar paciente"
+                        placeholder="Buscar por nombre, apellido, DNI, empleador o estado..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                    />
+                </div>
 
-                {/* 🩺 Pacientes en tratamiento */}
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Pacientes en tratamiento</h2>
+                    <div className={styles.sectionHead}>
+                        <h2 className={styles.sectionTitle}>Pacientes en tratamiento</h2>
+                        <span className={styles.counter}>{pacientesActivos.length}</span>
+                    </div>
+
                     {pacientesActivos.length === 0 ? (
                         <p className={styles.empty}>No se encontraron pacientes en tratamiento.</p>
                     ) : (
@@ -97,7 +101,7 @@ export default function HomePacientes() {
                             {pacientesActivos.map((paciente) => (
                                 <li key={paciente.id} className={styles.item}>
                                     <div className={styles.itemInfo}>
-                                        <strong>
+                                        <strong className={styles.name}>
                                             {highlight(
                                                 paciente.Nombre,
                                                 paciente.matches?.find((m) => m.key === "Nombre")
@@ -106,19 +110,25 @@ export default function HomePacientes() {
                                                 paciente.Apellido,
                                                 paciente.matches?.find((m) => m.key === "Apellido")
                                             )}
-                                        </strong>{" "}
-                                        — DNI:{" "}
-                                        {highlight(
-                                            paciente.dni,
-                                            paciente.matches?.find((m) => m.key === "dni")
-                                        )}
-                                        <br />
-                                        <small className={styles.textMuted}>
+                                        </strong>
+
+                                        <div className={styles.meta}>
+                                            <span>
+                                                DNI:{" "}
+                                                {highlight(
+                                                    paciente.dni,
+                                                    paciente.matches?.find((m) => m.key === "dni")
+                                                )}
+                                            </span>
+
                                             {paciente.Empleador && (
-                                                <>Empleador: {paciente.Empleador}</>
+                                                <span className={styles.textMuted}>
+                                                    Empleador: {paciente.Empleador}
+                                                </span>
                                             )}
-                                        </small>
+                                        </div>
                                     </div>
+
                                     <Link
                                         href={`/admin/pacientes/${paciente.id}`}
                                         className={`${styles.btn} ${styles.btnPrimary}`}
@@ -131,17 +141,22 @@ export default function HomePacientes() {
                     )}
                 </section>
 
-                {/* 🏥 Pacientes con alta médica */}
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitleDanger}>Pacientes con Alta Médica</h2>
+                    <div className={styles.sectionHead}>
+                        <h2 className={styles.sectionTitleDanger}>Pacientes con Alta Médica</h2>
+                        <span className={`${styles.counter} ${styles.counterDanger}`}>
+                            {pacientesAlta.length}
+                        </span>
+                    </div>
+
                     {pacientesAlta.length === 0 ? (
                         <p className={styles.empty}>No hay pacientes con alta médica.</p>
                     ) : (
                         <ul className={styles.list}>
                             {pacientesAlta.map((paciente) => (
                                 <li key={paciente.id} className={`${styles.item} ${styles.itemAlta}`}>
-                                    <div>
-                                        <strong>
+                                    <div className={styles.itemInfo}>
+                                        <strong className={styles.name}>
                                             {highlight(
                                                 paciente.Nombre,
                                                 paciente.matches?.find((m) => m.key === "Nombre")
@@ -150,15 +165,21 @@ export default function HomePacientes() {
                                                 paciente.Apellido,
                                                 paciente.matches?.find((m) => m.key === "Apellido")
                                             )}
-                                        </strong>{" "}
-                                        — DNI:{" "}
-                                        {highlight(
-                                            paciente.dni,
-                                            paciente.matches?.find((m) => m.key === "dni")
-                                        )}
-                                        <br />
-                                        <span className={styles.badge}>Alta médica</span>
+                                        </strong>
+
+                                        <div className={styles.meta}>
+                                            <span>
+                                                DNI:{" "}
+                                                {highlight(
+                                                    paciente.dni,
+                                                    paciente.matches?.find((m) => m.key === "dni")
+                                                )}
+                                            </span>
+
+                                            <span className={styles.badge}>Alta médica</span>
+                                        </div>
                                     </div>
+
                                     <Link
                                         href={`/admin/pacientes/${paciente.id}`}
                                         className={`${styles.btn} ${styles.btnOutlineDanger}`}

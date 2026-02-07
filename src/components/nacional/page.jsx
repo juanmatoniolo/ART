@@ -92,6 +92,13 @@ const vincularSubsiguientes = (item, data) => {
   return [item];
 };
 
+// ✅ Solo para mostrar (no cambia el value real)
+const formatConvenioLabel = (s) =>
+  String(s ?? '')
+    .replace(/_+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export default function NomencladorNacional() {
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
@@ -113,7 +120,6 @@ export default function NomencladorNacional() {
   const [diaPension, setDiaPension] = useState(0);
   const [otrosGastos, setOtrosGastos] = useState(0);
 
-  /* === CARGA JSON BASE (con __key único) === */
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
@@ -121,7 +127,6 @@ export default function NomencladorNacional() {
         setCapitulos(json);
 
         const counts = new Map();
-
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => {
             const cap = String(c.capitulo ?? '').trim();
@@ -148,7 +153,6 @@ export default function NomencladorNacional() {
       });
   }, []);
 
-  /* === CONVENIOS FIREBASE === */
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
@@ -168,7 +172,6 @@ export default function NomencladorNacional() {
     return () => off();
   }, []);
 
-  /* === FACTORES SEGÚN CONVENIO === */
   useEffect(() => {
     if (!convenioSel || !convenios[convenioSel]) return;
     const vg = convenios[convenioSel]?.valores_generales || {};
@@ -202,7 +205,6 @@ export default function NomencladorNacional() {
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
 
-  /* === FUSE (global) === */
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
@@ -214,7 +216,6 @@ export default function NomencladorNacional() {
     });
   }, [data]);
 
-  /* === BUSCADOR GLOBAL === */
   const resultadosGlobales = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
@@ -236,12 +237,13 @@ export default function NomencladorNacional() {
       for (const it of found) results.push(...vincularSubsiguientes(it, data));
     }
 
-    const unique = Array.from(new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values());
+    const unique = Array.from(
+      new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values()
+    );
 
     return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  /* === COSTOS + EXTRAS === */
   const computeExtras = (it) => {
     const gto = parseNumber(it.gto);
     const gal = parseNumber(it.q_gal);
@@ -278,62 +280,106 @@ export default function NomencladorNacional() {
 
   return (
     <div className={styles.page}>
-      {/* Header */}
       <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <h2 className={styles.title}>📘 Nomenclador Nacional</h2>
-          <button 
-            className={styles.switchButton} 
-            onClick={() => setModoBusqueda((p) => !p)}
-            aria-label={modoBusqueda ? "Cambiar a ver por capítulos" : "Cambiar a modo búsqueda"}
-          >
-            {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
-          </button>
-        </div>
+        <div className={styles.headerTop}>
+          <div className={styles.heading}>
+            <h2 className={styles.title}>📘 Nomenclador Nacional</h2>
+            <p className={styles.subtitle}>
+              Consultá prácticas y costos según convenio. Podés buscar global o por capítulos.
+            </p>
+          </div>
 
-        <div className={styles.filters}>
+
+        </div>
+        <div className={styles.chips} aria-label="Valores del convenio">
+          <span className={`${styles.chip} ${styles.chipGastoRx}`}>
+            <b>Gasto Rx</b> <span className={styles.chipValue}>{money(gastoRx)}</span>
+          </span>
+
+          <span className={`${styles.chip} ${styles.chipGalenoRx}`}>
+            <b>Galeno Rx</b> <span className={styles.chipValue}>{money(galenoRxPractica)}</span>
+          </span>
+
+          <span className={`${styles.chip} ${styles.chipGtoOperatorio}`}>
+            <b>G. Oper.</b> <span className={styles.chipValue}>{money(gastoOperatorio)}</span>
+          </span>
+
+          <span className={`${styles.chip} ${styles.chipGalenoQuir}`}>
+            <b>Gal. Quir.</b> <span className={styles.chipValue}>{money(galenoQuir)}</span>
+          </span>
+
+          <span className={`${styles.chip} ${styles.chipPension}`}>
+            <b>Pensión</b> <span className={styles.chipValue}>{money(diaPension)}</span>
+          </span>
+
+          <span className={`${styles.chip} ${styles.chipOtros}`}>
+            <b>Otros</b> <span className={styles.chipValue}>{money(otrosGastos)}</span>
+          </span>
+        </div>
+        {/* ✅ toolbar ahora aguanta sidebar expandido */}
+        <div className={styles.toolbar}>
           <div className={styles.controlBlock}>
             <label className={styles.label}>Convenio</label>
-            <select
-              className={styles.select}
-              value={convenioSel}
-              onChange={(e) => setConvenioSel(e.target.value)}
-            >
+            <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
               {Object.keys(convenios)
                 .sort()
                 .map((k) => (
                   <option key={k} value={k}>
-                    {k}
+                    {formatConvenioLabel(k)}
                   </option>
                 ))}
             </select>
           </div>
 
-          <div className={styles.badges}>
-            <span className={`${styles.badge} ${styles.badgeGreen}`}>Gasto Rx: {money(gastoRx)}</span>
-            <span className={`${styles.badge} ${styles.badgeBlue}`}>Galeno Rx: {money(galenoRxPractica)}</span>
-            <span className={`${styles.badge} ${styles.badgePurple}`}>Gasto Operatorio: {money(gastoOperatorio)}</span>
-            <span className={`${styles.badge} ${styles.badgeOrange}`}>Galeno Quir.: {money(galenoQuir)}</span>
-            <span className={`${styles.badge} ${styles.badgeTeal}`}>Pensión: {money(diaPension)}</span>
-            <span className={`${styles.badge} ${styles.badgeGray}`}>Otros gastos: {money(otrosGastos)}</span>
-          </div>
+
+
+
+          <button
+            className={styles.switchButton}
+            onClick={() => setModoBusqueda((p) => !p)}
+            type="button"
+          >
+            {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
+          </button>
         </div>
 
         {alerta && <div className={styles.alert}>{alerta}</div>}
       </div>
-
       {modoBusqueda ? (
         <>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Buscar código o descripción…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            inputMode="search"
-          />
+          {/* ✅ Buscador prolijo, barra */}
+          <div className={styles.searchBar} role="search" aria-label="Buscar práctica">
+            <span className={styles.searchIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path
+                  fill="currentColor"
+                  d="M10 4a6 6 0 104.472 10.03l3.749 3.75a1 1 0 001.414-1.415l-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"
+                />
+              </svg>
+            </span>
+
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Buscar por código o descripción…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              inputMode="search"
+            />
+
+            {query.trim() && (
+              <button
+                type="button"
+                className={styles.clearBtn}
+                onClick={() => setQuery('')}
+                aria-label="Limpiar búsqueda"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
 
           {/* Mobile cards */}
           <div className={styles.mobileList}>
@@ -384,8 +430,8 @@ export default function NomencladorNacional() {
                   <th>Código</th>
                   <th>Descripción</th>
                   <th>Capítulo</th>
-                  <th className={styles.numeric}>GAL</th>
-                  <th className={styles.numeric}>GTO</th>
+                  <th className={styles.thNumeric}>GAL</th>
+                  <th className={styles.thNumeric}>GTO</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,18 +452,28 @@ export default function NomencladorNacional() {
                         className={`${isRadiografia(it) ? styles.rxRow : ''} ${isSubsiguiente(it) ? styles.subsiguienteRow : ''
                           }`}
                       >
-                        <td>{highlight(it.codigo, query)}</td>
+                        <td className={styles.codeCell}>{highlight(it.codigo, query)}</td>
                         <td className={styles.descCell}>{highlight(it.descripcion, query)}</td>
                         <td>
                           <span className={styles.capBadge}>{capLabel(it)}</span>
                         </td>
-                        <td className={styles.numeric}>
-                          {money(gal)}
-                          {extraGal != null && <div className={styles.subValue}>${money(extraGal)}</div>}
+
+                        <td className={styles.tdNumeric}>
+                          <span className={styles.mainValue}>{money(gal)}</span>
+                          {extraGal != null && (
+                            <div className={styles.extraWrapper}>
+                              <span className={styles.subValue}>${money(extraGal)}</span>
+                            </div>
+                          )}
                         </td>
-                        <td className={styles.numeric}>
-                          {money(gto)}
-                          {extraGto != null && <div className={styles.subValue}>${money(extraGto)}</div>}
+
+                        <td className={styles.tdNumeric}>
+                          <span className={styles.mainValue}>{money(gto)}</span>
+                          {extraGto != null && (
+                            <div className={styles.extraWrapper}>
+                              <span className={styles.subValue}>${money(extraGto)}</span>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -429,6 +485,7 @@ export default function NomencladorNacional() {
         </>
       ) : (
         <>
+          {/* (tu modo capítulos queda igual) */}
           <input
             type="text"
             className={styles.input}
@@ -482,7 +539,7 @@ export default function NomencladorNacional() {
                       inputMode="search"
                     />
 
-                    {/* Mobile cards */}
+                    {/* resto igual */}
                     <div className={styles.mobileList}>
                       {practicasFiltradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados.</div>
@@ -490,7 +547,6 @@ export default function NomencladorNacional() {
                         practicasFiltradas.map((it, j) => {
                           const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
                           const { gal, gto, extraGal, extraGto } = computeExtras(itFull);
-
                           const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
 
                           return (
@@ -527,15 +583,14 @@ export default function NomencladorNacional() {
                       )}
                     </div>
 
-                    {/* Desktop table */}
                     <div className={styles.tableWrapper}>
                       <table className={styles.table}>
                         <thead>
                           <tr>
                             <th>Código</th>
                             <th>Descripción</th>
-                            <th className={styles.numeric}>GAL</th>
-                            <th className={styles.numeric}>GTO</th>
+                            <th className={styles.thNumeric}>GAL</th>
+                            <th className={styles.thNumeric}>GTO</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -557,15 +612,25 @@ export default function NomencladorNacional() {
                                   className={`${isRadiografia(itFull) ? styles.rxRow : ''} ${isSubsiguiente(itFull) ? styles.subsiguienteRow : ''
                                     }`}
                                 >
-                                  <td>{highlight(itFull.codigo, qLocal)}</td>
+                                  <td className={styles.codeCell}>{highlight(itFull.codigo, qLocal)}</td>
                                   <td className={styles.descCell}>{highlight(itFull.descripcion, qLocal)}</td>
-                                  <td className={styles.numeric}>
-                                    {money(gal)}
-                                    {extraGal != null && <div className={styles.subValue}>${money(extraGal)}</div>}
+
+                                  <td className={styles.tdNumeric}>
+                                    <span className={styles.mainValue}>{money(gal)}</span>
+                                    {extraGal != null && (
+                                      <div className={styles.extraWrapper}>
+                                        <span className={styles.subValue}>${money(extraGal)}</span>
+                                      </div>
+                                    )}
                                   </td>
-                                  <td className={styles.numeric}>
-                                    {money(gto)}
-                                    {extraGto != null && <div className={styles.subValue}>${money(extraGto)}</div>}
+
+                                  <td className={styles.tdNumeric}>
+                                    <span className={styles.mainValue}>{money(gto)}</span>
+                                    {extraGto != null && (
+                                      <div className={styles.extraWrapper}>
+                                        <span className={styles.subValue}>${money(extraGto)}</span>
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               );
