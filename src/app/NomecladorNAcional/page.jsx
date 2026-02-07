@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import NomencladorNacional from '../../../components/nacional/page';
-import ConveniosArt from '../../../components/convenios/page';
-import NomencladorBioq from '../../../components/bioquimica/page';
-import NomencladorAoter from '../../../components/aoter/page';
+import NomencladorNacional from '@/components/nacional/page';
+import ConveniosArt from '@/components/convenios/page';
+import NomencladorBioq from '@/components/bioquimica/page';
+import NomencladorAoter from '@/components/aoter/page';
 import styles from './page.module.css';
 
 export default function NomencladorGlobal() {
@@ -35,9 +35,8 @@ export default function NomencladorGlobal() {
           {tabs.map((tab) => (
             <li key={tab.key}>
               <button
-                className={`${styles.tabButton} ${
-                  activeTab === tab.key ? styles.activeTab : ''
-                }`}
+                className={`${styles.tabButton} ${activeTab === tab.key ? styles.activeTab : ''
+                  }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
