@@ -3479,31 +3479,31 @@
 			},
 			{
 				"codigo": "120301",
-				"descripcion": "Columna cervical, dorsal o lumbar.",
+				"descripcion": "Reducción osteosintesis de Columna cervical, dorsal o lumbar.",
 				"q_gal": 372.75,
 				"gto": 276.0
 			},
 			{
 				"codigo": "120302",
-				"descripcion": "Húmero, pelvis, sacro, femur, tibia, tibia y peroné, cúbito y radio. Disyunción craneofacial (Lefor III). (X)",
+				"descripcion": "Reducción osteosintesis de Húmero, pelvis, sacro, femur, tibia, tibia y peroné, cúbito y radio. Disyunción craneofacial (Lefor III). (X)",
 				"q_gal": 228.0,
 				"gto": 271.0
 			},
 			{
 				"codigo": "120303",
-				"descripcion": "Cúbito radio, tercio inferior, uno o más huesos del carpo, primer metacarpiano, uno o mas huesos del tarso, maxilar inferior o superior. (X)",
+				"descripcion": "Reducción osteosintesis de Cúbito radio, tercio inferior, uno o más huesos del carpo, primer metacarpiano, uno o mas huesos del tarso, maxilar inferior o superior. (X)",
 				"q_gal": 119.25,
 				"gto": 220.0
 			},
 			{
 				"codigo": "120304",
-				"descripcion": "Esternón, costillas, clavícula, escapula, rótula.",
+				"descripcion": "Reducción osteosintesis de Esternón, costillas, clavícula, escapula, rótula.",
 				"q_gal": 80.25,
 				"gto": 220.0
 			},
 			{
 				"codigo": "120305",
-				"descripcion": "Metacarpiano (excepto el primer metacarpiano)o metatarsiano falanges (de un mismo dedo), malar, huesos propios de la nariz. (X)",
+				"descripcion": "Reducción osteosintesis de  Metacarpiano (excepto el primer metacarpiano)o metatarsiano falanges (de un mismo dedo), malar, huesos propios de la nariz. (X)",
 				"q_gal": 61.5,
 				"gto": 171.0
 			},
