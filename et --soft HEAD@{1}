@@ -1,0 +1,7 @@
+[33m27e1bd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD@{1}
+[33m47f2543[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{1}: reset: moving to HEAD~1
+[33m27e1bd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{2}: rebase (finish): returning to refs/heads/main
+[33m27e1bd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{3}: rebase (continue): acomode las vistas
+[33m47f2543[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{4}: pull --rebase origin main (start): checkout 47f25436013bdfc59f877c2485a7e09d3404a44e
+[33m35c5738[m HEAD@{5}: commit: acomode las vistas
+[33m2bc932e[m HEAD@{6}: clone: from https://github.com/juanmatoniolo/ART.git
