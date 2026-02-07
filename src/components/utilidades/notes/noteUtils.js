@@ -1,3 +1,4 @@
+// noteUtils.js
 export const NOTES_NODE = "utilidades_root/notes";
 
 export function nowTs() {
@@ -29,29 +30,67 @@ export function parseTags(input) {
 	return Array.from(new Set(parts)).slice(0, 12);
 }
 
-export function isDueWithinDays(note, days) {
-	if (!note || note.archived) return false;
-	if (!note.date) return false;
-	const t = new Date(note.date).getTime();
-	if (Number.isNaN(t)) return false;
+export function formatDdMmYyyy(yyyyMmDd) {
+	// "2026-02-07" => "07/02/2026"
+	if (!yyyyMmDd || typeof yyyyMmDd !== "string") return "";
+	const m = yyyyMmDd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+	if (!m) return yyyyMmDd;
+	const [, y, mo, d] = m;
+	return `${d}/${mo}/${y}`;
+}
 
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
+export function startOfDayLocalMs(yyyyMmDd) {
+	const d = new Date(`${yyyyMmDd}T00:00:00`);
+	const t = d.getTime();
+	return Number.isNaN(t) ? null : t;
+}
 
-	const max = new Date(today);
-	max.setDate(max.getDate() + days);
+export function daysUntil(yyyyMmDd) {
+	const due = startOfDayLocalMs(yyyyMmDd);
+	if (!due) return null;
 
-	return t >= today.getTime() && t <= max.getTime();
+	const now = new Date();
+	const todayStart = new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate(),
+	).getTime();
+	const diffMs = due - todayStart;
+	return Math.floor(diffMs / (24 * 60 * 60 * 1000));
+}
+
+export function urgencyBucket(note) {
+	// devuelve: "overdue" | "red" | "yellow" | "green" | "none"
+	if (!note || !note.date) return "none";
+	const d = daysUntil(note.date);
+	if (d === null) return "none";
+	if (d < 0) return "overdue";
+	if (d <= 3) return "red";
+	if (d <= 7) return "yellow";
+	return "green";
 }
 
 export function isOverdue(note) {
-	if (!note || note.archived) return false;
-	if (!note.date) return false;
-	const t = new Date(note.date).getTime();
-	if (Number.isNaN(t)) return false;
+	if (!note || !note.date) return false;
+	const d = daysUntil(note.date);
+	return typeof d === "number" && d < 0;
+}
 
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
+export function isDueWithinDays(note, days) {
+	if (!note || !note.date) return false;
+	const d = daysUntil(note.date);
+	return typeof d === "number" && d >= 0 && d <= (Number(days) || 0);
+}
 
-	return t < today.getTime();
+export function addDaysToYyyyMmDd(days) {
+	const n = Number(days);
+	if (!Number.isFinite(n) || n < 0) return "";
+	const now = new Date();
+	const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	base.setDate(base.getDate() + n);
+
+	const y = base.getFullYear();
+	const m = String(base.getMonth() + 1).padStart(2, "0");
+	const d = String(base.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
 }

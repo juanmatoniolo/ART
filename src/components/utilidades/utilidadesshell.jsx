@@ -3,12 +3,12 @@
 import React, { useMemo, useState } from "react";
 import styles from "./UtilidadesShell.module.css";
 
-import UtilidadesTabs from "@/components/utilidades/UtilidadesTabs";
+import UtilidadesTabs from "./UtilidadesTabs";
 
-import NotesDueView from "@/components/utilidades/notes/NotesDueView";
-import NotesCrudView from "@/components/utilidades/notes/NotesCrudView";
-import InternosView from "@/components/utilidades/internos/InternosView";
-import MatriculasView from "@/components/utilidades/matriculas/MatriculasView";
+import NotesDueView from "./notes/NotesDueView";
+import NotesCrudView from "./notes/NotesCrudView";
+import InternosView from "./internos/InternosView";
+import MatriculasView from "./matriculas/MatriculasView";
 
 const TABS = [
     { key: "notas", label: "Ver notas" },
