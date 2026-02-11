@@ -6,6 +6,10 @@ import { db } from '@/lib/firebase';
 import { money, normalize } from '../utils/calculos';
 import styles from './facturacion.module.css';
 
+// Contador global para IDs únicos (por módulo, pero único en toda la app)
+let medicamentoCounter = 0;
+let descartableCounter = 0;
+
 export default function MedicamentosModule({
   medicamentosAgregados,
   descartablesAgregados,
@@ -23,12 +27,12 @@ export default function MedicamentosModule({
   useEffect(() => {
     const medicamentosRef = ref(db, 'medydescartables/medicamentos');
     const descartablesRef = ref(db, 'medydescartables/descartables');
-    
+
     const unsubMed = onValue(medicamentosRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
         const lista = Object.entries(data).map(([key, item]) => ({
-          id: key,
+          id: key, // ID de Firebase (único)
           tipo: 'medicamento',
           nombre: item.nombre || key,
           presentacion: item.presentacion || 'ampolla',
@@ -36,9 +40,8 @@ export default function MedicamentosModule({
         }));
         setMedicacionDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
       }
-      setLoading(false);
     });
-    
+
     const unsubDesc = onValue(descartablesRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
@@ -51,8 +54,9 @@ export default function MedicamentosModule({
         }));
         setDescartablesDB(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
       }
+      setLoading(false);
     });
-    
+
     return () => {
       unsubMed();
       unsubDesc();
@@ -62,7 +66,6 @@ export default function MedicamentosModule({
   // Filtrar medicamentos
   const medicamentosFiltrados = useMemo(() => {
     if (!busqueda) return medicacionDB.slice(0, 50);
-    
     const busquedaNorm = normalize(busqueda);
     return medicacionDB
       .filter(m => normalize(m.nombre).includes(busquedaNorm))
@@ -72,7 +75,6 @@ export default function MedicamentosModule({
   // Filtrar descartables
   const descartablesFiltrados = useMemo(() => {
     if (!busqueda) return descartablesDB.slice(0, 50);
-    
     const busquedaNorm = normalize(busqueda);
     return descartablesDB
       .filter(d => normalize(d.nombre).includes(busquedaNorm))
@@ -80,21 +82,25 @@ export default function MedicamentosModule({
   }, [descartablesDB, busqueda]);
 
   const handleAgregarMedicamento = (medicamento) => {
+    const nuevoId = `med-${Date.now()}-${++medicamentoCounter}-${Math.random().toString(36).substr(2, 4)}`;
     const nuevoMedicamento = {
-      id: `med-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: nuevoId,
       ...medicamento,
+      cantidad: 1,
       total: medicamento.precio,
-      cantidad: 1
+      valorUnitario: medicamento.precio
     };
     agregarMedicamento(nuevoMedicamento);
   };
 
   const handleAgregarDescartable = (descartable) => {
+    const nuevoId = `desc-${Date.now()}-${++descartableCounter}-${Math.random().toString(36).substr(2, 4)}`;
     const nuevoDescartable = {
-      id: `desc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: nuevoId,
       ...descartable,
+      cantidad: 1,
       total: descartable.precio,
-      cantidad: 1
+      valorUnitario: descartable.precio
     };
     agregarDescartable(nuevoDescartable);
   };
@@ -102,7 +108,6 @@ export default function MedicamentosModule({
   return (
     <div className={styles.tabContent}>
       <h2>💊 Medicamentos y Descartables</h2>
-      
       <div className={styles.buscadorContainer}>
         <input
           type="text"
@@ -112,12 +117,11 @@ export default function MedicamentosModule({
           className={styles.buscadorInput}
         />
       </div>
-      
+
       {loading ? (
         <div className={styles.loading}>Cargando medicamentos...</div>
       ) : (
         <>
-          {/* Medicamentos */}
           <h3>💊 Medicamentos</h3>
           <div className={styles.listaItems}>
             <div className={styles.tableContainer}>
@@ -151,8 +155,7 @@ export default function MedicamentosModule({
               </table>
             </div>
           </div>
-          
-          {/* Descartables */}
+
           <h3>🧷 Descartables</h3>
           <div className={styles.listaItems}>
             <div className={styles.tableContainer}>
@@ -188,18 +191,12 @@ export default function MedicamentosModule({
           </div>
         </>
       )}
-      
+
       <div className={styles.botonesNavegacion}>
-        <button 
-          className={styles.btnAtras}
-          onClick={onAtras}
-        >
+        <button className={styles.btnAtras} onClick={onAtras}>
           ← Atrás
         </button>
-        <button 
-          className={styles.btnSiguiente}
-          onClick={onSiguiente}
-        >
+        <button className={styles.btnSiguiente} onClick={onSiguiente}>
           Siguiente → Resumen
         </button>
       </div>

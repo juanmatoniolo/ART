@@ -1,104 +1,22 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { onValue, ref } from 'firebase/database';
-import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
+import { useConvenio } from './ConvenioContext';
+import {
+  normalize,
+  money,
+  parseNumber,
+  isRadiografia,
+  isSubsiguiente,
+  vincularSubsiguientes,
+  highlight,
+  calcularPractica
+} from '../utils/calculos';
 import styles from './practicas.module.css';
 
-/* ================= Utils ================= */
-const normalize = (s) =>
-  (s ?? '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-
-const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-function highlight(text, q) {
-  if (!text || !q) return text;
-  const safe = escapeRegExp(q);
-  const regex = new RegExp(`(${safe})`, 'gi');
-  const parts = String(text).split(regex);
-  return parts.map((part, i) =>
-    part.toLowerCase() === String(q).toLowerCase() ? (
-      <mark key={i} className={styles.highlight}>
-        {part}
-      </mark>
-    ) : (
-      part
-    )
-  );
-}
-
-const parseNumber = (val) => {
-  if (val == null || val === '') return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
-
-  let s = String(val).trim();
-  s = s.replace(/[^\d.,-]/g, '');
-
-  const hasComma = s.includes(',');
-  const hasDot = s.includes('.');
-
-  if (hasComma) {
-    s = s.replace(/\./g, '').replace(',', '.');
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  if (hasDot) {
-    const dotCount = (s.match(/\./g) || []).length;
-
-    if (dotCount === 1 && /^\-?\d+(\.\d{1,2})$/.test(s)) {
-      const n = parseFloat(s);
-      return Number.isFinite(n) ? n : 0;
-    }
-
-    s = s.replace(/\./g, '');
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-};
-
-const money = (n) => {
-  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const isRadiografia = (item) => {
-  const d = normalize(item?.descripcion);
-  return d.includes('radiograf') || d.includes('rx');
-};
-
-const isSubsiguiente = (item) => {
-  const d = normalize(item?.descripcion);
-  return d.includes('por exposicion subsiguiente') || d.includes('por exposición subsiguiente');
-};
-
-const vincularSubsiguientes = (item, data) => {
-  const idx = data.findIndex((d) => (item.__key ? d.__key === item.__key : d.codigo === item.codigo));
-  if (idx === -1) return [item];
-
-  const prev = data[idx - 1];
-  const next = data[idx + 1];
-
-  if (isSubsiguiente(item) && prev) return [prev, item];
-  if (next && isSubsiguiente(next)) return [item, next];
-  return [item];
-};
-
-/* ================= Componente Principal ================= */
-export default function PracticasModule({ 
-  practicasAgregadas, 
-  agregarPractica, 
-  onAtras, 
-  onSiguiente 
-}) {
+export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
+  const { valoresConvenio } = useConvenio();
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
@@ -110,286 +28,126 @@ export default function PracticasModule({
   const [tooltipMessage, setTooltipMessage] = useState('');
   const [lastAddedItem, setLastAddedItem] = useState(null);
   const tooltipTimeoutRef = useRef(null);
-  const [mounted, setMounted] = useState(false);
 
-  // Firebase
-  const [convenios, setConvenios] = useState({});
-  const [convenioSel, setConvenioSel] = useState('');
-  const [alerta, setAlerta] = useState('');
-
-  // Valores del convenio
-  const [gastoRx, setGastoRx] = useState(0);
-  const [galenoRxPractica, setGalenoRxPractica] = useState(0);
-  const [gastoOperatorio, setGastoOperatorio] = useState(0);
-  const [galenoQuir, setGalenoQuir] = useState(0);
-  const [diaPension, setDiaPension] = useState(0);
-  const [otrosGastos, setOtrosGastos] = useState(0);
-
-  // Set mounted state
+  // Cargar JSON del nomenclador
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  /* === CARGA JSON BASE (con __key único) === */
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadData = async () => {
-      try {
-        const response = await fetch('/archivos/NomecladorNacional.json');
-        if (!response.ok) throw new Error('Error cargando JSON');
-        
-        const json = await response.json();
-        
-        if (!isMounted) return;
-        
+    let mounted = true;
+    fetch('/archivos/NomecladorNacional.json')
+      .then(res => res.json())
+      .then(json => {
+        if (!mounted) return;
         setCapitulos(json);
-
         const counts = new Map();
-
-        const flat = json.flatMap((c) =>
-          (c.practicas || []).map((p) => {
+        const flat = json.flatMap(c =>
+          (c.practicas || []).map(p => {
             const cap = String(c.capitulo ?? '').trim();
             const cod = String(p.codigo ?? '').trim();
             const base = `${cap}|${cod}`;
-
             const n = (counts.get(base) ?? 0) + 1;
             counts.set(base, n);
-
             return {
               ...p,
               capitulo: c.capitulo,
               capituloNombre: c.descripcion,
-              __key: `${base}#${n}`,
+              __key: `${base}#${n}`
             };
           })
         );
-
         setData(flat);
         setLoading(false);
-      } catch (err) {
-        console.error('Error cargando JSON:', err);
-        if (isMounted) {
-          setAlerta('No se pudo cargar el Nomenclador Nacional.');
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+    return () => { mounted = false; };
   }, []);
 
-  /* === CONVENIOS FIREBASE === */
-  useEffect(() => {
-    if (!mounted) return;
-    
-    const conveniosRef = ref(db, 'convenios');
-    const off = onValue(conveniosRef, (snap) => {
-      if (!mounted) return;
-      
-      const val = snap.exists() ? snap.val() : {};
-      const normalizado = Object.keys(val).reduce((acc, key) => {
-        const cleanKey = key.trim();
-        acc[cleanKey] = val[key];
-        return acc;
-      }, {});
-      setConvenios(normalizado);
-
-      const stored = localStorage.getItem('convenioActivo');
-      const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
-      setConvenioSel(elegir);
-    });
-
-    return () => off();
-  }, [mounted]);
-
-  /* === FACTORES SEGÚN CONVENIO === */
-  useEffect(() => {
-    if (!convenioSel || !convenios[convenioSel]) return;
-    const vg = convenios[convenioSel]?.valores_generales || {};
-
-    const pick = (keys) => {
-      for (const k of keys) {
-        if (vg[k] != null && vg[k] !== '') return vg[k];
-      }
-      return null;
-    };
-
-    const gastoRaw = pick(['Gasto_Rx', 'Gastos_Rx', 'Gasto Rx', 'Gastos Rx']);
-    const galenoRaw = pick([
-      'Galeno_Rx_Practica',
-      'Galeno_Rx_y_Practica',
-      'Galeno Rx Practica',
-      'Galeno Rx y Practica',
-    ]);
-    const gastoOpRaw = pick(['Gasto_Operatorio', 'Gasto Operatorio', 'Gastos Operatorios']);
-    const galenoQuirRaw = pick(['Galeno_Quir', 'Galeno Quir', 'Galeno Quirúrgico', 'Galeno Quirurgico']);
-    const pensionRaw = pick(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión', 'Dia Pension', 'Día Pension']);
-    const otrosGastosRaw = pick(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos', 'Otros Gastos Medicos']);
-
-    setGastoRx(parseNumber(gastoRaw));
-    setGalenoRxPractica(parseNumber(galenoRaw));
-    setGastoOperatorio(parseNumber(gastoOpRaw));
-    setGalenoQuir(parseNumber(galenoQuirRaw));
-    setDiaPension(parseNumber(pensionRaw));
-    setOtrosGastos(parseNumber(otrosGastosRaw));
-
-    localStorage.setItem('convenioActivo', convenioSel);
-  }, [convenioSel, convenios]);
-
-  /* === FUSE (global) === */
+  // Instancia de Fuse para búsqueda difusa
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
       keys: ['descripcion', 'codigo', 'capitulo', 'capituloNombre'],
-      includeScore: true,
       threshold: 0.18,
       ignoreLocation: true,
-      minMatchCharLength: 2,
+      minMatchCharLength: 2
     });
   }, [data]);
 
-  /* === BUSCADOR GLOBAL === */
+  // Resultados de búsqueda global (con manejo seguro de vincularSubsiguientes)
   const resultadosGlobales = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
 
-    const qNorm = normalize(q);
-
-    const exact = data.filter(
-      (it) =>
-        String(it.codigo ?? '').toLowerCase() === q.toLowerCase() ||
-        normalize(it.descripcion).includes(qNorm)
+    // Búsqueda exacta por código o descripción
+    const exact = data.filter(it =>
+      String(it.codigo).toLowerCase() === q.toLowerCase() ||
+      normalize(it.descripcion).includes(normalize(q))
     );
 
     let results = [];
 
-    if (exact.length) {
-      for (const it of exact) results.push(...vincularSubsiguientes(it, data));
+    if (exact.length > 0) {
+      // Si hay coincidencias exactas, aplicamos vinculación
+      exact.forEach(it => {
+        const vinculados = vincularSubsiguientes(it, data);
+        results.push(...vinculados);
+      });
     } else if (fuseGlobal) {
-      const found = fuseGlobal.search(q).map((r) => r.item);
-      for (const it of found) results.push(...vincularSubsiguientes(it, data));
+      // Si no, búsqueda difusa
+      const fuzzy = fuseGlobal.search(q).map(r => r.item);
+      fuzzy.forEach(it => {
+        const vinculados = vincularSubsiguientes(it, data);
+        results.push(...vinculados);
+      });
     }
 
-    const unique = Array.from(new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values());
+    // Eliminar duplicados usando __key o código+capítulo
+    const unique = Array.from(
+      new Map(results.map(it => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
+    );
 
-    // RX arriba
+    // Ordenar: primero radiografías
     return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  /* === COSTOS + EXTRAS (Cap 34 y Cap 12/13) === */
-  const computeExtras = (it) => {
-    const gto = parseNumber(it.gto);
-    const gal = parseNumber(it.q_gal);
-
-    const capituloNum = Number(String(it.capitulo ?? '').replace(/\D/g, '')) || 0;
-    const capituloNombre = it.capituloNombre ?? '';
-
-    const esCapitulo34 =
-      normalize(capituloNombre).includes('radiologia') ||
-      normalize(capituloNombre).includes('diagnostico por imagenes') ||
-      normalize(capituloNombre).includes('diagnóstico por imagenes');
-
-    const esCap12o13 = capituloNum === 12 || capituloNum === 13;
-
-    let extraGal = null;
-    let extraGto = null;
-
-    if (esCapitulo34) {
-      const gastoOp = (gastoRx * gto) / 2;
-      const honorario = galenoRxPractica * gal + gastoOp;
-      extraGal = honorario;
-      extraGto = gastoOp;
-    }
-
-    if (esCap12o13) {
-      extraGal = galenoQuir * gal;
-      extraGto = gastoOperatorio * gto;
-    }
-
-    return { gal, gto, extraGal, extraGto };
-  };
-
-  /* === MOSTRAR TOOLTIP === */
+  // Tooltip
   const showTooltipMessage = useCallback((message, item) => {
-    // Limpiar timeout anterior
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current);
-    }
-
+    clearTimeout(tooltipTimeoutRef.current);
     setTooltipMessage(message);
     setLastAddedItem(item);
     setShowTooltip(true);
-
-    // Ocultar tooltip después de 3 segundos
-    tooltipTimeoutRef.current = setTimeout(() => {
-      if (mounted) {
-        setShowTooltip(false);
-        setTooltipMessage('');
-      }
-    }, 3000);
-  }, [mounted]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (tooltipTimeoutRef.current) {
-        clearTimeout(tooltipTimeoutRef.current);
-      }
-    };
+    tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(false), 3000);
   }, []);
 
-  /* === AGREGAR PRÁCTICA === */
+  useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
+
+  // Agregar práctica
   const handleAgregar = useCallback((practica) => {
-    const { gal, gto, extraGal, extraGto } = computeExtras(practica);
-    
+    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+    const calculo = calcularPractica(practica, valoresConvenio);
     const nuevaPractica = {
       id: `pract-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...practica,
-      valoresCalculados: {
-        gal: gal,
-        gto: gto,
-        extraGal: extraGal,
-        extraGto: extraGto,
-        esRadiografia: isRadiografia(practica),
-        esSubsiguiente: isSubsiguiente(practica),
-        esCap34: normalize(practica.capituloNombre ?? '').includes('radiologia') ||
-                normalize(practica.capituloNombre ?? '').includes('diagnostico por imagenes'),
-        esCap12o13: Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 12 ||
-                   Number(String(practica.capitulo ?? '').replace(/\D/g, '')) === 13
-      },
-      convenio: convenioSel,
-      valoresConvenio: {
-        gastoRx,
-        galenoRxPractica,
-        gastoOperatorio,
-        galenoQuir,
-        diaPension,
-        otrosGastos
-      }
+      ...calculo,
+      cantidad: 1,
+      esRX: isRadiografia(practica),
+      esSubsiguiente: isSubsiguiente(practica)
     };
-    
     agregarPractica(nuevaPractica);
-    
-    // Mostrar tooltip de confirmación
-    const mensaje = `✓ "${practica.descripcion.substring(0, 50)}${practica.descripcion.length > 50 ? '...' : ''}" agregada`;
-    showTooltipMessage(mensaje, practica);
-  }, [agregarPractica, showTooltipMessage, convenioSel, gastoRx, galenoRxPractica, gastoOperatorio, galenoQuir, diaPension, otrosGastos]);
+    showTooltipMessage(`✓ "${practica.descripcion.substring(0, 50)}..." agregada`, practica);
+  }, [valoresConvenio, agregarPractica, showTooltipMessage]);
 
-  const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
-
-  /* === RENDER ITEM === */
+  // Renderizado de un item (mobile/desktop)
   const renderItem = (item, isMobile = false, queryLocal = '') => {
-    const { gal, gto, extraGal, extraGto } = computeExtras(item);
-    const key = item.__key ?? `${item.capitulo}|${item.codigo}`;
+    const key = item.__key || `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
     const isRecentlyAdded = lastAddedItem?.__key === key;
+    const calculo = valoresConvenio
+      ? calcularPractica(item, valoresConvenio)
+      : { honorarioMedico: 0, gastoSanatorial: 0, total: 0 };
+    const q = queryLocal || query;
 
     if (isMobile) {
       return (
@@ -400,26 +158,22 @@ export default function PracticasModule({
           }`}
         >
           <div className={styles.cardTop}>
-            <div className={styles.code}>{highlight(item.codigo, queryLocal || query)}</div>
-            <span className={styles.capBadge}>{capLabel(item)}</span>
+            <div className={styles.code}>{highlight(item.codigo, q)}</div>
+            <span className={styles.capBadge}>
+              {item.capitulo} – {item.capituloNombre}
+            </span>
           </div>
-
-          <div className={styles.desc}>{highlight(item.descripcion, queryLocal || query)}</div>
-
+          <div className={styles.desc}>{highlight(item.descripcion, q)}</div>
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
-              <span className={styles.costLabel}>GAL</span>
-              <span className={styles.costValue}>{money(gal)}</span>
-              {extraGal != null && <span className={styles.subValue}>${money(extraGal)}</span>}
+              <span className={styles.costLabel}>Honorario</span>
+              <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
-
             <div className={styles.costBox}>
-              <span className={styles.costLabel}>GTO</span>
-              <span className={styles.costValue}>{money(gto)}</span>
-              {extraGto != null && <span className={styles.subValue}>${money(extraGto)}</span>}
+              <span className={styles.costLabel}>Gasto</span>
+              <span className={styles.costValue}>{money(calculo.gastoSanatorial)}</span>
             </div>
           </div>
-
           <div className={styles.cardActions}>
             <button
               onClick={() => handleAgregar(item)}
@@ -433,7 +187,7 @@ export default function PracticasModule({
       );
     }
 
-    // Desktop table row
+    // Desktop: fila de tabla
     return (
       <tr
         key={key}
@@ -441,19 +195,15 @@ export default function PracticasModule({
           isRecentlyAdded ? styles.recentlyAddedRow : ''
         }`}
       >
-        <td>{highlight(item.codigo, queryLocal || query)}</td>
-        <td className={styles.descCell}>{highlight(item.descripcion, queryLocal || query)}</td>
+        <td>{highlight(item.codigo, q)}</td>
+        <td className={styles.descCell}>{highlight(item.descripcion, q)}</td>
         <td>
-          <span className={styles.capBadge}>{capLabel(item)}</span>
+          <span className={styles.capBadge}>
+            {item.capitulo} – {item.capituloNombre}
+          </span>
         </td>
-        <td className={styles.numeric}>
-          {money(gal)}
-          {extraGal != null && <div className={styles.subValue}>${money(extraGal)}</div>}
-        </td>
-        <td className={styles.numeric}>
-          {money(gto)}
-          {extraGto != null && <div className={styles.subValue}>${money(extraGto)}</div>}
-        </td>
+        <td className={styles.numeric}>{money(calculo.honorarioMedico)}</td>
+        <td className={styles.numeric}>{money(calculo.gastoSanatorial)}</td>
         <td>
           <button
             onClick={() => handleAgregar(item)}
@@ -467,15 +217,13 @@ export default function PracticasModule({
     );
   };
 
-  // Contador de prácticas agregadas
   const practicasCount = practicasAgregadas.length;
 
   return (
     <div className={styles.tabContent}>
       <h2>🏥 Prácticas Médicas</h2>
 
-      {/* Tooltip flotante */}
-      {showTooltip && mounted && (
+      {showTooltip && (
         <div className={styles.tooltip}>
           <div className={styles.tooltipContent}>
             <span className={styles.tooltipIcon}>✓</span>
@@ -484,16 +232,11 @@ export default function PracticasModule({
         </div>
       )}
 
-      {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
-          <button 
-            className={styles.switchButton} 
-            onClick={() => setModoBusqueda((p) => !p)}
-          >
+          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
-          
           <div className={styles.practicasCounter}>
             <span className={styles.counterBadge}>
               {practicasCount} {practicasCount === 1 ? 'práctica' : 'prácticas'} agregada{practicasCount !== 1 ? 's' : ''}
@@ -501,41 +244,18 @@ export default function PracticasModule({
           </div>
         </div>
 
-        <div className={styles.filters}>
-          <div className={styles.controlBlock}>
-            <label className={styles.label}>Convenio</label>
-            <select
-              className={styles.select}
-              value={convenioSel}
-              onChange={(e) => setConvenioSel(e.target.value)}
-            >
-              {Object.keys(convenios)
-                .sort()
-                .map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-            </select>
-          </div>
-
+        {valoresConvenio && (
           <div className={styles.badges}>
-            <span className={`${styles.badge} ${styles.badgeGreen}`}>Gasto Rx: {money(gastoRx)}</span>
-            <span className={`${styles.badge} ${styles.badgeBlue}`}>Galeno Rx: {money(galenoRxPractica)}</span>
-            <span className={`${styles.badge} ${styles.badgePurple}`}>Gasto Op: {money(gastoOperatorio)}</span>
-            <span className={`${styles.badge} ${styles.badgeOrange}`}>Galeno Quir: {money(galenoQuir)}</span>
-            <span className={`${styles.badge} ${styles.badgeTeal}`}>Pensión: {money(diaPension)}</span>
-            <span className={`${styles.badge} ${styles.badgeGray}`}>Otros gastos: {money(otrosGastos)}</span>
+            <span className={`${styles.badge} ${styles.badgeGreen}`}>Gasto Rx: {money(valoresConvenio.gastoRx)}</span>
+            <span className={`${styles.badge} ${styles.badgeBlue}`}>Galeno Rx: {money(valoresConvenio.galenoRx)}</span>
+            <span className={`${styles.badge} ${styles.badgePurple}`}>Gasto Op: {money(valoresConvenio.gastoOperatorio)}</span>
+            <span className={`${styles.badge} ${styles.badgeOrange}`}>Galeno Quir: {money(valoresConvenio.galenoQuir)}</span>
           </div>
-        </div>
-
-        {alerta && <div className={styles.alert}>{alerta}</div>}
+        )}
       </div>
 
       {loading ? (
-        <div className={styles.loading}>
-          <p>Cargando prácticas...</p>
-        </div>
+        <div className={styles.loading}>Cargando prácticas...</div>
       ) : modoBusqueda ? (
         <>
           <div className={styles.searchContainer}>
@@ -546,10 +266,7 @@ export default function PracticasModule({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
-              spellCheck={false}
-              inputMode="search"
             />
-            
             {practicasCount > 0 && (
               <div className={styles.agregadasInfo}>
                 <span className={styles.agregadasIcon}>📋</span>
@@ -559,11 +276,10 @@ export default function PracticasModule({
           </div>
 
           <div className={styles.buscadorInfo}>
-            {resultadosGlobales.length} prácticas encontradas
-            {query && ` para "${query}"`}
+            {resultadosGlobales.length} prácticas encontradas {query && `para "${query}"`}
           </div>
 
-          {/* Mobile cards */}
+          {/* Vista mobile */}
           <div className={styles.mobileList}>
             {resultadosGlobales.length === 0 ? (
               <div className={styles.noResults}>
@@ -574,7 +290,7 @@ export default function PracticasModule({
             )}
           </div>
 
-          {/* Desktop table */}
+          {/* Vista desktop (tabla) */}
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -582,8 +298,8 @@ export default function PracticasModule({
                   <th>Código</th>
                   <th>Descripción</th>
                   <th>Capítulo</th>
-                  <th className={styles.numeric}>GAL</th>
-                  <th className={styles.numeric}>GTO</th>
+                  <th className={styles.numeric}>Honorario</th>
+                  <th className={styles.numeric}>Gasto</th>
                   <th>Agregar</th>
                 </tr>
               </thead>
@@ -602,6 +318,7 @@ export default function PracticasModule({
           </div>
         </>
       ) : (
+        /* Modo capítulos (simplificado, funcionalidad similar) */
         <>
           <input
             type="text"
@@ -610,10 +327,7 @@ export default function PracticasModule({
             value={filtroCapitulo}
             onChange={(e) => setFiltroCapitulo(e.target.value)}
             autoComplete="off"
-            spellCheck={false}
-            inputMode="search"
           />
-
           {capitulos
             .filter((c) => {
               if (!filtroCapitulo) return true;
@@ -624,21 +338,21 @@ export default function PracticasModule({
               );
             })
             .map((c) => {
-              const practicas = data.filter(p => p.capitulo === c.capitulo);
+              const practicasDelCapitulo = data.filter((p) => p.capitulo === c.capitulo);
               const qLocal = capituloQueries[c.capitulo] || '';
               const qLocalNorm = normalize(qLocal);
-
-              const practicasFiltradas =
+              const filtradas =
                 qLocal.trim().length === 0
-                  ? practicas
-                  : practicas.filter((p) => normalize(`${p.codigo} ${p.descripcion}`).includes(qLocalNorm));
+                  ? practicasDelCapitulo
+                  : practicasDelCapitulo.filter((p) =>
+                      normalize(`${p.codigo} ${p.descripcion}`).includes(qLocalNorm)
+                    );
 
               return (
                 <details key={String(c.capitulo)} className={styles.accordion}>
                   <summary className={styles.accordionHeader}>
-                    {c.capitulo} — {c.descripcion} ({practicasFiltradas.length})
+                    {c.capitulo} — {c.descripcion} ({filtradas.length})
                   </summary>
-
                   <div className={styles.accordionBody}>
                     <input
                       type="text"
@@ -648,48 +362,41 @@ export default function PracticasModule({
                       onChange={(e) =>
                         setCapituloQueries((prev) => ({
                           ...prev,
-                          [c.capitulo]: e.target.value,
+                          [c.capitulo]: e.target.value
                         }))
                       }
-                      autoComplete="off"
-                      spellCheck={false}
-                      inputMode="search"
                     />
-
-                    {/* Mobile cards */}
                     <div className={styles.mobileList}>
-                      {practicasFiltradas.length === 0 ? (
+                      {filtradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados en este capítulo.</div>
                       ) : (
-                        practicasFiltradas.map((item, j) => {
+                        filtradas.map((item, j) => {
                           const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
                           const itemWithKey = { ...item, __key: key };
                           return renderItem(itemWithKey, true, qLocal);
                         })
                       )}
                     </div>
-
-                    {/* Desktop table */}
                     <div className={styles.tableWrapper}>
                       <table className={styles.table}>
                         <thead>
                           <tr>
                             <th>Código</th>
                             <th>Descripción</th>
-                            <th className={styles.numeric}>GAL</th>
-                            <th className={styles.numeric}>GTO</th>
+                            <th className={styles.numeric}>Honorario</th>
+                            <th className={styles.numeric}>Gasto</th>
                             <th>Agregar</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {practicasFiltradas.length === 0 ? (
+                          {filtradas.length === 0 ? (
                             <tr>
                               <td colSpan={5} className={styles.noResultsCell}>
                                 Sin resultados en este capítulo.
                               </td>
                             </tr>
                           ) : (
-                            practicasFiltradas.map((item, j) => {
+                            filtradas.map((item, j) => {
                               const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
                               const itemWithKey = { ...item, __key: key };
                               return renderItem(itemWithKey, false, qLocal);
@@ -705,18 +412,11 @@ export default function PracticasModule({
         </>
       )}
 
-      {/* Navegación */}
       <div className={styles.botonesNavegacion}>
-        <button 
-          className={styles.btnAtras}
-          onClick={onAtras}
-        >
+        <button className={styles.btnAtras} onClick={onAtras}>
           ← Atrás
         </button>
-        <button 
-          className={styles.btnSiguiente}
-          onClick={onSiguiente}
-        >
+        <button className={styles.btnSiguiente} onClick={onSiguiente}>
           Siguiente → Laboratorios
         </button>
       </div>

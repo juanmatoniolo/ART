@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConvenio } from './ConvenioContext';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../utils/storage';
 import DatosPaciente from './DatosPaciente';
 import PracticasModule from './PracticasModule';
 import LaboratoriosModule from './LaboratoriosModule';
@@ -10,267 +11,126 @@ import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
 import styles from './facturacion.module.css';
 
-// Función money local
 const money = (n) => {
-  if (n == null || n === '' || n === '-' || n === undefined) return '—';
+  if (n == null || n === '' || n === '-') return '—';
   const num = typeof n === 'number' ? n : parseFloat(n);
-  if (isNaN(num)) return '—';
-  return num.toLocaleString('es-AR', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
-  });
-};
-
-// Claves para localStorage
-const STORAGE_KEYS = {
-  PACIENTE: 'facturacion_paciente',
-  PRACTICAS: 'facturacion_practicas',
-  LABORATORIOS: 'facturacion_laboratorios',
-  MEDICAMENTOS: 'facturacion_medicamentos',
-  DESCARTABLES: 'facturacion_descartables',
-  TAB_ACTIVA: 'facturacion_tab_activa'
+  return isNaN(num) ? '—' : num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export default function FacturaContainer() {
   const { convenios, convenioSel, valoresConvenio, cambiarConvenio, loading } = useConvenio();
-  
-  // Estado para manejar si estamos en el cliente
   const [isClient, setIsClient] = useState(false);
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  // Cargar estado desde localStorage SOLO en el cliente
-  const loadFromStorage = () => {
-    if (!isClient) {
-      return {
-        paciente: {
-          nombreCompleto: '',
-          dni: '',
-          artSeguro: '',
-          nroSiniestro: '',
-          fechaAtencion: new Date().toISOString().split('T')[0]
-        },
-        practicas: [],
-        laboratorios: [],
-        medicamentos: [],
-        descartables: [],
-        tabActiva: 'datos'
-      };
-    }
-    
-    try {
-      const paciente = JSON.parse(localStorage.getItem(STORAGE_KEYS.PACIENTE)) || {
-        nombreCompleto: '',
-        dni: '',
-        artSeguro: '',
-        nroSiniestro: '',
-        fechaAtencion: new Date().toISOString().split('T')[0]
-      };
-      
-      const practicas = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRACTICAS)) || [];
-      const laboratorios = JSON.parse(localStorage.getItem(STORAGE_KEYS.LABORATORIOS)) || [];
-      const medicamentos = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEDICAMENTOS)) || [];
-      const descartables = JSON.parse(localStorage.getItem(STORAGE_KEYS.DESCARTABLES)) || [];
-      const tabActiva = localStorage.getItem(STORAGE_KEYS.TAB_ACTIVA) || 'datos';
-      
-      return { paciente, practicas, laboratorios, medicamentos, descartables, tabActiva };
-    } catch (error) {
-      console.error('Error cargando datos del storage:', error);
-      return {
-        paciente: {
-          nombreCompleto: '',
-          dni: '',
-          artSeguro: '',
-          nroSiniestro: '',
-          fechaAtencion: new Date().toISOString().split('T')[0]
-        },
-        practicas: [],
-        laboratorios: [],
-        medicamentos: [],
-        descartables: [],
-        tabActiva: 'datos'
-      };
-    }
-  };
+  const [loadingStorage, setLoadingStorage] = useState(true);
 
-  const { paciente: loadedPaciente, practicas: loadedPracticas, laboratorios: loadedLaboratorios, 
-          medicamentos: loadedMedicamentos, descartables: loadedDescartables, tabActiva: loadedTab } = loadFromStorage();
+  useEffect(() => { setIsClient(true); }, []);
 
-  const [activeTab, setActiveTab] = useState(loadedTab);
-  const [paciente, setPaciente] = useState(loadedPaciente);
-  const [practicas, setPracticas] = useState(loadedPracticas);
-  const [laboratorios, setLaboratorios] = useState(loadedLaboratorios);
-  const [medicamentos, setMedicamentos] = useState(loadedMedicamentos);
-  const [descartables, setDescartables] = useState(loadedDescartables);
+  // Estados iniciales
+  const [activeTab, setActiveTab] = useState('datos');
+  const [paciente, setPaciente] = useState({
+    nombreCompleto: '',
+    dni: '',
+    artSeguro: '',
+    nroSiniestro: '',
+    fechaAtencion: new Date().toISOString().split('T')[0]
+  });
+  const [practicas, setPracticas] = useState([]);
+  const [laboratorios, setLaboratorios] = useState([]);
+  const [medicamentos, setMedicamentos] = useState([]);
+  const [descartables, setDescartables] = useState([]);
 
-  // Guardar en localStorage cuando cambien los datos (solo en cliente)
+  // Cargar desde localStorage al montar
   useEffect(() => {
     if (!isClient) return;
-    
-    const saveToStorage = () => {
-      try {
-        localStorage.setItem(STORAGE_KEYS.PACIENTE, JSON.stringify(paciente));
-        localStorage.setItem(STORAGE_KEYS.PRACTICAS, JSON.stringify(practicas));
-        localStorage.setItem(STORAGE_KEYS.LABORATORIOS, JSON.stringify(laboratorios));
-        localStorage.setItem(STORAGE_KEYS.MEDICAMENTOS, JSON.stringify(medicamentos));
-        localStorage.setItem(STORAGE_KEYS.DESCARTABLES, JSON.stringify(descartables));
-        localStorage.setItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
-      } catch (error) {
-        console.error('Error guardando en storage:', error);
-      }
-    };
-    
-    saveToStorage();
-  }, [paciente, practicas, laboratorios, medicamentos, descartables, activeTab, isClient]);
+    setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
+    setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
+    setLaboratorios(getStorageItem(STORAGE_KEYS.LABORATORIOS, []));
+    setMedicamentos(getStorageItem(STORAGE_KEYS.MEDICAMENTOS, []));
+    setDescartables(getStorageItem(STORAGE_KEYS.DESCARTABLES, []));
+    setActiveTab(getStorageItem(STORAGE_KEYS.TAB_ACTIVA, 'datos'));
+    setLoadingStorage(false);
+  }, [isClient]);
 
-  // Función para setPaciente que también guarda en storage
-  const handleSetPaciente = (nuevosDatos) => {
-    setPaciente(nuevosDatos);
-  };
+  // Guardar automáticamente
+  useEffect(() => {
+    if (!isClient || loadingStorage) return;
+    setStorageItem(STORAGE_KEYS.PACIENTE, paciente);
+    setStorageItem(STORAGE_KEYS.PRACTICAS, practicas);
+    setStorageItem(STORAGE_KEYS.LABORATORIOS, laboratorios);
+    setStorageItem(STORAGE_KEYS.MEDICAMENTOS, medicamentos);
+    setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
+    setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
+  }, [paciente, practicas, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
 
-  // Funciones para agregar items con persistencia
-  const agregarPractica = (nuevaPractica) => {
-    setPracticas(prev => [...prev, nuevaPractica]);
-  };
+  // Handlers
+  const handleSetPaciente = (nuevosDatos) => setPaciente(nuevosDatos);
+  const agregarPractica = (nueva) => setPracticas(prev => [...prev, nueva]);
+  const agregarLaboratorio = (nuevo) => setLaboratorios(prev => [...prev, nuevo]);
+  const agregarMedicamento = (nuevo) => setMedicamentos(prev => [...prev, nuevo]);
+  const agregarDescartable = (nuevo) => setDescartables(prev => [...prev, nuevo]);
 
-  const agregarLaboratorio = (nuevoLaboratorio) => {
-    setLaboratorios(prev => [...prev, nuevoLaboratorio]);
-  };
-
-  const agregarMedicamento = (nuevoMedicamento) => {
-    setMedicamentos(prev => [...prev, nuevoMedicamento]);
-  };
-
-  const agregarDescartable = (nuevoDescartable) => {
-    setDescartables(prev => [...prev, nuevoDescartable]);
-  };
-
-  // Función para actualizar cantidades
-  const actualizarCantidad = (tipo, id, cantidad) => {
+  // Actualizar cantidad (solo id y cantidad, detecta tipo automáticamente)
+  const actualizarCantidad = (id, cantidad) => {
     if (cantidad < 1) return;
-    
-    const actualizar = (items, setItems) => {
-      return setItems(items.map(item => 
-        item.id === id ? {
-          ...item,
-          cantidad: cantidad,
-          total: (item.total / (item.cantidad || 1)) * cantidad,
-          ...(item.honorarioMedico && {
-            honorarioMedico: (item.honorarioMedico / (item.cantidad || 1)) * cantidad,
-            gastoSanatorial: (item.gastoSanatorial / (item.cantidad || 1)) * cantidad
-          })
-        } : item
-      ));
+    const actualizarArray = (items, setItems) => {
+      const index = items.findIndex(i => i.id === id);
+      if (index === -1) return false;
+      const item = items[index];
+      const factor = cantidad / (item.cantidad || 1);
+      const nuevoItem = {
+        ...item,
+        cantidad,
+        total: item.total * factor,
+        ...(item.honorarioMedico && { honorarioMedico: item.honorarioMedico * factor }),
+        ...(item.gastoSanatorial && { gastoSanatorial: item.gastoSanatorial * factor })
+      };
+      setItems(prev => prev.map(i => i.id === id ? nuevoItem : i));
+      return true;
     };
-    
-    switch(tipo) {
-      case 'practica':
-        actualizar(practicas, setPracticas);
-        break;
-      case 'laboratorio':
-        actualizar(laboratorios, setLaboratorios);
-        break;
-      case 'medicamento':
-        actualizar(medicamentos, setMedicamentos);
-        break;
-      case 'descartable':
-        actualizar(descartables, setDescartables);
-        break;
-    }
+
+    if (actualizarArray(practicas, setPracticas)) return;
+    if (actualizarArray(laboratorios, setLaboratorios)) return;
+    if (actualizarArray(medicamentos, setMedicamentos)) return;
+    if (actualizarArray(descartables, setDescartables)) return;
   };
 
-  // Función para eliminar items
-  const eliminarItem = (tipo, id) => {
-    switch(tipo) {
-      case 'practica':
-        setPracticas(prev => prev.filter(p => p.id !== id));
-        break;
-      case 'laboratorio':
-        setLaboratorios(prev => prev.filter(l => l.id !== id));
-        break;
-      case 'medicamento':
-        setMedicamentos(prev => prev.filter(m => m.id !== id));
-        break;
-      case 'descartable':
-        setDescartables(prev => prev.filter(d => d.id !== id));
-        break;
-    }
+  const eliminarItem = (id) => {
+    setPracticas(prev => prev.filter(p => p.id !== id));
+    setLaboratorios(prev => prev.filter(l => l.id !== id));
+    setMedicamentos(prev => prev.filter(m => m.id !== id));
+    setDescartables(prev => prev.filter(d => d.id !== id));
   };
 
-  // Limpiar factura completamente
   const limpiarFactura = () => {
-    if (!isClient) return;
-    
-    if (window.confirm('¿Está seguro de que desea limpiar toda la factura? Se perderán todos los datos.')) {
-      setPracticas([]);
-      setLaboratorios([]);
-      setMedicamentos([]);
-      setDescartables([]);
-      setPaciente({
-        nombreCompleto: '',
-        dni: '',
-        artSeguro: '',
-        nroSiniestro: '',
-        fechaAtencion: new Date().toISOString().split('T')[0]
-      });
-      setActiveTab('datos');
-      
-      // Limpiar localStorage
-      Object.values(STORAGE_KEYS).forEach(key => {
-        localStorage.removeItem(key);
-      });
-    }
+    if (!isClient || !window.confirm('¿Limpiar toda la factura?')) return;
+    setPracticas([]);
+    setLaboratorios([]);
+    setMedicamentos([]);
+    setDescartables([]);
+    setPaciente({ nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: new Date().toISOString().split('T')[0] });
+    setActiveTab('datos');
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
   };
 
-  // Función para cerrar siniestro (exportar y limpiar)
   const cerrarSiniestro = () => {
     if (!isClient) return;
-    
     if (!paciente.nombreCompleto || !paciente.dni) {
       alert('Complete los datos del paciente primero');
       setActiveTab('datos');
       return;
     }
-    
-    if (window.confirm('¿Está seguro de que desea cerrar este siniestro? Se generará el archivo y se limpiarán los datos.')) {
-      // Aquí iría la lógica para generar el archivo Excel
+    if (window.confirm('¿Cerrar siniestro? Se generará el archivo.')) {
       generarExcel();
-      
-      // Limpiar todo después de exportar
       limpiarFactura();
     }
   };
 
-  // Función para generar Excel (placeholder)
-  const generarExcel = () => {
-    if (!isClient) return;
-    alert('Función generar Excel se implementará aquí');
-    // Implementar lógica de exportación a Excel
-  };
+  const generarExcel = () => alert('Función generar Excel se implementará aquí');
 
-  // Función para cargar siniestro existente
-  const cargarSiniestro = (datos) => {
-    if (!isClient) return;
-    
-    if (window.confirm('¿Cargar este siniestro? Se perderán los datos actuales.')) {
-      setPaciente(datos.paciente || {});
-      setPracticas(datos.practicas || []);
-      setLaboratorios(datos.laboratorios || []);
-      setMedicamentos(datos.medicamentos || []);
-      setDescartables(datos.descartables || []);
-      setActiveTab(datos.tabActiva || 'datos');
-    }
-  };
-
-  // Guardar siniestro con nombre
   const guardarSiniestro = (nombre) => {
-    if (!isClient) return;
-    
+    if (!isClient || !nombre) return;
     const siniestro = {
       id: Date.now(),
-      nombre: nombre || `Siniestro_${new Date().toLocaleString()}`,
+      nombre,
       fecha: new Date().toISOString(),
       paciente,
       practicas,
@@ -280,110 +140,51 @@ export default function FacturaContainer() {
       tabActiva: activeTab,
       convenio: convenioSel
     };
-    
     try {
-      const siniestros = JSON.parse(localStorage.getItem('facturacion_siniestros')) || [];
+      const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
       siniestros.push(siniestro);
-      localStorage.setItem('facturacion_siniestros', JSON.stringify(siniestros));
-      alert(`Siniestro guardado como: ${siniestro.nombre}`);
+      setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
+      alert(`Siniestro guardado como: ${nombre}`);
     } catch (error) {
-      console.error('Error guardando siniestro:', error);
-      alert('Error al guardar el siniestro');
+      console.error(error);
+      alert('Error al guardar');
     }
   };
 
-  // Helper function para manejar disabled de manera consistente
-  const isButtonDisabled = (condition) => {
-    // En el servidor, siempre retornar false
-    if (!isClient) return false;
-    
-    // En el cliente, usar undefined cuando es false para evitar hidratación
-    return condition ? true : undefined;
-  };
-
-  // Determinar si los tabs deben estar deshabilitados
-  const shouldDisableTabs = activeTab !== 'datos' && (!paciente.nombreCompleto || !paciente.dni);
+  if (!isClient || loadingStorage) {
+    return <div className={styles.container}><div className={styles.loading}>Cargando datos...</div></div>;
+  }
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>🧾 Sistema de Facturación Clínica</h1>
-          
-          {/* Botones de guardar/cargar */}
           <div className={styles.headerActions}>
-            <button 
-              className={styles.btnSecundario}
-              onClick={() => {
-                if (!isClient) return;
-                const nombre = prompt('Nombre del siniestro:');
-                if (nombre) guardarSiniestro(nombre);
-              }}
-              title="Guardar siniestro actual"
-              disabled={!isClient}
-            >
-              {isClient ? '💾 Guardar' : 'Cargando...'}
-            </button>
-            
-            <button 
-              className={styles.btnSecundario}
-              onClick={limpiarFactura}
-              title="Limpiar todo"
-              disabled={!isClient}
-            >
-              {isClient ? '🗑️ Limpiar' : 'Cargando...'}
-            </button>
-            
-            <button 
-              className={styles.btnPrimario}
-              onClick={cerrarSiniestro}
-              disabled={isButtonDisabled(!paciente.nombreCompleto || !paciente.dni)}
-              title="Cerrar siniestro y generar archivo"
-            >
-              {isClient ? '✅ Cerrar Siniestro' : 'Cargando...'}
-            </button>
+            <button className={styles.btnSecundario} onClick={() => {
+              const nombre = prompt('Nombre del siniestro:');
+              if (nombre) guardarSiniestro(nombre);
+            }}>💾 Guardar</button>
+            <button className={styles.btnSecundario} onClick={limpiarFactura}>🗑️ Limpiar</button>
+            <button className={styles.btnPrimario} onClick={cerrarSiniestro} disabled={!paciente.nombreCompleto || !paciente.dni}>✅ Cerrar Siniestro</button>
           </div>
         </div>
 
         <div className={styles.convenioInfo}>
           <div className={styles.convenioSelector}>
             <label>Convenio:</label>
-            <select 
-              value={convenioSel} 
-              onChange={(e) => cambiarConvenio(e.target.value)}
-              disabled={loading || !isClient}
-              className={styles.select}
-            >
-              {loading || !isClient ? (
-                <option>Cargando convenios...</option>
-              ) : (
-                Object.keys(convenios).map(k => (
-                  <option key={k} value={k}>
-                    {convenios[k]?.nombre || k}
-                  </option>
-                ))
-              )}
+            <select value={convenioSel} onChange={(e) => cambiarConvenio(e.target.value)} disabled={loading} className={styles.select}>
+              {loading ? <option>Cargando convenios...</option> : Object.keys(convenios).map(k => (
+                <option key={k} value={k}>{convenios[k]?.nombre || k}</option>
+              ))}
             </select>
           </div>
-          
-          {valoresConvenio && isClient && (
+          {valoresConvenio && (
             <div className={styles.convenioValores}>
-              <div className={styles.valorItem}>
-                <span>Galeno Rx:</span>
-                <strong>${money(valoresConvenio.galenoRx)}</strong>
-              </div>
-              <div className={styles.valorItem}>
-                <span>Gasto Rx:</span>
-                <strong>${money(valoresConvenio.gastoRx)}</strong>
-              </div>
-              <div className={styles.valorItem}>
-                <span>Galeno Quir:</span>
-                <strong>${money(valoresConvenio.galenoQuir)}</strong>
-              </div>
-              <div className={styles.valorItem}>
-                <span>Gasto Op:</span>
-                <strong>${money(valoresConvenio.gastoOperatorio)}</strong>
-              </div>
+              <div className={styles.valorItem}><span>Galeno Rx:</span><strong>${money(valoresConvenio.galenoRx)}</strong></div>
+              <div className={styles.valorItem}><span>Gasto Rx:</span><strong>${money(valoresConvenio.gastoRx)}</strong></div>
+              <div className={styles.valorItem}><span>Galeno Quir:</span><strong>${money(valoresConvenio.galenoQuir)}</strong></div>
+              <div className={styles.valorItem}><span>Gasto Op:</span><strong>${money(valoresConvenio.gastoOperatorio)}</strong></div>
             </div>
           )}
         </div>
@@ -395,8 +196,8 @@ export default function FacturaContainer() {
           <button
             key={tab}
             className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-            onClick={() => isClient && setActiveTab(tab)}
-            disabled={isButtonDisabled(tab !== 'datos' && (!paciente.nombreCompleto || !paciente.dni))}
+            onClick={() => setActiveTab(tab)}
+            disabled={tab !== 'datos' && (!paciente.nombreCompleto || !paciente.dni)}
           >
             {tab === 'datos' && '👤 Datos Paciente'}
             {tab === 'practicas' && '🏥 Prácticas'}
@@ -417,16 +218,7 @@ export default function FacturaContainer() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <DatosPaciente
-                paciente={paciente}
-                setPaciente={handleSetPaciente}
-                onSiguiente={() => {
-                  if (isClient) {
-                    console.log('Navegando a prácticas...');
-                    setActiveTab('practicas');
-                  }
-                }}
-              />
+              <DatosPaciente paciente={paciente} setPaciente={handleSetPaciente} onSiguiente={() => setActiveTab('practicas')} />
             </motion.div>
           )}
 
@@ -440,8 +232,8 @@ export default function FacturaContainer() {
               <PracticasModule
                 practicasAgregadas={practicas}
                 agregarPractica={agregarPractica}
-                onAtras={() => isClient && setActiveTab('datos')}
-                onSiguiente={() => isClient && setActiveTab('laboratorios')}
+                onAtras={() => setActiveTab('datos')}
+                onSiguiente={() => setActiveTab('laboratorios')}
               />
             </motion.div>
           )}
@@ -456,8 +248,8 @@ export default function FacturaContainer() {
               <LaboratoriosModule
                 laboratoriosAgregados={laboratorios}
                 agregarLaboratorio={agregarLaboratorio}
-                onAtras={() => isClient && setActiveTab('practicas')}
-                onSiguiente={() => isClient && setActiveTab('medicamentos')}
+                onAtras={() => setActiveTab('practicas')}
+                onSiguiente={() => setActiveTab('medicamentos')}
               />
             </motion.div>
           )}
@@ -474,8 +266,8 @@ export default function FacturaContainer() {
                 descartablesAgregados={descartables}
                 agregarMedicamento={agregarMedicamento}
                 agregarDescartable={agregarDescartable}
-                onAtras={() => isClient && setActiveTab('laboratorios')}
-                onSiguiente={() => isClient && setActiveTab('resumen')}
+                onAtras={() => setActiveTab('laboratorios')}
+                onSiguiente={() => setActiveTab('resumen')}
               />
             </motion.div>
           )}
@@ -496,7 +288,7 @@ export default function FacturaContainer() {
                 actualizarCantidad={actualizarCantidad}
                 eliminarItem={eliminarItem}
                 limpiarFactura={limpiarFactura}
-                onAtras={() => isClient && setActiveTab('medicamentos')}
+                onAtras={() => setActiveTab('medicamentos')}
                 generarExcel={generarExcel}
               />
             </motion.div>
@@ -504,11 +296,8 @@ export default function FacturaContainer() {
         </AnimatePresence>
       </div>
 
-      {/* Información de autoguardado */}
       <div className={styles.autoSaveInfo}>
-        <small>
-          {isClient ? '💾 Los datos se guardan automáticamente. Se mantendrán hasta que cierre el siniestro.' : 'Cargando...'}
-        </small>
+        <small>💾 Los datos se guardan automáticamente.</small>
       </div>
     </div>
   );
