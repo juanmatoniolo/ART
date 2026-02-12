@@ -22,7 +22,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import UtilidadesDueBadge from "@/components/utilidades/UtilidadesDueBadge";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -139,14 +138,7 @@ export default function AdminLayout({ children }) {
           >
             <StickyNote size={20} />
 
-            {!collapsed ? (
-              <span className={styles.menuText}>
-                Utilidades
-                <UtilidadesDueBadge className={styles.utilBadge} />
-              </span>
-            ) : (
-              <UtilidadesDueBadge className={styles.utilBadgeCollapsed} />
-            )}
+
           </Link>
 
           <Link

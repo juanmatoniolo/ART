@@ -5,7 +5,6 @@ import Fuse from "fuse.js";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { Settings } from "lucide-react";
-import UtilidadesDueBadge from "@/components/utilidades/UtilidadesDueBadge";
 
 export default function HomePacientes() {
     const [pacientes, setPacientes] = useState([]);
