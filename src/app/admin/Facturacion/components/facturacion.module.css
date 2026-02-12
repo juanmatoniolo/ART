@@ -1,7 +1,6 @@
 /* facturacion.module.css - Estilos principales del contenedor de facturación */
 
 .container {
-  /* Variables de color - Tema OSCURO forzado */
   --color-bg-primary: #0b1220;
   --color-bg-secondary: #1a1a1a;
   --color-bg-tertiary: #2a2a2a;
@@ -18,7 +17,6 @@
   --color-info: #06b6d4;
   --color-disabled: #4b5563;
 
-  /* Espaciado */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -28,18 +26,15 @@
   --spacing-3xl: 30px;
   --spacing-4xl: 40px;
 
-  /* Bordes */
   --border-radius-sm: 6px;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
   --border-radius-xl: 16px;
 
-  /* Transiciones */
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 350ms ease;
 
-  /* Sombras */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
@@ -52,9 +47,9 @@
   color: var(--color-text-primary);
 }
 
-/* Header */
+/* Header (look como Practicas) */
 .header {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-tertiary);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
@@ -77,21 +72,36 @@
   }
 }
 
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
 .title {
   margin: 0;
   color: var(--color-text-primary);
   font-size: clamp(1.5rem, 5vw, 2rem);
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  letter-spacing: -0.02em;
 }
 
 .title::before {
   content: '🧾';
-  font-size: 1.5em;
+  font-size: 1.2em;
 }
 
+.subtitle {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+/* Acciones */
 .headerActions {
   display: flex;
   flex-wrap: wrap;
@@ -114,7 +124,7 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   border: none;
   border-radius: var(--border-radius-md);
   cursor: pointer;
@@ -135,12 +145,7 @@
   box-shadow: var(--shadow-md);
 }
 
-.btnPrimario:active:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.btnPrimario:disabled,
-.btnPrimario[disabled] {
+.btnPrimario:disabled {
   background-color: var(--color-disabled);
   color: var(--color-text-tertiary);
   cursor: not-allowed;
@@ -148,7 +153,7 @@
 }
 
 .btnSecundario {
-  background-color: var(--color-bg-tertiary);
+  background-color: rgba(0, 0, 0, 0.25);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
@@ -160,30 +165,20 @@
   transform: translateY(-2px);
 }
 
-.btnSecundario:active:not(:disabled) {
-  transform: translateY(-1px);
-}
-
 .btnSecundario:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Convenio Info */
-.convenioInfo {
+/* Fila tipo Practicas: selector + counter */
+.titleRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--color-border);
-}
-
-@media (min-width: 640px) {
-  .convenioInfo {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .convenioSelector {
@@ -201,19 +196,19 @@
 
 .convenioSelector label {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .select {
-  min-width: 200px;
+  min-width: 220px;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: 0.9375rem;
   font-family: inherit;
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius-sm);
-  background-color: var(--color-bg-tertiary);
+  background-color: rgba(0, 0, 0, 0.25);
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -236,51 +231,38 @@
   cursor: not-allowed;
 }
 
-.convenioValores {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
-
-@media (min-width: 640px) {
-  .convenioValores {
-    display: flex;
-    gap: var(--spacing-lg);
-  }
-}
-
-.valorItem {
-  background: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border);
+/* Counter badge como Practicas */
+.counterBadge {
+  background: var(--color-success);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--border-radius-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  min-width: 120px;
-  display: flex;
-  flex-direction: column;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-@media (min-width: 640px) {
-  .valorItem {
-    min-width: 140px;
-  }
+/* Badges de valores del convenio (estilo Practicas) */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
 }
 
-.valorItem span {
+.badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
   font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  border: 1px solid transparent;
 }
 
-.valorItem strong {
-  font-size: 0.9375rem;
-  color: var(--color-text-primary);
-  font-weight: 700;
-}
+
 
 /* Tabs */
 .tabs {
@@ -305,7 +287,7 @@
   background: transparent;
   border: none;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -331,15 +313,14 @@
 .activeTab {
   background: var(--color-primary);
   color: white;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .activeTab:hover {
   background: var(--color-primary-hover);
 }
 
-.tab:disabled,
-.tab[disabled] {
+.tab:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -379,7 +360,7 @@
   gap: var(--spacing-sm);
 }
 
-/* Loading y estados */
+/* Loading */
 .loading {
   display: flex;
   align-items: center;
@@ -406,26 +387,6 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-.error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-md);
-  color: #fecaca;
-  font-size: 0.875rem;
-  margin: var(--spacing-md) 0;
-}
-
-.success {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid var(--color-success);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-md);
-  color: #bbf7d0;
-  font-size: 0.875rem;
-  margin: var(--spacing-md) 0;
 }
 
 /* Responsive */
@@ -458,16 +419,165 @@
   }
 }
 
-/* Reducir movimiento */
-@media (prefers-reduced-motion: reduce) {
-  .container {
-    --transition-fast: 50ms ease;
-    --transition-base: 100ms ease;
-    --transition-slow: 150ms ease;
-  }
+/* ===== Chips de valores del convenio ===== */
 
-  .btnPrimario:hover:not(:disabled),
-  .btnSecundario:hover:not(:disabled) {
-    transform: none;
+.chipsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.chipValue {
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+/* Colores individuales */
+
+.chipGastoRx {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.chipGalenoRx {
+  background: rgba(59, 130, 246, 0.15);
+  color: #bfdbfe;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.chipGtoOperatorio {
+  background: rgba(139, 92, 246, 0.15);
+  color: #ddd6fe;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.chipGalenoQuir {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fed7aa;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.chipPension {
+  background: rgba(6, 182, 212, 0.15);
+  color: #99f6e4;
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+.chipOtros {
+  background: rgba(236, 72, 153, 0.15);
+  color: #fbcfe8;
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+.chipUb {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.chip {
+  /* ... */
+  font-size: 0.85rem;
+  /* más legible el label */
+  padding: 8px 12px;
+  /* un poco más “touch friendly” */
+}
+
+.chipValue {
+  font-weight: 800;
+  font-size: 1.05rem;
+  /* ✅ números más grandes */
+  letter-spacing: 0.2px;
+}
+
+@media (min-width: 768px) {
+  .chipValue {
+    font-size: 1.rem;
+
   }
+}
+
+
+/* ===== Chips de valores del convenio ===== */
+.chipsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.chipValue {
+  font-weight: 900;
+  font-size: 0.95rem;
+  /* ✅ números más grandes */
+}
+
+/* Colores */
+.chipGastoRx {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.chipGalenoRx {
+  background: rgba(59, 130, 246, 0.15);
+  color: #bfdbfe;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.chipGtoOperatorio {
+  background: rgba(139, 92, 246, 0.15);
+  color: #ddd6fe;
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+.chipGalenoQuir {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fed7aa;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.chipPension {
+  background: rgba(6, 182, 212, 0.15);
+  color: #99f6e4;
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+.chipUb {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.chipOtros {
+  background: rgba(236, 72, 153, 0.15);
+  color: #fbcfe8;
+  border-color: rgba(236, 72, 153, 0.35);
 }

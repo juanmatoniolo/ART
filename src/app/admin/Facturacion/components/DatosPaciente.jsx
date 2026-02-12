@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './datosPaciente.module.css';
 
 const OPCIONES_SEGURO = [
@@ -15,182 +15,275 @@ const OPCIONES_SEGURO = [
   { value: 'Otro', label: 'Otro' }
 ];
 
+const onlyDigits = (s) => (s ?? '').replace(/\D/g, '');
+
 export default function DatosPaciente({ paciente, setPaciente, onSiguiente }) {
   const [seguroCustom, setSeguroCustom] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [errors, setErrors] = useState({});
-  const [isFormValid, setIsFormValid] = useState(false);
+  const [touched, setTouched] = useState({});
   const nombreRef = useRef(null);
 
-  useEffect(() => {
-    const validateForm = () => {
-      const nombreValido = paciente.nombreCompleto?.trim().length >= 3;
-      const dniValido = paciente.dni?.trim().length >= 7 && /^\d+$/.test(paciente.dni?.trim());
-      setIsFormValid(nombreValido && dniValido);
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-      const newErrors = {};
-      if (paciente.nombreCompleto && !nombreValido) {
-        newErrors.nombreCompleto = 'Nombre debe tener al menos 3 caracteres';
-      }
-      if (paciente.dni && !dniValido) {
-        newErrors.dni = 'DNI debe tener al menos 7 dígitos numéricos';
-      }
-      setErrors(newErrors);
-    };
-    validateForm();
+  // 🔎 Detecta si el seguro actual es uno de la lista
+  const seguroEsDeLista = useMemo(() => {
+    const v = (paciente.artSeguro || '').trim();
+    if (!v) return true; // vacío => se considera “de lista”
+    return OPCIONES_SEGURO.some((o) => o.value === v);
+  }, [paciente.artSeguro]);
+
+  // Si el paciente trae un seguro que no está en lista, lo tratamos como custom
+  useEffect(() => {
+    const v = (paciente.artSeguro || '').trim();
+    if (v && !seguroEsDeLista) {
+      setShowCustomInput(true);
+      setSeguroCustom(v);
+    }
+  }, [paciente.artSeguro, seguroEsDeLista]);
+
+  const isFormValid = useMemo(() => {
+    const nombreValido = (paciente.nombreCompleto || '').trim().length >= 3;
+    const dni = (paciente.dni || '').trim();
+    const dniValido = dni.length >= 7 && /^\d+$/.test(dni);
+    return nombreValido && dniValido;
   }, [paciente.nombreCompleto, paciente.dni]);
+
+  useEffect(() => {
+    const newErrors = {};
+    const nombre = (paciente.nombreCompleto || '').trim();
+    const dni = (paciente.dni || '').trim();
+
+    if (touched.nombreCompleto && nombre && nombre.length < 3) {
+      newErrors.nombreCompleto = 'Nombre debe tener al menos 3 caracteres.';
+    }
+    if (touched.dni && dni && (dni.length < 7 || !/^\d+$/.test(dni))) {
+      newErrors.dni = 'DNI debe tener al menos 7 dígitos numéricos.';
+    }
+
+    setErrors(newErrors);
+  }, [paciente.nombreCompleto, paciente.dni, touched]);
 
   useEffect(() => {
     nombreRef.current?.focus();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPaciente(prev => ({ ...prev, [name]: value }));
+  const setField = (name, value) => {
+    setPaciente((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const handleSeguroChange = (e) => {
     const value = e.target.value;
     if (value === 'Otro') {
       setShowCustomInput(true);
-      setPaciente(prev => ({ ...prev, artSeguro: '' }));
       setSeguroCustom('');
-    } else {
-      setShowCustomInput(false);
-      setSeguroCustom('');
-      setPaciente(prev => ({ ...prev, artSeguro: value }));
+      setField('artSeguro', '');
+      return;
     }
-  };
-
-  const handleCustomSeguroChange = (e) => {
-    const value = e.target.value;
-    setSeguroCustom(value);
-    setPaciente(prev => ({ ...prev, artSeguro: value }));
+    setShowCustomInput(false);
+    setSeguroCustom('');
+    setField('artSeguro', value);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Marcar touched para mostrar errores si intentan avanzar
+    setTouched({ nombreCompleto: true, dni: true });
+
     if (!isFormValid) {
-      if (!paciente.nombreCompleto?.trim()) {
-        alert('Ingrese el nombre completo');
+      if (!(paciente.nombreCompleto || '').trim()) {
         nombreRef.current?.focus();
-      } else if (!paciente.dni?.trim()) {
-        alert('Ingrese el DNI');
       }
       return;
     }
     onSiguiente();
   };
 
+  // ✅ value del select sin el bug de "Otro" cuando está vacío
+  const selectValue = showCustomInput ? 'Otro' : (paciente.artSeguro || '');
+
   return (
-    <div className={styles.container}>
-      <div className={styles.tabContent}>
-        <h2>Datos del Paciente</h2>
-        <form onSubmit={handleSubmit} className={styles.formGrid} noValidate>
-          <div className={styles.formGroupFull}>
-            <label htmlFor="nombreCompleto" required>Nombre Completo *</label>
-            <input
-              ref={nombreRef}
-              id="nombreCompleto"
-              type="text"
-              name="nombreCompleto"
-              value={paciente.nombreCompleto || ''}
-              onChange={handleChange}
-              placeholder="Apellido y Nombre"
-              className={`${styles.input} ${errors.nombreCompleto ? styles.hasError : ''}`}
-              required
-              minLength="3"
-            />
-            {errors.nombreCompleto && <span className={styles.errorMessage}>{errors.nombreCompleto}</span>}
-          </div>
+    <section className={styles.container} aria-label="Datos del paciente">
+      <header className={styles.header}>
+        <h2 className={styles.title}>Datos del Paciente</h2>
+        <p className={styles.subtitle}>
+          Completa los datos mínimos para continuar con prácticas y cálculos.
+        </p>
+      </header>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="dni" required>DNI *</label>
-            <input
-              id="dni"
-              type="text"
-              name="dni"
-              value={paciente.dni || ''}
-              onChange={handleChange}
-              placeholder="Número de DNI (solo números)"
-              className={`${styles.input} ${errors.dni ? styles.hasError : ''}`}
-              required
-              inputMode="numeric"
-              pattern="[0-9]*"
-              minLength="7"
-              maxLength="10"
-            />
-            {errors.dni && <span className={styles.errorMessage}>{errors.dni}</span>}
-          </div>
+      <form onSubmit={handleSubmit} className={styles.card} noValidate>
+        {/* Nombre */}
+        <div className={styles.formGroupFull}>
+          <label className={styles.label} htmlFor="nombreCompleto">
+            Nombre Completo <span className={styles.req}>*</span>
+          </label>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="artSeguro">ART/Seguro</label>
-            <select
-              id="artSeguro"
-              name="artSeguro"
-              value={paciente.artSeguro === seguroCustom ? 'Otro' : paciente.artSeguro}
-              onChange={handleSeguroChange}
-              className={styles.select}
-            >
-              {OPCIONES_SEGURO.map(opcion => (
-                <option key={opcion.value} value={opcion.value} disabled={opcion.disabled}>
-                  {opcion.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <input
+            ref={nombreRef}
+            id="nombreCompleto"
+            type="text"
+            name="nombreCompleto"
+            value={paciente.nombreCompleto || ''}
+            onChange={(e) => setField('nombreCompleto', e.target.value)}
+            onBlur={handleBlur}
+            placeholder="Apellido y Nombre"
+            className={`${styles.input} ${errors.nombreCompleto ? styles.hasError : ''}`}
+            autoComplete="name"
+            aria-invalid={!!errors.nombreCompleto}
+            aria-describedby={errors.nombreCompleto ? 'err-nombre' : 'help-nombre'}
+          />
 
-          {showCustomInput && (
-            <div className={`${styles.formGroupFull} ${styles.customSeguroInput}`}>
-              <label htmlFor="seguroCustom">Especificar otro seguro</label>
-              <input
-                id="seguroCustom"
-                type="text"
-                value={seguroCustom}
-                onChange={handleCustomSeguroChange}
-                placeholder="Ingrese el nombre del seguro"
-                className={styles.input}
-                autoFocus
-              />
-            </div>
+          {!errors.nombreCompleto ? (
+            <small id="help-nombre" className={styles.help}>
+              Ej: “Pérez Juan”. Mínimo 3 caracteres.
+            </small>
+          ) : (
+            <span id="err-nombre" className={styles.errorMessage} role="alert">
+              {errors.nombreCompleto}
+            </span>
           )}
+        </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="nroSiniestro">N° Siniestro (STRO)</label>
+        {/* DNI */}
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="dni">
+            DNI <span className={styles.req}>*</span>
+          </label>
+
+          <input
+            id="dni"
+            type="text"
+            name="dni"
+            value={paciente.dni || ''}
+            onChange={(e) => setField('dni', onlyDigits(e.target.value).slice(0, 10))}
+            onBlur={handleBlur}
+            placeholder="Solo números"
+            className={`${styles.input} ${errors.dni ? styles.hasError : ''}`}
+            inputMode="numeric"
+            autoComplete="off"
+            aria-invalid={!!errors.dni}
+            aria-describedby={errors.dni ? 'err-dni' : 'help-dni'}
+          />
+
+          {!errors.dni ? (
+            <small id="help-dni" className={styles.help}>
+              Mínimo 7 dígitos (sin puntos).
+            </small>
+          ) : (
+            <span id="err-dni" className={styles.errorMessage} role="alert">
+              {errors.dni}
+            </span>
+          )}
+        </div>
+
+        {/* ART/Seguro */}
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="artSeguro">
+            ART / Seguro
+          </label>
+
+          <select
+            id="artSeguro"
+            name="artSeguro"
+            value={selectValue}
+            onChange={handleSeguroChange}
+            className={styles.select}
+          >
+            {OPCIONES_SEGURO.map((op) => (
+              <option key={op.value} value={op.value} disabled={op.disabled}>
+                {op.label}
+              </option>
+            ))}
+          </select>
+
+          <small className={styles.help}>Si no figura en la lista, elegí “Otro”.</small>
+        </div>
+
+        {showCustomInput && (
+          <div className={styles.formGroupFull}>
+            <label className={styles.label} htmlFor="seguroCustom">
+              Especificar otro seguro
+            </label>
+
             <input
-              id="nroSiniestro"
+              id="seguroCustom"
               type="text"
-              name="nroSiniestro"
-              value={paciente.nroSiniestro || ''}
-              onChange={handleChange}
-              placeholder="Opcional"
+              value={seguroCustom}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSeguroCustom(v);
+                setField('artSeguro', v);
+              }}
+              placeholder="Ingrese el nombre del seguro"
               className={styles.input}
+              autoFocus
             />
+
+            <small className={styles.help}>Ej: “Swiss Medical”, “OSDE”, etc.</small>
+          </div>
+        )}
+
+        {/* Siniestro */}
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="nroSiniestro">
+            N° Siniestro (STRO)
+          </label>
+
+          <input
+            id="nroSiniestro"
+            type="text"
+            name="nroSiniestro"
+            value={paciente.nroSiniestro || ''}
+            onChange={(e) => setField('nroSiniestro', e.target.value)}
+            placeholder="Opcional"
+            className={styles.input}
+            autoComplete="off"
+          />
+
+          <small className={styles.help}>Si no lo tenés, podés dejarlo vacío.</small>
+        </div>
+
+        {/* Fecha */}
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="fechaAtencion">
+            Fecha de Atención
+          </label>
+
+          <input
+            id="fechaAtencion"
+            type="date"
+            name="fechaAtencion"
+            value={paciente.fechaAtencion || today}
+            onChange={(e) => setField('fechaAtencion', e.target.value)}
+            className={styles.input}
+          />
+
+          <small className={styles.help}>Por defecto: hoy. Podés ajustarla.</small>
+        </div>
+
+        {/* Footer */}
+        <div className={styles.footer}>
+          <div className={styles.note} role="note">
+            <span className={styles.noteIcon}>ℹ️</span>
+            Los campos con <b>*</b> son obligatorios.
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="fechaAtencion">Fecha de Atención</label>
-            <input
-              id="fechaAtencion"
-              type="date"
-              name="fechaAtencion"
-              value={paciente.fechaAtencion || new Date().toISOString().split('T')[0]}
-              onChange={handleChange}
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.infoBox}>
-            <p><strong>Nota:</strong> Los campos marcados con * son obligatorios.</p>
-          </div>
-
-          <div className={styles.botonesNavegacion}>
-            <button type="submit" className={styles.btnSiguiente} disabled={!isFormValid}>
-              Siguiente: Prácticas
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <button
+            type="submit"
+            className={styles.btnPrimary}
+            disabled={!isFormValid}
+            aria-disabled={!isFormValid}
+          >
+            {isFormValid ? 'Siguiente: Prácticas →' : 'Completa nombre y DNI'}
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }

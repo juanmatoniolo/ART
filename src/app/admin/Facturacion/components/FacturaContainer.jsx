@@ -1,58 +1,131 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConvenio } from './ConvenioContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../utils/storage';
+
 import DatosPaciente from './DatosPaciente';
 import PracticasModule from './PracticasModule';
 import LaboratoriosModule from './LaboratoriosModule';
 import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
+
+import { calcularPractica, calcularLaboratorio, money as moneyFmt } from '../utils/calculos';
 import styles from './facturacion.module.css';
 
-const money = (n) => {
-  if (n == null || n === '' || n === '-') return '—';
-  const num = typeof n === 'number' ? n : parseFloat(n);
-  return isNaN(num) ? '—' : num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+const safeNum = (v) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
 };
+
+function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
+  const honor = safeNum(calculoBase?.honorarioMedico);
+  const gasto = safeNum(calculoBase?.gastoSanatorial);
+
+  if (prestadorTipo === 'Dr') {
+    return { honorarioMedico: honor, gastoSanatorial: 0, total: honor };
+  }
+  return { honorarioMedico: 0, gastoSanatorial: gasto, total: gasto };
+}
+
+function recalcularPracticaConPrestador(item, valoresConvenio, prestadorTipo) {
+  const base = calcularPractica(item, valoresConvenio);
+  const aplicado = aplicarPrestadorEnPractica(base, prestadorTipo);
+  return { ...item, ...base, ...aplicado, prestadorTipo };
+}
+
+function normalizarLab(item, valoresConvenio) {
+  const calc = calcularLaboratorio(item, valoresConvenio);
+  const total = safeNum(calc?.total);
+  return {
+    ...item,
+    ...calc,
+    honorarioMedico: total,
+    gastoSanatorial: 0,
+    total
+  };
+}
+
+function normalizarMedDesc(item) {
+  const cantidad = Math.max(1, safeNum(item?.cantidad) || 1);
+  const unit = safeNum(item?.valorUnitario ?? item?.precio ?? 0);
+  const total = unit * cantidad;
+  return {
+    ...item,
+    cantidad,
+    valorUnitario: unit,
+    honorarioMedico: 0,
+    gastoSanatorial: total,
+    total
+  };
+}
 
 export default function FacturaContainer() {
   const { convenios, convenioSel, valoresConvenio, cambiarConvenio, loading } = useConvenio();
+
   const [isClient, setIsClient] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(true);
 
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => setIsClient(true), []);
 
-  // Estados iniciales
   const [activeTab, setActiveTab] = useState('datos');
   const [paciente, setPaciente] = useState({
     nombreCompleto: '',
     dni: '',
     artSeguro: '',
     nroSiniestro: '',
-    fechaAtencion: new Date().toISOString().split('T')[0]
+    fechaAtencion: todayISO()
   });
+
   const [practicas, setPracticas] = useState([]);
   const [laboratorios, setLaboratorios] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [descartables, setDescartables] = useState([]);
 
-  // Cargar desde localStorage al montar
+  const totalItems = useMemo(
+    () => practicas.length + laboratorios.length + medicamentos.length + descartables.length,
+    [practicas.length, laboratorios.length, medicamentos.length, descartables.length]
+  );
+
+  // ===== Chips (valores del convenio) =====
+  const chips = useMemo(() => {
+    const galenoRx = safeNum(valoresConvenio?.galenoRx);
+    const gastoRx = safeNum(valoresConvenio?.gastoRx);
+    const gastoOperatorio = safeNum(valoresConvenio?.gastoOperatorio);
+    const galenoQuir = safeNum(valoresConvenio?.galenoQuir);
+    const diaPension =
+      safeNum(valoresConvenio?.diaPension) ||
+      safeNum(valoresConvenio?.pension) ||
+      safeNum(valoresConvenio?.pensionDia);
+
+    const otrosGastos = safeNum(valoresConvenio?.otrosGastos);
+    const valorUB = safeNum(valoresConvenio?.valorUB);
+
+    return { galenoRx, gastoRx, gastoOperatorio, galenoQuir, diaPension, otrosGastos, valorUB };
+  }, [valoresConvenio]);
+
+  // Load localStorage
   useEffect(() => {
     if (!isClient) return;
+
     setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
     setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
     setLaboratorios(getStorageItem(STORAGE_KEYS.LABORATORIOS, []));
     setMedicamentos(getStorageItem(STORAGE_KEYS.MEDICAMENTOS, []));
     setDescartables(getStorageItem(STORAGE_KEYS.DESCARTABLES, []));
     setActiveTab(getStorageItem(STORAGE_KEYS.TAB_ACTIVA, 'datos'));
+
     setLoadingStorage(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient]);
 
-  // Guardar automáticamente
+  // Auto save
   useEffect(() => {
     if (!isClient || loadingStorage) return;
+
     setStorageItem(STORAGE_KEYS.PACIENTE, paciente);
     setStorageItem(STORAGE_KEYS.PRACTICAS, practicas);
     setStorageItem(STORAGE_KEYS.LABORATORIOS, laboratorios);
@@ -61,73 +134,186 @@ export default function FacturaContainer() {
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
   }, [paciente, practicas, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
 
-  // Handlers
-  const handleSetPaciente = (nuevosDatos) => setPaciente(nuevosDatos);
-  const agregarPractica = (nueva) => setPracticas(prev => [...prev, nueva]);
-  const agregarLaboratorio = (nuevo) => setLaboratorios(prev => [...prev, nuevo]);
-  const agregarMedicamento = (nuevo) => setMedicamentos(prev => [...prev, nuevo]);
-  const agregarDescartable = (nuevo) => setDescartables(prev => [...prev, nuevo]);
+  // Add handlers (módulos)
+  const agregarPractica = useCallback(
+    (nueva) => {
+      const prestadorTipo = nueva.prestadorTipo || 'Clinica';
+      const prestadorNombre = nueva.prestadorNombre || '';
 
-  // Actualizar cantidad (solo id y cantidad, detecta tipo automáticamente)
-  const actualizarCantidad = (id, cantidad) => {
-    if (cantidad < 1) return;
-    const actualizarArray = (items, setItems) => {
-      const index = items.findIndex(i => i.id === id);
-      if (index === -1) return false;
-      const item = items[index];
-      const factor = cantidad / (item.cantidad || 1);
-      const nuevoItem = {
-        ...item,
-        cantidad,
-        total: item.total * factor,
-        ...(item.honorarioMedico && { honorarioMedico: item.honorarioMedico * factor }),
-        ...(item.gastoSanatorial && { gastoSanatorial: item.gastoSanatorial * factor })
+      const base = valoresConvenio ? calcularPractica(nueva, valoresConvenio) : nueva;
+      const aplicado = aplicarPrestadorEnPractica(base, prestadorTipo);
+
+      setPracticas((prev) => [
+        ...prev,
+        {
+          ...nueva,
+          ...base,
+          ...aplicado,
+          prestadorTipo,
+          prestadorNombre
+        }
+      ]);
+    },
+    [valoresConvenio]
+  );
+
+  const agregarLaboratorio = useCallback(
+    (nuevo) => {
+      const normal = valoresConvenio ? normalizarLab(nuevo, valoresConvenio) : nuevo;
+      setLaboratorios((prev) => [...prev, normal]);
+    },
+    [valoresConvenio]
+  );
+
+  const agregarMedicamento = useCallback((nuevo) => {
+    setMedicamentos((prev) => [...prev, normalizarMedDesc(nuevo)]);
+  }, []);
+
+  const agregarDescartable = useCallback((nuevo) => {
+    setDescartables((prev) => [...prev, normalizarMedDesc(nuevo)]);
+  }, []);
+
+  // actualizarCantidad
+  const actualizarCantidad = useCallback(
+    (id, cantidad) => {
+      const c = Math.max(1, Number(cantidad) || 1);
+
+      const actualizarArray = (items, setItems) => {
+        const index = items.findIndex((i) => i.id === id);
+        if (index === -1) return false;
+
+        const item = items[index];
+        const oldC = Math.max(1, Number(item.cantidad) || 1);
+        const factor = c / oldC;
+
+        const next = {
+          ...item,
+          cantidad: c,
+          total: safeNum(item.total) * factor,
+          ...(item.honorarioMedico != null && { honorarioMedico: safeNum(item.honorarioMedico) * factor }),
+          ...(item.gastoSanatorial != null && { gastoSanatorial: safeNum(item.gastoSanatorial) * factor })
+        };
+
+        setItems((prev) => prev.map((x) => (x.id === id ? next : x)));
+        return true;
       };
-      setItems(prev => prev.map(i => i.id === id ? nuevoItem : i));
-      return true;
-    };
 
-    if (actualizarArray(practicas, setPracticas)) return;
-    if (actualizarArray(laboratorios, setLaboratorios)) return;
-    if (actualizarArray(medicamentos, setMedicamentos)) return;
-    if (actualizarArray(descartables, setDescartables)) return;
-  };
+      if (actualizarArray(practicas, setPracticas)) return;
+      if (actualizarArray(laboratorios, setLaboratorios)) return;
+      if (actualizarArray(medicamentos, setMedicamentos)) return;
+      if (actualizarArray(descartables, setDescartables)) return;
+    },
+    [practicas, laboratorios, medicamentos, descartables]
+  );
 
-  const eliminarItem = (id) => {
-    setPracticas(prev => prev.filter(p => p.id !== id));
-    setLaboratorios(prev => prev.filter(l => l.id !== id));
-    setMedicamentos(prev => prev.filter(m => m.id !== id));
-    setDescartables(prev => prev.filter(d => d.id !== id));
-  };
+  // actualizarItem (Dr/Clínica + nombres)
+  const actualizarItem = useCallback(
+    (id, patch) => {
+      const applyIn = (items, setItems, kind) => {
+        const idx = items.findIndex((x) => x.id === id);
+        if (idx === -1) return false;
 
-  const limpiarFactura = () => {
+        const current = items[idx];
+        const merged = { ...current, ...patch };
+
+        if (kind === 'practica') {
+          if (!valoresConvenio) {
+            setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+            return true;
+          }
+          const prestadorTipo = merged.prestadorTipo || 'Clinica';
+          const recalculada = recalcularPracticaConPrestador(merged, valoresConvenio, prestadorTipo);
+          setItems((prev) => prev.map((x) => (x.id === id ? recalculada : x)));
+          return true;
+        }
+
+        if (kind === 'laboratorio') {
+          if (!valoresConvenio) {
+            const total = safeNum(merged.total);
+            setItems((prev) => prev.map((x) => (x.id === id ? { ...merged, honorarioMedico: total, gastoSanatorial: 0 } : x)));
+            return true;
+          }
+          const normal = normalizarLab(merged, valoresConvenio);
+          setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
+          return true;
+        }
+
+        if (kind === 'medicamento' || kind === 'descartable') {
+          const normal = normalizarMedDesc(merged);
+          setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
+          return true;
+        }
+
+        setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+        return true;
+      };
+
+      if (applyIn(practicas, setPracticas, 'practica')) return;
+      if (applyIn(laboratorios, setLaboratorios, 'laboratorio')) return;
+      if (applyIn(medicamentos, setMedicamentos, 'medicamento')) return;
+      if (applyIn(descartables, setDescartables, 'descartable')) return;
+    },
+    [practicas, laboratorios, medicamentos, descartables, valoresConvenio]
+  );
+
+  const eliminarItem = useCallback((id) => {
+    setPracticas((prev) => prev.filter((p) => p.id !== id));
+    setLaboratorios((prev) => prev.filter((l) => l.id !== id));
+    setMedicamentos((prev) => prev.filter((m) => m.id !== id));
+    setDescartables((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  const limpiarFactura = useCallback(() => {
     if (!isClient || !window.confirm('¿Limpiar toda la factura?')) return;
+
     setPracticas([]);
     setLaboratorios([]);
     setMedicamentos([]);
     setDescartables([]);
-    setPaciente({ nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: new Date().toISOString().split('T')[0] });
+    setPaciente({ nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
     setActiveTab('datos');
-    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
-  };
 
-  const cerrarSiniestro = () => {
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  }, [isClient]);
+
+  const guardarSiniestro = useCallback(
+    (nombre) => {
+      if (!isClient || !nombre) return;
+
+      const siniestro = {
+        id: Date.now(),
+        nombre,
+        fecha: new Date().toISOString(),
+        paciente,
+        practicas,
+        laboratorios,
+        medicamentos,
+        descartables,
+        tabActiva: activeTab,
+        convenio: convenioSel
+      };
+
+      const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
+      siniestros.push(siniestro);
+      setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
+
+      alert(`Siniestro guardado como: ${nombre}`);
+    },
+    [isClient, paciente, practicas, laboratorios, medicamentos, descartables, activeTab, convenioSel]
+  );
+
+  const cerrarSiniestro = useCallback(async () => {
     if (!isClient) return;
+
     if (!paciente.nombreCompleto || !paciente.dni) {
       alert('Complete los datos del paciente primero');
       setActiveTab('datos');
       return;
     }
-    if (window.confirm('¿Cerrar siniestro? Se generará el archivo.')) {
-      generarExcel();
-      limpiarFactura();
-    }
-  };
 
-  const generarExcel = () => alert('Función generar Excel se implementará aquí');
+    const nombre = prompt('Nombre del siniestro (para guardar y exportar):', paciente.nombreCompleto || 'Siniestro');
+    if (!nombre) return;
 
-  const guardarSiniestro = (nombre) => {
-    if (!isClient || !nombre) return;
     const siniestro = {
       id: Date.now(),
       nombre,
@@ -140,95 +326,148 @@ export default function FacturaContainer() {
       tabActiva: activeTab,
       convenio: convenioSel
     };
-    try {
-      const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
-      siniestros.push(siniestro);
-      setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
-      alert(`Siniestro guardado como: ${nombre}`);
-    } catch (error) {
-      console.error(error);
-      alert('Error al guardar');
-    }
-  };
+
+    const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
+    siniestros.push(siniestro);
+    setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
+
+    // ⚠️ si querés export masivo, hacelo desde Resumen o botón aparte
+    alert('Siniestro cerrado y guardado.');
+    limpiarFactura();
+  }, [isClient, paciente, practicas, laboratorios, medicamentos, descartables, activeTab, convenioSel, limpiarFactura]);
+
+  const puedeNavegar = Boolean(paciente.nombreCompleto && paciente.dni);
 
   if (!isClient || loadingStorage) {
-    return <div className={styles.container}><div className={styles.loading}>Cargando datos...</div></div>;
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>Cargando datos...</div>
+      </div>
+    );
   }
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>🧾 Sistema de Facturación Clínica</h1>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Sistema de Facturación Clínica</h1>
+            <p className={styles.subtitle}>Carga rápida, desglose por Dr/Clínica y exportación.</p>
+          </div>
+
           <div className={styles.headerActions}>
-            <button className={styles.btnSecundario} onClick={() => {
-              const nombre = prompt('Nombre del siniestro:');
-              if (nombre) guardarSiniestro(nombre);
-            }}>💾 Guardar</button>
-            <button className={styles.btnSecundario} onClick={limpiarFactura}>🗑️ Limpiar</button>
-            <button className={styles.btnPrimario} onClick={cerrarSiniestro} disabled={!paciente.nombreCompleto || !paciente.dni}>✅ Cerrar Siniestro</button>
+            <button
+              className={styles.btnSecundario}
+              onClick={() => {
+                const nombre = prompt('Nombre del siniestro:');
+                if (nombre) guardarSiniestro(nombre);
+              }}
+            >
+              💾 Guardar
+            </button>
+
+            <button className={styles.btnSecundario} onClick={limpiarFactura}>
+              🗑️ Limpiar
+            </button>
+
+            <button
+              className={styles.btnPrimario}
+              onClick={cerrarSiniestro}
+              disabled={!puedeNavegar}
+              title={!puedeNavegar ? 'Complete nombre y DNI para cerrar el siniestro' : ''}
+            >
+              ✅ Cerrar Siniestro
+            </button>
           </div>
         </div>
 
-        <div className={styles.convenioInfo}>
+        <div className={styles.titleRow}>
           <div className={styles.convenioSelector}>
             <label>Convenio:</label>
-            <select value={convenioSel} onChange={(e) => cambiarConvenio(e.target.value)} disabled={loading} className={styles.select}>
-              {loading ? <option>Cargando convenios...</option> : Object.keys(convenios).map(k => (
-                <option key={k} value={k}>{convenios[k]?.nombre || k}</option>
-              ))}
+            <select
+              value={convenioSel}
+              onChange={(e) => cambiarConvenio(e.target.value)}
+              disabled={loading}
+              className={styles.select}
+            >
+              {loading ? (
+                <option>Cargando convenios...</option>
+              ) : (
+                Object.keys(convenios).map((k) => (
+                  <option key={k} value={k}>
+                    {convenios[k]?.nombre || k}
+                  </option>
+                ))
+              )}
             </select>
           </div>
-          {valoresConvenio && (
-            <div className={styles.convenioValores}>
-              <div className={styles.valorItem}><span>Galeno Rx:</span><strong>${money(valoresConvenio.galenoRx)}</strong></div>
-              <div className={styles.valorItem}><span>Gasto Rx:</span><strong>${money(valoresConvenio.gastoRx)}</strong></div>
-              <div className={styles.valorItem}><span>Galeno Quir:</span><strong>${money(valoresConvenio.galenoQuir)}</strong></div>
-              <div className={styles.valorItem}><span>Gasto Op:</span><strong>${money(valoresConvenio.gastoOperatorio)}</strong></div>
-            </div>
-          )}
+
+          <div className={styles.counterBadge}>
+            {totalItems} {totalItems === 1 ? 'ítem' : 'ítems'} en factura
+          </div>
         </div>
+
+        {/* ✅ Chips de valores del convenio */}
+        {valoresConvenio && (
+          <div className={styles.chipsContainer}>
+            <span className={`${styles.chip} ${styles.chipGastoRx}`}>
+              <b>Gasto Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoRx)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipGalenoRx}`}>
+              <b>Galeno Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoRx)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipGtoOperatorio}`}>
+              <b>G. Oper.</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoOperatorio)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipGalenoQuir}`}>
+              <b>Gal. Quir.</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoQuir)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipPension}`}>
+              <b>Pensión</b> <span className={styles.chipValue}>{moneyFmt(chips.diaPension)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipUb}`}>
+              <b>U.B.</b> <span className={styles.chipValue}>{moneyFmt(chips.valorUB)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipOtros}`}>
+              <b>Otros</b> <span className={styles.chipValue}>{moneyFmt(chips.otrosGastos)}</span>
+            </span>
+          </div>
+        )}
       </header>
 
-      {/* Tabs de navegación */}
       <div className={styles.tabs}>
         {['datos', 'practicas', 'laboratorios', 'medicamentos', 'resumen'].map((tab) => (
           <button
             key={tab}
             className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
             onClick={() => setActiveTab(tab)}
-            disabled={tab !== 'datos' && (!paciente.nombreCompleto || !paciente.dni)}
+            disabled={tab !== 'datos' && !puedeNavegar}
           >
             {tab === 'datos' && '👤 Datos Paciente'}
             {tab === 'practicas' && '🏥 Prácticas'}
             {tab === 'laboratorios' && '🧪 Laboratorios'}
             {tab === 'medicamentos' && '💊 Medicamentos'}
-            {tab === 'resumen' && '📋 Resumen Factura'}
+            {tab === 'resumen' && '📋 Resumen'}
           </button>
         ))}
       </div>
 
-      {/* Contenido de las tabs */}
       <div className={styles.content}>
         <AnimatePresence mode="wait">
           {activeTab === 'datos' && (
-            <motion.div
-              key="datos"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <DatosPaciente paciente={paciente} setPaciente={handleSetPaciente} onSiguiente={() => setActiveTab('practicas')} />
+            <motion.div key="datos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <DatosPaciente paciente={paciente} setPaciente={setPaciente} onSiguiente={() => setActiveTab('practicas')} />
             </motion.div>
           )}
 
           {activeTab === 'practicas' && (
-            <motion.div
-              key="practicas"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="practicas" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <PracticasModule
                 practicasAgregadas={practicas}
                 agregarPractica={agregarPractica}
@@ -239,12 +478,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'laboratorios' && (
-            <motion.div
-              key="laboratorios"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="laboratorios" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <LaboratoriosModule
                 laboratoriosAgregados={laboratorios}
                 agregarLaboratorio={agregarLaboratorio}
@@ -255,12 +489,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'medicamentos' && (
-            <motion.div
-              key="medicamentos"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="medicamentos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <MedicamentosModule
                 medicamentosAgregados={medicamentos}
                 descartablesAgregados={descartables}
@@ -273,12 +502,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'resumen' && (
-            <motion.div
-              key="resumen"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="resumen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <ResumenFactura
                 paciente={paciente}
                 practicas={practicas}
@@ -286,10 +510,10 @@ export default function FacturaContainer() {
                 medicamentos={medicamentos}
                 descartables={descartables}
                 actualizarCantidad={actualizarCantidad}
+                actualizarItem={actualizarItem}
                 eliminarItem={eliminarItem}
                 limpiarFactura={limpiarFactura}
                 onAtras={() => setActiveTab('medicamentos')}
-                generarExcel={generarExcel}
               />
             </motion.div>
           )}

@@ -1,23 +1,27 @@
-/* practicas.module.css - Estilos para el módulo de prácticas médicas */
+/* practicas.module.css */
+
 .tabContent {
-  /* Mismas variables oscuras */
   --color-bg-primary: #0a0a0a;
   --color-bg-secondary: #1a1a1a;
   --color-bg-tertiary: #2a2a2a;
   --color-border: #404040;
+
   --color-text-primary: #ffffff;
   --color-text-secondary: #e0e0e0;
   --color-text-tertiary: #b0b0b0;
+
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
+
   --color-success: #22c55e;
   --color-success-hover: #16a34a;
   --color-success-light: rgba(34, 197, 94, 0.15);
+
   --color-warning: #f59e0b;
   --color-warning-light: rgba(245, 158, 11, 0.15);
-  --color-danger: #ef4444;
-  --color-info: #06b6d4;
+
   --color-disabled: #4b5563;
+
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -25,15 +29,13 @@
   --spacing-xl: 20px;
   --spacing-2xl: 24px;
   --spacing-3xl: 30px;
+
   --border-radius-sm: 6px;
   --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --transition-fast: 150ms ease;
+
   --transition-base: 250ms ease;
-  --transition-slow: 350ms ease;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
   --shadow-tooltip: 0 4px 20px rgba(0, 0, 0, 0.8);
 
   width: 100%;
@@ -42,7 +44,7 @@
   color: var(--color-text-primary);
 }
 
-/* Tooltip flotante */
+/* Tooltip */
 .tooltip {
   position: fixed;
   top: 20px;
@@ -60,30 +62,47 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-weight: 600;
-  max-width: 400px;
+  font-weight: 700;
+  max-width: 420px;
+}
+
+.tooltipIcon {
+  font-weight: 900;
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-/* Header */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Title */
 .tabContent h2 {
   font-size: clamp(1.5rem, 4vw, 1.75rem);
-  font-weight: 700;
-  color: var(--color-text-primary);
+  font-weight: 800;
   margin-bottom: var(--spacing-xl);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
 
+/* Header block */
 .header {
   background: var(--color-bg-tertiary);
   border-radius: var(--border-radius-md);
@@ -108,10 +127,10 @@
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--border-radius-sm);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-base);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
@@ -121,39 +140,31 @@
   transform: translateY(-1px);
 }
 
-.practicasCounter {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
 .counterBadge {
   background: var(--color-success);
   color: white;
   padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--border-radius-sm);
   font-size: 0.875rem;
-  font-weight: 600;
-  display: flex;
+  font-weight: 800;
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-/* Badges de valores del convenio */
+/* Convenio badges */
 .badges {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  flex: 1;
 }
 
 .badge {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-sm);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 800;
   white-space: nowrap;
-  color: var(--color-text-primary);
   border: 1px solid transparent;
 }
 
@@ -162,39 +173,33 @@
   color: #86efac;
   border-color: rgba(34, 197, 94, 0.4);
 }
+
 .badgeBlue {
   background: rgba(59, 130, 246, 0.2);
   color: #bfdbfe;
   border-color: rgba(59, 130, 246, 0.4);
 }
+
 .badgePurple {
   background: rgba(139, 92, 246, 0.2);
   color: #ddd6fe;
   border-color: rgba(139, 92, 246, 0.4);
 }
+
 .badgeOrange {
   background: rgba(245, 158, 11, 0.2);
   color: #fed7aa;
   border-color: rgba(245, 158, 11, 0.4);
 }
-.badgeTeal {
-  background: rgba(20, 184, 166, 0.2);
-  color: #99f6e4;
-  border-color: rgba(20, 184, 166, 0.4);
-}
-.badgeGray {
-  background: rgba(75, 85, 99, 0.3);
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
-}
 
-/* Búsqueda */
+/* Search */
 .searchContainer {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
+
 @media (min-width: 768px) {
   .searchContainer {
     flex-direction: row;
@@ -213,14 +218,16 @@
   font-size: 1rem;
   transition: all var(--transition-base);
 }
+
 .input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
+
 .input::placeholder {
   color: var(--color-text-tertiary);
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .agregadasInfo {
@@ -230,8 +237,8 @@
   padding: var(--spacing-md);
   color: #86efac;
   font-size: 0.875rem;
-  font-weight: 600;
-  display: flex;
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
   white-space: nowrap;
@@ -243,93 +250,171 @@
   margin-bottom: var(--spacing-lg);
 }
 
-/* Tablas y cards */
+/* Table */
 .tableWrapper {
-  overflow-x: auto;
+  /* ✅ evitamos scroll horizontal visual */
   margin: var(--spacing-xl) 0;
 }
 
 .table {
   width: 100%;
+  table-layout: fixed;
+  /* ✅ clave */
   border-collapse: collapse;
-  background: transparent;
 }
+
 .table th {
   background: var(--color-bg-tertiary);
   padding: var(--spacing-md) var(--spacing-lg);
-  text-align: left;
-  font-weight: 600;
+  text-align: center;
+  font-weight: 800;
   color: var(--color-text-primary);
   border-bottom: 2px solid var(--color-border);
-  white-space: nowrap;
   font-size: 0.875rem;
+  white-space: nowrap;
 }
+
 .table td {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   color: var(--color-text-secondary);
-}
-.descCell {
-  min-width: 300px;
-  max-width: 500px;
-  word-wrap: break-word;
-}
-.numeric {
-  text-align: right;
-  font-family: 'Courier New', monospace;
-  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Filas especiales */
+.thCode {
+  width: 110px;
+}
+
+.thCap {
+  width: 240px;
+}
+
+.thNum {
+  width: 170px;
+  text-align: right;
+}
+
+.thAction {
+  width: 84px;
+  text-align: right;
+}
+
+.thDesc {
+  width: auto;
+}
+
+.codeCell {
+  white-space: nowrap;
+}
+
+.capCell {
+  white-space: nowrap;
+}
+
+.actionCell {
+  text-align: right;
+}
+
+.descCell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* ✅ evita que ensanche la tabla */
+}
+
+/* Special rows */
 .rxRow {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.10);
 }
+
 .rxRow:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.18);
 }
+
 .subsiguienteRow {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 158, 11, 0.10);
 }
+
 .subsiguienteRow:hover {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.18);
 }
+
 .recentlyAddedRow {
   animation: rowPulse 2s ease-in-out;
   background: var(--color-success-light) !important;
 }
+
 @keyframes rowPulse {
-  0%, 100% { background: transparent; }
-  15%, 85% { background: var(--color-success-light); }
+
+  0%,
+  100% {
+    background: transparent;
+  }
+
+  15%,
+  85% {
+    background: var(--color-success-light);
+  }
 }
 
-/* Botones de agregar */
+/* Numbers (no monospace) */
+.numericCell {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.baseLine {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+.valueBig {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* Add buttons */
 .btnAgregarTabla {
   background: var(--color-success);
   color: white;
   border: none;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 900;
   transition: all var(--transition-base);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
+
 .btnAgregarTabla:hover {
   background: var(--color-success-hover);
-  transform: scale(1.1);
+  transform: scale(1.07);
 }
+
 .btnAgregadoTabla {
   background: var(--color-disabled);
   color: var(--color-text-tertiary);
   cursor: default;
 }
+
 .btnAgregadoTabla:hover {
-  background: var(--color-disabled);
   transform: none;
 }
 
@@ -337,6 +422,7 @@
 .mobileList {
   display: none;
 }
+
 .card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
@@ -345,164 +431,200 @@
   margin-bottom: var(--spacing-md);
   transition: all var(--transition-base);
 }
+
 .recentlyAdded {
   animation: pulseHighlight 2s ease-in-out;
   border-color: var(--color-success);
   background: var(--color-success-light);
 }
+
 @keyframes pulseHighlight {
-  0%, 100% { border-color: var(--color-border); background: var(--color-bg-secondary); }
-  15%, 85% { border-color: var(--color-success); background: var(--color-success-light); }
+
+  0%,
+  100% {
+    border-color: var(--color-border);
+    background: var(--color-bg-secondary);
+  }
+
+  15%,
+  85% {
+    border-color: var(--color-success);
+    background: var(--color-success-light);
+  }
 }
+
 .cardTop {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
+
 .code {
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 700;
   color: var(--color-text-primary);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  white-space: nowrap;
 }
+
 .capBadge {
-  background: var(--color-bg-tertiary);
+  background: rgba(0, 0, 0, 0.25);
   color: var(--color-text-secondary);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-sm);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
 }
+
 .desc {
   margin-bottom: var(--spacing-lg);
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--color-text-secondary);
 }
+
 .costGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
+
 .costBox {
   background: var(--color-bg-tertiary);
   padding: var(--spacing-md);
   border-radius: var(--border-radius-sm);
   text-align: center;
 }
+
 .costLabel {
   display: block;
   font-size: 0.75rem;
   color: var(--color-text-tertiary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 6px;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 800;
 }
+
 .costValue {
   display: block;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 900;
   color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
+
+.cardActions {
+  display: flex;
+}
+
 .btnAgregar {
   background: var(--color-success);
   color: white;
   border: none;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--border-radius-sm);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 800;
   cursor: pointer;
   transition: all var(--transition-base);
   width: 100%;
 }
+
 .btnAgregar:hover {
   background: var(--color-success-hover);
   transform: translateY(-1px);
 }
+
 .btnAgregado {
   background: var(--color-disabled);
   color: var(--color-text-tertiary);
   cursor: default;
 }
+
 .btnAgregado:hover {
-  background: var(--color-disabled);
   transform: none;
 }
+
+/* Cards variants */
 .rxCard {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.10);
   border-left: 4px solid var(--color-primary);
 }
+
 .subsiguienteCard {
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(245, 158, 11, 0.10);
   border-left: 4px solid var(--color-warning);
 }
 
-/* Highlight para búsqueda */
+/* Highlight */
 .highlight {
   background-color: #f59e0b;
-  color: black;
+  color: #000;
   padding: 2px 0;
   border-radius: 3px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
-/* No results / loading */
+/* States */
 .noResults,
 .noResultsCell {
   text-align: center;
   padding: var(--spacing-3xl);
   color: var(--color-text-tertiary);
   font-style: italic;
-  background: transparent;
 }
+
 .loading {
   text-align: center;
   padding: var(--spacing-3xl);
   color: var(--color-text-tertiary);
 }
 
-/* Accordion (modo capítulos) */
+/* Accordion */
 .accordion {
   border-radius: var(--border-radius-md);
   margin-bottom: var(--spacing-sm);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  background: transparent;
 }
+
 .accordionHeader {
   padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 800;
   font-size: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   list-style: none;
-  transition: background var(--transition-base);
 }
-.accordionHeader:hover {
-  background: var(--color-bg-secondary);
-}
+
 .accordionHeader::after {
   content: '▶';
   font-size: 0.75rem;
   transition: transform var(--transition-base);
   color: var(--color-primary);
 }
+
 .accordion[open] .accordionHeader::after {
   transform: rotate(90deg);
 }
+
 .accordionBody {
   padding: var(--spacing-xl);
   background: var(--color-bg-secondary);
 }
 
-/* Navegación */
+/* Navigation */
 .botonesNavegacion {
   display: flex;
   justify-content: space-between;
@@ -511,34 +633,40 @@
   border-top: 1px solid var(--color-border);
   gap: var(--spacing-md);
 }
+
 .btnAtras,
 .btnSiguiente {
   padding: var(--spacing-md) var(--spacing-2xl);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--transition-base);
   border: none;
   min-height: 48px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
 }
+
 .btnAtras {
   background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
+
 .btnAtras:hover {
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   border-color: var(--color-primary);
 }
+
 .btnSiguiente {
   background: var(--color-success);
   color: white;
 }
+
 .btnSiguiente:hover {
   background: var(--color-success-hover);
   transform: translateY(-2px);
@@ -550,36 +678,167 @@
   .mobileList {
     display: block;
   }
+
   .tableWrapper {
     display: none;
   }
+
   .titleRow {
     flex-direction: column;
     align-items: stretch;
   }
+
   .badges {
     justify-content: center;
   }
+
   .accordionBody {
     padding: var(--spacing-lg);
   }
+
   .botonesNavegacion {
     flex-direction: column;
   }
+
   .btnAtras,
   .btnSiguiente {
     width: 100%;
-    justify-content: center;
   }
 }
+
 @media (max-width: 480px) {
   .tooltip {
     top: 10px;
     right: 10px;
     left: 10px;
   }
+
   .tooltipContent {
     max-width: none;
     justify-content: center;
   }
+}
+
+.baseLine {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+
+  /* ✅ lo que pediste */
+  text-align: center;
+  font-weight: 800;
+
+  /* para que los números queden parejitos sin monospace */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+/* ✅ Base line centrada + negrita */
+.baseLine {
+  text-align: center;
+  font-weight: 800;
+  opacity: 0.95;
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* ✅ Controles de desglose (Dr/Clínica) */
+.addSplitRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.addSplitLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin-right: var(--spacing-xs);
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.chk input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+.addSplitHint {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .addSplitRow {
+    justify-content: flex-start;
+  }
+}
+
+/* ✅ Descripción SIEMPRE completa (desktop) */
+.descCell {
+  min-width: 0;
+  /* importantísimo para que wrap funcione en flex/tables */
+  max-width: none;
+  /* no limites a 500px */
+  white-space: normal;
+  /* permite saltos de línea */
+  overflow: visible;
+  /* no cortes */
+  text-overflow: unset;
+  /* sin "..." */
+  word-break: break-word;
+  /* corta palabras largas */
+  overflow-wrap: anywhere;
+  /* evita scroll horizontal */
+  line-height: 1.35;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* evita que la tabla fuerce scroll por columnas “duras” */
+.table {
+  width: 100%;
+  table-layout: fixed;
+  /* ✅ clave para que ceda espacio a la descripción */
+}
+
+/* columnas: el texto largo debe estar en descCell */
+.thDesc {
+  width: 46%;
+}
+
+.thCode {
+  width: 10%;
+}
+
+.thCap {
+  width: 22%;
+}
+
+.thNum {
+  width: 10%;
+}
+
+.thAction {
+  width: 12%;
 }

@@ -1,0 +1,589 @@
+/* =========================
+   RESUMEN FACTURA (UI/UX)
+   Agregar a facturacion.module.css
+========================= */
+
+.tabContent {
+    width: 100%;
+    color: var(--color-text-primary);
+}
+
+.tabContent h2 {
+    font-size: clamp(1.4rem, 3.6vw, 1.75rem);
+    font-weight: 800;
+    margin: 0 0 var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* ===== Info (Paciente / Convenio) ===== */
+.infoResumen {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+@media (min-width: 900px) {
+    .infoResumen {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.infoPaciente,
+.infoConvenio {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.infoPaciente h3,
+.infoConvenio h3 {
+    margin: 0 0 var(--spacing-md);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.infoPaciente p,
+.infoConvenio p {
+    margin: 0 0 var(--spacing-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+}
+
+.valoresMini {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.valoresMini span {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #bfdbfe;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* ===== Acordeón principal ===== */
+.acSection {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.18);
+    margin-bottom: var(--spacing-lg);
+}
+
+.acHeader {
+    width: 100%;
+    background: var(--color-bg-tertiary);
+    border: none;
+    color: var(--color-text-primary);
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    transition: background var(--transition-base);
+}
+
+.acHeader:hover {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.acTitle {
+    font-weight: 900;
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+}
+
+.acRight {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.acCount {
+    background: rgba(34, 197, 94, 0.18);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #86efac;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 0.82rem;
+}
+
+.acAmount {
+    background: rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 0.82rem;
+}
+
+.acChevron {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform var(--transition-base);
+}
+
+.acChevronOpen {
+    transform: rotate(180deg);
+}
+
+.acBody {
+    padding: var(--spacing-lg);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Sub-acordeón (Prácticas: Honorarios/Gastos) ===== */
+.subAcc {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.18);
+    margin-bottom: var(--spacing-md);
+}
+
+.subAccHeader {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.22);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    color: var(--color-text-primary);
+    transition: background var(--transition-base);
+}
+
+.subAccHeader:hover {
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.subAccTitle {
+    font-weight: 900;
+    font-size: 0.95rem;
+}
+
+.subAccRight {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.subAccBody {
+    padding: var(--spacing-md);
+}
+
+/* ===== Tabla (sin scroll horizontal molesto) ===== */
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.10);
+}
+
+/* 👇 evita “scroll lateral feo” por fuentes monospace con tracking raro */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.table thead th {
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-text-primary);
+    padding: 12px 12px;
+    font-weight: 900;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-text-secondary);
+    vertical-align: top;
+}
+
+.table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Column widths */
+.thCode,
+.columnaCodigo {
+    width: 90px;
+}
+
+.thQty,
+.columnaCantidad {
+    width: 160px;
+}
+
+.thUnit,
+.columnaUnidad {
+    width: 170px;
+}
+
+.thNum,
+.columnaValor {
+    width: 190px;
+}
+
+.thAction,
+.columnaAcciones {
+    width: 70px;
+    text-align: center;
+}
+
+.thDesc,
+.columnaDescripcion {
+    width: auto;
+}
+
+/* Código + badge RX */
+.columnaCodigo strong {
+    font-weight: 900;
+    color: var(--color-text-primary);
+}
+
+.badgeRx {
+    display: inline-flex;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #bfdbfe;
+}
+
+.rxRow {
+    background: rgba(59, 130, 246, 0.07);
+}
+
+/* ✅ Descripción siempre completa */
+.descPrincipal {
+    color: var(--color-text-primary);
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
+}
+
+/* Meta (Dr / Clínica + nombre) */
+.subMeta {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.metaPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 900;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.30);
+    color: #fed7aa;
+}
+
+.metaText {
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+}
+
+/* Cantidad */
+.contadorCantidad {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.btnCantidad {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-text-primary);
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btnCantidad:hover {
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.inputCantidad {
+    width: 64px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--color-text-primary);
+    font-weight: 900;
+    text-align: center;
+    outline: none;
+}
+
+.inputCantidad:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.20);
+}
+
+/* Unidad */
+.columnaUnidad {
+    font-size: 0.86rem;
+    color: var(--color-text-tertiary);
+    line-height: 1.35;
+}
+
+/* Valor: Hon/Gas y total */
+.valorStack {
+    display: grid;
+    gap: 6px;
+}
+
+.valorLine {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.valorLabel {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.valorNumber {
+    font-size: 1.03rem;
+    /* ✅ numeros más grandes */
+    font-weight: 900;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    /* ✅ evita scroll */
+}
+
+/* Formula */
+.formulaPequeña {
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    opacity: 0.9;
+}
+
+/* Acciones */
+.btnEliminar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fecaca;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.btnEliminar:hover {
+    transform: translateY(-1px);
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* Empty state */
+.emptyBlock {
+    padding: 16px;
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-tertiary);
+    text-align: center;
+}
+
+/* ===== Totales ===== */
+.totalesGenerales {
+    margin-top: var(--spacing-xl);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.totalesGenerales h3 {
+    margin: 0 0 var(--spacing-md);
+    font-weight: 900;
+}
+
+.gridTotales {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (min-width: 720px) {
+    .gridTotales {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.totalItem {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.15);
+    color: var(--color-text-secondary);
+}
+
+.totalItem strong {
+    color: var(--color-text-primary);
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.totalItemGrande {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    padding: 14px 14px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    background: rgba(34, 197, 94, 0.12);
+    color: #bbf7d0;
+}
+
+.totalFinal {
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+}
+
+/* ===== Botones resumen ===== */
+.botonesResumen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 720px) {
+    .botonesResumen {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.botonesIzquierda,
+.botonesDerecha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.btnLimpiar {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fecaca;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.btnLimpiar:hover {
+    transform: translateY(-1px);
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* Reusa tus .btnAtras si ya lo tenés; si no, fallback: */
+.btnAtras {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btnAtras:hover {
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .acHeader {
+        padding: var(--spacing-md);
+    }
+
+    .acTitle {
+        font-size: 0.92rem;
+    }
+
+    .table thead th,
+    .table tbody td {
+        padding: 10px 10px;
+    }
+
+    .thQty,
+    .columnaCantidad {
+        width: 150px;
+    }
+
+    .thNum,
+    .columnaValor {
+        width: 180px;
+    }
+}

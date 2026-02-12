@@ -17,6 +17,7 @@ import styles from './practicas.module.css';
 
 export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
   const { valoresConvenio } = useConvenio();
+
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
@@ -24,27 +25,35 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const [filtroCapitulo, setFiltroCapitulo] = useState('');
   const [capituloQueries, setCapituloQueries] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // ✅ Nuevo: selector de desglose al agregar
+  const [addHon, setAddHon] = useState(true); // Dr
+  const [addGas, setAddGas] = useState(true); // Clínica
+
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState('');
-  const [lastAddedItem, setLastAddedItem] = useState(null);
+  const [lastAddedGroupId, setLastAddedGroupId] = useState(null);
   const tooltipTimeoutRef = useRef(null);
 
-  // Cargar JSON del nomenclador
   useEffect(() => {
     let mounted = true;
+
     fetch('/archivos/NomecladorNacional.json')
-      .then(res => res.json())
-      .then(json => {
+      .then((res) => res.json())
+      .then((json) => {
         if (!mounted) return;
+
         setCapitulos(json);
+
         const counts = new Map();
-        const flat = json.flatMap(c =>
-          (c.practicas || []).map(p => {
+        const flat = json.flatMap((c) =>
+          (c.practicas || []).map((p) => {
             const cap = String(c.capitulo ?? '').trim();
             const cod = String(p.codigo ?? '').trim();
             const base = `${cap}|${cod}`;
             const n = (counts.get(base) ?? 0) + 1;
             counts.set(base, n);
+
             return {
               ...p,
               capitulo: c.capitulo,
@@ -53,17 +62,20 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             };
           })
         );
+
         setData(flat);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         setLoading(false);
       });
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Instancia de Fuse para búsqueda difusa
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
@@ -74,88 +86,130 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     });
   }, [data]);
 
-  // Resultados de búsqueda global (con manejo seguro de vincularSubsiguientes)
   const resultadosGlobales = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
 
-    // Búsqueda exacta por código o descripción
-    const exact = data.filter(it =>
-      String(it.codigo).toLowerCase() === q.toLowerCase() ||
-      normalize(it.descripcion).includes(normalize(q))
+    const exact = data.filter(
+      (it) =>
+        String(it.codigo).toLowerCase() === q.toLowerCase() ||
+        normalize(it.descripcion).includes(normalize(q))
     );
 
     let results = [];
-
     if (exact.length > 0) {
-      // Si hay coincidencias exactas, aplicamos vinculación
-      exact.forEach(it => {
-        const vinculados = vincularSubsiguientes(it, data);
-        results.push(...vinculados);
-      });
+      exact.forEach((it) => results.push(...vincularSubsiguientes(it, data)));
     } else if (fuseGlobal) {
-      // Si no, búsqueda difusa
-      const fuzzy = fuseGlobal.search(q).map(r => r.item);
-      fuzzy.forEach(it => {
-        const vinculados = vincularSubsiguientes(it, data);
-        results.push(...vinculados);
-      });
+      fuseGlobal.search(q).forEach((r) => results.push(...vincularSubsiguientes(r.item, data)));
     }
 
-    // Eliminar duplicados usando __key o código+capítulo
     const unique = Array.from(
-      new Map(results.map(it => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
+      new Map(results.map((it) => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
     );
 
-    // Ordenar: primero radiografías
     return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  // Tooltip
-  const showTooltipMessage = useCallback((message, item) => {
+  const showTooltipMessage = useCallback((message, groupId) => {
     clearTimeout(tooltipTimeoutRef.current);
     setTooltipMessage(message);
-    setLastAddedItem(item);
+    setLastAddedGroupId(groupId);
     setShowTooltip(true);
     tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(false), 3000);
   }, []);
 
   useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
 
-  // Agregar práctica
-  const handleAgregar = useCallback((practica) => {
-    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
-    const calculo = calcularPractica(practica, valoresConvenio);
-    const nuevaPractica = {
-      id: `pract-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      ...practica,
-      ...calculo,
-      cantidad: 1,
-      esRX: isRadiografia(practica),
-      esSubsiguiente: isSubsiguiente(practica)
-    };
-    agregarPractica(nuevaPractica);
-    showTooltipMessage(`✓ "${practica.descripcion.substring(0, 50)}..." agregada`, practica);
-  }, [valoresConvenio, agregarPractica, showTooltipMessage]);
+  // Valores base (QGal / GTO) para mostrar arriba del precio
+  const getBaseRates = useCallback(
+    (practica) => {
+      const qgal = parseNumber(practica.qgal || practica.q_gal || 0);
+      const gto = parseNumber(practica.gto || 0);
+      return { qgal, gto };
+    },
+    []
+  );
 
-  // Renderizado de un item (mobile/desktop)
+  // ✅ Agregar práctica desglosada (Dr / Clínica) según checkboxes
+  const handleAgregar = useCallback(
+    (practica) => {
+      if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+
+      if (!addHon && !addGas) {
+        alert('Seleccioná al menos Honorario (Dr) o Gasto (Clínica).');
+        return;
+      }
+
+      const calculo = calcularPractica(practica, valoresConvenio);
+
+      const groupId = `grp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+      const baseCommon = {
+        ...practica,
+        ...calculo,
+        cantidad: 1,
+        esRX: isRadiografia(practica),
+        esSubsiguiente: isSubsiguiente(practica),
+        groupId
+      };
+
+      // Dr = honorario (si corresponde)
+      if (addHon) {
+        const hon = Number(calculo.honorarioMedico || 0);
+        const itemDr = {
+          id: `${baseId}-dr`,
+          ...baseCommon,
+          destinoTipo: 'Dr',
+          destinoNombre: '', // editable luego
+          honorarioMedico: hon,
+          gastoSanatorial: 0,
+          total: hon
+        };
+        agregarPractica(itemDr);
+      }
+
+      // Clínica = gasto (si corresponde)
+      if (addGas) {
+        const gas = Number(calculo.gastoSanatorial || 0);
+        const itemClin = {
+          id: `${baseId}-clin`,
+          ...baseCommon,
+          destinoTipo: 'Clinica',
+          destinoNombre: '', // editable luego
+          honorarioMedico: 0,
+          gastoSanatorial: gas,
+          total: gas
+        };
+        agregarPractica(itemClin);
+      }
+
+      showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..." agregada`, groupId);
+    },
+    [valoresConvenio, addHon, addGas, agregarPractica, showTooltipMessage]
+  );
+
   const renderItem = (item, isMobile = false, queryLocal = '') => {
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
-    const isRecentlyAdded = lastAddedItem?.__key === key;
+
     const calculo = valoresConvenio
       ? calcularPractica(item, valoresConvenio)
       : { honorarioMedico: 0, gastoSanatorial: 0, total: 0 };
+
+    const base = getBaseRates(item);
     const q = queryLocal || query;
+
+    // “reciente” por groupId
+    const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
 
     if (isMobile) {
       return (
         <article
           key={key}
-          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''} ${
-            isRecentlyAdded ? styles.recentlyAdded : ''
-          }`}
+          className={`${styles.card} ${esRX ? styles.rxCard : ''} ${esSubs ? styles.subsiguienteCard : ''} ${isRecent ? styles.recentlyAdded : ''
+            }`}
         >
           <div className={styles.cardTop}>
             <div className={styles.code}>{highlight(item.codigo, q)}</div>
@@ -163,54 +217,59 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
               {item.capitulo} – {item.capituloNombre}
             </span>
           </div>
+
           <div className={styles.desc}>{highlight(item.descripcion, q)}</div>
+
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
+              <div className={styles.baseLine}>{money(base.qgal)}</div>
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
+
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
+              <div className={styles.baseLine}>{money(base.gto)}</div>
               <span className={styles.costValue}>{money(calculo.gastoSanatorial)}</span>
             </div>
           </div>
+
           <div className={styles.cardActions}>
             <button
               onClick={() => handleAgregar(item)}
-              className={`${styles.btnAgregar} ${isRecentlyAdded ? styles.btnAgregado : ''}`}
+              className={styles.btnAgregar}
               title="Agregar a factura"
             >
-              {isRecentlyAdded ? '✓ Agregado' : '➕ Agregar'}
+              ➕ Agregar
             </button>
           </div>
         </article>
       );
     }
 
-    // Desktop: fila de tabla
     return (
-      <tr
-        key={key}
-        className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${
-          isRecentlyAdded ? styles.recentlyAddedRow : ''
-        }`}
-      >
-        <td>{highlight(item.codigo, q)}</td>
+      <tr key={key} className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${isRecent ? styles.recentlyAddedRow : ''}`}>
+        <td className={styles.codeCell}>{highlight(item.codigo, q)}</td>
         <td className={styles.descCell}>{highlight(item.descripcion, q)}</td>
-        <td>
+        <td className={styles.capCell}>
           <span className={styles.capBadge}>
             {item.capitulo} – {item.capituloNombre}
           </span>
         </td>
-        <td className={styles.numeric}>{money(calculo.honorarioMedico)}</td>
-        <td className={styles.numeric}>{money(calculo.gastoSanatorial)}</td>
-        <td>
-          <button
-            onClick={() => handleAgregar(item)}
-            className={`${styles.btnAgregarTabla} ${isRecentlyAdded ? styles.btnAgregadoTabla : ''}`}
-            title="Agregar a factura"
-          >
-            {isRecentlyAdded ? '✓' : '+'}
+
+        <td className={styles.numericCell}>
+          <div className={styles.baseLine}>{money(base.qgal)}</div>
+          <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
+        </td>
+
+        <td className={styles.numericCell}>
+          <div className={styles.baseLine}>{money(base.gto)}</div>
+          <div className={styles.valueBig}>{money(calculo.gastoSanatorial)}</div>
+        </td>
+
+        <td className={styles.actionCell}>
+          <button onClick={() => handleAgregar(item)} className={styles.btnAgregarTabla} title="Agregar a factura">
+            +
           </button>
         </td>
       </tr>
@@ -237,21 +296,30 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)}>
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
-          <div className={styles.practicasCounter}>
-            <span className={styles.counterBadge}>
-              {practicasCount} {practicasCount === 1 ? 'práctica' : 'prácticas'} agregada{practicasCount !== 1 ? 's' : ''}
-            </span>
-          </div>
+
+          <span className={styles.counterBadge}>
+            {practicasCount} {practicasCount === 1 ? 'práctica' : 'prácticas'} agregada{practicasCount !== 1 ? 's' : ''}
+          </span>
         </div>
 
-        {valoresConvenio && (
-          <div className={styles.badges}>
-            <span className={`${styles.badge} ${styles.badgeGreen}`}>Gasto Rx: {money(valoresConvenio.gastoRx)}</span>
-            <span className={`${styles.badge} ${styles.badgeBlue}`}>Galeno Rx: {money(valoresConvenio.galenoRx)}</span>
-            <span className={`${styles.badge} ${styles.badgePurple}`}>Gasto Op: {money(valoresConvenio.gastoOperatorio)}</span>
-            <span className={`${styles.badge} ${styles.badgeOrange}`}>Galeno Quir: {money(valoresConvenio.galenoQuir)}</span>
-          </div>
-        )}
+        {/* ✅ Nuevo: selector Dr/Clínica al agregar */}
+        <div className={styles.addSplitRow}>
+          <span className={styles.addSplitLabel}>Al agregar:</span>
+
+          <label className={styles.chk}>
+            <input type="checkbox" checked={addHon} onChange={(e) => setAddHon(e.target.checked)} />
+            Honorario (Dr)
+          </label>
+
+          <label className={styles.chk}>
+            <input type="checkbox" checked={addGas} onChange={(e) => setAddGas(e.target.checked)} />
+            Gasto (Clínica)
+          </label>
+
+          <span className={styles.addSplitHint}>
+            (Por defecto agrega 2 ítems: Dr + Clínica)
+          </span>
+        </div>
       </div>
 
       {loading ? (
@@ -267,19 +335,12 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
             />
-            {practicasCount > 0 && (
-              <div className={styles.agregadasInfo}>
-                <span className={styles.agregadasIcon}>📋</span>
-                Tienes {practicasCount} práctica{practicasCount !== 1 ? 's' : ''} en la factura
-              </div>
-            )}
           </div>
 
           <div className={styles.buscadorInfo}>
             {resultadosGlobales.length} prácticas encontradas {query && `para "${query}"`}
           </div>
 
-          {/* Vista mobile */}
           <div className={styles.mobileList}>
             {resultadosGlobales.length === 0 ? (
               <div className={styles.noResults}>
@@ -290,17 +351,16 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             )}
           </div>
 
-          {/* Vista desktop (tabla) */}
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Descripción</th>
-                  <th>Capítulo</th>
-                  <th className={styles.numeric}>Honorario</th>
-                  <th className={styles.numeric}>Gasto</th>
-                  <th>Agregar</th>
+                  <th className={styles.thCode}>Código</th>
+                  <th className={styles.thDesc}>Descripción</th>
+                  <th className={styles.thCap}>Capítulo</th>
+                  <th className={styles.thNum}>Honorario</th>
+                  <th className={styles.thNum}>Gasto</th>
+                  <th className={styles.thAction}>Agregar</th>
                 </tr>
               </thead>
               <tbody>
@@ -318,7 +378,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           </div>
         </>
       ) : (
-        /* Modo capítulos (simplificado, funcionalidad similar) */
         <>
           <input
             type="text"
@@ -332,60 +391,53 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             .filter((c) => {
               if (!filtroCapitulo) return true;
               const q = filtroCapitulo.toLowerCase();
-              return (
-                String(c.descripcion ?? '').toLowerCase().includes(q) ||
-                String(c.capitulo ?? '').includes(filtroCapitulo)
-              );
+              return String(c.descripcion ?? '').toLowerCase().includes(q) || String(c.capitulo ?? '').includes(filtroCapitulo);
             })
             .map((c) => {
               const practicasDelCapitulo = data.filter((p) => p.capitulo === c.capitulo);
               const qLocal = capituloQueries[c.capitulo] || '';
               const qLocalNorm = normalize(qLocal);
+
               const filtradas =
                 qLocal.trim().length === 0
                   ? practicasDelCapitulo
-                  : practicasDelCapitulo.filter((p) =>
-                      normalize(`${p.codigo} ${p.descripcion}`).includes(qLocalNorm)
-                    );
+                  : practicasDelCapitulo.filter((p) => normalize(`${p.codigo} ${p.descripcion}`).includes(qLocalNorm));
 
               return (
                 <details key={String(c.capitulo)} className={styles.accordion}>
                   <summary className={styles.accordionHeader}>
                     {c.capitulo} — {c.descripcion} ({filtradas.length})
                   </summary>
+
                   <div className={styles.accordionBody}>
                     <input
                       type="text"
                       className={styles.input}
                       placeholder={`Buscar en ${c.descripcion}…`}
                       value={qLocal}
-                      onChange={(e) =>
-                        setCapituloQueries((prev) => ({
-                          ...prev,
-                          [c.capitulo]: e.target.value
-                        }))
-                      }
+                      onChange={(e) => setCapituloQueries((prev) => ({ ...prev, [c.capitulo]: e.target.value }))}
                     />
+
                     <div className={styles.mobileList}>
                       {filtradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados en este capítulo.</div>
                       ) : (
                         filtradas.map((item, j) => {
-                          const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
-                          const itemWithKey = { ...item, __key: key };
-                          return renderItem(itemWithKey, true, qLocal);
+                          const k = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
+                          return renderItem({ ...item, __key: k }, true, qLocal);
                         })
                       )}
                     </div>
+
                     <div className={styles.tableWrapper}>
                       <table className={styles.table}>
                         <thead>
                           <tr>
-                            <th>Código</th>
-                            <th>Descripción</th>
-                            <th className={styles.numeric}>Honorario</th>
-                            <th className={styles.numeric}>Gasto</th>
-                            <th>Agregar</th>
+                            <th className={styles.thCode}>Código</th>
+                            <th className={styles.thDesc}>Descripción</th>
+                            <th className={styles.thNum}>Honorario</th>
+                            <th className={styles.thNum}>Gasto</th>
+                            <th className={styles.thAction}>Agregar</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -397,9 +449,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                             </tr>
                           ) : (
                             filtradas.map((item, j) => {
-                              const key = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
-                              const itemWithKey = { ...item, __key: key };
-                              return renderItem(itemWithKey, false, qLocal);
+                              const k = `${String(c.capitulo).trim()}|${String(item.codigo).trim()}#${j + 1}`;
+                              return renderItem({ ...item, __key: k }, false, qLocal);
                             })
                           )}
                         </tbody>
@@ -413,12 +464,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       )}
 
       <div className={styles.botonesNavegacion}>
-        <button className={styles.btnAtras} onClick={onAtras}>
-          ← Atrás
-        </button>
-        <button className={styles.btnSiguiente} onClick={onSiguiente}>
-          Siguiente → Laboratorios
-        </button>
+        <button className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
+        <button className={styles.btnSiguiente} onClick={onSiguiente}>Siguiente → Laboratorios</button>
       </div>
     </div>
   );
