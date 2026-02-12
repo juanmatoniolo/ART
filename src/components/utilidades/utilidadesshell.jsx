@@ -2,10 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import styles from "./UtilidadesShell.module.css";
-
-
 import UtilidadesTabs from "@/components/utilidades/UtilidadesTabs";
-
 import NotesDueView from "@/components/utilidades/notes/NotesDueView";
 import NotesCrudView from "@/components/utilidades/notes/NotesCrudView";
 import InternosView from "@/components/utilidades/internos/InternosView";
