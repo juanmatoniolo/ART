@@ -15,7 +15,7 @@ const TABS = [
     { key: "matriculas", label: "Matrículas médicos" },
 ];
 
-export default function UtilidadesShell() {
+export default function Utilidadesshell() {
     const [tab, setTab] = useState("notas");
 
     const title = useMemo(() => {
