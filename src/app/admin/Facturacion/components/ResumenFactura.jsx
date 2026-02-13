@@ -5,21 +5,19 @@ import { useConvenio } from './ConvenioContext';
 import { money } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
 
-export default function ResumenFactura(props) {
-  const {
-    paciente: pacienteProp,
-    practicas = [],
-    laboratorios = [],
-    medicamentos = [],
-    descartables = [],
-    actualizarCantidad = () => { },
-    actualizarItem = () => { },
-    eliminarItem = () => { },
-    limpiarFactura = () => { },
-    onAtras = () => { }
-  } = props || {};
-
-  // ✅ fallback seguro (evita "Cannot read ... of undefined")
+export default function ResumenFactura({
+  paciente: pacienteProp,
+  practicas = [],
+  cirugias = [],
+  laboratorios = [],
+  medicamentos = [],
+  descartables = [],
+  actualizarCantidad = () => {},
+  actualizarItem = () => {},
+  eliminarItem = () => {},
+  limpiarFactura = () => {},
+  onAtras = () => {}
+}) {
   const paciente = pacienteProp || {
     nombreCompleto: '',
     dni: '',
@@ -34,6 +32,7 @@ export default function ResumenFactura(props) {
     practicas: true,
     practicasHonorarios: true,
     practicasGastos: true,
+    cirugias: false,
     laboratorios: false,
     medicamentos: false,
     descartables: false
@@ -57,17 +56,18 @@ export default function ResumenFactura(props) {
 
   const totales = useMemo(() => {
     const totalPracticas = sum(practicas);
+    const totalCirugias = sum(cirugias);
     const totalLaboratorios = sum(laboratorios);
     const totalMedicamentos = sum(medicamentos);
     const totalDescartables = sum(descartables);
-    const subtotal = totalPracticas + totalLaboratorios + totalMedicamentos + totalDescartables;
+    const subtotal = totalPracticas + totalCirugias + totalLaboratorios + totalMedicamentos + totalDescartables;
 
-    const totalHonorarios = sum(practicas, 'honorarioMedico') + sum(laboratorios, 'honorarioMedico');
-    const totalGastos =
-      sum(practicas, 'gastoSanatorial') + sum(medicamentos, 'gastoSanatorial') + sum(descartables, 'gastoSanatorial');
+    const totalHonorarios = sum(practicas, 'honorarioMedico') + sum(laboratorios, 'honorarioMedico') + sum(cirugias, 'honorarioMedico');
+    const totalGastos = sum(practicas, 'gastoSanatorial') + sum(medicamentos, 'gastoSanatorial') + sum(descartables, 'gastoSanatorial');
 
     return {
       totalPracticas,
+      totalCirugias,
       totalLaboratorios,
       totalMedicamentos,
       totalDescartables,
@@ -76,101 +76,18 @@ export default function ResumenFactura(props) {
       totalHonorarios,
       totalGastos
     };
-  }, [practicas, laboratorios, medicamentos, descartables]);
+  }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
+
+  // Generador de key único y seguro
+  const getRowKey = (item, tipo, index) => {
+    // Si tiene id, úsalo (es lo más confiable)
+    if (item.id) return `${tipo}-${item.id}`;
+    // Si no tiene id, construimos una key compuesta con índice (fallback)
+    const base = `${tipo}-${item.codigo || item.nombre || 'unknown'}-${item.prestadorTipo || ''}-${item.prestadorNombre || ''}`;
+    return `${base}-${index}`;
+  };
 
   const renderFormula = (item) => (item?.formula ? <div className={styles.formulaPequeña}>{item.formula}</div> : null);
-
-  const renderItem = (item, tipo) => {
-    const it = item || {};
-    const cantidad = Math.max(1, Number(it.cantidad) || 1);
-    const total = Number(it.total) || 0;
-    const valorUnitario = cantidad > 0 ? total / cantidad : total;
-
-    const uniqueKey = `${tipo}-${it.id ?? `${it.codigo ?? it.nombre ?? 'x'}-${Math.random()}`}`;
-
-    const prestadorTipo = it.prestadorTipo || (tipo === 'practica' ? 'Clinica' : '');
-    const prestadorNombre =
-      tipo === 'practica'
-        ? prestadorTipo === 'Dr'
-          ? it.prestadorNombre || ''
-          : it.prestadorNombre || 'Clínica de la Unión'
-        : '';
-
-    return (
-      <tr key={uniqueKey} className={it.esRX ? styles.rxRow : ''}>
-        <td className={styles.columnaCodigo}>
-          <strong>{it.codigo || '—'}</strong>
-          {it.esRX && <span className={styles.badgeRx}>RX</span>}
-        </td>
-
-        <td className={styles.columnaDescripcion}>
-          <div className={styles.descPrincipal}>{it.descripcion || it.nombre || 'Sin descripción'}</div>
-
-          {tipo === 'practica' && (
-            <div className={styles.subMeta}>
-              <span className={styles.metaPill}>{prestadorTipo === 'Dr' ? '👨‍⚕️ Dr' : '🏥 Clínica'}</span>
-              <span className={styles.metaText}>{prestadorNombre || '—'}</span>
-            </div>
-          )}
-
-          {renderFormula(it)}
-        </td>
-
-        <td className={styles.columnaCantidad}>
-          <div className={styles.contadorCantidad}>
-            <button onClick={() => actualizarCantidad(it.id, cantidad - 1)} className={styles.btnCantidad}>
-              −
-            </button>
-            <input
-              type="number"
-              min="1"
-              value={cantidad}
-              onChange={(e) => actualizarCantidad(it.id, parseInt(e.target.value, 10) || 1)}
-              className={styles.inputCantidad}
-            />
-            <button onClick={() => actualizarCantidad(it.id, cantidad + 1)} className={styles.btnCantidad}>
-              +
-            </button>
-          </div>
-        </td>
-
-        <td className={styles.columnaUnidad}>
-          {tipo === 'practica' && (
-            <>
-              <div>Hon: {money((Number(it.honorarioMedico) || 0) / cantidad)}</div>
-              <div>Gas: {money((Number(it.gastoSanatorial) || 0) / cantidad)}</div>
-            </>
-          )}
-          {tipo === 'laboratorio' && <div>UB: {money(it.unidadBioquimica || 0)}</div>}
-          {(tipo === 'medicamento' || tipo === 'descartable') && (
-            <div>Unit: ${money(it.valorUnitario ?? it.precio ?? 0)}</div>
-          )}
-        </td>
-
-        <td className={styles.columnaValor}>
-          <div className={styles.valorStack}>
-            <div className={styles.valorLine}>
-              <span className={styles.valorLabel}>Hon</span>
-              <strong className={styles.valorNumber}>${money(it.honorarioMedico || 0)}</strong>
-            </div>
-            <div className={styles.valorLine}>
-              <span className={styles.valorLabel}>Gas</span>
-              <strong className={styles.valorNumber}>${money(it.gastoSanatorial || 0)}</strong>
-            </div>
-            <div className={styles.formulaPequeña}>
-              {cantidad} × ${money(valorUnitario)}
-            </div>
-          </div>
-        </td>
-
-        <td className={styles.columnaAcciones}>
-          <button onClick={() => eliminarItem(it.id)} className={styles.btnEliminar} title="Eliminar">
-            🗑️
-          </button>
-        </td>
-      </tr>
-    );
-  };
 
   const renderTabla = (items, tipo, emptyText) => {
     if (!items || items.length === 0) return <div className={styles.emptyBlock}>{emptyText}</div>;
@@ -188,7 +105,93 @@ export default function ResumenFactura(props) {
               <th className={styles.thAction}>—</th>
             </tr>
           </thead>
-          <tbody>{items.map((x) => renderItem(x, tipo))}</tbody>
+          <tbody>
+            {items.map((it, idx) => {
+              const cantidad = Math.max(1, Number(it.cantidad) || 1);
+              const total = Number(it.total) || 0;
+              const valorUnitario = cantidad > 0 ? total / cantidad : total;
+
+              const prestadorTipo = it.prestadorTipo || (tipo === 'practica' ? 'Clinica' : '');
+              const prestadorNombre =
+                tipo === 'practica' || tipo === 'cirugia'
+                  ? it.prestadorNombre || (prestadorTipo === 'Dr' ? '' : 'Clínica de la Unión')
+                  : '';
+
+              return (
+                <tr key={getRowKey(it, tipo, idx)} className={it.esRX ? styles.rxRow : ''}>
+                  <td className={styles.columnaCodigo}>
+                    <strong>{it.codigo || '—'}</strong>
+                    {it.esRX && <span className={styles.badgeRx}>RX</span>}
+                  </td>
+
+                  <td className={styles.columnaDescripcion}>
+                    <div className={styles.descPrincipal}>{it.descripcion || it.nombre || 'Sin descripción'}</div>
+
+                    {(tipo === 'practica' || tipo === 'cirugia') && prestadorNombre && (
+                      <div className={styles.subMeta}>
+                        <span className={styles.metaPill}>{prestadorTipo === 'Dr' ? '👨‍⚕️ Dr' : '🏥 Clínica'}</span>
+                        <span className={styles.metaText}>{prestadorNombre}</span>
+                      </div>
+                    )}
+
+                    {renderFormula(it)}
+                  </td>
+
+                  <td className={styles.columnaCantidad}>
+                    <div className={styles.contadorCantidad}>
+                      <button onClick={() => actualizarCantidad(it.id, cantidad - 1)} className={styles.btnCantidad}>−</button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={cantidad}
+                        onChange={(e) => actualizarCantidad(it.id, parseInt(e.target.value, 10) || 1)}
+                        className={styles.inputCantidad}
+                      />
+                      <button onClick={() => actualizarCantidad(it.id, cantidad + 1)} className={styles.btnCantidad}>+</button>
+                    </div>
+                  </td>
+
+                  <td className={styles.columnaUnidad}>
+                    {tipo === 'practica' && (
+                      <>
+                        <div>Hon: {money((Number(it.honorarioMedico) || 0) / cantidad)}</div>
+                        <div>Gas: {money((Number(it.gastoSanatorial) || 0) / cantidad)}</div>
+                      </>
+                    )}
+                    {tipo === 'cirugia' && (
+                      <div>Hon: {money((Number(it.honorarioMedico) || 0) / cantidad)}</div>
+                    )}
+                    {tipo === 'laboratorio' && <div>UB: {money(it.unidadBioquimica || 0)}</div>}
+                    {(tipo === 'medicamento' || tipo === 'descartable') && (
+                      <div>Unit: ${money(it.valorUnitario ?? it.precio ?? 0)}</div>
+                    )}
+                  </td>
+
+                  <td className={styles.columnaValor}>
+                    <div className={styles.valorStack}>
+                      <div className={styles.valorLine}>
+                        <span className={styles.valorLabel}>Hon</span>
+                        <strong className={styles.valorNumber}>${money(it.honorarioMedico || 0)}</strong>
+                      </div>
+                      {tipo === 'practica' && (
+                        <div className={styles.valorLine}>
+                          <span className={styles.valorLabel}>Gas</span>
+                          <strong className={styles.valorNumber}>${money(it.gastoSanatorial || 0)}</strong>
+                        </div>
+                      )}
+                      <div className={styles.formulaPequeña}>
+                        {cantidad} × ${money(valorUnitario)}
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className={styles.columnaAcciones}>
+                    <button onClick={() => eliminarItem(it.id)} className={styles.btnEliminar} title="Eliminar">🗑️</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
     );
@@ -211,7 +214,6 @@ export default function ResumenFactura(props) {
         <div className={styles.infoConvenio}>
           <h3>🏥 Convenio</h3>
           <p><strong>Nombre:</strong> {nombreConvenio}</p>
-
           <div className={styles.valoresMini}>
             <span>Galeno Rx: ${money(valoresConvenio?.galenoRx)}</span>
             <span>Gasto Rx: ${money(valoresConvenio?.gastoRx)}</span>
@@ -233,7 +235,6 @@ export default function ResumenFactura(props) {
             <span className={`${styles.acChevron} ${open.practicas ? styles.acChevronOpen : ''}`}>▾</span>
           </span>
         </button>
-
         {open.practicas && (
           <div className={styles.acBody}>
             <div className={styles.subAcc}>
@@ -251,7 +252,6 @@ export default function ResumenFactura(props) {
                 </div>
               )}
             </div>
-
             <div className={styles.subAcc}>
               <button className={styles.subAccHeader} onClick={() => toggle('practicasGastos')}>
                 <span className={styles.subAccTitle}>🏥 Gtos Sanatoriales (Clínica de la Unión)</span>
@@ -271,7 +271,20 @@ export default function ResumenFactura(props) {
         )}
       </section>
 
-      {/* LAB */}
+      {/* CIRUGÍAS */}
+      <section className={styles.acSection}>
+        <button className={styles.acHeader} onClick={() => toggle('cirugias')}>
+          <span className={styles.acTitle}>🩺 Cirugías</span>
+          <span className={styles.acRight}>
+            <span className={styles.acCount}>{cirugias.length}</span>
+            <span className={styles.acAmount}>${money(sum(cirugias))}</span>
+            <span className={`${styles.acChevron} ${open.cirugias ? styles.acChevronOpen : ''}`}>▾</span>
+          </span>
+        </button>
+        {open.cirugias && <div className={styles.acBody}>{renderTabla(cirugias, 'cirugia', 'No hay cirugías cargadas.')}</div>}
+      </section>
+
+      {/* LABORATORIOS */}
       <section className={styles.acSection}>
         <button className={styles.acHeader} onClick={() => toggle('laboratorios')}>
           <span className={styles.acTitle}>🧪 Laboratorios</span>
@@ -284,7 +297,7 @@ export default function ResumenFactura(props) {
         {open.laboratorios && <div className={styles.acBody}>{renderTabla(laboratorios, 'laboratorio', 'Sin laboratorios cargados.')}</div>}
       </section>
 
-      {/* MED */}
+      {/* MEDICAMENTOS */}
       <section className={styles.acSection}>
         <button className={styles.acHeader} onClick={() => toggle('medicamentos')}>
           <span className={styles.acTitle}>💊 Medicamentos</span>
@@ -297,7 +310,7 @@ export default function ResumenFactura(props) {
         {open.medicamentos && <div className={styles.acBody}>{renderTabla(medicamentos, 'medicamento', 'Sin medicamentos cargados.')}</div>}
       </section>
 
-      {/* DESC */}
+      {/* DESCARTABLES */}
       <section className={styles.acSection}>
         <button className={styles.acHeader} onClick={() => toggle('descartables')}>
           <span className={styles.acTitle}>🩹 Descartables</span>
@@ -313,8 +326,14 @@ export default function ResumenFactura(props) {
       <div className={styles.totalesGenerales}>
         <h3>💰 Total General</h3>
         <div className={styles.gridTotales}>
-          <div className={styles.totalItem}><span>Honorarios (Prácticas+Labs):</span><strong>${money(totales.totalHonorarios)}</strong></div>
-          <div className={styles.totalItem}><span>Gastos (Prácticas+Med+Desc):</span><strong>${money(totales.totalGastos)}</strong></div>
+          <div className={styles.totalItem}>
+            <span>Honorarios (Prácticas+Labs+Cirugías):</span>
+            <strong>${money(totales.totalHonorarios)}</strong>
+          </div>
+          <div className={styles.totalItem}>
+            <span>Gastos (Prácticas+Med+Desc):</span>
+            <strong>${money(totales.totalGastos)}</strong>
+          </div>
           <div className={styles.totalItemGrande}>
             <span>TOTAL A FACTURAR:</span>
             <strong className={styles.totalFinal}>${money(totales.totalFinal)}</strong>

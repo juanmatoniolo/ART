@@ -4,14 +4,13 @@
  * Claves de almacenamiento centralizadas
  */
 export const STORAGE_KEYS = {
-  FACTURA: 'facturacion_sistema_factura',
   PACIENTE: 'facturacion_paciente',
   PRACTICAS: 'facturacion_practicas',
+  CIRUGIAS: 'facturacion_cirugias',
   LABORATORIOS: 'facturacion_laboratorios',
   MEDICAMENTOS: 'facturacion_medicamentos',
   DESCARTABLES: 'facturacion_descartables',
   TAB_ACTIVA: 'facturacion_tab_activa',
-  CONVENIO_ACTIVO: 'convenioActivoFacturacion',
   SINIESTROS: 'facturacion_siniestros'
 };
 
@@ -225,3 +224,5 @@ export function cargarSiniestroEnStorage(siniestro) {
     return false;
   }
 }
+
+

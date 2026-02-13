@@ -28,21 +28,19 @@ const extraerValoresConvenio = (convenioData) => {
       valorUB: 1224.11,
       consulta: 34650,
       unidadBioquimica: 1224.11,
+      honorarios_medicos: [],
       _rawData: {},
       _convenioName: 'No seleccionado'
     };
   }
 
   const vg = convenioData.valores_generales;
-  
-  // Función para buscar valores con múltiples claves posibles
+
   const buscarValor = (claves, defaultValue = 0) => {
     for (const clave of claves) {
       if (vg[clave] != null && vg[clave] !== '') {
-        // Convertir string a número si es necesario
         let valor = vg[clave];
         if (typeof valor === 'string') {
-          // Limpiar formato de moneda
           valor = valor.replace(/[^\d.,-]/g, '').replace(',', '.');
           const num = parseFloat(valor);
           return isNaN(num) ? defaultValue : num;
@@ -76,7 +74,7 @@ const extraerValoresConvenio = (convenioData) => {
       'Unidad Bioquimica',
       'UB'
     ], 1224.11),
-    // Datos crudos para depuración
+    honorarios_medicos: convenioData.honorarios_medicos || [],
     _rawData: vg,
     _convenioName: convenioData.nombre || convenioData.key || 'No seleccionado'
   };
@@ -86,26 +84,21 @@ export const ConvenioProvider = ({ children }) => {
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
   const [convenioData, setConvenioData] = useState(null);
-  const [valoresConvenio, setValoresConvenio] = useState(() => 
+  const [valoresConvenio, setValoresConvenio] = useState(() =>
     extraerValoresConvenio(null)
   );
   const [loading, setLoading] = useState(true);
 
-  // Cargar convenios desde Firebase
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const unsub = onValue(conveniosRef, (snap) => {
       if (!snap.exists()) {
-        console.log('No hay convenios en Firebase');
         setConvenios({});
         setLoading(false);
         return;
       }
-      
       const val = snap.val();
-      console.log('Convenios cargados:', Object.keys(val));
       setConvenios(val);
-      
       const stored = localStorage.getItem('convenioActivoFacturacion');
       const elegir = stored && val[stored] ? stored : Object.keys(val)[0] || '';
       setConvenioSel(elegir);
@@ -114,36 +107,25 @@ export const ConvenioProvider = ({ children }) => {
       console.error('Error cargando convenios:', error);
       setLoading(false);
     });
-    
     return () => unsub();
   }, []);
 
-  // Actualizar valores cuando cambia el convenio seleccionado
   useEffect(() => {
     if (!convenioSel || !convenios[convenioSel]) {
-      console.log('No hay convenio seleccionado o no existe');
       setConvenioData(null);
       setValoresConvenio(extraerValoresConvenio(null));
       return;
     }
-    
     localStorage.setItem('convenioActivoFacturacion', convenioSel);
     const data = convenios[convenioSel];
-    console.log('Convenio seleccionado:', convenioSel, data);
     setConvenioData(data);
-    
-    const nuevosValores = extraerValoresConvenio(data);
-    console.log('Valores extraídos:', nuevosValores);
-    setValoresConvenio(nuevosValores);
-    
+    setValoresConvenio(extraerValoresConvenio(data));
   }, [convenioSel, convenios]);
 
   const cambiarConvenio = (nuevoConvenio) => {
-    console.log('Cambiando convenio a:', nuevoConvenio);
     setConvenioSel(nuevoConvenio);
   };
 
-  // Función para forzar actualización de valores
   const actualizarValores = () => {
     if (convenioData) {
       const nuevosValores = extraerValoresConvenio(convenioData);
@@ -162,7 +144,6 @@ export const ConvenioProvider = ({ children }) => {
       loading,
       cambiarConvenio,
       actualizarValores,
-      // Valores individuales para acceso rápido
       get gastoRx() { return valoresConvenio.gastoRx; },
       get galenoRx() { return valoresConvenio.galenoRx; },
       get gastoOperatorio() { return valoresConvenio.gastoOperatorio; },

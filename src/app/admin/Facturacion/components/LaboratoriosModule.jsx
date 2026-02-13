@@ -1,3 +1,4 @@
+// LaboratoriosModule.jsx
 'use client';
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';

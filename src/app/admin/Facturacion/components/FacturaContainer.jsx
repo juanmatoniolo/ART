@@ -7,6 +7,7 @@ import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../utils/storage';
 
 import DatosPaciente from './DatosPaciente';
 import PracticasModule from './PracticasModule';
+import CirugiasModule from './CirugiasModule';
 import LaboratoriosModule from './LaboratoriosModule';
 import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
@@ -81,13 +82,14 @@ export default function FacturaContainer() {
   });
 
   const [practicas, setPracticas] = useState([]);
+  const [cirugias, setCirugias] = useState([]);
   const [laboratorios, setLaboratorios] = useState([]);
   const [medicamentos, setMedicamentos] = useState([]);
   const [descartables, setDescartables] = useState([]);
 
   const totalItems = useMemo(
-    () => practicas.length + laboratorios.length + medicamentos.length + descartables.length,
-    [practicas.length, laboratorios.length, medicamentos.length, descartables.length]
+    () => practicas.length + cirugias.length + laboratorios.length + medicamentos.length + descartables.length,
+    [practicas.length, cirugias.length, laboratorios.length, medicamentos.length, descartables.length]
   );
 
   // ===== Chips (valores del convenio) =====
@@ -113,6 +115,7 @@ export default function FacturaContainer() {
 
     setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
     setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
+    setCirugias(getStorageItem(STORAGE_KEYS.CIRUGIAS, []));
     setLaboratorios(getStorageItem(STORAGE_KEYS.LABORATORIOS, []));
     setMedicamentos(getStorageItem(STORAGE_KEYS.MEDICAMENTOS, []));
     setDescartables(getStorageItem(STORAGE_KEYS.DESCARTABLES, []));
@@ -128,34 +131,24 @@ export default function FacturaContainer() {
 
     setStorageItem(STORAGE_KEYS.PACIENTE, paciente);
     setStorageItem(STORAGE_KEYS.PRACTICAS, practicas);
+    setStorageItem(STORAGE_KEYS.CIRUGIAS, cirugias);
     setStorageItem(STORAGE_KEYS.LABORATORIOS, laboratorios);
     setStorageItem(STORAGE_KEYS.MEDICAMENTOS, medicamentos);
     setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
-  }, [paciente, practicas, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
+  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
 
-  // Add handlers (módulos)
+  // Add handlers
   const agregarPractica = useCallback(
     (nueva) => {
-      const prestadorTipo = nueva.prestadorTipo || 'Clinica';
-      const prestadorNombre = nueva.prestadorNombre || '';
-
-      const base = valoresConvenio ? calcularPractica(nueva, valoresConvenio) : nueva;
-      const aplicado = aplicarPrestadorEnPractica(base, prestadorTipo);
-
-      setPracticas((prev) => [
-        ...prev,
-        {
-          ...nueva,
-          ...base,
-          ...aplicado,
-          prestadorTipo,
-          prestadorNombre
-        }
-      ]);
+      setPracticas((prev) => [...prev, nueva]);
     },
-    [valoresConvenio]
+    []
   );
+
+  const agregarCirugia = useCallback((nueva) => {
+    setCirugias((prev) => [...prev, nueva]);
+  }, []);
 
   const agregarLaboratorio = useCallback(
     (nuevo) => {
@@ -199,11 +192,12 @@ export default function FacturaContainer() {
       };
 
       if (actualizarArray(practicas, setPracticas)) return;
+      if (actualizarArray(cirugias, setCirugias)) return;
       if (actualizarArray(laboratorios, setLaboratorios)) return;
       if (actualizarArray(medicamentos, setMedicamentos)) return;
       if (actualizarArray(descartables, setDescartables)) return;
     },
-    [practicas, laboratorios, medicamentos, descartables]
+    [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
   // actualizarItem (Dr/Clínica + nombres)
@@ -238,7 +232,7 @@ export default function FacturaContainer() {
           return true;
         }
 
-        if (kind === 'medicamento' || kind === 'descartable') {
+        if (kind === 'medicamento' || kind === 'descartable' || kind === 'cirugia') {
           const normal = normalizarMedDesc(merged);
           setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
           return true;
@@ -249,15 +243,17 @@ export default function FacturaContainer() {
       };
 
       if (applyIn(practicas, setPracticas, 'practica')) return;
+      if (applyIn(cirugias, setCirugias, 'cirugia')) return;
       if (applyIn(laboratorios, setLaboratorios, 'laboratorio')) return;
       if (applyIn(medicamentos, setMedicamentos, 'medicamento')) return;
       if (applyIn(descartables, setDescartables, 'descartable')) return;
     },
-    [practicas, laboratorios, medicamentos, descartables, valoresConvenio]
+    [practicas, cirugias, laboratorios, medicamentos, descartables, valoresConvenio]
   );
 
   const eliminarItem = useCallback((id) => {
     setPracticas((prev) => prev.filter((p) => p.id !== id));
+    setCirugias((prev) => prev.filter((c) => c.id !== id));
     setLaboratorios((prev) => prev.filter((l) => l.id !== id));
     setMedicamentos((prev) => prev.filter((m) => m.id !== id));
     setDescartables((prev) => prev.filter((d) => d.id !== id));
@@ -267,6 +263,7 @@ export default function FacturaContainer() {
     if (!isClient || !window.confirm('¿Limpiar toda la factura?')) return;
 
     setPracticas([]);
+    setCirugias([]);
     setLaboratorios([]);
     setMedicamentos([]);
     setDescartables([]);
@@ -286,6 +283,7 @@ export default function FacturaContainer() {
         fecha: new Date().toISOString(),
         paciente,
         practicas,
+        cirugias,
         laboratorios,
         medicamentos,
         descartables,
@@ -299,7 +297,7 @@ export default function FacturaContainer() {
 
       alert(`Siniestro guardado como: ${nombre}`);
     },
-    [isClient, paciente, practicas, laboratorios, medicamentos, descartables, activeTab, convenioSel]
+    [isClient, paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, convenioSel]
   );
 
   const cerrarSiniestro = useCallback(async () => {
@@ -320,6 +318,7 @@ export default function FacturaContainer() {
       fecha: new Date().toISOString(),
       paciente,
       practicas,
+      cirugias,
       laboratorios,
       medicamentos,
       descartables,
@@ -331,12 +330,20 @@ export default function FacturaContainer() {
     siniestros.push(siniestro);
     setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
 
-    // ⚠️ si querés export masivo, hacelo desde Resumen o botón aparte
     alert('Siniestro cerrado y guardado.');
     limpiarFactura();
-  }, [isClient, paciente, practicas, laboratorios, medicamentos, descartables, activeTab, convenioSel, limpiarFactura]);
+  }, [isClient, paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, convenioSel, limpiarFactura]);
 
   const puedeNavegar = Boolean(paciente.nombreCompleto && paciente.dni);
+
+  const tabs = [
+    { key: 'datos', label: '👤 Datos Paciente' },
+    { key: 'practicas', label: '🏥 Prácticas' },
+    { key: 'cirugias', label: '🩺 Cirugías' },
+    { key: 'laboratorios', label: '🧪 Laboratorios' },
+    { key: 'medicamentos', label: '💊 Medicamentos' },
+    { key: 'resumen', label: '📋 Resumen' }
+  ];
 
   if (!isClient || loadingStorage) {
     return (
@@ -407,33 +414,27 @@ export default function FacturaContainer() {
           </div>
         </div>
 
-        {/* ✅ Chips de valores del convenio */}
+        {/* Chips de valores del convenio */}
         {valoresConvenio && (
           <div className={styles.chipsContainer}>
             <span className={`${styles.chip} ${styles.chipGastoRx}`}>
               <b>Gasto Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoRx)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipGalenoRx}`}>
               <b>Galeno Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoRx)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipGtoOperatorio}`}>
               <b>G. Oper.</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoOperatorio)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipGalenoQuir}`}>
               <b>Gal. Quir.</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoQuir)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipPension}`}>
               <b>Pensión</b> <span className={styles.chipValue}>{moneyFmt(chips.diaPension)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipUb}`}>
               <b>U.B.</b> <span className={styles.chipValue}>{moneyFmt(chips.valorUB)}</span>
             </span>
-
             <span className={`${styles.chip} ${styles.chipOtros}`}>
               <b>Otros</b> <span className={styles.chipValue}>{moneyFmt(chips.otrosGastos)}</span>
             </span>
@@ -442,18 +443,14 @@ export default function FacturaContainer() {
       </header>
 
       <div className={styles.tabs}>
-        {['datos', 'practicas', 'laboratorios', 'medicamentos', 'resumen'].map((tab) => (
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab(tab)}
-            disabled={tab !== 'datos' && !puedeNavegar}
+            key={tab.key}
+            className={`${styles.tab} ${activeTab === tab.key ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+            disabled={tab.key !== 'datos' && !puedeNavegar}
           >
-            {tab === 'datos' && '👤 Datos Paciente'}
-            {tab === 'practicas' && '🏥 Prácticas'}
-            {tab === 'laboratorios' && '🧪 Laboratorios'}
-            {tab === 'medicamentos' && '💊 Medicamentos'}
-            {tab === 'resumen' && '📋 Resumen'}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -472,6 +469,17 @@ export default function FacturaContainer() {
                 practicasAgregadas={practicas}
                 agregarPractica={agregarPractica}
                 onAtras={() => setActiveTab('datos')}
+                onSiguiente={() => setActiveTab('cirugias')}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'cirugias' && (
+            <motion.div key="cirugias" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <CirugiasModule
+                cirugiasAgregadas={cirugias}
+                agregarCirugia={agregarCirugia}
+                onAtras={() => setActiveTab('practicas')}
                 onSiguiente={() => setActiveTab('laboratorios')}
               />
             </motion.div>
@@ -482,7 +490,7 @@ export default function FacturaContainer() {
               <LaboratoriosModule
                 laboratoriosAgregados={laboratorios}
                 agregarLaboratorio={agregarLaboratorio}
-                onAtras={() => setActiveTab('practicas')}
+                onAtras={() => setActiveTab('cirugias')}
                 onSiguiente={() => setActiveTab('medicamentos')}
               />
             </motion.div>
@@ -506,6 +514,7 @@ export default function FacturaContainer() {
               <ResumenFactura
                 paciente={paciente}
                 practicas={practicas}
+                cirugias={cirugias}
                 laboratorios={laboratorios}
                 medicamentos={medicamentos}
                 descartables={descartables}
