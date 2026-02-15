@@ -74,8 +74,15 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateX(16px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* Header */
@@ -190,8 +197,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { border-color: var(--color-success); }
-  50% { border-color: var(--color-success-hover); }
+
+  0%,
+  100% {
+    border-color: var(--color-success);
+  }
+
+  50% {
+    border-color: var(--color-success-hover);
+  }
 }
 
 .cardHeader {
@@ -346,6 +360,7 @@
   .mobileList {
     display: none;
   }
+
   .tableWrapper {
     display: block;
     margin: var(--spacing-xl) 0;
@@ -575,6 +590,7 @@
 }
 
 @media (min-width: 768px) {
+
   .btnAtras,
   .btnSiguiente {
     width: auto;
@@ -588,10 +604,12 @@
     right: 12px;
     top: 10px;
   }
+
   .toastInner {
     max-width: none;
     justify-content: center;
   }
+
   .botonesNavegacion {
     flex-direction: column;
   }
@@ -639,7 +657,6 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  user-select: none;
 }
 
 .checkboxLabel input[type="checkbox"] {
