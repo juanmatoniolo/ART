@@ -137,7 +137,7 @@ export default function AdminLayout({ children }) {
             className={`${styles.menuItem} ${isActive("/admin/utilidades") ? styles.active : ""}`}
           >
             <StickyNote size={20} />
-
+            {!collapsed && <span>Utilidades</span>}
 
           </Link>
 

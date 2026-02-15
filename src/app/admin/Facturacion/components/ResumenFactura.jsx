@@ -1,21 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { money, parseNumber } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
 
-/**
- * Cantidad para prácticas/cirugías/labs:
- * - mínimo 1
- * - entero
- */
+// Pract/Cx/Lab: int >= 1
 const clampIntQty = (v) => Math.max(1, Math.round(parseNumber(v) || 1));
 
-/**
- * Cantidad para medicamentos/descartables:
- * - permite decimales (0.5 / 0,5 / 2,75)
- * - mínimo > 0
- */
+// Med/Desc: decimal > 0
 const clampDecimalQty = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n) || n <= 0) return 1;
@@ -25,8 +17,51 @@ const clampDecimalQty = (v) => {
 const fmtQtyInput = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n)) return '1';
-  return String(n).replace('.', ','); // mostramos coma
+  return String(n).replace('.', ',');
 };
+
+const stopBubbling = (e) => {
+  e.stopPropagation();
+};
+
+const stopInputKeys = (e) => {
+  e.stopPropagation();
+  if (e.key === 'Enter') e.preventDefault();
+};
+
+/**
+ * ✅ Input “estable”
+ * - no llama actualizarItem en cada tecla
+ * - mantiene foco y cursor
+ * - hace commit al padre al salir (blur) o Enter
+ */
+function StableNameInput({ value, placeholder, onCommit }) {
+  const [local, setLocal] = useState(value ?? '');
+
+  // Si cambia desde afuera (ej: cargar siniestro), sincroniza
+  useEffect(() => {
+    setLocal(value ?? '');
+  }, [value]);
+
+  const commit = useCallback(() => {
+    onCommit?.(local);
+  }, [local, onCommit]);
+
+  return (
+    <input
+      className={styles.inputDoctor}
+      placeholder={placeholder}
+      value={local}
+      onClick={stopBubbling}
+      onKeyDown={(e) => {
+        stopInputKeys(e);
+        if (e.key === 'Enter') commit();
+      }}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+    />
+  );
+}
 
 export default function ResumenFactura({
   paciente,
@@ -43,13 +78,13 @@ export default function ResumenFactura({
 }) {
   const [open, setOpen] = useState({
     practicas: true,
-    practHon: true,   // ✅ sub: honorarios
-    practGas: true,   // ✅ sub: gastos
+    practHon: true,
+    practGas: true,
     cirugias: true,
     labs: true,
     medDesc: true,
     med: true,
-    desc: true,
+    desc: true
   });
 
   const totalSeccion = (items) =>
@@ -62,12 +97,11 @@ export default function ResumenFactura({
     return { honor, gasto, total: honor + gasto };
   }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
-  // ✅ Separación "como antes" (Dr vs Clínica)
+  // ✅ separación prácticas como antes
   const practicasHonorarios = useMemo(
     () => practicas.filter((p) => String(p?.prestadorTipo) === 'Dr'),
     [practicas]
   );
-
   const practicasGastos = useMemo(
     () => practicas.filter((p) => String(p?.prestadorTipo) !== 'Dr'),
     [practicas]
@@ -75,10 +109,10 @@ export default function ResumenFactura({
 
   const renderCantidad = (item, mode) => {
     const isDecimal = mode === 'decimal';
-
     return (
-      <div className={styles.contadorCantidad}>
+      <div className={styles.contadorCantidad} onClick={stopBubbling}>
         <button
+          type="button"
           className={styles.btnCantidad}
           onClick={() => {
             const cur = isDecimal ? clampDecimalQty(item?.cantidad) : clampIntQty(item?.cantidad);
@@ -92,8 +126,10 @@ export default function ResumenFactura({
 
         <input
           className={`${styles.inputCantidad} ${isDecimal ? styles.inputCantidadDecimal : ''}`}
-          inputMode="decimal"
+          inputMode={isDecimal ? 'decimal' : 'numeric'}
           value={fmtQtyInput(item?.cantidad ?? 1)}
+          onClick={stopBubbling}
+          onKeyDown={stopInputKeys}
           onChange={(e) => {
             const n = parseNumber(e.target.value);
             if (!Number.isFinite(n)) return;
@@ -106,6 +142,7 @@ export default function ResumenFactura({
         />
 
         <button
+          type="button"
           className={styles.btnCantidad}
           onClick={() => {
             const cur = isDecimal ? clampDecimalQty(item?.cantidad) : clampIntQty(item?.cantidad);
@@ -118,15 +155,6 @@ export default function ResumenFactura({
       </div>
     );
   };
-
-  const renderDoctorInput = (item) => (
-    <input
-      className={styles.inputDoctor}
-      placeholder="Dr que realiza…"
-      value={item?.prestadorNombre ?? ''}
-      onChange={(e) => actualizarItem(item.id, { prestadorNombre: e.target.value })}
-    />
-  );
 
   const renderValorStack = (item) => (
     <div className={styles.valorStack}>
@@ -150,7 +178,11 @@ export default function ResumenFactura({
 
   const Acordeon = ({ k, title, count, amount, children }) => (
     <section className={styles.acSection}>
-      <button className={styles.acHeader} onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}>
+      <button
+        type="button"
+        className={styles.acHeader}
+        onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}
+      >
         <div className={styles.acTitle}>{title}</div>
         <div className={styles.acRight}>
           <span className={styles.acCount}>{count}</span>
@@ -164,7 +196,11 @@ export default function ResumenFactura({
 
   const SubAcordeon = ({ k, title, count, amount, children }) => (
     <div className={styles.subAcc}>
-      <button className={styles.subAccHeader} onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}>
+      <button
+        type="button"
+        className={styles.subAccHeader}
+        onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}
+      >
         <div className={styles.subAccTitle}>{title}</div>
         <div className={styles.subAccRight}>
           <span className={styles.acCount}>{count}</span>
@@ -208,21 +244,20 @@ export default function ResumenFactura({
 
                 {mostrarInputDoctor && (
                   <div className={styles.doctorRow}>
-                    {renderDoctorInput(p)}
+                    <StableNameInput
+                      value={p?.prestadorNombre ?? ''}
+                      placeholder="Dr que realiza…"
+                      onCommit={(val) => actualizarItem(p.id, { prestadorNombre: val })}
+                    />
                   </div>
                 )}
               </td>
 
-              <td className={styles.columnaCantidad}>
-                {renderCantidad(p, 'int')}
-              </td>
-
-              <td className={styles.columnaValor}>
-                {renderValorStack(p)}
-              </td>
+              <td className={styles.columnaCantidad}>{renderCantidad(p, 'int')}</td>
+              <td className={styles.columnaValor}>{renderValorStack(p)}</td>
 
               <td className={styles.columnaAcciones}>
-                <button className={styles.btnEliminar} onClick={() => eliminarItem(p.id)} title="Eliminar">
+                <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(p.id)} title="Eliminar">
                   🗑️
                 </button>
               </td>
@@ -255,23 +290,13 @@ export default function ResumenFactura({
         </div>
       </div>
 
-      {/* =================== PRACTICAS (SEPARADAS COMO ANTES) =================== */}
-      <Acordeon
-        k="practicas"
-        title="🏥 Prácticas"
-        count={practicas.length}
-        amount={totalSeccion(practicas)}
-      >
+      {/* PRACTICAS separadas */}
+      <Acordeon k="practicas" title="🏥 Prácticas" count={practicas.length} amount={totalSeccion(practicas)}>
         {practicas.length === 0 ? (
           <div className={styles.emptyBlock}>Sin prácticas.</div>
         ) : (
           <>
-            <SubAcordeon
-              k="practHon"
-              title="👨‍⚕️ Honorarios (Dr)"
-              count={practicasHonorarios.length}
-              amount={totalSeccion(practicasHonorarios)}
-            >
+            <SubAcordeon k="practHon" title="👨‍⚕️ Honorarios (Dr)" count={practicasHonorarios.length} amount={totalSeccion(practicasHonorarios)}>
               {practicasHonorarios.length === 0 ? (
                 <div className={styles.emptyBlock}>No hay honorarios cargados.</div>
               ) : (
@@ -279,12 +304,7 @@ export default function ResumenFactura({
               )}
             </SubAcordeon>
 
-            <SubAcordeon
-              k="practGas"
-              title="🏥 Gastos (Clínica)"
-              count={practicasGastos.length}
-              amount={totalSeccion(practicasGastos)}
-            >
+            <SubAcordeon k="practGas" title="🏥 Gastos (Clínica)" count={practicasGastos.length} amount={totalSeccion(practicasGastos)}>
               {practicasGastos.length === 0 ? (
                 <div className={styles.emptyBlock}>No hay gastos cargados.</div>
               ) : (
@@ -295,13 +315,8 @@ export default function ResumenFactura({
         )}
       </Acordeon>
 
-      {/* =================== CIRUGIAS =================== */}
-      <Acordeon
-        k="cirugias"
-        title="🩺 Cirugías"
-        count={cirugias.length}
-        amount={totalSeccion(cirugias)}
-      >
+      {/* CIRUGIAS con input Dr */}
+      <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)}>
         {cirugias.length === 0 ? (
           <div className={styles.emptyBlock}>Sin cirugías.</div>
         ) : (
@@ -319,29 +334,24 @@ export default function ResumenFactura({
               <tbody>
                 {cirugias.map((c) => (
                   <tr key={c.id}>
-                    <td className={styles.columnaCodigo}>
-                      <strong>{c.codigo || '—'}</strong>
-                    </td>
+                    <td className={styles.columnaCodigo}><strong>{c.codigo || '—'}</strong></td>
 
                     <td className={styles.columnaDescripcion}>
                       <div className={styles.descPrincipal}>{c.descripcion || c.nombre || 'Cirugía'}</div>
-
                       <div className={styles.doctorRow}>
-                        <input
-                          className={styles.inputDoctor}
-                          placeholder="Dr que realiza…"
+                        <StableNameInput
                           value={c?.prestadorNombre ?? ''}
-                          onChange={(e) => actualizarItem(c.id, { prestadorNombre: e.target.value })}
+                          placeholder="Dr que realiza…"
+                          onCommit={(val) => actualizarItem(c.id, { prestadorNombre: val })}
                         />
                       </div>
                     </td>
 
                     <td className={styles.columnaCantidad}>{renderCantidad(c, 'int')}</td>
-
                     <td className={styles.columnaValor}>{renderValorStack(c)}</td>
 
                     <td className={styles.columnaAcciones}>
-                      <button className={styles.btnEliminar} onClick={() => eliminarItem(c.id)} title="Eliminar">
+                      <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(c.id)} title="Eliminar">
                         🗑️
                       </button>
                     </td>
@@ -353,13 +363,8 @@ export default function ResumenFactura({
         )}
       </Acordeon>
 
-      {/* =================== LABS =================== */}
-      <Acordeon
-        k="labs"
-        title="🧪 Laboratorios"
-        count={laboratorios.length}
-        amount={totalSeccion(laboratorios)}
-      >
+      {/* LABS con input Bioquímico por estudio */}
+      <Acordeon k="labs" title="🧪 Laboratorios" count={laboratorios.length} amount={totalSeccion(laboratorios)}>
         {laboratorios.length === 0 ? (
           <div className={styles.emptyBlock}>Sin laboratorios.</div>
         ) : (
@@ -377,12 +382,17 @@ export default function ResumenFactura({
               <tbody>
                 {laboratorios.map((l) => (
                   <tr key={l.id}>
-                    <td className={styles.columnaCodigo}>
-                      <strong>{l.codigo || '—'}</strong>
-                    </td>
+                    <td className={styles.columnaCodigo}><strong>{l.codigo || '—'}</strong></td>
 
                     <td className={styles.columnaDescripcion}>
                       <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
+                      <div className={styles.doctorRow}>
+                        <StableNameInput
+                          value={l?.prestadorNombre ?? ''}
+                          placeholder="Bioquímico/a…"
+                          onCommit={(val) => actualizarItem(l.id, { prestadorNombre: val })}
+                        />
+                      </div>
                     </td>
 
                     <td className={styles.columnaCantidad}>{renderCantidad(l, 'int')}</td>
@@ -398,7 +408,7 @@ export default function ResumenFactura({
                     </td>
 
                     <td className={styles.columnaAcciones}>
-                      <button className={styles.btnEliminar} onClick={() => eliminarItem(l.id)} title="Eliminar">
+                      <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(l.id)} title="Eliminar">
                         🗑️
                       </button>
                     </td>
@@ -410,19 +420,14 @@ export default function ResumenFactura({
         )}
       </Acordeon>
 
-      {/* =================== MED + DESC AGRUPADOS =================== */}
+      {/* MED + DESC agrupados */}
       <Acordeon
         k="medDesc"
         title="💊 Medicación + 🧷 Descartables"
         count={medicamentos.length + descartables.length}
         amount={totalSeccion(medicamentos) + totalSeccion(descartables)}
       >
-        <SubAcordeon
-          k="med"
-          title="💊 Medicación"
-          count={medicamentos.length}
-          amount={totalSeccion(medicamentos)}
-        >
+        <SubAcordeon k="med" title="💊 Medicación" count={medicamentos.length} amount={totalSeccion(medicamentos)}>
           {medicamentos.length === 0 ? (
             <div className={styles.emptyBlock}>Sin medicación.</div>
           ) : (
@@ -446,7 +451,6 @@ export default function ResumenFactura({
                       </td>
 
                       <td className={styles.columnaCantidad}>{renderCantidad(m, 'decimal')}</td>
-
                       <td className={styles.columnaUnidad}>$ {money(m.valorUnitario)}</td>
 
                       <td className={styles.columnaValor}>
@@ -459,7 +463,7 @@ export default function ResumenFactura({
                       </td>
 
                       <td className={styles.columnaAcciones}>
-                        <button className={styles.btnEliminar} onClick={() => eliminarItem(m.id)} title="Eliminar">
+                        <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(m.id)} title="Eliminar">
                           🗑️
                         </button>
                       </td>
@@ -471,12 +475,7 @@ export default function ResumenFactura({
           )}
         </SubAcordeon>
 
-        <SubAcordeon
-          k="desc"
-          title="🧷 Descartables"
-          count={descartables.length}
-          amount={totalSeccion(descartables)}
-        >
+        <SubAcordeon k="desc" title="🧷 Descartables" count={descartables.length} amount={totalSeccion(descartables)}>
           {descartables.length === 0 ? (
             <div className={styles.emptyBlock}>Sin descartables.</div>
           ) : (
@@ -500,7 +499,6 @@ export default function ResumenFactura({
                       </td>
 
                       <td className={styles.columnaCantidad}>{renderCantidad(d, 'decimal')}</td>
-
                       <td className={styles.columnaUnidad}>$ {money(d.valorUnitario)}</td>
 
                       <td className={styles.columnaValor}>
@@ -513,7 +511,7 @@ export default function ResumenFactura({
                       </td>
 
                       <td className={styles.columnaAcciones}>
-                        <button className={styles.btnEliminar} onClick={() => eliminarItem(d.id)} title="Eliminar">
+                        <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(d.id)} title="Eliminar">
                           🗑️
                         </button>
                       </td>
@@ -528,10 +526,10 @@ export default function ResumenFactura({
 
       <div className={styles.botonesResumen}>
         <div className={styles.botonesIzquierda}>
-          <button className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
+          <button type="button" className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
         </div>
         <div className={styles.botonesDerecha}>
-          <button className={styles.btnLimpiar} onClick={limpiarFactura}>🗑️ Limpiar factura</button>
+          <button type="button" className={styles.btnLimpiar} onClick={limpiarFactura}>🗑️ Limpiar factura</button>
         </div>
       </div>
     </div>

@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ref, push, set, update } from 'firebase/database';
+import { db } from '@/lib/firebase';
+
 import { useConvenio } from './ConvenioContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../utils/storage';
 
@@ -22,24 +25,42 @@ const safeNum = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// ✅ Cantidad “normal” (prácticas/cirugías/labs): mínimo 1
-const clampIntQty = (v) => Math.max(1, Math.round(parseNumber(v) || 1));
+/** Normaliza ART para usar como carpeta/key en Firebase */
+const normalizeArtKey = (s) =>
+  String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'sin_art';
 
-// ✅ Cantidad decimal (med/desc): mínimo > 0, permite 0.4, 0,5, etc.
-const clampDecimalQty = (v) => {
-  const n = parseNumber(v);
-  // si queda 0 o NaN, volvemos a 1 por seguridad
-  if (!Number.isFinite(n) || n <= 0) return 1;
-  return n;
+/** Construye un resumen liviano para listados (sin meter todo el json) */
+const buildIndexRow = ({ id, estado, paciente, convenioSel, convenioNombre, totales }) => {
+  const artNombre = paciente?.artSeguro || '';
+  const artKey = normalizeArtKey(artNombre);
+  return {
+    id,
+    estado, // 'borrador' | 'cerrado'
+    pacienteNombre: paciente?.nombreCompleto || '',
+    dni: paciente?.dni || '',
+    nroSiniestro: paciente?.nroSiniestro || '',
+    fechaAtencion: paciente?.fechaAtencion || '',
+    artNombre,
+    artKey,
+    convenio: convenioSel,
+    convenioNombre,
+    total: safeNum(totales?.total || 0),
+    updatedAt: Date.now(),
+    ...(estado === 'cerrado' ? { closedAt: Date.now() } : {})
+  };
 };
 
+/** ===== Practicas: aplicar prestador Dr/Clinica (NO tocar para texto) ===== */
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
   const honor = safeNum(calculoBase?.honorarioMedico);
   const gasto = safeNum(calculoBase?.gastoSanatorial);
-
-  if (prestadorTipo === 'Dr') {
-    return { honorarioMedico: honor, gastoSanatorial: 0, total: honor };
-  }
+  if (prestadorTipo === 'Dr') return { honorarioMedico: honor, gastoSanatorial: 0, total: honor };
   return { honorarioMedico: 0, gastoSanatorial: gasto, total: gasto };
 }
 
@@ -61,12 +82,11 @@ function normalizarLab(item, valoresConvenio) {
   };
 }
 
-// ✅ soporta decimales con coma
 function normalizarMedDesc(item) {
-  const cantidad = clampDecimalQty(item?.cantidad);
-  const unit = parseNumber(item?.valorUnitario ?? item?.precio ?? 0);
+  // cantidad permite decimales
+  const cantidad = Math.max(0.01, parseNumber(item?.cantidad) || 1);
+  const unit = safeNum(item?.valorUnitario ?? item?.precio ?? 0);
   const total = unit * cantidad;
-
   return {
     ...item,
     cantidad,
@@ -76,6 +96,13 @@ function normalizarMedDesc(item) {
     total
   };
 }
+
+/** Detección simple: si patch trae texto, no recalcular numéricos */
+const patchEsSoloTexto = (patch) => {
+  if (!patch || typeof patch !== 'object') return true;
+  const numericKeys = new Set(['cantidad', 'valorUnitario', 'precio', 'total', 'honorarioMedico', 'gastoSanatorial']);
+  return Object.keys(patch).every((k) => !numericKeys.has(k));
+};
 
 export default function FacturaContainer() {
   const { convenios, convenioSel, valoresConvenio, cambiarConvenio, loading } = useConvenio();
@@ -100,6 +127,9 @@ export default function FacturaContainer() {
   const [medicamentos, setMedicamentos] = useState([]);
   const [descartables, setDescartables] = useState([]);
 
+  // ✅ id del borrador actual (para no crear uno nuevo cada vez)
+  const [draftId, setDraftId] = useState('');
+
   const totalItems = useMemo(
     () => practicas.length + cirugias.length + laboratorios.length + medicamentos.length + descartables.length,
     [practicas.length, cirugias.length, laboratorios.length, medicamentos.length, descartables.length]
@@ -122,7 +152,15 @@ export default function FacturaContainer() {
     return { galenoRx, gastoRx, gastoOperatorio, galenoQuir, diaPension, otrosGastos, valorUB };
   }, [valoresConvenio]);
 
-  // Load localStorage
+  // ===== Totales de la factura (para guardar/cerrar) =====
+  const totalesFactura = useMemo(() => {
+    const all = [...practicas, ...cirugias, ...laboratorios, ...medicamentos, ...descartables];
+    const honor = all.reduce((acc, it) => acc + (parseNumber(it?.honorarioMedico) || 0), 0);
+    const gasto = all.reduce((acc, it) => acc + (parseNumber(it?.gastoSanatorial) || 0), 0);
+    return { honor, gasto, total: honor + gasto };
+  }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
+
+  // ===== Load localStorage =====
   useEffect(() => {
     if (!isClient) return;
 
@@ -134,11 +172,14 @@ export default function FacturaContainer() {
     setDescartables(getStorageItem(STORAGE_KEYS.DESCARTABLES, []));
     setActiveTab(getStorageItem(STORAGE_KEYS.TAB_ACTIVA, 'datos'));
 
+    // ✅ guardamos draftId si existía
+    setDraftId(getStorageItem('FACTURACION_DRAFT_ID', ''));
+
     setLoadingStorage(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient]);
 
-  // Auto save
+  // ===== Auto save (local) =====
   useEffect(() => {
     if (!isClient || loadingStorage) return;
 
@@ -149,21 +190,109 @@ export default function FacturaContainer() {
     setStorageItem(STORAGE_KEYS.MEDICAMENTOS, medicamentos);
     setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
-  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
 
-  // Add handlers
-  const agregarPractica = useCallback((nueva) => {
-    setPracticas((prev) => [...prev, nueva]);
-  }, []);
+    // ✅ persistimos draftId
+    setStorageItem('FACTURACION_DRAFT_ID', draftId);
+  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
 
-  const agregarCirugia = useCallback((nueva) => {
-    // ✅ aseguramos que exista prestadorNombre para el Dr (si el módulo no lo trae)
-    const withDr = {
-      ...nueva,
-      prestadorNombre: nueva?.prestadorNombre ?? ''
-    };
-    setCirugias((prev) => [...prev, withDr]);
-  }, []);
+  // =========================
+  // Firebase: guardar en RTDB (con ART + index)
+  // =========================
+  const guardarEnRTDB = useCallback(
+    async ({ estado, nombre }) => {
+      const convenioNombre = convenios?.[convenioSel]?.nombre || convenioSel;
+      const artNombre = paciente?.artSeguro || '';
+      const artKey = normalizeArtKey(artNombre);
+
+      // payload completo (detalle)
+      const payload = {
+        estado, // 'borrador' | 'cerrado'
+        nombre: nombre || paciente?.nombreCompleto || 'Siniestro',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+
+        convenio: convenioSel,
+        convenioNombre,
+
+        paciente: { ...paciente },
+
+        practicas: practicas || [],
+        cirugias: cirugias || [],
+        laboratorios: laboratorios || [],
+        medicamentos: medicamentos || [],
+        descartables: descartables || [],
+
+        totales: {
+          honorarios: safeNum(totalesFactura.honor),
+          gastos: safeNum(totalesFactura.gasto),
+          total: safeNum(totalesFactura.total)
+        }
+      };
+
+      if (estado === 'cerrado') {
+        payload.facturaNro = `FAC-${new Date().getFullYear()}-${Date.now()}`;
+        payload.cerradoAt = Date.now();
+      }
+
+      // ✅ Si es borrador y ya existe draftId -> UPDATE en vez de crear nuevo
+      let id = draftId;
+      if (!id) {
+        const r = push(ref(db, `Facturacion/porArt/${artKey}/${estado === 'cerrado' ? 'cerrados' : 'borradores'}`));
+        id = r.key;
+      }
+
+      // 1) Guardar detalle por ART
+      const detailPath = `Facturacion/porArt/${artKey}/${estado === 'cerrado' ? 'cerrados' : 'borradores'}/${id}`;
+      await set(ref(db, detailPath), { id, artKey, artNombre, ...payload });
+
+      // 2) Guardar índice para listar rápido (sin cargar todo)
+      const indexRow = buildIndexRow({
+        id,
+        estado,
+        paciente,
+        convenioSel,
+        convenioNombre,
+        totales: { total: payload.totales.total }
+      });
+
+      const indexPath = `Facturacion/index/${estado === 'cerrado' ? 'cerrados' : 'borradores'}/${id}`;
+      await set(ref(db, indexPath), indexRow);
+
+      // 3) Si cerró, el borrador deja de ser borrador: lo sacamos de index/borradores y porArt/borradores
+      if (estado === 'cerrado') {
+        const borradorIndexPath = `Facturacion/index/borradores/${id}`;
+        const borradorDetailPath = `Facturacion/porArt/${artKey}/borradores/${id}`;
+        await update(ref(db), {
+          [borradorIndexPath]: null,
+          [borradorDetailPath]: null
+        });
+      }
+
+      // ✅ draftId se mantiene solo mientras sea borrador
+      if (estado === 'borrador') setDraftId(id);
+      if (estado === 'cerrado') setDraftId('');
+
+      return { id, artKey, ...payload };
+    },
+    [
+      paciente,
+      practicas,
+      cirugias,
+      laboratorios,
+      medicamentos,
+      descartables,
+      totalesFactura,
+      convenioSel,
+      convenios,
+      draftId
+    ]
+  );
+
+  // =========================
+  // Handlers de módulos
+  // =========================
+  const agregarPractica = useCallback((nueva) => setPracticas((prev) => [...prev, nueva]), []);
+  const agregarCirugia = useCallback((nueva) => setCirugias((prev) => [...prev, nueva]), []);
 
   const agregarLaboratorio = useCallback(
     (nuevo) => {
@@ -173,31 +302,26 @@ export default function FacturaContainer() {
     [valoresConvenio]
   );
 
-  const agregarMedicamento = useCallback((nuevo) => {
-    setMedicamentos((prev) => [...prev, normalizarMedDesc(nuevo)]);
-  }, []);
+  const agregarMedicamento = useCallback((nuevo) => setMedicamentos((prev) => [...prev, normalizarMedDesc(nuevo)]), []);
+  const agregarDescartable = useCallback((nuevo) => setDescartables((prev) => [...prev, normalizarMedDesc(nuevo)]), []);
 
-  const agregarDescartable = useCallback((nuevo) => {
-    setDescartables((prev) => [...prev, normalizarMedDesc(nuevo)]);
-  }, []);
-
-  // ✅ actualizarCantidad (int para pract/cirug/lab, decimal para med/desc)
+  // actualizarCantidad
   const actualizarCantidad = useCallback(
-    (id, cantidadRaw) => {
-      const actualizarArray = (items, setItems, mode) => {
+    (id, cantidad) => {
+      const c = parseNumber(cantidad);
+      const finalC = Number.isFinite(c) && c > 0 ? c : 1;
+
+      const actualizarArray = (items, setItems) => {
         const index = items.findIndex((i) => i.id === id);
         if (index === -1) return false;
 
         const item = items[index];
-
-        const newC = mode === 'decimal' ? clampDecimalQty(cantidadRaw) : clampIntQty(cantidadRaw);
-        const oldC = mode === 'decimal' ? clampDecimalQty(item.cantidad) : clampIntQty(item.cantidad);
-
-        const factor = oldC === 0 ? 1 : newC / oldC;
+        const oldC = parseNumber(item.cantidad) || 1;
+        const factor = finalC / (oldC || 1);
 
         const next = {
           ...item,
-          cantidad: newC,
+          cantidad: finalC,
           total: safeNum(item.total) * factor,
           ...(item.honorarioMedico != null && { honorarioMedico: safeNum(item.honorarioMedico) * factor }),
           ...(item.gastoSanatorial != null && { gastoSanatorial: safeNum(item.gastoSanatorial) * factor })
@@ -207,19 +331,16 @@ export default function FacturaContainer() {
         return true;
       };
 
-      // pract/cirug/lab => int
-      if (actualizarArray(practicas, setPracticas, 'int')) return;
-      if (actualizarArray(cirugias, setCirugias, 'int')) return;
-      if (actualizarArray(laboratorios, setLaboratorios, 'int')) return;
-
-      // med/desc => decimal
-      if (actualizarArray(medicamentos, setMedicamentos, 'decimal')) return;
-      if (actualizarArray(descartables, setDescartables, 'decimal')) return;
+      if (actualizarArray(practicas, setPracticas)) return;
+      if (actualizarArray(cirugias, setCirugias)) return;
+      if (actualizarArray(laboratorios, setLaboratorios)) return;
+      if (actualizarArray(medicamentos, setMedicamentos)) return;
+      if (actualizarArray(descartables, setDescartables)) return;
     },
     [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
-  // ✅ actualizarItem (Dr/Clínica + nombres)
+  // ✅ actualizarItem: NO romper inputs de texto
   const actualizarItem = useCallback(
     (id, patch) => {
       const applyIn = (items, setItems, kind) => {
@@ -229,21 +350,37 @@ export default function FacturaContainer() {
         const current = items[idx];
         const merged = { ...current, ...patch };
 
+        // --- PRACTICAS ---
         if (kind === 'practica') {
+          // si solo cambia texto, no recalculamos (evita saltos)
+          if (patchEsSoloTexto(patch)) {
+            setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+            return true;
+          }
+
           if (!valoresConvenio) {
             setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
             return true;
           }
+
           const prestadorTipo = merged.prestadorTipo || 'Clinica';
           const recalculada = recalcularPracticaConPrestador(merged, valoresConvenio, prestadorTipo);
           setItems((prev) => prev.map((x) => (x.id === id ? recalculada : x)));
           return true;
         }
 
+        // --- LABORATORIO ---
         if (kind === 'laboratorio') {
+          if (patchEsSoloTexto(patch)) {
+            setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+            return true;
+          }
+
           if (!valoresConvenio) {
             const total = safeNum(merged.total);
-            setItems((prev) => prev.map((x) => (x.id === id ? { ...merged, honorarioMedico: total, gastoSanatorial: 0 } : x)));
+            setItems((prev) =>
+              prev.map((x) => (x.id === id ? { ...merged, honorarioMedico: total, gastoSanatorial: 0 } : x))
+            );
             return true;
           }
           const normal = normalizarLab(merged, valoresConvenio);
@@ -251,15 +388,40 @@ export default function FacturaContainer() {
           return true;
         }
 
-        if (kind === 'medicamento' || kind === 'descartable') {
-          const normal = normalizarMedDesc(merged);
-          setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
+        // --- CIRUGIA ---
+        // ✅ IMPORTANTÍSIMO: cirugías NO son med/desc.
+        // Si cambia texto (médico), solo merge.
+        if (kind === 'cirugia') {
+          if (patchEsSoloTexto(patch)) {
+            setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+            return true;
+          }
+
+          // si tocaron cantidad/total manual, mantenemos consistencia básica:
+          const cantidad = Math.max(1, Math.round(parseNumber(merged.cantidad) || 1));
+          const baseTotal = safeNum(current.total) || safeNum(merged.total) || 0;
+          const total = (baseTotal / (parseNumber(current.cantidad) || 1)) * cantidad;
+
+          const next = {
+            ...merged,
+            cantidad,
+            total
+          };
+
+          setItems((prev) => prev.map((x) => (x.id === id ? next : x)));
           return true;
         }
 
-        // cirugías: solo actualizamos campos, no las “normalizamos” como med/desc
-        if (kind === 'cirugia') {
-          setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+        // --- MEDICAMENTO / DESCARTABLE ---
+        if (kind === 'medicamento' || kind === 'descartable') {
+          // si es texto (ej nombre), no recalcular
+          if (patchEsSoloTexto(patch)) {
+            setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
+            return true;
+          }
+
+          const normal = normalizarMedDesc(merged);
+          setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
           return true;
         }
 
@@ -295,36 +457,34 @@ export default function FacturaContainer() {
     setPaciente({ nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
     setActiveTab('datos');
 
+    // ✅ borrador actual ya no aplica
+    setDraftId('');
+    localStorage.removeItem('FACTURACION_DRAFT_ID');
+
     Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
   }, [isClient]);
 
-  const guardarSiniestro = useCallback(
-    (nombre) => {
-      if (!isClient || !nombre) return;
+  // =========================
+  // 💾 Guardar => Firebase borrador
+  // =========================
+  const guardarSiniestro = useCallback(async () => {
+    if (!isClient) return;
 
-      const siniestro = {
-        id: Date.now(),
-        nombre,
-        fecha: new Date().toISOString(),
-        paciente,
-        practicas,
-        cirugias,
-        laboratorios,
-        medicamentos,
-        descartables,
-        tabActiva: activeTab,
-        convenio: convenioSel
-      };
+    const nombre = prompt('Nombre del siniestro:', paciente.nombreCompleto || 'Siniestro');
+    if (!nombre) return;
 
-      const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
-      siniestros.push(siniestro);
-      setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
+    try {
+      const saved = await guardarEnRTDB({ estado: 'borrador', nombre });
+      alert(`✅ Borrador guardado\nART: ${paciente.artSeguro || 'SIN ART'}\nID: ${saved.id}`);
+    } catch (e) {
+      console.error(e);
+      alert('❌ Error al guardar en Firebase. Revisá permisos/ruta.');
+    }
+  }, [isClient, paciente, guardarEnRTDB]);
 
-      alert(`Siniestro guardado como: ${nombre}`);
-    },
-    [isClient, paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, convenioSel]
-  );
-
+  // =========================
+  // ✅ Cerrar siniestro => Firebase cerrado
+  // =========================
   const cerrarSiniestro = useCallback(async () => {
     if (!isClient) return;
 
@@ -334,30 +494,22 @@ export default function FacturaContainer() {
       return;
     }
 
-    const nombre = prompt('Nombre del siniestro (para guardar y exportar):', paciente.nombreCompleto || 'Siniestro');
+    const nombre = prompt('Nombre del siniestro (para cerrar y facturar):', paciente.nombreCompleto || 'Siniestro');
     if (!nombre) return;
 
-    const siniestro = {
-      id: Date.now(),
-      nombre,
-      fecha: new Date().toISOString(),
-      paciente,
-      practicas,
-      cirugias,
-      laboratorios,
-      medicamentos,
-      descartables,
-      tabActiva: activeTab,
-      convenio: convenioSel
-    };
+    try {
+      const saved = await guardarEnRTDB({ estado: 'cerrado', nombre });
 
-    const siniestros = getStorageItem(STORAGE_KEYS.SINIESTROS, []);
-    siniestros.push(siniestro);
-    setStorageItem(STORAGE_KEYS.SINIESTROS, siniestros);
+      alert(
+        `✅ Factura generada\nNro: ${saved.facturaNro}\nART: ${paciente.artSeguro || 'SIN ART'}\nID: ${saved.id}`
+      );
 
-    alert('Siniestro cerrado y guardado.');
-    limpiarFactura();
-  }, [isClient, paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, convenioSel, limpiarFactura]);
+      limpiarFactura();
+    } catch (e) {
+      console.error(e);
+      alert('❌ Error al cerrar y generar factura en Firebase.');
+    }
+  }, [isClient, paciente, guardarEnRTDB, limpiarFactura]);
 
   const puedeNavegar = Boolean(paciente.nombreCompleto && paciente.dni);
 
@@ -384,17 +536,14 @@ export default function FacturaContainer() {
         <div className={styles.headerTop}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>Sistema de Facturación Clínica</h1>
-            <p className={styles.subtitle}>Carga rápida, desglose por Dr/Clínica y exportación.</p>
+            <p className={styles.subtitle}>
+              Carga rápida, desglose por Dr/Clínica y exportación.
+              {draftId ? <span style={{ marginLeft: 10, opacity: 0.85 }}>📝 Borrador activo: {draftId}</span> : null}
+            </p>
           </div>
 
           <div className={styles.headerActions}>
-            <button
-              className={styles.btnSecundario}
-              onClick={() => {
-                const nombre = prompt('Nombre del siniestro:');
-                if (nombre) guardarSiniestro(nombre);
-              }}
-            >
+            <button className={styles.btnSecundario} onClick={guardarSiniestro}>
               💾 Guardar
             </button>
 

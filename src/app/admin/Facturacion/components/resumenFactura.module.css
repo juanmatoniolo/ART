@@ -640,3 +640,71 @@
     padding-top: 6px;
     border-top: 1px dashed rgba(255, 255, 255, 0.10);
 }
+
+/* ===== Inputs prestador (Dr / Bioquímico) ===== */
+.doctorRow {
+    margin-top: 10px;
+    display: flex;
+}
+
+.inputDoctor {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.20);
+    outline: none;
+}
+
+.inputDoctor::placeholder {
+    font-weight: 700;
+}
+
+.inputDoctor:focus {
+    border-color: rgba(59, 130, 246, 0.55);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+/* ===== Labs: barra superior (bioquímico global) ===== */
+.labsTopBar {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.labsTopTitle {
+    font-weight: 900;
+    margin-bottom: 10px;
+    color: var(--color-text-primary);
+}
+
+.labsTopControls {
+    display: grid;
+    gap: 10px;
+}
+
+.selectPrestador {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.20);
+    color: var(--color-text-primary);
+    outline: none;
+}
+
+.selectPrestador:focus {
+    border-color: rgba(59, 130, 246, 0.55);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.labsHint {
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+}
