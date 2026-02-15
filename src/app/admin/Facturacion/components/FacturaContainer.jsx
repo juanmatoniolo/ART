@@ -12,7 +12,7 @@ import LaboratoriosModule from './LaboratoriosModule';
 import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
 
-import { calcularPractica, calcularLaboratorio, money as moneyFmt } from '../utils/calculos';
+import { calcularPractica, calcularLaboratorio, money as moneyFmt, parseNumber } from '../utils/calculos';
 import styles from './facturacion.module.css';
 
 const todayISO = () => new Date().toISOString().split('T')[0];
@@ -20,6 +20,17 @@ const todayISO = () => new Date().toISOString().split('T')[0];
 const safeNum = (v) => {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
+};
+
+// ✅ Cantidad “normal” (prácticas/cirugías/labs): mínimo 1
+const clampIntQty = (v) => Math.max(1, Math.round(parseNumber(v) || 1));
+
+// ✅ Cantidad decimal (med/desc): mínimo > 0, permite 0.4, 0,5, etc.
+const clampDecimalQty = (v) => {
+  const n = parseNumber(v);
+  // si queda 0 o NaN, volvemos a 1 por seguridad
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
 };
 
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
@@ -50,10 +61,12 @@ function normalizarLab(item, valoresConvenio) {
   };
 }
 
+// ✅ soporta decimales con coma
 function normalizarMedDesc(item) {
-  const cantidad = Math.max(1, safeNum(item?.cantidad) || 1);
-  const unit = safeNum(item?.valorUnitario ?? item?.precio ?? 0);
+  const cantidad = clampDecimalQty(item?.cantidad);
+  const unit = parseNumber(item?.valorUnitario ?? item?.precio ?? 0);
   const total = unit * cantidad;
+
   return {
     ...item,
     cantidad,
@@ -139,15 +152,17 @@ export default function FacturaContainer() {
   }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage]);
 
   // Add handlers
-  const agregarPractica = useCallback(
-    (nueva) => {
-      setPracticas((prev) => [...prev, nueva]);
-    },
-    []
-  );
+  const agregarPractica = useCallback((nueva) => {
+    setPracticas((prev) => [...prev, nueva]);
+  }, []);
 
   const agregarCirugia = useCallback((nueva) => {
-    setCirugias((prev) => [...prev, nueva]);
+    // ✅ aseguramos que exista prestadorNombre para el Dr (si el módulo no lo trae)
+    const withDr = {
+      ...nueva,
+      prestadorNombre: nueva?.prestadorNombre ?? ''
+    };
+    setCirugias((prev) => [...prev, withDr]);
   }, []);
 
   const agregarLaboratorio = useCallback(
@@ -166,22 +181,23 @@ export default function FacturaContainer() {
     setDescartables((prev) => [...prev, normalizarMedDesc(nuevo)]);
   }, []);
 
-  // actualizarCantidad
+  // ✅ actualizarCantidad (int para pract/cirug/lab, decimal para med/desc)
   const actualizarCantidad = useCallback(
-    (id, cantidad) => {
-      const c = Math.max(1, Number(cantidad) || 1);
-
-      const actualizarArray = (items, setItems) => {
+    (id, cantidadRaw) => {
+      const actualizarArray = (items, setItems, mode) => {
         const index = items.findIndex((i) => i.id === id);
         if (index === -1) return false;
 
         const item = items[index];
-        const oldC = Math.max(1, Number(item.cantidad) || 1);
-        const factor = c / oldC;
+
+        const newC = mode === 'decimal' ? clampDecimalQty(cantidadRaw) : clampIntQty(cantidadRaw);
+        const oldC = mode === 'decimal' ? clampDecimalQty(item.cantidad) : clampIntQty(item.cantidad);
+
+        const factor = oldC === 0 ? 1 : newC / oldC;
 
         const next = {
           ...item,
-          cantidad: c,
+          cantidad: newC,
           total: safeNum(item.total) * factor,
           ...(item.honorarioMedico != null && { honorarioMedico: safeNum(item.honorarioMedico) * factor }),
           ...(item.gastoSanatorial != null && { gastoSanatorial: safeNum(item.gastoSanatorial) * factor })
@@ -191,16 +207,19 @@ export default function FacturaContainer() {
         return true;
       };
 
-      if (actualizarArray(practicas, setPracticas)) return;
-      if (actualizarArray(cirugias, setCirugias)) return;
-      if (actualizarArray(laboratorios, setLaboratorios)) return;
-      if (actualizarArray(medicamentos, setMedicamentos)) return;
-      if (actualizarArray(descartables, setDescartables)) return;
+      // pract/cirug/lab => int
+      if (actualizarArray(practicas, setPracticas, 'int')) return;
+      if (actualizarArray(cirugias, setCirugias, 'int')) return;
+      if (actualizarArray(laboratorios, setLaboratorios, 'int')) return;
+
+      // med/desc => decimal
+      if (actualizarArray(medicamentos, setMedicamentos, 'decimal')) return;
+      if (actualizarArray(descartables, setDescartables, 'decimal')) return;
     },
     [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
-  // actualizarItem (Dr/Clínica + nombres)
+  // ✅ actualizarItem (Dr/Clínica + nombres)
   const actualizarItem = useCallback(
     (id, patch) => {
       const applyIn = (items, setItems, kind) => {
@@ -232,9 +251,15 @@ export default function FacturaContainer() {
           return true;
         }
 
-        if (kind === 'medicamento' || kind === 'descartable' || kind === 'cirugia') {
+        if (kind === 'medicamento' || kind === 'descartable') {
           const normal = normalizarMedDesc(merged);
           setItems((prev) => prev.map((x) => (x.id === id ? normal : x)));
+          return true;
+        }
+
+        // cirugías: solo actualizamos campos, no las “normalizamos” como med/desc
+        if (kind === 'cirugia') {
+          setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
           return true;
         }
 
@@ -414,7 +439,6 @@ export default function FacturaContainer() {
           </div>
         </div>
 
-        {/* Chips de valores del convenio */}
         {valoresConvenio && (
           <div className={styles.chipsContainer}>
             <span className={`${styles.chip} ${styles.chipGastoRx}`}>

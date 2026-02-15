@@ -587,3 +587,56 @@
         width: 180px;
     }
 }
+
+
+/* =========================
+   NUEVO: Dr que realiza
+========================= */
+.doctorRow {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inputDoctor {
+    flex: 1;
+    min-width: 220px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--color-text-primary);
+    font-weight: 800;
+    padding: 0 12px;
+    outline: none;
+}
+
+.inputDoctor::placeholder {
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+.inputDoctor:focus {
+    border-color: rgba(34, 197, 94, 0.45);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+/* =========================
+   NUEVO: cantidad decimal (med/desc)
+   - un pelín más ancho
+========================= */
+.inputCantidadDecimal {
+    width: 78px;
+    /* antes 64px */
+}
+
+/* =========================
+   NUEVO: Total destacado en valorStack
+========================= */
+.valorLineTotal {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.10);
+}

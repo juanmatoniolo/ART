@@ -1,342 +1,582 @@
 // utils/calculos.js
 
 /**
- * Convierte un valor a número de forma robusta
+ * ============================================================================
+ * Helpers numéricos / formateo
+ * ============================================================================
+ */
+
+/**
+ * Convierte un valor a número de forma robusta.
+ * - Acepta "1.234,56" / "1234,56" / "1234.56" / "$ 1.234,56"
+ * - Quita símbolos y maneja coma como decimal.
  */
 export const parseNumber = (val) => {
-  if (val == null || val === '') return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
-  let s = String(val).trim().replace(/[^\d.,-]/g, '');
-  if (s.includes(',') && s.includes('.')) {
-    const lastComma = s.lastIndexOf(',');
-    const lastDot = s.lastIndexOf('.');
-    if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');
-    else s = s.replace(/,/g, '');
-  } else if (s.includes(',')) s = s.replace(',', '.');
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
+	if (val == null || val === "") return 0;
+	if (typeof val === "number") return Number.isFinite(val) ? val : 0;
+
+	let s = String(val)
+		.trim()
+		.replace(/[^\d.,-]/g, "");
+
+	// Si hay coma y punto, elegimos cuál es decimal según la última aparición
+	if (s.includes(",") && s.includes(".")) {
+		const lastComma = s.lastIndexOf(",");
+		const lastDot = s.lastIndexOf(".");
+		if (lastComma > lastDot) {
+			// 1.234,56 => 1234.56
+			s = s.replace(/\./g, "").replace(",", ".");
+		} else {
+			// 1,234.56 => 1234.56
+			s = s.replace(/,/g, "");
+		}
+	} else if (s.includes(",")) {
+		// 1234,56 => 1234.56
+		s = s.replace(",", ".");
+	}
+
+	const n = parseFloat(s);
+	return Number.isFinite(n) ? n : 0;
 };
 
 /**
- * Formatea un número como moneda argentina
+ * Formatea un número como moneda Argentina.
+ * Devuelve string.
  */
 export const money = (n) => {
-  if (n == null || n === '' || n === '-') return '—';
-  const num = typeof n === 'number' ? n : parseNumber(n);
-  return Number.isFinite(num)
-    ? num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : '—';
+	if (n == null || n === "" || n === "-") return "—";
+	const num = typeof n === "number" ? n : parseNumber(n);
+	return Number.isFinite(num)
+		? num.toLocaleString("es-AR", {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2,
+			})
+		: "—";
 };
 
 /**
  * Normaliza texto para búsqueda (sin tildes, minúsculas)
  */
 export const normalize = (s) =>
-  (s ?? '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+	(s ?? "")
+		.toString()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
 
 /**
- * Determina si una práctica es radiografía (RX)
+ * Normaliza códigos para comparar:
+ * - "42.01.01" -> "420101"
+ * - "420101"   -> "420101"
+ * - "43 02 01" -> "430201"
  */
+export const normalizeCodeDigits = (code) =>
+	String(code ?? "").replace(/\D/g, "");
+
+/**
+ * ============================================================================
+ * Flags / utilidades del nomenclador
+ * ============================================================================
+ */
+
 export const isRadiografia = (item) => {
-  const d = normalize(item?.descripcion || '');
-  return d.includes('radiograf') || d.includes('rx');
+	const d = normalize(item?.descripcion || "");
+	return d.includes("radiograf") || d.includes("rx");
 };
 
-/**
- * Determina si una práctica es "por exposición subsiguiente"
- */
 export const isSubsiguiente = (item) => {
-  const d = normalize(item?.descripcion || '');
-  return d.includes('por exposicion subsiguiente') || d.includes('por exposición subsiguiente');
+	const d = normalize(item?.descripcion || "");
+	return (
+		d.includes("por exposicion subsiguiente") ||
+		d.includes("por exposición subsiguiente")
+	);
 };
 
 /**
  * Vincula prácticas subsiguientes con su principal
- * @param {Object} item - Práctica a evaluar
- * @param {Array} data - Lista completa de prácticas
- * @returns {Array} - Array con la práctica y su subsiguiente (si corresponde)
  */
 export const vincularSubsiguientes = (item, data) => {
-  const idx = data.findIndex((d) =>
-    item.__key ? d.__key === item.__key : d.codigo === item.codigo
-  );
-  if (idx === -1) return [item];
-  const prev = data[idx - 1];
-  const next = data[idx + 1];
-  if (isSubsiguiente(item) && prev) return [prev, item];
-  if (next && isSubsiguiente(next)) return [item, next];
-  return [item];
+	const idx = data.findIndex((d) =>
+		item.__key ? d.__key === item.__key : d.codigo === item.codigo,
+	);
+	if (idx === -1) return [item];
+
+	const prev = data[idx - 1];
+	const next = data[idx + 1];
+
+	if (isSubsiguiente(item) && prev) return [prev, item];
+	if (next && isSubsiguiente(next)) return [item, next];
+
+	return [item];
 };
 
 /**
  * Escapa caracteres especiales para expresiones regulares
  */
-export const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRegExp = (s) =>
+	String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Resalta el término de búsqueda en el texto (devuelve JSX)
  */
 export const highlight = (text, q) => {
-  if (!text || !q) return text;
-  const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
-  return String(text).split(regex).map((part, i) =>
-    part.toLowerCase() === String(q).toLowerCase() ? (
-      <mark key={i} className="highlight">{part}</mark>
-    ) : part
-  );
+	if (!text || !q) return text;
+	const regex = new RegExp(`(${escapeRegExp(q)})`, "gi");
+	return String(text)
+		.split(regex)
+		.map((part, i) =>
+			part.toLowerCase() === String(q).toLowerCase() ? (
+				<mark key={i} className="highlight">
+					{part}
+				</mark>
+			) : (
+				part
+			),
+		);
 };
 
-// ============================================================================
-// FUNCIONES PARA PRÁCTICAS ESPECIALES (valores fijos del convenio)
-// ============================================================================
+/**
+ * ============================================================================
+ * PRÁCTICAS ESPECIALES (valores FIJOS del convenio)
+ *
+ * La idea: para ciertas prácticas, el importe NO sale de qgal/gto,
+ * sino de un campo específico dentro del convenio (ej: "consulta", "Curaciones_R").
+ *
+ * Acá es donde vas a ir agregando nuevas reglas.
+ * ============================================================================
+ */
 
 /**
- * Detecta si una práctica es especial (consulta, ECG, eco, artroscopia, etc.)
- * y devuelve los valores correspondientes del convenio, más flags.
- * @param {Object} practica - Datos de la práctica (código, descripción, etc.)
- * @param {Object} valoresConvenio - Valores del convenio seleccionado
- * @returns {Object|null} - { honorario, gasto, soloHonorario, soloGasto } o null si no es especial
+ * Helper: busca un número dentro de valoresConvenio probando varias claves.
+ * Ej: buscarValor(['consulta','Consulta','CONSULTA'])
+ */
+const buscarValor = (valoresConvenio, claves, defaultValue = null) => {
+	for (const clave of claves) {
+		const v = valoresConvenio?.[clave];
+		// OJO: 0 es válido, por eso chequeamos null/undefined
+		if (v !== null && v !== undefined && v !== "") return parseNumber(v);
+	}
+	return defaultValue;
+};
+
+/**
+ * Helper: compara código soportando puntos o sin puntos
+ * - codigoEs('43.02.01','430201') => true
+ * - codigoEs('430201','43.02.01') => true
+ */
+const codigoEs = (practicaCodigo, esperado) => {
+	const a = normalizeCodeDigits(practicaCodigo);
+	const b = normalizeCodeDigits(esperado);
+	return a !== "" && a === b;
+};
+
+/**
+ * Detecta si una práctica es especial y devuelve:
+ * { honorario, gasto, soloHonorario, soloGasto, label, baseInfo }
+ *
+ * - label/baseInfo son para la UI (si querés mostrar “Consulta (fijo)” etc.)
  */
 function esPracticaEspecial(practica, valoresConvenio) {
-  const cod = String(practica.codigo || '').trim();
-  const desc = normalize(practica.descripcion || '');
+	const cod = String(practica?.codigo || "").trim();
+	const desc = normalize(practica?.descripcion || "");
 
-  // Helper para buscar un valor en valoresConvenio con diferentes nombres
-  const buscarValor = (claves) => {
-    for (const clave of claves) {
-      const v = valoresConvenio[clave];
-      if (v != null) return parseNumber(v);
-    }
-    return null;
-  };
+	/**
+	 * ==========================
+	 * 1) CONSULTA (42.01.01)
+	 * ==========================
+	 * - código 42.01.01 (o 420101)
+	 * - importe fijo: valoresConvenio.consulta (o variantes)
+	 * - solo honorario (no hay gasto)
+	 */
+	const ES_CONSULTA =
+		codigoEs(cod, "42.01.01") ||
+		desc.includes("consulta") ||
+		cod.toLowerCase() === "consulta";
 
-  // 1. Consulta (solo honorario)
-  if (desc.includes('consulta') || cod === 'consulta') {
-    const valor = buscarValor(['consulta', 'Consulta', 'CONSULTA']);
-    if (valor !== null) {
-      return {
-        honorario: valor,
-        gasto: 0,
-        soloHonorario: true,
-        soloGasto: false,
-      };
-    }
-  }
+	if (ES_CONSULTA) {
+		const valor = buscarValor(
+			valoresConvenio,
+			["consulta", "Consulta", "CONSULTA"],
+			null,
+		);
+		if (valor !== null) {
+			return {
+				honorario: valor,
+				gasto: 0,
+				soloHonorario: true,
+				soloGasto: false,
+				label: "Consulta (valor fijo convenio)",
+				baseInfo: { key: "consulta", value: valor },
+			};
+		}
+	}
 
-  // 2. ECG (electrocardiograma) – código 17.01.01 + 42.03.03 o descripción
-  if (cod.includes('17.01.01') || desc.includes('ecg') || desc.includes('electro')) {
-    const valor = buscarValor(['ECG Y EX EN CV', 'ECG', 'electrocardiograma']);
-    if (valor !== null) {
-      return {
-        honorario: valor,
-        gasto: 0,
-        soloHonorario: true,
-        soloGasto: false,
-      };
-    }
-  }
+	/**
+	 * ==========================
+	 * 2) CURACIONES (43.02.01 / 430201)
+	 * ==========================
+	 * ✅ FIX: ahora se detecta por código exacto (con o sin puntos)
+	 * - Tu nomenclador trae "430201"
+	 * - Tu UI/usuario puede decir "43.02.01"
+	 * - Convenio: Curaciones_R (ej: 8820)
+	 *
+	 * Por defecto: se considera SOLO GASTO (como venías usando)
+	 */
+	const ES_CURACION =
+		codigoEs(cod, "43.02.01") || // "43.02.01" -> "430201"
+		codigoEs(cod, "430201") || // "430201"
+		desc === "curaciones" ||
+		desc.includes("curacion") ||
+		desc.includes("curación");
 
-  // 3. Eco partes blandas (código 18.06.01)
-  if (cod.includes('18.06.01') || desc.includes('eco partes blandas')) {
-    const valor = buscarValor(['Ecografia Partes Blandas No Moduladas', 'Ecografia Partes Blandas']);
-    if (valor !== null) {
-      return {
-        honorario: valor,
-        gasto: 0,
-        soloHonorario: true,
-        soloGasto: false,
-      };
-    }
-  }
+	if (ES_CURACION) {
+		const valor = buscarValor(
+			valoresConvenio,
+			[
+				"Curaciones_R", // ✅ tu caso real
+				"CURACIONES_R",
+				"Curaciones",
+				"curaciones",
+				"Curacion",
+				"Curación",
+			],
+			null,
+		);
 
-  // 4. Artroscopia – distinguimos por descripción (hombro, simple, etc.)
-  if (cod.includes('120902') || desc.includes('artroscopia')) {
-    if (desc.includes('hombro')) {
-      const valor = buscarValor(['Artroscopia Hombro', 'Artroscopia Hombro (total)']);
-      if (valor !== null) {
-        // Ejemplo de distribución: 70% honorario, 30% gasto (ajustable)
-        const honorario = Math.round(valor * 0.7);
-        const gasto = valor - honorario;
-        return { honorario, gasto, soloHonorario: false, soloGasto: false };
-      }
-    } else if (desc.includes('simple')) {
-      const valor = buscarValor(['Artroscopia Simple Gastoss Sanatoriales', 'Artroscopia Simple Gastos']);
-      if (valor !== null) {
-        // Asumimos que es solo gasto
-        return { honorario: 0, gasto: valor, soloHonorario: false, soloGasto: true };
-      }
-    }
-  }
+		if (valor !== null) {
+			return {
+				honorario: 0,
+				gasto: valor,
+				soloHonorario: false,
+				soloGasto: true,
+				label: "Curaciones (valor fijo convenio)",
+				baseInfo: { key: "Curaciones_R", value: valor },
+			};
+		}
+	}
 
-  // 5. Curaciones
-  if (desc.includes('curacion')) {
-    const valor = buscarValor(['Curaciones', 'curaciones']);
-    if (valor !== null) {
-      return { honorario: 0, gasto: valor, soloHonorario: false, soloGasto: true };
-    }
-  }
+	/**
+	 * ==========================
+	 * 3) ECG (ejemplos)
+	 * ==========================
+	 * OJO: acá las claves pueden variar mucho por convenio.
+	 */
+	const ES_ECG =
+		cod.includes("17.01.01") ||
+		cod.includes("42.03.03") ||
+		desc.includes("ecg") ||
+		desc.includes("electro");
 
-  // 6. FKT
-  if (desc.includes('fkt')) {
-    const valor = buscarValor(['FKT', 'fkt']);
-    if (valor !== null) {
-      return { honorario: 0, gasto: valor, soloHonorario: false, soloGasto: true };
-    }
-  }
+	if (ES_ECG) {
+		const valor = buscarValor(
+			valoresConvenio,
+			[
+				"ECG Y EX EN CV",
+				"ECG",
+				"electrocardiograma",
+				"Electrocardiograma",
+			],
+			null,
+		);
 
-  // 7. Otros gastos (puedes agregar más según necesidad)
+		if (valor !== null) {
+			return {
+				honorario: valor,
+				gasto: 0,
+				soloHonorario: true,
+				soloGasto: false,
+				label: "ECG (valor fijo convenio)",
+				baseInfo: { key: "ECG", value: valor },
+			};
+		}
+	}
 
-  // No es especial
-  return null;
+	/**
+	 * ==========================
+	 * 4) ECO partes blandas (ejemplo)
+	 * ==========================
+	 */
+	const ES_ECO_PARTES =
+		cod.includes("18.06.01") || desc.includes("eco partes blandas");
+	if (ES_ECO_PARTES) {
+		const valor = buscarValor(
+			valoresConvenio,
+			[
+				"Ecografia Partes Blandas No Moduladas",
+				"Ecografia Partes Blandas",
+			],
+			null,
+		);
+
+		if (valor !== null) {
+			return {
+				honorario: valor,
+				gasto: 0,
+				soloHonorario: true,
+				soloGasto: false,
+				label: "Eco Partes Blandas (valor fijo convenio)",
+				baseInfo: { key: "Ecografia Partes Blandas", value: valor },
+			};
+		}
+	}
+
+	/**
+	 * ==========================
+	 * 5) ARTROSCOPIA (ejemplo)
+	 * ==========================
+	 */
+	const ES_ARTROSCOPIA =
+		cod.includes("120902") || desc.includes("artroscopia");
+	if (ES_ARTROSCOPIA) {
+		if (desc.includes("hombro")) {
+			const valor = buscarValor(
+				valoresConvenio,
+				["Artroscopia Hombro", "Artroscopia Hombro (total)"],
+				null,
+			);
+
+			if (valor !== null) {
+				// Distribución ejemplo 70/30
+				const honorario = Math.round(valor * 0.7);
+				const gasto = valor - honorario;
+				return {
+					honorario,
+					gasto,
+					soloHonorario: false,
+					soloGasto: false,
+					label: "Artroscopia hombro (valor fijo convenio)",
+					baseInfo: { key: "Artroscopia Hombro", value: valor },
+				};
+			}
+		}
+
+		if (desc.includes("simple")) {
+			const valor = buscarValor(
+				valoresConvenio,
+				[
+					"Artroscopia Simple Gastoss Sanatoriales",
+					"Artroscopia Simple Gastos",
+				],
+				null,
+			);
+
+			if (valor !== null) {
+				return {
+					honorario: 0,
+					gasto: valor,
+					soloHonorario: false,
+					soloGasto: true,
+					label: "Artroscopia simple (solo gasto fijo)",
+					baseInfo: { key: "Artroscopia Simple", value: valor },
+				};
+			}
+		}
+	}
+
+	/**
+	 * ==========================
+	 * 6) FKT (ejemplo)
+	 * ==========================
+	 */
+	const ES_FKT = desc.includes("fkt");
+	if (ES_FKT) {
+		const valor = buscarValor(valoresConvenio, ["FKT", "fkt"], null);
+		if (valor !== null) {
+			return {
+				honorario: 0,
+				gasto: valor,
+				soloHonorario: false,
+				soloGasto: true,
+				label: "FKT (valor fijo convenio)",
+				baseInfo: { key: "FKT", value: valor },
+			};
+		}
+	}
+
+	// No es especial
+	return null;
 }
 
-// ============================================================================
-// CÁLCULO DE PRÁCTICAS (VERSIÓN EXTENDIDA)
-// ============================================================================
-
 /**
- * Calcula honorarios, gastos y total de una práctica según el convenio.
- * Ahora soporta prácticas especiales con valores fijos.
- * @param {Object} practica - Datos de la práctica
- * @param {Object} valoresConvenio - Valores del convenio
- * @returns {Object} - { honorarioMedico, gastoSanatorial, total, formula, soloHonorario, soloGasto }
+ * ============================================================================
+ * CÁLCULO DE PRÁCTICAS
+ *
+ * Devuelve:
+ * { honorarioMedico, gastoSanatorial, total, formula, soloHonorario, soloGasto, meta? }
+ *
+ * meta es info extra para UI / debug:
+ * - meta.kind: 'especial' | 'rx' | 'cirugia' | 'directo'
+ * - meta.galenoBase / meta.gastoBase (valores convenio usados)
+ * - meta.qgal / meta.gto
+ * ============================================================================
  */
 export const calcularPractica = (practica, valoresConvenio) => {
-  // Valores por defecto
-  const defaults = {
-    galenoRx: 0,
-    gastoRx: 0,
-    galenoQuir: 0,
-    gastoOperatorio: 0,
-    otrosGastos: 0
-  };
-  const v = { ...defaults, ...valoresConvenio };
+	// Defaults por seguridad
+	const defaults = {
+		galenoRx: 0,
+		gastoRx: 0,
+		galenoQuir: 0,
+		gastoOperatorio: 0,
+		otrosGastos: 0,
+	};
 
-  // 1. Verificar si es una práctica especial
-  const especial = esPracticaEspecial(practica, v);
-  if (especial) {
-    return {
-      honorarioMedico: especial.honorario,
-      gastoSanatorial: especial.gasto,
-      total: especial.honorario + especial.gasto,
-      formula: `Especial: $${money(especial.honorario)} + $${money(especial.gasto)}`,
-      soloHonorario: especial.soloHonorario,
-      soloGasto: especial.soloGasto,
-    };
-  }
+	const v = { ...defaults, ...(valoresConvenio || {}) };
 
-  // 2. Si no es especial, aplicamos la lógica original
-  const qgal = parseNumber(practica.qgal || practica.q_gal || 0);
-  const gto = parseNumber(practica.gto || 0);
+	// 1) Especiales (✅ acá entra Curaciones 43.02.01 / 430201)
+	const especial = esPracticaEspecial(practica, v);
+	if (especial) {
+		const total = (especial.honorario || 0) + (especial.gasto || 0);
 
-  // Radiología (capítulo 34)
-  if (isRadiografia(practica)) {
-    const gastoOp = (v.gastoRx * gto) / 2;
-    const honorario = v.galenoRx * qgal + gastoOp;
-    return {
-      honorarioMedico: honorario,
-      gastoSanatorial: gastoOp,
-      total: honorario + gastoOp,
-      formula: `RX: (${v.galenoRx} × ${qgal}) + ((${v.gastoRx} × ${gto}) / 2)`,
-      soloHonorario: false,
-      soloGasto: false,
-    };
-  }
+		return {
+			honorarioMedico: especial.honorario,
+			gastoSanatorial: especial.gasto,
+			total,
+			formula: especial.label
+				? `${especial.label}: ${money(especial.honorario)} + ${money(especial.gasto)}`
+				: `Especial: ${money(especial.honorario)} + ${money(especial.gasto)}`,
+			soloHonorario: especial.soloHonorario,
+			soloGasto: especial.soloGasto,
 
-  // Cirugías (capítulos 12 o 13)
-  const capituloNum = Number(String(practica.capitulo || '').replace(/\D/g, '')) || 0;
-  if (capituloNum === 12 || capituloNum === 13) {
-    const honorario = v.galenoQuir * qgal;
-    const gasto = v.gastoOperatorio * gto;
-    return {
-      honorarioMedico: honorario,
-      gastoSanatorial: gasto,
-      total: honorario + gasto,
-      formula: `Cirugía: (${v.galenoQuir} × ${qgal}) + (${v.gastoOperatorio} × ${gto})`,
-      soloHonorario: false,
-      soloGasto: false,
-    };
-  }
+			meta: {
+				kind: "especial",
+				baseKey: especial.baseInfo?.key,
+				baseValue: especial.baseInfo?.value,
+				codigoNormalizado: normalizeCodeDigits(practica?.codigo),
+			},
+		};
+	}
 
-  // Otras prácticas
-  const honorario = qgal * v.otrosGastos;
-  const gasto = gto * v.otrosGastos;
-  return {
-    honorarioMedico: honorario,
-    gastoSanatorial: gasto,
-    total: honorario + gasto,
-    formula: `Directo: (${qgal} × ${v.otrosGastos}) + (${gto} × ${v.otrosGastos})`,
-    soloHonorario: false,
-    soloGasto: false,
-  };
+	// 2) No especial: usamos qgal y gto del nomenclador
+	const qgal = parseNumber(practica.qgal || practica.q_gal || 0);
+	const gto = parseNumber(practica.gto || 0);
+
+	// RX
+	if (isRadiografia(practica)) {
+		const gastoOp = (parseNumber(v.gastoRx) * gto) / 2;
+		const honorario = parseNumber(v.galenoRx) * qgal + gastoOp;
+
+		return {
+			honorarioMedico: honorario,
+			gastoSanatorial: gastoOp,
+			total: honorario + gastoOp,
+			formula: `RX: (${money(v.galenoRx)} × ${money(qgal)}) + ((${money(v.gastoRx)} × ${money(gto)}) / 2)`,
+			soloHonorario: false,
+			soloGasto: false,
+			meta: {
+				kind: "rx",
+				qgal,
+				gto,
+				galenoBase: parseNumber(v.galenoRx),
+				gastoBase: parseNumber(v.gastoRx),
+			},
+		};
+	}
+
+	// Cirugías (cap 12/13)
+	const capituloNum =
+		Number(String(practica.capitulo || "").replace(/\D/g, "")) || 0;
+	if (capituloNum === 12 || capituloNum === 13) {
+		const honorario = parseNumber(v.galenoQuir) * qgal;
+		const gasto = parseNumber(v.gastoOperatorio) * gto;
+
+		return {
+			honorarioMedico: honorario,
+			gastoSanatorial: gasto,
+			total: honorario + gasto,
+			formula: `Cirugía: (${money(v.galenoQuir)} × ${money(qgal)}) + (${money(v.gastoOperatorio)} × ${money(gto)})`,
+			soloHonorario: false,
+			soloGasto: false,
+			meta: {
+				kind: "cirugia",
+				qgal,
+				gto,
+				galenoBase: parseNumber(v.galenoQuir),
+				gastoBase: parseNumber(v.gastoOperatorio),
+			},
+		};
+	}
+
+	// Otras prácticas:
+	// ⚠️ Esta lógica puede no ser la ideal, pero la dejo igual a tu implementación.
+	const honorario = qgal * parseNumber(v.otrosGastos);
+	const gasto = gto * parseNumber(v.otrosGastos);
+
+	return {
+		honorarioMedico: honorario,
+		gastoSanatorial: gasto,
+		total: honorario + gasto,
+		formula: `Directo: (${money(qgal)} × ${money(v.otrosGastos)}) + (${money(gto)} × ${money(v.otrosGastos)})`,
+		soloHonorario: false,
+		soloGasto: false,
+		meta: {
+			kind: "directo",
+			qgal,
+			gto,
+			base: parseNumber(v.otrosGastos),
+		},
+	};
 };
 
-// ============================================================================
-// CÁLCULO DE LABORATORIO
-// ============================================================================
-
 /**
- * Calcula el total de un laboratorio según la unidad bioquímica y el valor UB del convenio
+ * ============================================================================
+ * LABORATORIO
+ * ============================================================================
  */
 export const calcularLaboratorio = (laboratorio, valoresConvenio) => {
-  const { valorUB = 0 } = valoresConvenio || {};
-  const ub = parseNumber(laboratorio.unidadBioquimica || 0);
-  const total = ub * valorUB;
-  return {
-    valorUB,
-    valorCalculado: total,
-    total,
-    formula: `${ub} × ${valorUB}`
-  };
+	const { valorUB = 0 } = valoresConvenio || {};
+	const ub = parseNumber(laboratorio.unidadBioquimica || 0);
+	const total = ub * parseNumber(valorUB);
+
+	return {
+		valorUB: parseNumber(valorUB),
+		valorCalculado: total,
+		total,
+		formula: `${money(ub)} × ${money(valorUB)}`,
+	};
 };
 
-// ============================================================================
-// CÁLCULO DE PENSIÓN
-// ============================================================================
-
 /**
- * Calcula el total de días de pensión
+ * ============================================================================
+ * PENSIÓN
+ * ============================================================================
  */
 export const calcularPension = (dias, valoresConvenio) => {
-  const { pension = 0 } = valoresConvenio || {};
-  const total = pension * dias;
-  return { pension, dias, total, formula: `${pension} × ${dias}` };
+	const pension = parseNumber(valoresConvenio?.pension ?? 0);
+	const d = parseNumber(dias);
+	const total = pension * d;
+
+	return {
+		pension,
+		dias: d,
+		total,
+		formula: `${money(pension)} × ${money(d)}`,
+	};
 };
 
-// ============================================================================
-// FUNCIONES PARA AOTER (honorarios por nivel de complejidad)
-// ============================================================================
-
 /**
- * Obtiene los honorarios de cirujano, ayudante1 y ayudante2 para una práctica AOTER
- * @param {string|number} complejidad - Nivel de complejidad (1 a 10 según el JSON)
- * @param {Object} valoresConvenio - Valores del convenio (debe incluir honorarios_medicos)
- * @returns {Object} - { cirujano, ayudante1, ayudante2 } (en número)
+ * ============================================================================
+ * AOTER
+ * ============================================================================
  */
 export const obtenerHonorariosAoter = (complejidad, valoresConvenio) => {
-  const nivel = Number(complejidad) || 0;
-  const honorarios = valoresConvenio?.honorarios_medicos;
+	const nivel = Number(complejidad) || 0;
+	const honorarios = valoresConvenio?.honorarios_medicos;
 
-  if (!Array.isArray(honorarios) || nivel < 1 || nivel > honorarios.length) {
-    return { cirujano: 0, ayudante1: 0, ayudante2: 0 };
-  }
+	if (!Array.isArray(honorarios) || nivel < 1 || nivel > honorarios.length) {
+		return { cirujano: 0, ayudante1: 0, ayudante2: 0 };
+	}
 
-  const item = honorarios[nivel - 1]; // índice 0 = nivel 1
+	const item = honorarios[nivel - 1];
 
-  // Función auxiliar para convertir a número, manejando "NO" o cadenas vacías
-  const toNumber = (val) => {
-    if (val === 'NO' || val === '-' || val === '') return 0;
-    const num = parseNumber(val);
-    return isNaN(num) ? 0 : num;
-  };
+	const toNumber = (val) => {
+		if (val === "NO" || val === "-" || val === "") return 0;
+		const num = parseNumber(val);
+		return Number.isFinite(num) ? num : 0;
+	};
 
-  return {
-    cirujano: toNumber(item?.Cirujano),
-    ayudante1: toNumber(item?.Ayudante_1),
-    ayudante2: toNumber(item?.Ayudante_2),
-  };
+	return {
+		cirujano: toNumber(item?.Cirujano),
+		ayudante1: toNumber(item?.Ayudante_1),
+		ayudante2: toNumber(item?.Ayudante_2),
+	};
 };

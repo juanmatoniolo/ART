@@ -1,350 +1,537 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useConvenio } from './ConvenioContext';
-import { money } from '../utils/calculos';
+import { money, parseNumber } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
 
+/**
+ * Cantidad para prácticas/cirugías/labs:
+ * - mínimo 1
+ * - entero
+ */
+const clampIntQty = (v) => Math.max(1, Math.round(parseNumber(v) || 1));
+
+/**
+ * Cantidad para medicamentos/descartables:
+ * - permite decimales (0.5 / 0,5 / 2,75)
+ * - mínimo > 0
+ */
+const clampDecimalQty = (v) => {
+  const n = parseNumber(v);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+};
+
+const fmtQtyInput = (v) => {
+  const n = parseNumber(v);
+  if (!Number.isFinite(n)) return '1';
+  return String(n).replace('.', ','); // mostramos coma
+};
+
 export default function ResumenFactura({
-  paciente: pacienteProp,
-  practicas = [],
-  cirugias = [],
-  laboratorios = [],
-  medicamentos = [],
-  descartables = [],
-  actualizarCantidad = () => {},
-  actualizarItem = () => {},
-  eliminarItem = () => {},
-  limpiarFactura = () => {},
-  onAtras = () => {}
+  paciente,
+  practicas,
+  cirugias,
+  laboratorios,
+  medicamentos,
+  descartables,
+  actualizarCantidad,
+  actualizarItem,
+  eliminarItem,
+  limpiarFactura,
+  onAtras
 }) {
-  const paciente = pacienteProp || {
-    nombreCompleto: '',
-    dni: '',
-    artSeguro: '',
-    nroSiniestro: '',
-    fechaAtencion: ''
-  };
-
-  const { valoresConvenio, convenioSel, convenios } = useConvenio();
-
   const [open, setOpen] = useState({
     practicas: true,
-    practicasHonorarios: true,
-    practicasGastos: true,
-    cirugias: false,
-    laboratorios: false,
-    medicamentos: false,
-    descartables: false
+    practHon: true,   // ✅ sub: honorarios
+    practGas: true,   // ✅ sub: gastos
+    cirugias: true,
+    labs: true,
+    medDesc: true,
+    med: true,
+    desc: true,
   });
 
-  const toggle = (key) => setOpen((p) => ({ ...p, [key]: !p[key] }));
+  const totalSeccion = (items) =>
+    items.reduce((acc, it) => acc + (parseNumber(it?.total) || 0), 0);
 
-  const nombreConvenio = convenios?.[convenioSel]?.nombre || convenioSel || 'No seleccionado';
+  const totales = useMemo(() => {
+    const all = [...practicas, ...cirugias, ...laboratorios, ...medicamentos, ...descartables];
+    const honor = all.reduce((acc, it) => acc + (parseNumber(it?.honorarioMedico) || 0), 0);
+    const gasto = all.reduce((acc, it) => acc + (parseNumber(it?.gastoSanatorial) || 0), 0);
+    return { honor, gasto, total: honor + gasto };
+  }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
+  // ✅ Separación "como antes" (Dr vs Clínica)
   const practicasHonorarios = useMemo(
-    () => practicas.filter((p) => (p?.prestadorTipo || 'Clinica') === 'Dr'),
+    () => practicas.filter((p) => String(p?.prestadorTipo) === 'Dr'),
     [practicas]
   );
 
   const practicasGastos = useMemo(
-    () => practicas.filter((p) => (p?.prestadorTipo || 'Clinica') !== 'Dr'),
+    () => practicas.filter((p) => String(p?.prestadorTipo) !== 'Dr'),
     [practicas]
   );
 
-  const sum = (arr, field = 'total') => (arr || []).reduce((a, x) => a + (Number(x?.[field]) || 0), 0);
-
-  const totales = useMemo(() => {
-    const totalPracticas = sum(practicas);
-    const totalCirugias = sum(cirugias);
-    const totalLaboratorios = sum(laboratorios);
-    const totalMedicamentos = sum(medicamentos);
-    const totalDescartables = sum(descartables);
-    const subtotal = totalPracticas + totalCirugias + totalLaboratorios + totalMedicamentos + totalDescartables;
-
-    const totalHonorarios = sum(practicas, 'honorarioMedico') + sum(laboratorios, 'honorarioMedico') + sum(cirugias, 'honorarioMedico');
-    const totalGastos = sum(practicas, 'gastoSanatorial') + sum(medicamentos, 'gastoSanatorial') + sum(descartables, 'gastoSanatorial');
-
-    return {
-      totalPracticas,
-      totalCirugias,
-      totalLaboratorios,
-      totalMedicamentos,
-      totalDescartables,
-      subtotal,
-      totalFinal: subtotal,
-      totalHonorarios,
-      totalGastos
-    };
-  }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
-
-  // Generador de key único y seguro
-  const getRowKey = (item, tipo, index) => {
-    // Si tiene id, úsalo (es lo más confiable)
-    if (item.id) return `${tipo}-${item.id}`;
-    // Si no tiene id, construimos una key compuesta con índice (fallback)
-    const base = `${tipo}-${item.codigo || item.nombre || 'unknown'}-${item.prestadorTipo || ''}-${item.prestadorNombre || ''}`;
-    return `${base}-${index}`;
-  };
-
-  const renderFormula = (item) => (item?.formula ? <div className={styles.formulaPequeña}>{item.formula}</div> : null);
-
-  const renderTabla = (items, tipo, emptyText) => {
-    if (!items || items.length === 0) return <div className={styles.emptyBlock}>{emptyText}</div>;
+  const renderCantidad = (item, mode) => {
+    const isDecimal = mode === 'decimal';
 
     return (
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th className={styles.thCode}>Cód.</th>
-              <th className={styles.thDesc}>Descripción</th>
-              <th className={styles.thQty}>Cant.</th>
-              <th className={styles.thUnit}>Unit.</th>
-              <th className={styles.thNum}>Importe</th>
-              <th className={styles.thAction}>—</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it, idx) => {
-              const cantidad = Math.max(1, Number(it.cantidad) || 1);
-              const total = Number(it.total) || 0;
-              const valorUnitario = cantidad > 0 ? total / cantidad : total;
+      <div className={styles.contadorCantidad}>
+        <button
+          className={styles.btnCantidad}
+          onClick={() => {
+            const cur = isDecimal ? clampDecimalQty(item?.cantidad) : clampIntQty(item?.cantidad);
+            const next = isDecimal ? Math.max(0.01, cur - 1) : Math.max(1, cur - 1);
+            actualizarCantidad(item.id, next);
+          }}
+          title="Restar"
+        >
+          −
+        </button>
 
-              const prestadorTipo = it.prestadorTipo || (tipo === 'practica' ? 'Clinica' : '');
-              const prestadorNombre =
-                tipo === 'practica' || tipo === 'cirugia'
-                  ? it.prestadorNombre || (prestadorTipo === 'Dr' ? '' : 'Clínica de la Unión')
-                  : '';
+        <input
+          className={`${styles.inputCantidad} ${isDecimal ? styles.inputCantidadDecimal : ''}`}
+          inputMode="decimal"
+          value={fmtQtyInput(item?.cantidad ?? 1)}
+          onChange={(e) => {
+            const n = parseNumber(e.target.value);
+            if (!Number.isFinite(n)) return;
+            actualizarCantidad(item.id, isDecimal ? clampDecimalQty(n) : clampIntQty(n));
+          }}
+          onBlur={(e) => {
+            const n = parseNumber(e.target.value);
+            actualizarCantidad(item.id, isDecimal ? clampDecimalQty(n) : clampIntQty(n));
+          }}
+        />
 
-              return (
-                <tr key={getRowKey(it, tipo, idx)} className={it.esRX ? styles.rxRow : ''}>
-                  <td className={styles.columnaCodigo}>
-                    <strong>{it.codigo || '—'}</strong>
-                    {it.esRX && <span className={styles.badgeRx}>RX</span>}
-                  </td>
-
-                  <td className={styles.columnaDescripcion}>
-                    <div className={styles.descPrincipal}>{it.descripcion || it.nombre || 'Sin descripción'}</div>
-
-                    {(tipo === 'practica' || tipo === 'cirugia') && prestadorNombre && (
-                      <div className={styles.subMeta}>
-                        <span className={styles.metaPill}>{prestadorTipo === 'Dr' ? '👨‍⚕️ Dr' : '🏥 Clínica'}</span>
-                        <span className={styles.metaText}>{prestadorNombre}</span>
-                      </div>
-                    )}
-
-                    {renderFormula(it)}
-                  </td>
-
-                  <td className={styles.columnaCantidad}>
-                    <div className={styles.contadorCantidad}>
-                      <button onClick={() => actualizarCantidad(it.id, cantidad - 1)} className={styles.btnCantidad}>−</button>
-                      <input
-                        type="number"
-                        min="1"
-                        value={cantidad}
-                        onChange={(e) => actualizarCantidad(it.id, parseInt(e.target.value, 10) || 1)}
-                        className={styles.inputCantidad}
-                      />
-                      <button onClick={() => actualizarCantidad(it.id, cantidad + 1)} className={styles.btnCantidad}>+</button>
-                    </div>
-                  </td>
-
-                  <td className={styles.columnaUnidad}>
-                    {tipo === 'practica' && (
-                      <>
-                        <div>Hon: {money((Number(it.honorarioMedico) || 0) / cantidad)}</div>
-                        <div>Gas: {money((Number(it.gastoSanatorial) || 0) / cantidad)}</div>
-                      </>
-                    )}
-                    {tipo === 'cirugia' && (
-                      <div>Hon: {money((Number(it.honorarioMedico) || 0) / cantidad)}</div>
-                    )}
-                    {tipo === 'laboratorio' && <div>UB: {money(it.unidadBioquimica || 0)}</div>}
-                    {(tipo === 'medicamento' || tipo === 'descartable') && (
-                      <div>Unit: ${money(it.valorUnitario ?? it.precio ?? 0)}</div>
-                    )}
-                  </td>
-
-                  <td className={styles.columnaValor}>
-                    <div className={styles.valorStack}>
-                      <div className={styles.valorLine}>
-                        <span className={styles.valorLabel}>Hon</span>
-                        <strong className={styles.valorNumber}>${money(it.honorarioMedico || 0)}</strong>
-                      </div>
-                      {tipo === 'practica' && (
-                        <div className={styles.valorLine}>
-                          <span className={styles.valorLabel}>Gas</span>
-                          <strong className={styles.valorNumber}>${money(it.gastoSanatorial || 0)}</strong>
-                        </div>
-                      )}
-                      <div className={styles.formulaPequeña}>
-                        {cantidad} × ${money(valorUnitario)}
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className={styles.columnaAcciones}>
-                    <button onClick={() => eliminarItem(it.id)} className={styles.btnEliminar} title="Eliminar">🗑️</button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <button
+          className={styles.btnCantidad}
+          onClick={() => {
+            const cur = isDecimal ? clampDecimalQty(item?.cantidad) : clampIntQty(item?.cantidad);
+            actualizarCantidad(item.id, cur + 1);
+          }}
+          title="Sumar"
+        >
+          +
+        </button>
       </div>
     );
   };
 
+  const renderDoctorInput = (item) => (
+    <input
+      className={styles.inputDoctor}
+      placeholder="Dr que realiza…"
+      value={item?.prestadorNombre ?? ''}
+      onChange={(e) => actualizarItem(item.id, { prestadorNombre: e.target.value })}
+    />
+  );
+
+  const renderValorStack = (item) => (
+    <div className={styles.valorStack}>
+      <div className={styles.valorLine}>
+        <span className={styles.valorLabel}>Hon</span>
+        <span className={styles.valorNumber}>{money(item?.honorarioMedico ?? 0)}</span>
+      </div>
+      <div className={styles.valorLine}>
+        <span className={styles.valorLabel}>Gto</span>
+        <span className={styles.valorNumber}>{money(item?.gastoSanatorial ?? 0)}</span>
+      </div>
+
+      <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
+        <span className={styles.valorLabel}>Total</span>
+        <span className={styles.valorNumber}>{money(item?.total ?? 0)}</span>
+      </div>
+
+      {item?.formula && <div className={styles.formulaPequeña}>{item.formula}</div>}
+    </div>
+  );
+
+  const Acordeon = ({ k, title, count, amount, children }) => (
+    <section className={styles.acSection}>
+      <button className={styles.acHeader} onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}>
+        <div className={styles.acTitle}>{title}</div>
+        <div className={styles.acRight}>
+          <span className={styles.acCount}>{count}</span>
+          <span className={styles.acAmount}>$ {money(amount)}</span>
+          <span className={`${styles.acChevron} ${open[k] ? styles.acChevronOpen : ''}`}>⌄</span>
+        </div>
+      </button>
+      {open[k] && <div className={styles.acBody}>{children}</div>}
+    </section>
+  );
+
+  const SubAcordeon = ({ k, title, count, amount, children }) => (
+    <div className={styles.subAcc}>
+      <button className={styles.subAccHeader} onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}>
+        <div className={styles.subAccTitle}>{title}</div>
+        <div className={styles.subAccRight}>
+          <span className={styles.acCount}>{count}</span>
+          <span className={styles.acAmount}>$ {money(amount)}</span>
+          <span className={`${styles.acChevron} ${open[k] ? styles.acChevronOpen : ''}`}>⌄</span>
+        </div>
+      </button>
+      {open[k] && <div className={styles.subAccBody}>{children}</div>}
+    </div>
+  );
+
+  const TablaPracticas = ({ items, mostrarInputDoctor }) => (
+    <div className={styles.tableContainer}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th className={styles.thCode}>Código</th>
+            <th className={styles.thDesc}>Descripción</th>
+            <th className={styles.thQty}>Cantidad</th>
+            <th className={styles.thNum}>Valor</th>
+            <th className={styles.thAction}>Acc.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((p) => (
+            <tr key={p.id} className={p?.esRX ? styles.rxRow : ''}>
+              <td className={styles.columnaCodigo}>
+                <strong>{p.codigo}</strong>
+                {p?.esRX && <span className={styles.badgeRx}>RX</span>}
+              </td>
+
+              <td className={styles.columnaDescripcion}>
+                <div className={styles.descPrincipal}>{p.descripcion}</div>
+
+                <div className={styles.subMeta}>
+                  <span className={styles.metaPill}>{p.prestadorTipo || '—'}</span>
+                  <span className={styles.metaText}>
+                    {p.capitulo} – {p.capituloNombre}
+                  </span>
+                </div>
+
+                {mostrarInputDoctor && (
+                  <div className={styles.doctorRow}>
+                    {renderDoctorInput(p)}
+                  </div>
+                )}
+              </td>
+
+              <td className={styles.columnaCantidad}>
+                {renderCantidad(p, 'int')}
+              </td>
+
+              <td className={styles.columnaValor}>
+                {renderValorStack(p)}
+              </td>
+
+              <td className={styles.columnaAcciones}>
+                <button className={styles.btnEliminar} onClick={() => eliminarItem(p.id)} title="Eliminar">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className={styles.tabContent}>
-      <h2>📋 Resumen de Factura</h2>
+      <h2>📋 Resumen</h2>
 
       <div className={styles.infoResumen}>
         <div className={styles.infoPaciente}>
           <h3>👤 Paciente</h3>
-          <p><strong>Nombre:</strong> {paciente.nombreCompleto || 'No especificado'}</p>
-          <p><strong>DNI:</strong> {paciente.dni || '—'}</p>
-          <p><strong>N° Siniestro:</strong> {paciente.nroSiniestro || '—'}</p>
-          <p><strong>ART/Seguro:</strong> {paciente.artSeguro || '—'}</p>
-          <p><strong>Fecha atención:</strong> {paciente.fechaAtencion || '—'}</p>
+          <p><b>Nombre:</b> {paciente?.nombreCompleto || '—'}</p>
+          <p><b>DNI:</b> {paciente?.dni || '—'}</p>
+          <p><b>Fecha:</b> {paciente?.fechaAtencion || '—'}</p>
+          <p><b>ART/Seguro:</b> {paciente?.artSeguro || '—'}</p>
+          <p><b>Siniestro:</b> {paciente?.nroSiniestro || '—'}</p>
         </div>
 
         <div className={styles.infoConvenio}>
-          <h3>🏥 Convenio</h3>
-          <p><strong>Nombre:</strong> {nombreConvenio}</p>
-          <div className={styles.valoresMini}>
-            <span>Galeno Rx: ${money(valoresConvenio?.galenoRx)}</span>
-            <span>Gasto Rx: ${money(valoresConvenio?.gastoRx)}</span>
-            <span>Galeno Quir: ${money(valoresConvenio?.galenoQuir)}</span>
-            <span>G. Oper.: ${money(valoresConvenio?.gastoOperatorio)}</span>
-            <span>Pensión: ${money(valoresConvenio?.pension ?? valoresConvenio?.diaPension)}</span>
-            <span>Valor UB: ${money(valoresConvenio?.valorUB)}</span>
-          </div>
+          <h3>🧮 Totales</h3>
+          <p><b>Honorarios:</b> $ {money(totales.honor)}</p>
+          <p><b>Gastos:</b> $ {money(totales.gasto)}</p>
+          <p><b>Total:</b> $ {money(totales.total)}</p>
         </div>
       </div>
 
-      {/* PRACTICAS */}
-      <section className={styles.acSection}>
-        <button className={styles.acHeader} onClick={() => toggle('practicas')}>
-          <span className={styles.acTitle}>🏥 Prácticas</span>
-          <span className={styles.acRight}>
-            <span className={styles.acCount}>{practicas.length}</span>
-            <span className={styles.acAmount}>${money(sum(practicas))}</span>
-            <span className={`${styles.acChevron} ${open.practicas ? styles.acChevronOpen : ''}`}>▾</span>
-          </span>
-        </button>
-        {open.practicas && (
-          <div className={styles.acBody}>
-            <div className={styles.subAcc}>
-              <button className={styles.subAccHeader} onClick={() => toggle('practicasHonorarios')}>
-                <span className={styles.subAccTitle}>👨‍⚕️ Honorarios Médicos (Dr)</span>
-                <span className={styles.subAccRight}>
-                  <span className={styles.acCount}>{practicasHonorarios.length}</span>
-                  <span className={styles.acAmount}>${money(sum(practicasHonorarios, 'honorarioMedico'))}</span>
-                  <span className={`${styles.acChevron} ${open.practicasHonorarios ? styles.acChevronOpen : ''}`}>▾</span>
-                </span>
-              </button>
-              {open.practicasHonorarios && (
-                <div className={styles.subAccBody}>
-                  {renderTabla(practicasHonorarios, 'practica', 'No hay prácticas con prestador tipo Dr.')}
-                </div>
+      {/* =================== PRACTICAS (SEPARADAS COMO ANTES) =================== */}
+      <Acordeon
+        k="practicas"
+        title="🏥 Prácticas"
+        count={practicas.length}
+        amount={totalSeccion(practicas)}
+      >
+        {practicas.length === 0 ? (
+          <div className={styles.emptyBlock}>Sin prácticas.</div>
+        ) : (
+          <>
+            <SubAcordeon
+              k="practHon"
+              title="👨‍⚕️ Honorarios (Dr)"
+              count={practicasHonorarios.length}
+              amount={totalSeccion(practicasHonorarios)}
+            >
+              {practicasHonorarios.length === 0 ? (
+                <div className={styles.emptyBlock}>No hay honorarios cargados.</div>
+              ) : (
+                <TablaPracticas items={practicasHonorarios} mostrarInputDoctor={true} />
               )}
-            </div>
-            <div className={styles.subAcc}>
-              <button className={styles.subAccHeader} onClick={() => toggle('practicasGastos')}>
-                <span className={styles.subAccTitle}>🏥 Gtos Sanatoriales (Clínica de la Unión)</span>
-                <span className={styles.subAccRight}>
-                  <span className={styles.acCount}>{practicasGastos.length}</span>
-                  <span className={styles.acAmount}>${money(sum(practicasGastos, 'gastoSanatorial'))}</span>
-                  <span className={`${styles.acChevron} ${open.practicasGastos ? styles.acChevronOpen : ''}`}>▾</span>
-                </span>
-              </button>
-              {open.practicasGastos && (
-                <div className={styles.subAccBody}>
-                  {renderTabla(practicasGastos, 'practica', 'No hay prácticas con prestador tipo Clínica.')}
-                </div>
+            </SubAcordeon>
+
+            <SubAcordeon
+              k="practGas"
+              title="🏥 Gastos (Clínica)"
+              count={practicasGastos.length}
+              amount={totalSeccion(practicasGastos)}
+            >
+              {practicasGastos.length === 0 ? (
+                <div className={styles.emptyBlock}>No hay gastos cargados.</div>
+              ) : (
+                <TablaPracticas items={practicasGastos} mostrarInputDoctor={false} />
               )}
-            </div>
+            </SubAcordeon>
+          </>
+        )}
+      </Acordeon>
+
+      {/* =================== CIRUGIAS =================== */}
+      <Acordeon
+        k="cirugias"
+        title="🩺 Cirugías"
+        count={cirugias.length}
+        amount={totalSeccion(cirugias)}
+      >
+        {cirugias.length === 0 ? (
+          <div className={styles.emptyBlock}>Sin cirugías.</div>
+        ) : (
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.thCode}>Código</th>
+                  <th className={styles.thDesc}>Descripción</th>
+                  <th className={styles.thQty}>Cantidad</th>
+                  <th className={styles.thNum}>Valor</th>
+                  <th className={styles.thAction}>Acc.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cirugias.map((c) => (
+                  <tr key={c.id}>
+                    <td className={styles.columnaCodigo}>
+                      <strong>{c.codigo || '—'}</strong>
+                    </td>
+
+                    <td className={styles.columnaDescripcion}>
+                      <div className={styles.descPrincipal}>{c.descripcion || c.nombre || 'Cirugía'}</div>
+
+                      <div className={styles.doctorRow}>
+                        <input
+                          className={styles.inputDoctor}
+                          placeholder="Dr que realiza…"
+                          value={c?.prestadorNombre ?? ''}
+                          onChange={(e) => actualizarItem(c.id, { prestadorNombre: e.target.value })}
+                        />
+                      </div>
+                    </td>
+
+                    <td className={styles.columnaCantidad}>{renderCantidad(c, 'int')}</td>
+
+                    <td className={styles.columnaValor}>{renderValorStack(c)}</td>
+
+                    <td className={styles.columnaAcciones}>
+                      <button className={styles.btnEliminar} onClick={() => eliminarItem(c.id)} title="Eliminar">
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </section>
+      </Acordeon>
 
-      {/* CIRUGÍAS */}
-      <section className={styles.acSection}>
-        <button className={styles.acHeader} onClick={() => toggle('cirugias')}>
-          <span className={styles.acTitle}>🩺 Cirugías</span>
-          <span className={styles.acRight}>
-            <span className={styles.acCount}>{cirugias.length}</span>
-            <span className={styles.acAmount}>${money(sum(cirugias))}</span>
-            <span className={`${styles.acChevron} ${open.cirugias ? styles.acChevronOpen : ''}`}>▾</span>
-          </span>
-        </button>
-        {open.cirugias && <div className={styles.acBody}>{renderTabla(cirugias, 'cirugia', 'No hay cirugías cargadas.')}</div>}
-      </section>
+      {/* =================== LABS =================== */}
+      <Acordeon
+        k="labs"
+        title="🧪 Laboratorios"
+        count={laboratorios.length}
+        amount={totalSeccion(laboratorios)}
+      >
+        {laboratorios.length === 0 ? (
+          <div className={styles.emptyBlock}>Sin laboratorios.</div>
+        ) : (
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.thCode}>Código</th>
+                  <th className={styles.thDesc}>Descripción</th>
+                  <th className={styles.thQty}>Cantidad</th>
+                  <th className={styles.thNum}>Total</th>
+                  <th className={styles.thAction}>Acc.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {laboratorios.map((l) => (
+                  <tr key={l.id}>
+                    <td className={styles.columnaCodigo}>
+                      <strong>{l.codigo || '—'}</strong>
+                    </td>
 
-      {/* LABORATORIOS */}
-      <section className={styles.acSection}>
-        <button className={styles.acHeader} onClick={() => toggle('laboratorios')}>
-          <span className={styles.acTitle}>🧪 Laboratorios</span>
-          <span className={styles.acRight}>
-            <span className={styles.acCount}>{laboratorios.length}</span>
-            <span className={styles.acAmount}>${money(sum(laboratorios))}</span>
-            <span className={`${styles.acChevron} ${open.laboratorios ? styles.acChevronOpen : ''}`}>▾</span>
-          </span>
-        </button>
-        {open.laboratorios && <div className={styles.acBody}>{renderTabla(laboratorios, 'laboratorio', 'Sin laboratorios cargados.')}</div>}
-      </section>
+                    <td className={styles.columnaDescripcion}>
+                      <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
+                    </td>
 
-      {/* MEDICAMENTOS */}
-      <section className={styles.acSection}>
-        <button className={styles.acHeader} onClick={() => toggle('medicamentos')}>
-          <span className={styles.acTitle}>💊 Medicamentos</span>
-          <span className={styles.acRight}>
-            <span className={styles.acCount}>{medicamentos.length}</span>
-            <span className={styles.acAmount}>${money(sum(medicamentos))}</span>
-            <span className={`${styles.acChevron} ${open.medicamentos ? styles.acChevronOpen : ''}`}>▾</span>
-          </span>
-        </button>
-        {open.medicamentos && <div className={styles.acBody}>{renderTabla(medicamentos, 'medicamento', 'Sin medicamentos cargados.')}</div>}
-      </section>
+                    <td className={styles.columnaCantidad}>{renderCantidad(l, 'int')}</td>
 
-      {/* DESCARTABLES */}
-      <section className={styles.acSection}>
-        <button className={styles.acHeader} onClick={() => toggle('descartables')}>
-          <span className={styles.acTitle}>🩹 Descartables</span>
-          <span className={styles.acRight}>
-            <span className={styles.acCount}>{descartables.length}</span>
-            <span className={styles.acAmount}>${money(sum(descartables))}</span>
-            <span className={`${styles.acChevron} ${open.descartables ? styles.acChevronOpen : ''}`}>▾</span>
-          </span>
-        </button>
-        {open.descartables && <div className={styles.acBody}>{renderTabla(descartables, 'descartable', 'Sin descartables cargados.')}</div>}
-      </section>
+                    <td className={styles.columnaValor}>
+                      <div className={styles.valorStack}>
+                        <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
+                          <span className={styles.valorLabel}>Total</span>
+                          <span className={styles.valorNumber}>{money(l.total)}</span>
+                        </div>
+                        {l?.formula && <div className={styles.formulaPequeña}>{l.formula}</div>}
+                      </div>
+                    </td>
 
-      <div className={styles.totalesGenerales}>
-        <h3>💰 Total General</h3>
-        <div className={styles.gridTotales}>
-          <div className={styles.totalItem}>
-            <span>Honorarios (Prácticas+Labs+Cirugías):</span>
-            <strong>${money(totales.totalHonorarios)}</strong>
+                    <td className={styles.columnaAcciones}>
+                      <button className={styles.btnEliminar} onClick={() => eliminarItem(l.id)} title="Eliminar">
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className={styles.totalItem}>
-            <span>Gastos (Prácticas+Med+Desc):</span>
-            <strong>${money(totales.totalGastos)}</strong>
-          </div>
-          <div className={styles.totalItemGrande}>
-            <span>TOTAL A FACTURAR:</span>
-            <strong className={styles.totalFinal}>${money(totales.totalFinal)}</strong>
-          </div>
-        </div>
-      </div>
+        )}
+      </Acordeon>
+
+      {/* =================== MED + DESC AGRUPADOS =================== */}
+      <Acordeon
+        k="medDesc"
+        title="💊 Medicación + 🧷 Descartables"
+        count={medicamentos.length + descartables.length}
+        amount={totalSeccion(medicamentos) + totalSeccion(descartables)}
+      >
+        <SubAcordeon
+          k="med"
+          title="💊 Medicación"
+          count={medicamentos.length}
+          amount={totalSeccion(medicamentos)}
+        >
+          {medicamentos.length === 0 ? (
+            <div className={styles.emptyBlock}>Sin medicación.</div>
+          ) : (
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th className={styles.thDesc}>Descripción</th>
+                    <th className={styles.thQty}>Cantidad</th>
+                    <th className={styles.thUnit}>Unidad</th>
+                    <th className={styles.thNum}>Total</th>
+                    <th className={styles.thAction}>Acc.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {medicamentos.map((m) => (
+                    <tr key={m.id}>
+                      <td className={styles.columnaDescripcion}>
+                        <div className={styles.descPrincipal}><strong>{m.nombre}</strong></div>
+                        <div className={styles.metaText}>{m.presentacion}</div>
+                      </td>
+
+                      <td className={styles.columnaCantidad}>{renderCantidad(m, 'decimal')}</td>
+
+                      <td className={styles.columnaUnidad}>$ {money(m.valorUnitario)}</td>
+
+                      <td className={styles.columnaValor}>
+                        <div className={styles.valorStack}>
+                          <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
+                            <span className={styles.valorLabel}>Total</span>
+                            <span className={styles.valorNumber}>{money(m.total)}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className={styles.columnaAcciones}>
+                        <button className={styles.btnEliminar} onClick={() => eliminarItem(m.id)} title="Eliminar">
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SubAcordeon>
+
+        <SubAcordeon
+          k="desc"
+          title="🧷 Descartables"
+          count={descartables.length}
+          amount={totalSeccion(descartables)}
+        >
+          {descartables.length === 0 ? (
+            <div className={styles.emptyBlock}>Sin descartables.</div>
+          ) : (
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th className={styles.thDesc}>Descripción</th>
+                    <th className={styles.thQty}>Cantidad</th>
+                    <th className={styles.thUnit}>Unidad</th>
+                    <th className={styles.thNum}>Total</th>
+                    <th className={styles.thAction}>Acc.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {descartables.map((d) => (
+                    <tr key={d.id}>
+                      <td className={styles.columnaDescripcion}>
+                        <div className={styles.descPrincipal}><strong>{d.nombre}</strong></div>
+                        <div className={styles.metaText}>{d.presentacion}</div>
+                      </td>
+
+                      <td className={styles.columnaCantidad}>{renderCantidad(d, 'decimal')}</td>
+
+                      <td className={styles.columnaUnidad}>$ {money(d.valorUnitario)}</td>
+
+                      <td className={styles.columnaValor}>
+                        <div className={styles.valorStack}>
+                          <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
+                            <span className={styles.valorLabel}>Total</span>
+                            <span className={styles.valorNumber}>{money(d.total)}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className={styles.columnaAcciones}>
+                        <button className={styles.btnEliminar} onClick={() => eliminarItem(d.id)} title="Eliminar">
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SubAcordeon>
+      </Acordeon>
 
       <div className={styles.botonesResumen}>
         <div className={styles.botonesIzquierda}>
           <button className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
-          <button className={styles.btnLimpiar} onClick={limpiarFactura}>🗑️ Limpiar Todo</button>
+        </div>
+        <div className={styles.botonesDerecha}>
+          <button className={styles.btnLimpiar} onClick={limpiarFactura}>🗑️ Limpiar factura</button>
         </div>
       </div>
     </div>

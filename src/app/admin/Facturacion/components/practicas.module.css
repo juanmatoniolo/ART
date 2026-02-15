@@ -31,11 +31,11 @@
   --spacing-3xl: 30px;
 
   --border-radius-sm: 6px;
-  --border-radius-md: 8px;
+  --border-radius-md: 10px;
 
   --transition-base: 250ms ease;
 
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.5);
   --shadow-tooltip: 0 4px 20px rgba(0, 0, 0, 0.8);
 
   width: 100%;
@@ -50,7 +50,7 @@
   top: 20px;
   right: 20px;
   z-index: 1000;
-  animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-out 2.7s forwards;
+  animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-out 2.3s forwards;
 }
 
 .tooltipContent {
@@ -62,8 +62,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-weight: 700;
-  max-width: 420px;
+  font-weight: 800;
+  max-width: 520px;
 }
 
 .tooltipIcon {
@@ -72,7 +72,7 @@
 
 @keyframes slideIn {
   from {
-    transform: translateX(100%);
+    transform: translateX(12px);
     opacity: 0;
   }
 
@@ -94,8 +94,8 @@
 
 /* Title */
 .tabContent h2 {
-  font-size: clamp(1.5rem, 4vw, 1.75rem);
-  font-weight: 800;
+  font-size: clamp(1.5rem, 4vw, 1.85rem);
+  font-weight: 900;
   margin-bottom: var(--spacing-xl);
   display: flex;
   align-items: center;
@@ -109,6 +109,7 @@
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 }
 
 .titleRow {
@@ -126,8 +127,8 @@
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--border-radius-sm);
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 800;
   cursor: pointer;
   transition: all var(--transition-base);
   display: inline-flex;
@@ -143,53 +144,35 @@
 .counterBadge {
   background: var(--color-success);
   color: white;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--border-radius-sm);
-  font-size: 0.875rem;
-  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 900;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-/* Convenio badges */
-.badges {
+/* ✅ Desglose Dr / Clínica */
+.addSplitRow {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
-.badge {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  font-size: 0.75rem;
+.addSplitLabel {
+  font-size: 0.9rem;
   font-weight: 800;
-  white-space: nowrap;
-  border: 1px solid transparent;
+  color: var(--color-text-secondary);
 }
 
-.badgeGreen {
-  background: rgba(34, 197, 94, 0.2);
-  color: #86efac;
-  border-color: rgba(34, 197, 94, 0.4);
-}
-
-.badgeBlue {
-  background: rgba(59, 130, 246, 0.2);
-  color: #bfdbfe;
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.badgePurple {
-  background: rgba(139, 92, 246, 0.2);
-  color: #ddd6fe;
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.badgeOrange {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fed7aa;
-  border-color: rgba(245, 158, 11, 0.4);
+.addSplitHint {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
 }
 
 /* Search */
@@ -210,7 +193,7 @@
 
 .input {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 14px 16px;
   border: 2px solid var(--color-border);
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
@@ -222,106 +205,162 @@
 .input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
 }
 
 .input::placeholder {
   color: var(--color-text-tertiary);
-  opacity: 0.75;
-}
-
-.agregadasInfo {
-  background: var(--color-success-light);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-md);
-  color: #86efac;
-  font-size: 0.875rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  white-space: nowrap;
+  opacity: 0.8;
 }
 
 .buscadorInfo {
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--color-text-tertiary);
   margin-bottom: var(--spacing-lg);
 }
 
-/* Table */
+/* ================================
+   ✅ TABLA (fix solapado)
+   ================================ */
+
 .tableWrapper {
-  /* ✅ evitamos scroll horizontal visual */
   margin: var(--spacing-xl) 0;
+  overflow-x: auto;
+  /* por si en pantallas MUY chicas */
+  border-radius: var(--border-radius-md);
 }
 
+/* ✅ En desktop: fixed para controlar columnas sin pisarse */
 .table {
   width: 100%;
-  table-layout: fixed;
-  /* ✅ clave */
   border-collapse: collapse;
+  min-width: 98px;
+  /* evita que se achique y empiece a pisar */
 }
 
 .table th {
   background: var(--color-bg-tertiary);
-  padding: var(--spacing-md) var(--spacing-lg);
-  text-align: center;
-  font-weight: 800;
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 900;
   color: var(--color-text-primary);
   border-bottom: 2px solid var(--color-border);
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   white-space: nowrap;
 }
 
 .table td {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 16px;
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   color: var(--color-text-secondary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* ✅ importantísimo para que NO invada otra columna */
 }
 
+/* ✅ Anchos: priorizamos descripción y cap, pero dejamos números cómodos */
 .thCode {
   width: 110px;
 }
 
-.thCap {
-  width: 240px;
-}
-
-.thNum {
-  width: 170px;
-  text-align: right;
-}
-
-.thAction {
-  width: 84px;
-  text-align: right;
-}
-
 .thDesc {
-  width: auto;
+  width: 44%;
+}
+
+.thCap {
+  width: 320px;
+}
+
+/* ✅ más ancho para que el badge no invada */
+.thNum {
+  width: 190px;
+}
+
+/* ✅ números completos */
+.thAction {
+  width: 90px;
 }
 
 .codeCell {
   white-space: nowrap;
+  font-weight: 800;
+  color: var(--color-text-primary);
 }
 
-.capCell {
-  white-space: nowrap;
-}
-
-.actionCell {
-  text-align: right;
-}
-
+/* ✅ Descripción: multilinea sin romper tabla */
 .descCell {
+  min-width: 0;
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+/* ✅ Capítulo: NUNCA se pisa con números */
+.capCell {
+  overflow: hidden;
+  padding-right: 22px;
+  /* ✅ “separación visual” para que no se pegue al honorario */
+}
+
+.capBadge {
+  display: inline-block;
+  max-width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--color-text-secondary);
+  padding: 7px 10px;
+  border-radius: 999px;
+
+  font-size: 0.85rem;
+  font-weight: 800;
+
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* ✅ corta bonito si es largo */
+  vertical-align: middle;
+}
+
+/* ✅ Números: alineados, NO centrados, y sin cortes */
+.numericCell {
+  text-align: right;
   white-space: nowrap;
-  /* ✅ evita que ensanche la tabla */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  overflow: hidden;
+}
+
+.baseLine {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin-bottom: 6px;
+  text-align: right;
+  font-weight: 800;
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+.miniLabel {
+  opacity: 0.9;
+  margin-right: 6px;
+}
+
+.valueBig {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--color-text-primary);
+  text-align: right;
+  /* ✅ antes lo tenías centrado y “parecía” que se pisaba */
+  white-space: nowrap;
+}
+
+/* Acción */
+.actionCell {
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* Special rows */
@@ -342,7 +381,7 @@
 }
 
 .recentlyAddedRow {
-  animation: rowPulse 2s ease-in-out;
+  animation: rowPulse 1.4s ease-in-out;
   background: var(--color-success-light) !important;
 }
 
@@ -359,43 +398,16 @@
   }
 }
 
-/* Numbers (no monospace) */
-.numericCell {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-.baseLine {
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  margin-bottom: 4px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  white-space: nowrap;
-}
-
-.valueBig {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  letter-spacing: 0;
-  text-align: center;
-}
-
 /* Add buttons */
 .btnAgregarTabla {
   background: var(--color-success);
   color: white;
   border: none;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 900;
   transition: all var(--transition-base);
   display: inline-flex;
@@ -405,7 +417,7 @@
 
 .btnAgregarTabla:hover {
   background: var(--color-success-hover);
-  transform: scale(1.07);
+  transform: scale(1.06);
 }
 
 .btnAgregadoTabla {
@@ -433,7 +445,7 @@
 }
 
 .recentlyAdded {
-  animation: pulseHighlight 2s ease-in-out;
+  animation: pulseHighlight 1.4s ease-in-out;
   border-color: var(--color-success);
   background: var(--color-success-light);
 }
@@ -463,23 +475,10 @@
 
 .code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-text-primary);
   font-size: 1.05rem;
   white-space: nowrap;
-}
-
-.capBadge {
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--color-text-secondary);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 55%;
 }
 
 .desc {
@@ -508,7 +507,7 @@
   color: var(--color-text-tertiary);
   margin-bottom: 6px;
   text-transform: uppercase;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .costValue {
@@ -530,8 +529,8 @@
   border: none;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--border-radius-sm);
-  font-size: 0.9rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 900;
   cursor: pointer;
   transition: all var(--transition-base);
   width: 100%;
@@ -540,16 +539,6 @@
 .btnAgregar:hover {
   background: var(--color-success-hover);
   transform: translateY(-1px);
-}
-
-.btnAgregado {
-  background: var(--color-disabled);
-  color: var(--color-text-tertiary);
-  cursor: default;
-}
-
-.btnAgregado:hover {
-  transform: none;
 }
 
 /* Cards variants */
@@ -569,7 +558,7 @@
   color: #000;
   padding: 2px 0;
   border-radius: 3px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 /* States */
@@ -587,43 +576,6 @@
   color: var(--color-text-tertiary);
 }
 
-/* Accordion */
-.accordion {
-  border-radius: var(--border-radius-md);
-  margin-bottom: var(--spacing-sm);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-}
-
-.accordionHeader {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-weight: 800;
-  font-size: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  list-style: none;
-}
-
-.accordionHeader::after {
-  content: '▶';
-  font-size: 0.75rem;
-  transition: transform var(--transition-base);
-  color: var(--color-primary);
-}
-
-.accordion[open] .accordionHeader::after {
-  transform: rotate(90deg);
-}
-
-.accordionBody {
-  padding: var(--spacing-xl);
-  background: var(--color-bg-secondary);
-}
-
 /* Navigation */
 .botonesNavegacion {
   display: flex;
@@ -638,7 +590,7 @@
 .btnSiguiente {
   padding: var(--spacing-md) var(--spacing-2xl);
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 900;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -688,14 +640,6 @@
     align-items: stretch;
   }
 
-  .badges {
-    justify-content: center;
-  }
-
-  .accordionBody {
-    padding: var(--spacing-lg);
-  }
-
   .botonesNavegacion {
     flex-direction: column;
   }
@@ -717,150 +661,4 @@
     max-width: none;
     justify-content: center;
   }
-}
-
-.baseLine {
-  font-size: 14px;
-  color: var(--color-text-tertiary);
-  margin-bottom: 4px;
-
-  /* ✅ lo que pediste */
-  text-align: center;
-  font-weight: 800;
-
-  /* para que los números queden parejitos sin monospace */
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  white-space: nowrap;
-}
-
-/* ✅ Base line centrada + negrita */
-.baseLine {
-  text-align: center;
-  font-weight: 800;
-  opacity: 0.95;
-  font-size: 0.85rem;
-  margin-bottom: var(--spacing-xs);
-}
-
-/* ✅ Controles de desglose (Dr/Clínica) */
-.addSplitRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding-top: var(--spacing-md);
-  margin-top: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
-}
-
-.addSplitLabel {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  margin-right: var(--spacing-xs);
-}
-
-.chk {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-.chk input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary);
-}
-
-.addSplitHint {
-  font-size: 0.8rem;
-  color: var(--color-text-tertiary);
-}
-
-@media (max-width: 768px) {
-  .addSplitRow {
-    justify-content: flex-start;
-  }
-}
-
-/* ✅ Descripción SIEMPRE completa (desktop) */
-.descCell {
-  min-width: 0;
-  /* importantísimo para que wrap funcione en flex/tables */
-  max-width: none;
-  /* no limites a 500px */
-  white-space: normal;
-  /* permite saltos de línea */
-  overflow: visible;
-  /* no cortes */
-  text-overflow: unset;
-  /* sin "..." */
-  word-break: break-word;
-  /* corta palabras largas */
-  overflow-wrap: anywhere;
-  /* evita scroll horizontal */
-  line-height: 1.35;
-}
-
-.tableWrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* evita que la tabla fuerce scroll por columnas “duras” */
-.table {
-  width: 100%;
-  table-layout: fixed;
-  /* ✅ clave para que ceda espacio a la descripción */
-}
-
-/* columnas: el texto largo debe estar en descCell */
-.thDesc {
-  width: 46%;
-}
-
-.thCode {
-  width: 10%;
-}
-
-.thCap {
-  width: 22%;
-}
-
-.thNum {
-  width: 10%;
-}
-
-.thAction {
-  width: 12%;
-}
-
-
-.filtroOrigen {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-md) 0;
-}
-
-.filtroOrigen label {
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
-.filtroOrigen select {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  font-size: 0.9rem;
 }
