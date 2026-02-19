@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ref, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money } from '../../utils/calculos';
+import { money } from '../utils/calculos';
 import styles from '../facturados.module.css';
 
 const fmtDate = (ms) => {

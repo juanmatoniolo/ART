@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import stylesBase from '../../facturacion.module.css';
 import styles from '../facturados.module.css';
 
 const normalizeKey = (s) =>

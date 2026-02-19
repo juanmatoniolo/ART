@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { money } from '../../utils/calculos';
-import stylesBase from '../../facturacion.module.css';
-import styles from './facturados.module.css';
+import styles from '../facturados.module.css';
 
 const normalizeKey = (s) =>
     String(s ?? '')
