@@ -250,7 +250,7 @@ export default function BorradoresPage() {
                                             ▶ Retomar
                                         </Link>
 
-                                        <Link className={styles.btn} href={`/admin/Facturacion/facturados/${it.id}`}>
+                                        <Link className={styles.btn} href={`/admin/Facturacion/Facturados/${it.id}`}>
                                             👁 Ver detalle
                                         </Link>
 

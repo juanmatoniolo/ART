@@ -152,7 +152,7 @@ export default function CerradosPage() {
                                 </div>
 
                                 <div className={styles.actions}>
-                                    <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/Facturacion/facturados/${it.id}`}>
+                                    <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/Facturacion/Facturados/${it.id}`}>
                                         👁 Ver detalle
                                     </Link>
                                     <button className={`${styles.btn} ${styles.btnGhostSmall}`} disabled title="Próximo paso: PDF/Excel">

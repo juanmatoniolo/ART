@@ -283,7 +283,7 @@ export default function FacturadoDetallePage() {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link className={styles.btnGhost} href="/admin/Facturacion/facturados">
+                        <Link className={styles.btnGhost} href="/admin/Facturacion/Facturados">
                             ← Volver
                         </Link>
                     </div>
@@ -304,7 +304,7 @@ export default function FacturadoDetallePage() {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link className={styles.btnGhost} href="/admin/Facturacion/facturados">
+                        <Link className={styles.btnGhost} href="/admin/Facturacion/Facturados">
                             ← Volver
                         </Link>
 

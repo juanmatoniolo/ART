@@ -591,15 +591,15 @@ export default function FacturaContainer() {
         {/* ✅ navegación rápida: Borradores / Cerrados / Todos */}
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/facturados/borradores">
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/borradores">
               📝 Borradores
             </Link>
 
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/facturados/cerrados">
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/cerrados">
               ✅ Cerrados
             </Link>
 
-            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/facturados">
+            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Facturados">
               📦 Todos
             </Link>
           </div>
@@ -610,7 +610,7 @@ export default function FacturaContainer() {
             </Link>
 
             {draftId ? (
-              <Link className={styles.toggleBtnAlt} href={`/admin/Facturacion/facturados/${draftId}`}>
+              <Link className={styles.toggleBtnAlt} href={`/admin/Facturacion/Facturados/${draftId}`}>
                 👁 Ver actual
               </Link>
             ) : null}
