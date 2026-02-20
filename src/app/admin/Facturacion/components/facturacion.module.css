@@ -438,7 +438,6 @@
   font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
-  backdrop-filter: blur(6px);
 }
 
 .chipValue {
@@ -580,4 +579,98 @@
   background: rgba(236, 72, 153, 0.15);
   color: #fbcfe8;
   border-color: rgba(236, 72, 153, 0.35);
+}
+
+/* ===== Top nav (Borradores / Facturados) ===== */
+.topNav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.viewToggle,
+.quickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.toggleBtn,
+.toggleBtnAlt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 10px 12px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--color-text-secondary);
+  font-weight: 800;
+  text-decoration: none;
+  transition: all var(--transition-base);
+  min-height: 40px;
+}
+
+.toggleBtn:hover,
+.toggleBtnAlt:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  transform: translateY(-2px);
+}
+
+/* Variante un poco más "CTA" */
+.toggleBtnAlt {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* ===== Select oscuro + texto blanco (incluye dropdown options) ===== */
+.select {
+  background-color: rgba(0, 0, 0, 0.55) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.select option {
+  background-color: #0b1220;
+  /* mismo que tu bg primary */
+  color: #fff;
+}
+
+/* En algunos navegadores ayuda para el focus */
+.select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Barra inferior para acciones "normales" como Guardar */
+.footerBar {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .footerActions {
+    justify-content: stretch;
+  }
+
+  .footerActions button {
+    width: 100%;
+  }
 }

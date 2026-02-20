@@ -54,11 +54,11 @@ export default function FacturadoDetallePage() {
     if (loading) {
         return (
             <div className={styles.container}>
-                <div className={styles.header}>
+                <header className={styles.header}>
                     <div className={styles.titleBlock}>
                         <h1 className={styles.title}>Cargando…</h1>
                     </div>
-                </div>
+                </header>
             </div>
         );
     }
@@ -66,7 +66,7 @@ export default function FacturadoDetallePage() {
     if (!item) {
         return (
             <div className={styles.container}>
-                <div className={styles.header}>
+                <header className={styles.header}>
                     <div className={styles.titleBlock}>
                         <h1 className={styles.title}>No encontrado</h1>
                         <p className={styles.subtitle}>No existe el registro /Facturacion/{id}</p>
@@ -77,7 +77,7 @@ export default function FacturadoDetallePage() {
                             ← Volver
                         </Link>
                     </div>
-                </div>
+                </header>
             </div>
         );
     }
@@ -87,9 +87,7 @@ export default function FacturadoDetallePage() {
             <header className={styles.header}>
                 <div className={styles.headerTop}>
                     <div className={styles.titleBlock}>
-                        <h1 className={styles.title}>
-                            {estado === 'cerrado' ? '✅ Factura cerrada' : '💾 Borrador'}
-                        </h1>
+                        <h1 className={styles.title}>{estado === 'cerrado' ? '✅ Factura cerrada' : '💾 Borrador'}</h1>
                         <p className={styles.subtitle}>
                             ID: <b>{id}</b>
                         </p>
@@ -101,16 +99,12 @@ export default function FacturadoDetallePage() {
                         </Link>
 
                         {estado !== 'cerrado' && (
-                            <Link className={styles.btnPrimary} href={`/admin/facturacion/Nuevo?draft=${id}`}>
+                            <Link className={styles.btnPrimary} href={`/admin/facturacion/nuevo?draft=${id}`}>
                                 ✏️ Retomar borrador
                             </Link>
                         )}
 
-                        <button
-                            className={styles.btn}
-                            onClick={() => router.refresh()}
-                            title="Refrescar"
-                        >
+                        <button className={styles.btn} onClick={() => router.refresh()} title="Refrescar">
                             ↻ Actualizar
                         </button>
                     </div>
@@ -121,21 +115,54 @@ export default function FacturadoDetallePage() {
                 <section className={styles.detailGrid}>
                     <div className={styles.detailCard}>
                         <h3 className={styles.detailTitle}>Paciente</h3>
-                        <div className={styles.detailRow}><span>Nombre</span><b>{paciente?.nombreCompleto || '—'}</b></div>
-                        <div className={styles.detailRow}><span>DNI</span><b>{paciente?.dni || '—'}</b></div>
-                        <div className={styles.detailRow}><span>ART</span><b>{paciente?.artSeguro || '—'}</b></div>
-                        <div className={styles.detailRow}><span>Siniestro</span><b>{paciente?.nroSiniestro || '—'}</b></div>
-                        <div className={styles.detailRow}><span>Fecha</span><b>{paciente?.fechaAtencion || '—'}</b></div>
+                        <div className={styles.detailRow}>
+                            <span>Nombre</span>
+                            <b>{paciente?.nombreCompleto || paciente?.nombre || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>DNI</span>
+                            <b>{paciente?.dni || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>ART</span>
+                            <b>{paciente?.artSeguro || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Siniestro</span>
+                            <b>{paciente?.nroSiniestro || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Fecha</span>
+                            <b>{paciente?.fechaAtencion || '—'}</b>
+                        </div>
                     </div>
 
                     <div className={styles.detailCard}>
                         <h3 className={styles.detailTitle}>Factura</h3>
-                        <div className={styles.detailRow}><span>Estado</span><b>{estado}</b></div>
-                        <div className={styles.detailRow}><span>Convenio</span><b>{item?.convenioNombre || item?.convenio || '—'}</b></div>
-                        <div className={styles.detailRow}><span>N° Factura</span><b>{item?.facturaNro || '—'}</b></div>
-                        <div className={styles.detailRow}><span>Creado</span><b>{fmtDate(item?.createdAt)}</b></div>
-                        <div className={styles.detailRow}><span>Cerrado</span><b>{fmtDate(item?.cerradoAt)}</b></div>
-                        <div className={styles.detailRow}><span>Total</span><b>$ {money(tot)}</b></div>
+                        <div className={styles.detailRow}>
+                            <span>Estado</span>
+                            <b>{estado}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Convenio</span>
+                            <b>{item?.convenioNombre || item?.convenio || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>N° Factura</span>
+                            <b>{item?.facturaNro || '—'}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Creado</span>
+                            <b>{fmtDate(item?.createdAt)}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Cerrado</span>
+                            <b>{fmtDate(item?.cerradoAt)}</b>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <span>Total</span>
+                            <b>$ {money(tot)}</b>
+                        </div>
                     </div>
                 </section>
 
@@ -165,9 +192,7 @@ export default function FacturadoDetallePage() {
                         </div>
                     </div>
 
-                    <p className={styles.detailHint}>
-                        (Luego hacemos la vista “linda” con el detalle por práctica: cantidad, unitario, total y Dr.)
-                    </p>
+                    <p className={styles.detailHint}>(Luego hacemos la vista detallada por práctica: cantidad, unitario, total y Dr.)</p>
                 </section>
             </main>
         </div>

@@ -1,11 +1,11 @@
-// src/app/admin/facturacion/facturados/page.jsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ref, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money } from '../utils/calculos'; // ✅ ajustá si tu ruta real es distinta
+import { money } from '../utils/calculos';
 import styles from './facturados.module.css';
 
 const normalizeKey = (s) =>
@@ -17,6 +17,12 @@ const normalizeKey = (s) =>
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '');
 
+const prettyLabel = (s) =>
+    String(s ?? '')
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
 const norm = (s) =>
     String(s ?? '')
         .toLowerCase()
@@ -27,20 +33,32 @@ const norm = (s) =>
 const fmtDate = (ms) => {
     if (!ms) return '—';
     try {
-        const d = new Date(ms);
-        return d.toLocaleString('es-AR');
+        return new Date(ms).toLocaleString('es-AR');
     } catch {
         return '—';
     }
 };
 
 export default function FacturadosPage() {
+    const sp = useSearchParams();
+    const router = useRouter();
+
     const [raw, setRaw] = useState({});
     const [loading, setLoading] = useState(true);
 
     const [q, setQ] = useState('');
     const [estado, setEstado] = useState('todos'); // todos | cerrado | borrador
     const [art, setArt] = useState(''); // artKey
+
+    // ✅ toma estado desde query (?estado=borrador|cerrado|todos)
+    useEffect(() => {
+        const e = sp.get('estado');
+        if (e === 'cerrado' || e === 'borrador' || e === 'todos') {
+            setEstado(e);
+        }
+        // no setear por defecto si no viene
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const r = ref(db, 'Facturacion');
@@ -133,7 +151,7 @@ export default function FacturadosPage() {
         });
         return Array.from(map.entries())
             .map(([key, name]) => ({ key, name }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+            .sort((a, b) => prettyLabel(a.name).localeCompare(prettyLabel(b.name)));
     }, [items]);
 
     const filtered = useMemo(() => {
@@ -144,11 +162,21 @@ export default function FacturadosPage() {
             if (!qq) return true;
 
             const blob = norm(
-                `${it.pacienteNombre || ''} ${it.dni || ''} ${it.nroSiniestro || ''} ${it.artNombre || ''} ${it.convenioNombre || ''} ${it.facturaNro || ''}`
+                `${it.pacienteNombre || ''} ${it.dni || ''} ${it.nroSiniestro || ''} ${it.artNombre || ''} ${it.convenioNombre || ''
+                } ${it.facturaNro || ''}`
             );
             return blob.includes(qq);
         });
     }, [items, q, estado, art]);
+
+    // ✅ helper para actualizar query sin recargar
+    const setEstadoQuery = (next) => {
+        const params = new URLSearchParams(sp.toString());
+        if (!next || next === 'todos') params.delete('estado');
+        else params.set('estado', next);
+        router.push(`/admin/facturacion/facturados?${params.toString()}`);
+        setEstado(next || 'todos');
+    };
 
     return (
         <div className={styles.container}>
@@ -163,10 +191,37 @@ export default function FacturadosPage() {
                         <Link href="/admin/facturacion" className={styles.btnGhost}>
                             ← Volver
                         </Link>
-                        <Link href="/admin/facturacion/Nuevo" className={styles.btnPrimary}>
+                        <Link href="/admin/facturacion/nuevo" className={styles.btnPrimary}>
                             ➕ Nueva factura
                         </Link>
                     </div>
+                </div>
+
+                {/* ✅ NUEVO: switch rápido por estado (compatible con tu panel) */}
+                <div className={styles.quickSwitch}>
+                    <button
+                        type="button"
+                        className={`${styles.switchBtn} ${estado === 'borrador' ? styles.switchBtnActive : ''}`}
+                        onClick={() => setEstadoQuery('borrador')}
+                    >
+                        📝 Borradores ({counts.borradores})
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`${styles.switchBtn} ${estado === 'cerrado' ? styles.switchBtnActive : ''}`}
+                        onClick={() => setEstadoQuery('cerrado')}
+                    >
+                        ✅ Facturados ({counts.cerrados})
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`${styles.switchBtn} ${estado === 'todos' ? styles.switchBtnActive : ''}`}
+                        onClick={() => setEstadoQuery('todos')}
+                    >
+                        📄 Todos ({counts.total})
+                    </button>
                 </div>
 
                 <div className={styles.chipsRow}>
@@ -186,7 +241,7 @@ export default function FacturadosPage() {
                     </div>
 
                     <div className={styles.filters}>
-                        <select className={styles.select} value={estado} onChange={(e) => setEstado(e.target.value)}>
+                        <select className={styles.select} value={estado} onChange={(e) => setEstadoQuery(e.target.value)}>
                             <option value="todos">Todos</option>
                             <option value="cerrado">Cerrados</option>
                             <option value="borrador">Borradores</option>
@@ -196,18 +251,12 @@ export default function FacturadosPage() {
                             <option value="">Todas las ART</option>
                             {arts.map((a) => (
                                 <option key={a.key} value={a.key}>
-                                    {a.name}
+                                    {prettyLabel(a.name)}
                                 </option>
                             ))}
                         </select>
 
-                        <select
-                            className={styles.select}
-                            value="fecha_desc"
-                            onChange={() => {
-                                // placeholder por si luego querés agregar orden real (fecha/total/estado)
-                            }}
-                        >
+                        <select className={styles.select} value="fecha_desc" onChange={() => { }}>
                             <option value="fecha_desc">Fecha ↓</option>
                         </select>
                     </div>
@@ -247,8 +296,8 @@ export default function FacturadosPage() {
                                         <div className={styles.metaRow}>
                                             <span className={styles.pill}>DNI: {it.dni || '—'}</span>
                                             <span className={styles.pill}>Siniestro: {it.nroSiniestro || '—'}</span>
-                                            <span className={styles.pill}>{it.artNombre || 'SIN ART'}</span>
-                                            <span className={styles.pill}>Conv.: {it.convenioNombre || '—'}</span>
+                                            <span className={styles.pill}>{prettyLabel(it.artNombre || 'SIN ART')}</span>
+                                            <span className={styles.pill}>Conv.: {prettyLabel(it.convenioNombre || '—')}</span>
                                         </div>
 
                                         {isClosed ? (
@@ -263,12 +312,16 @@ export default function FacturadosPage() {
                                             </Link>
 
                                             {!isClosed && (
-                                                <Link className={styles.btn} href={`/admin/facturacion/Nuevo?draft=${it.id}`}>
+                                                <Link className={styles.btn} href={`/admin/facturacion/nuevo?draft=${it.id}`}>
                                                     ✏️ Retomar
                                                 </Link>
                                             )}
 
-                                            <button className={`${styles.btn} ${styles.btnGhostSmall}`} disabled title="Próximo paso: PDF/Excel">
+                                            <button
+                                                className={`${styles.btn} ${styles.btnGhostSmall}`}
+                                                disabled
+                                                title="Próximo paso: PDF/Excel"
+                                            >
                                                 ⬇️ Descargar
                                             </button>
                                         </div>

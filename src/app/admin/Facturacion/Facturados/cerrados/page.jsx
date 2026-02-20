@@ -31,7 +31,7 @@ export default function CerradosPage() {
     const [art, setArt] = useState('');
 
     useEffect(() => {
-        const r = ref(db, 'Facturacion/index/cerrados');
+        const r = ref(db, 'Facturacion');
         return onValue(
             r,
             (snap) => {
@@ -47,9 +47,30 @@ export default function CerradosPage() {
     }, []);
 
     const items = useMemo(() => {
-        const arr = Object.values(data || {});
-        arr.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
-        return arr;
+        const obj = data || {};
+        const arr = Object.entries(obj).map(([id, v]) => {
+            const pacienteNombre =
+                v?.paciente?.nombreCompleto || v?.pacienteNombre || v?.paciente?.nombre || v?.nombrePaciente || '';
+            const dni = v?.paciente?.dni || v?.dni || '';
+            const nroSiniestro = v?.paciente?.nroSiniestro || v?.nroSiniestro || '';
+            const artNombre = v?.paciente?.artSeguro || v?.artNombre || v?.artSeguro || 'SIN ART';
+            const artKey = v?.artKey || normalizeKey(artNombre);
+
+            const estado = v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador');
+            const closedAt = v?.cerradoAt || v?.closedAt || 0;
+
+            const total =
+                v?.totales?.total ??
+                v?.total ??
+                (Number(v?.totales?.honorarios || 0) + Number(v?.totales?.gastos || 0)) ??
+                0;
+
+            return { id, pacienteNombre, dni, nroSiniestro, artNombre, artKey, estado, closedAt, total };
+        });
+
+        return arr
+            .filter((it) => it.estado === 'cerrado')
+            .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
     }, [data]);
 
     const arts = useMemo(() => {
@@ -59,7 +80,9 @@ export default function CerradosPage() {
             const name = it.artNombre || it.artKey || 'SIN ART';
             if (!map.has(key)) map.set(key, name);
         });
-        return Array.from(map.entries()).map(([key, name]) => ({ key, name }));
+        return Array.from(map.entries())
+            .map(([key, name]) => ({ key, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
     }, [items]);
 
     const filtered = useMemo(() => {
@@ -67,78 +90,80 @@ export default function CerradosPage() {
         return items.filter((it) => {
             if (art && (it.artKey || '') !== art) return false;
             if (!qq) return true;
-            const blob = norm(
-                `${it.pacienteNombre || ''} ${it.dni || ''} ${it.nroSiniestro || ''} ${it.artNombre || ''}`
-            );
+            const blob = norm(`${it.pacienteNombre || ''} ${it.dni || ''} ${it.nroSiniestro || ''} ${it.artNombre || ''}`);
             return blob.includes(qq);
         });
     }, [items, q, art]);
 
     return (
-        <div className={stylesBase.container}>
-            <header className={stylesBase.header}>
-                <div className={stylesBase.titleBlock}>
-                    <h1 className={stylesBase.title}>✅ Cerrados</h1>
-                    <p className={stylesBase.subtitle}>Ver detalles y descargar.</p>
-                </div>
-            </header>
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <div className={styles.headerTop}>
+                    <div className={styles.titleBlock}>
+                        <h1 className={styles.title}>✅ Cerrados</h1>
+                        <p className={styles.subtitle}>Ver detalles y descargar.</p>
+                    </div>
 
-            <div className={stylesBase.content}>
-                <div className={styles.wrapper}>
-                    <div className={styles.toolbar}>
-                        <div className={styles.filters}>
-                            <select className={styles.select} value={art} onChange={(e) => setArt(e.target.value)}>
-                                <option value="">Todas las ART</option>
-                                {arts.map((a) => (
-                                    <option key={a.key} value={a.key}>
-                                        {a.name}
-                                    </option>
-                                ))}
-                            </select>
-
-                            <input
-                                className={styles.input}
-                                placeholder="Buscar por paciente / DNI / siniestro…"
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                            />
-                        </div>
-
-                        <Link href="/admin/Facturacion" className={styles.btn}>
+                    <div className={styles.headerActions}>
+                        <Link href="/admin/facturacion" className={styles.btnGhost}>
                             ← Volver
                         </Link>
                     </div>
+                </div>
 
-                    {loading ? (
-                        <div className={styles.empty}>Cargando…</div>
-                    ) : filtered.length === 0 ? (
-                        <div className={styles.empty}>No hay cerrados.</div>
-                    ) : (
-                        <div className={styles.list}>
-                            {filtered.map((it) => (
-                                <div key={it.id} className={styles.card}>
-                                    <div className={styles.rowTop}>
-                                        <div className={styles.title}>{it.pacienteNombre || 'Sin nombre'}</div>
-                                        <div className={styles.meta}>
-                                            <span className={styles.pill}>DNI: {it.dni || '—'}</span>
-                                            <span className={styles.pill}>Siniestro: {it.nroSiniestro || '—'}</span>
-                                            <span className={styles.pill}>{it.artNombre || 'SIN ART'}</span>
-                                            <span className={styles.pill}>Total: $ {money(it.total || 0)}</span>
-                                        </div>
-                                    </div>
+                <div className={styles.toolbar}>
+                    <div className={styles.filters}>
+                        <select className={styles.select} value={art} onChange={(e) => setArt(e.target.value)}>
+                            <option value="">Todas las ART</option>
+                            {arts.map((a) => (
+                                <option key={a.key} value={a.key}>
+                                    {a.name}
+                                </option>
+                            ))}
+                        </select>
 
-                                    <div className={styles.actions}>
-                                        <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/Facturacion/facturados/cerrados/${it.id}`}>
-                                            👁 Ver detalle
-                                        </Link>
-                                        {/* luego acá agregamos descargar PDF/Excel */}
+                        <input
+                            className={styles.input}
+                            placeholder="Buscar por paciente / DNI / siniestro…"
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </header>
+
+            <main className={styles.content}>
+                {loading ? (
+                    <div className={styles.empty}>Cargando…</div>
+                ) : filtered.length === 0 ? (
+                    <div className={styles.empty}>No hay cerrados.</div>
+                ) : (
+                    <div className={styles.list}>
+                        {filtered.map((it) => (
+                            <div key={it.id} className={styles.rowCard}>
+                                <div className={styles.rowTop}>
+                                    <div className={styles.rowTitle}>{it.pacienteNombre || 'Sin nombre'}</div>
+                                    <div className={styles.meta}>
+                                        <span className={styles.pill}>DNI: {it.dni || '—'}</span>
+                                        <span className={styles.pill}>Siniestro: {it.nroSiniestro || '—'}</span>
+                                        <span className={styles.pill}>{it.artNombre || 'SIN ART'}</span>
+                                        <span className={styles.pill}>Total: $ {money(it.total || 0)}</span>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
+
+                                <div className={styles.actions}>
+                                    <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/facturacion/facturados/${it.id}`}>
+                                        👁 Ver detalle
+                                    </Link>
+                                    <button className={`${styles.btn} ${styles.btnGhostSmall}`} disabled title="Próximo paso: PDF/Excel">
+                                        ⬇️ Descargar
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </main>
         </div>
     );
 }

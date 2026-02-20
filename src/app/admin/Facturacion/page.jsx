@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ConvenioProvider } from './components/ConvenioContext';
 import styles from './facturacionDashboard.module.css';
 
-export default function FacturacionDashboardPage() {
+export default function facturacionDashboardPage() {
   return (
     <ConvenioProvider>
       <div className={styles.page}>
@@ -16,7 +16,7 @@ export default function FacturacionDashboardPage() {
         </header>
 
         <section className={styles.grid}>
-          <Link href="/admin/Facturacion/Nuevo" className={`${styles.card} ${styles.cardPrimary}`}>
+          <Link href="/admin/facturacion/Nuevo" className={`${styles.card} ${styles.cardPrimary}`}>
             <div className={styles.cardIcon}>➕</div>
             <div className={styles.cardTitle}>Nuevo</div>
             <div className={styles.cardDesc}>
@@ -25,7 +25,7 @@ export default function FacturacionDashboardPage() {
             <div className={styles.cardCta}>Ir a cargar →</div>
           </Link>
 
-          <Link href="/admin/Facturacion/Facturados" className={`${styles.card} ${styles.cardSecondary}`}>
+          <Link href="/admin/facturacion/facturados" className={`${styles.card} ${styles.cardSecondary}`}>
             <div className={styles.cardIcon}>📦</div>
             <div className={styles.cardTitle}>Facturados</div>
             <div className={styles.cardDesc}>
