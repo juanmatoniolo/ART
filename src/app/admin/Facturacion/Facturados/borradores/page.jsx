@@ -246,11 +246,11 @@ export default function BorradoresPage() {
                                     </div>
 
                                     <div className={styles.actions}>
-                                        <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/facturacion/nuevo?draft=${it.id}`}>
+                                        <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
                                             ▶ Retomar
                                         </Link>
 
-                                        <Link className={styles.btn} href={`/admin/facturacion/facturados/${it.id}`}>
+                                        <Link className={styles.btn} href={`/admin/Facturacion/facturados/${it.id}`}>
                                             👁 Ver detalle
                                         </Link>
 
