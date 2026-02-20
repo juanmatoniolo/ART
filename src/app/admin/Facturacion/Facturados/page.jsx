@@ -174,7 +174,7 @@ export default function FacturadosPage() {
         const params = new URLSearchParams(sp.toString());
         if (!next || next === 'todos') params.delete('estado');
         else params.set('estado', next);
-        router.push(`/admin/facturacion/facturados?${params.toString()}`);
+        router.push(`/admin/Facturacion/facturados?${params.toString()}`);
         setEstado(next || 'todos');
     };
 
@@ -188,10 +188,10 @@ export default function FacturadosPage() {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link href="/admin/facturacion" className={styles.btnGhost}>
+                        <Link href="/admin/Facturacion" className={styles.btnGhost}>
                             ← Volver
                         </Link>
-                        <Link href="/admin/facturacion/nuevo" className={styles.btnPrimary}>
+                        <Link href="/admin/Facturacion/Nuevo" className={styles.btnPrimary}>
                             ➕ Nueva factura
                         </Link>
                     </div>
@@ -307,12 +307,12 @@ export default function FacturadosPage() {
                                         )}
 
                                         <div className={styles.actions}>
-                                            <Link className={styles.btn} href={`/admin/facturacion/facturados/${it.id}`}>
+                                            <Link className={styles.btn} href={`/admin/Facturacion/facturados/${it.id}`}>
                                                 👁 Ver detalle
                                             </Link>
 
                                             {!isClosed && (
-                                                <Link className={styles.btn} href={`/admin/facturacion/nuevo?draft=${it.id}`}>
+                                                <Link className={styles.btn} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
                                                     ✏️ Retomar
                                                 </Link>
                                             )}

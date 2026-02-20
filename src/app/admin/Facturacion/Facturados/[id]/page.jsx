@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ref, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money } from '../../utils/calculos';
-import styles from '../facturados.module.css';
+import { money, parseNumber, isRadiografia } from '../../utils/calculos';
+import styles from './facturadoss.module.css';
 
 const fmtDate = (ms) => {
     if (!ms) return '—';
@@ -17,9 +17,79 @@ const fmtDate = (ms) => {
     }
 };
 
+const safeNum = (v) => {
+    const n = typeof v === 'number' ? v : parseNumber(v);
+    return Number.isFinite(n) ? n : 0;
+};
+
+function csvEscape(s) {
+    const str = String(s ?? '');
+    const needsQuotes = /[;"\n\r]/.test(str);
+    const escaped = str.replace(/"/g, '""');
+    return needsQuotes ? `"${escaped}"` : escaped;
+}
+
+function buildCsv({ paciente, estado, item, honorRows, gastoRows }) {
+    const lines = [];
+
+    // ✅ Header en una sola fila (como pediste)
+    lines.push(
+        [
+            `Paciente: ${paciente?.nombreCompleto || paciente?.nombre || '—'}`,
+            `DNI: ${paciente?.dni || '—'}`,
+            `ART: ${paciente?.artSeguro || '—'}`,
+            `Siniestro N°: ${paciente?.nroSiniestro || '—'}`,
+        ]
+            .map(csvEscape)
+            .join(';')
+    );
+
+    lines.push('');
+
+    const addTable = (title, rows) => {
+        lines.push(csvEscape(title));
+        lines.push(['Código - Detalle', 'Origen', 'Unidades', 'Valor unit.', 'Total'].map(csvEscape).join(';'));
+
+        rows.forEach((r) => {
+            lines.push([r.desc, r.origen, r.unidades, money(r.unit), money(r.total)].map(csvEscape).join(';'));
+        });
+
+        lines.push('');
+    };
+
+    addTable('HONORARIOS MÉDICOS', honorRows);
+    addTable('GASTOS CLÍNICOS', gastoRows);
+
+    const totHonor = honorRows.reduce((a, r) => a + safeNum(r.total), 0);
+    const totGasto = gastoRows.reduce((a, r) => a + safeNum(r.total), 0);
+
+    lines.push([csvEscape('TOTAL HONORARIOS'), '', '', '', csvEscape(money(totHonor))].join(';'));
+    lines.push([csvEscape('TOTAL GASTOS CLÍNICOS'), '', '', '', csvEscape(money(totGasto))].join(';'));
+    lines.push([csvEscape('TOTAL FACTURA'), '', '', '', csvEscape(money(totHonor + totGasto))].join(';'));
+
+    return lines.join('\n');
+}
+
+function ShortText({ text, max = 30 }) {
+    const [open, setOpen] = useState(false);
+
+    const str = String(text ?? '');
+    const isLong = str.length > max;
+
+    if (!isLong) return <span>{str || '—'}</span>;
+
+    return (
+        <span className={styles.shortWrap}>
+            <span className={styles.shortText}>{open ? str : `${str.slice(0, max)}…`}</span>
+            <button type="button" className={styles.moreBtn} onClick={() => setOpen((v) => !v)}>
+                {open ? 'ver menos' : 'ver más'}
+            </button>
+        </span>
+    );
+}
+
 export default function FacturadoDetallePage() {
     const { id } = useParams();
-    const router = useRouter();
 
     const [loading, setLoading] = useState(true);
     const [item, setItem] = useState(null);
@@ -49,7 +119,148 @@ export default function FacturadoDetallePage() {
 
     const paciente = item?.paciente || {};
     const estado = item?.estado || (item?.cerradoAt ? 'cerrado' : 'borrador');
-    const tot = item?.totales?.total ?? item?.total ?? 0;
+
+    const { honorRows, gastoRows, totHonor, totGasto, totalFactura } = useMemo(() => {
+        const practicas = Array.isArray(item?.practicas) ? item.practicas : [];
+        const cirugias = Array.isArray(item?.cirugias) ? item.cirugias : [];
+        const labs = Array.isArray(item?.laboratorios) ? item.laboratorios : [];
+        const meds = Array.isArray(item?.medicamentos) ? item.medicamentos : [];
+        const desc = Array.isArray(item?.descartables) ? item.descartables : [];
+
+        const pickName = (x) =>
+            x?.descripcion ||
+            x?.nombre ||
+            x?.practica ||
+            x?.detalle ||
+            x?.producto ||
+            '—';
+
+        const pickCode = (x) =>
+            x?.codigo ||
+            x?.code ||
+            x?.cod ||
+            x?.codigoPractica ||
+            '';
+
+        const pickDoctor = (x) =>
+            x?.doctorNombre ||
+            x?.doctor ||
+            x?.medico ||
+            x?.nombreDr ||
+            x?.profesional ||
+            x?.prestadorNombre ||
+            x?.prestador ||
+            '—';
+
+        const pickQty = (x) => {
+            const c = x?.cantidad ?? x?.unidades ?? 1;
+            const n = safeNum(c);
+            return n > 0 ? n : 1;
+        };
+
+        const pickUnit = (x) => {
+            const unit = x?.valorUnitario ?? x?.unitario ?? x?.precio ?? null;
+            if (unit != null && unit !== '') return safeNum(unit);
+            const qty = pickQty(x);
+            const tot = safeNum(x?.total);
+            return qty > 0 ? tot / qty : 0;
+        };
+
+        const formatCodeName = (x) => {
+            const code = String(pickCode(x) || '').trim();
+            const name = String(pickName(x) || '').trim();
+            return code ? `${code} - ${name}` : name;
+        };
+
+        const honor = [];
+        const gasto = [];
+
+        // ==============================
+        // HONORARIOS MÉDICOS
+        // ==============================
+        const pushHonorIf = (x) => {
+            const honorario = safeNum(x?.honorarioMedico);
+
+            // 🔴 Solo mostramos si realmente tiene honorarios
+            if (honorario > 0) {
+                const qty = pickQty(x);
+
+                honor.push({
+                    desc: formatCodeName(x),
+                    origen: pickDoctor(x), // 👈 ahora SIEMPRE el médico real
+                    unidades: qty,
+                    unit: pickUnit(x),
+                    total: honorario,
+                });
+            }
+        };
+
+        // ==============================
+        // GASTOS CLÍNICOS
+        // ==============================
+        const pushGastoIf = (x) => {
+            const g = safeNum(x?.gastoSanatorial);
+
+            if (g > 0) {
+                const qty = pickQty(x);
+
+                gasto.push({
+                    desc: formatCodeName(x),
+                    origen: 'Clínica de la Unión', // 👈 SIEMPRE fijo
+                    unidades: qty,
+                    unit: pickUnit(x),
+                    total: g,
+                });
+            }
+        };
+
+        [...practicas, ...cirugias, ...labs].forEach((x) => {
+            pushHonorIf(x);
+            pushGastoIf(x);
+        });
+
+        // Medicamentos + Descartables → siempre gasto institucional
+        [...meds, ...desc].forEach((x) => {
+            const qty = pickQty(x);
+            const unit = pickUnit(x);
+            const total = safeNum(x?.gastoSanatorial ?? x?.total ?? unit * qty);
+
+            if (total > 0) {
+                gasto.push({
+                    desc: formatCodeName(x),
+                    origen: 'Clínica de la Unión', // 👈 también fijo
+                    unidades: qty,
+                    unit,
+                    total,
+                });
+            }
+        });
+
+        const totHonor2 = honor.reduce((a, r) => a + safeNum(r.total), 0);
+        const totGasto2 = gasto.reduce((a, r) => a + safeNum(r.total), 0);
+
+        return {
+            honorRows: honor,
+            gastoRows: gasto,
+            totHonor: totHonor2,
+            totGasto: totGasto2,
+            totalFactura: totHonor2 + totGasto2,
+        };
+    }, [item]);
+
+    const onDownloadCsv = () => {
+        const csv = buildCsv({ paciente, estado, item, honorRows, gastoRows });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Factura_${id}_${paciente?.dni || 'sin_dni'}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
 
     if (loading) {
         return (
@@ -73,7 +284,7 @@ export default function FacturadoDetallePage() {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link className={styles.btnGhost} href="/admin/facturacion/facturados">
+                        <Link className={styles.btnGhost} href="/admin/Facturacion/facturados">
                             ← Volver
                         </Link>
                     </div>
@@ -89,111 +300,138 @@ export default function FacturadoDetallePage() {
                     <div className={styles.titleBlock}>
                         <h1 className={styles.title}>{estado === 'cerrado' ? '✅ Factura cerrada' : '💾 Borrador'}</h1>
                         <p className={styles.subtitle}>
-                            ID: <b>{id}</b>
+                            ID: <b>{id}</b> • Convenio: <b>{item?.convenioNombre || item?.convenio || '—'}</b>
                         </p>
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link className={styles.btnGhost} href="/admin/facturacion/facturados">
+                        <Link className={styles.btnGhost} href="/admin/Facturacion/facturados">
                             ← Volver
                         </Link>
 
                         {estado !== 'cerrado' && (
-                            <Link className={styles.btnPrimary} href={`/admin/facturacion/nuevo?draft=${id}`}>
+                            <Link className={styles.btnPrimary} href={`/admin/Facturacion/Nuevo?draft=${id}`}>
                                 ✏️ Retomar borrador
                             </Link>
                         )}
 
-                        <button className={styles.btn} onClick={() => router.refresh()} title="Refrescar">
-                            ↻ Actualizar
+                        {/* ✅ Solo Descargar */}
+                        <button className={styles.btn} onClick={onDownloadCsv} type="button">
+                            ⬇️ Descargar CSV
                         </button>
                     </div>
                 </div>
             </header>
 
             <main className={styles.content}>
-                <section className={styles.detailGrid}>
-                    <div className={styles.detailCard}>
-                        <h3 className={styles.detailTitle}>Paciente</h3>
-                        <div className={styles.detailRow}>
-                            <span>Nombre</span>
-                            <b>{paciente?.nombreCompleto || paciente?.nombre || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>DNI</span>
-                            <b>{paciente?.dni || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>ART</span>
-                            <b>{paciente?.artSeguro || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>Siniestro</span>
-                            <b>{paciente?.nroSiniestro || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>Fecha</span>
-                            <b>{paciente?.fechaAtencion || '—'}</b>
-                        </div>
+                {/* Header fila (tipo excel) */}
+                <div className={styles.printHeaderRow}>
+                    <div className={styles.printHeaderCell}>
+                        <b>Paciente:</b> {paciente?.nombreCompleto || paciente?.nombre || '—'}
+                    </div>
+                    <div className={styles.printHeaderCell}>
+                        <b>DNI:</b> {paciente?.dni || '—'}
+                    </div>
+                    <div className={styles.printHeaderCell}>
+                        <b>ART:</b> {paciente?.artSeguro || '—'}
+                    </div>
+                    <div className={styles.printHeaderCell}>
+                        <b>Siniestro N°:</b> {paciente?.nroSiniestro || '—'}
+                    </div>
+                </div>
+
+                <section className={styles.plainSection}>
+                    <div className={styles.sectionHeader}>
+                        <h3 className={styles.sectionTitle}>HONORARIOS MÉDICOS</h3>
+                        <div className={styles.sectionSubtotal}>Subtotal: $ {money(totHonor)}</div>
                     </div>
 
-                    <div className={styles.detailCard}>
-                        <h3 className={styles.detailTitle}>Factura</h3>
-                        <div className={styles.detailRow}>
-                            <span>Estado</span>
-                            <b>{estado}</b>
+                    {honorRows.length === 0 ? (
+                        <div className={styles.emptySmall}>Sin honorarios médicos.</div>
+                    ) : (
+                        <div className={styles.tableWrap}>
+                            <table className={styles.plainTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Código - Práctica</th>
+                                        <th>Dr</th>
+                                        <th className={styles.num}>Unidades</th>
+                                        <th className={styles.num}>Valor unit.</th>
+                                        <th className={styles.num}>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {honorRows.map((r, idx) => (
+                                        <tr key={`h-${idx}`}>
+                                            <td className={styles.cellText}>
+                                                <ShortText text={r.desc} max={45} />
+                                            </td>
+                                            <td className={styles.cellText}>{r.origen}</td>
+                                            <td className={styles.num}>{r.unidades}</td>
+                                            <td className={styles.num}>$ {money(r.unit)}</td>
+                                            <td className={styles.numStrong}>$ {money(r.total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className={styles.detailRow}>
-                            <span>Convenio</span>
-                            <b>{item?.convenioNombre || item?.convenio || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>N° Factura</span>
-                            <b>{item?.facturaNro || '—'}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>Creado</span>
-                            <b>{fmtDate(item?.createdAt)}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>Cerrado</span>
-                            <b>{fmtDate(item?.cerradoAt)}</b>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <span>Total</span>
-                            <b>$ {money(tot)}</b>
-                        </div>
-                    </div>
+                    )}
                 </section>
 
-                <section className={styles.detailCard}>
-                    <h3 className={styles.detailTitle}>Items (resumen)</h3>
-
-                    <div className={styles.simpleList}>
-                        <div className={styles.simpleLine}>
-                            <span>Prácticas</span>
-                            <b>{(item?.practicas || []).length}</b>
-                        </div>
-                        <div className={styles.simpleLine}>
-                            <span>Cirugías</span>
-                            <b>{(item?.cirugias || []).length}</b>
-                        </div>
-                        <div className={styles.simpleLine}>
-                            <span>Laboratorios</span>
-                            <b>{(item?.laboratorios || []).length}</b>
-                        </div>
-                        <div className={styles.simpleLine}>
-                            <span>Medicamentos</span>
-                            <b>{(item?.medicamentos || []).length}</b>
-                        </div>
-                        <div className={styles.simpleLine}>
-                            <span>Descartables</span>
-                            <b>{(item?.descartables || []).length}</b>
-                        </div>
+                <section className={styles.plainSection}>
+                    <div className={styles.sectionHeader}>
+                        <h3 className={styles.sectionTitle}>GASTOS CLÍNICOS</h3>
+                        <div className={styles.sectionSubtotal}>Subtotal: $ {money(totGasto)}</div>
                     </div>
 
-                    <p className={styles.detailHint}>(Luego hacemos la vista detallada por práctica: cantidad, unitario, total y Dr.)</p>
+                    {gastoRows.length === 0 ? (
+                        <div className={styles.emptySmall}>Sin gastos clínicos.</div>
+                    ) : (
+                        <div className={styles.tableWrap}>
+                            <table className={styles.plainTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Detalle</th>
+                                        <th>Origen</th>
+                                        <th className={styles.num}>Unidades</th>
+                                        <th className={styles.num}>Valor unit.</th>
+                                        <th className={styles.num}>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {gastoRows.map((r, idx) => (
+                                        <tr key={`g-${idx}`}>
+                                            <td className={styles.cellText}>
+                                                <ShortText text={r.desc} max={20} />
+                                            </td>
+                                            <td className={styles.cellText}>{r.origen}</td>
+                                            <td className={styles.num}>{r.unidades}</td>
+                                            <td className={styles.num}>$ {money(r.unit)}</td>
+                                            <td className={styles.numStrong}>$ {money(r.total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </section>
+
+                <div className={styles.totalBar}>
+                    <div className={styles.totalLabelBig}>TOTAL FACTURA</div>
+                    <div className={styles.totalValueBig}>$ {money(totalFactura)}</div>
+                </div>
+
+                <div className={styles.printFootMeta}>
+                    <div>
+                        <b>Factura:</b> {item?.facturaNro || '—'}
+                    </div>
+                    <div>
+                        <b>Creado:</b> {fmtDate(item?.createdAt)}
+                    </div>
+                    <div>
+                        <b>Cerrado:</b> {fmtDate(item?.cerradoAt)}
+                    </div>
+                </div>
             </main>
         </div>
     );

@@ -99,9 +99,9 @@ export default function AdminLayout({ children }) {
           </Link>
 
           <Link
-            href="/admin/facturacion"
+            href="/admin/Facturacion"
             title={collapsed ? "Facturación" : undefined}
-            className={`${styles.menuItem} ${isActive("/admin/facturacion") ? styles.active : ""}`}
+            className={`${styles.menuItem} ${isActive("/admin/Facturacion") ? styles.active : ""}`}
           >
             <ReceiptText size={20} />
             {!collapsed && <span>Facturación</span>}

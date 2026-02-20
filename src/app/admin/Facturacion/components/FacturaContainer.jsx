@@ -17,7 +17,14 @@ import LaboratoriosModule from './LaboratoriosModule';
 import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
 
-import { calcularPractica, calcularLaboratorio, money as moneyFmt, parseNumber } from '../utils/calculos';
+import {
+  calcularPractica,
+  calcularLaboratorio,
+  money as moneyFmt,
+  parseNumber,
+  isRadiografia, // ✅ para forzar Dr en RX
+} from '../utils/calculos';
+
 import styles from './facturacion.module.css';
 
 const todayISO = () => new Date().toISOString().split('T')[0];
@@ -226,18 +233,7 @@ export default function FacturaContainer() {
     setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
     setStorageItem('FACTURACION_DRAFT_ID', draftId);
-  }, [
-    paciente,
-    practicas,
-    cirugias,
-    laboratorios,
-    medicamentos,
-    descartables,
-    activeTab,
-    isClient,
-    loadingStorage,
-    draftId,
-  ]);
+  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
 
   // =========================
   // 🔒 Lock de siniestro (evita duplicados)
@@ -369,7 +365,13 @@ export default function FacturaContainer() {
   // =========================
   // Handlers
   // =========================
-  const agregarPractica = useCallback((nueva) => setPracticas((prev) => [...prev, nueva]), []);
+  const RX_DOCTOR = 'Retamoso';
+  const forceRxDoctor = (p) => {
+    if (!isRadiografia?.(p)) return p;
+    return { ...p, medico: RX_DOCTOR, medicoNombre: RX_DOCTOR, doctor: RX_DOCTOR, dr: RX_DOCTOR };
+  };
+
+  const agregarPractica = useCallback((nueva) => setPracticas((prev) => [...prev, forceRxDoctor(nueva)]), []);
   const agregarCirugia = useCallback((nueva) => setCirugias((prev) => [...prev, nueva]), []);
 
   const agregarLaboratorio = useCallback(
@@ -424,9 +426,11 @@ export default function FacturaContainer() {
         if (idx === -1) return false;
 
         const current = items[idx];
-        const merged = { ...current, ...patch };
+        let merged = { ...current, ...patch };
 
         if (kind === 'practica') {
+          merged = forceRxDoctor(merged); // ✅ RX siempre Retamoso
+
           if (patchEsSoloTexto(patch)) {
             setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
             return true;
@@ -555,7 +559,7 @@ export default function FacturaContainer() {
       );
 
       limpiarFactura();
-      router.replace('/admin/facturacion/nuevo');
+      router.replace('/admin/Facturacion/Nuevo');
     } catch (e) {
       console.error(e);
       alert(lockMsg || e?.message || '❌ Error al cerrar y generar factura.');
@@ -584,27 +588,32 @@ export default function FacturaContainer() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        {/* navegación rápida */}
+        {/* ✅ navegación rápida: Borradores / Cerrados / Todos */}
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
-            <Link className={styles.toggleBtn} href="/admin/facturacion/facturados?estado=borrador">
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/facturados/borradores">
               📝 Borradores
             </Link>
-            <Link className={styles.toggleBtn} href="/admin/facturacion/facturados?estado=cerrado">
-              ✅ Facturados
+
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/facturados/cerrados">
+              ✅ Cerrados
+            </Link>
+
+            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/facturados">
+              📦 Todos
             </Link>
           </div>
 
           <div className={styles.quickActions}>
+            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Nuevo">
+              ➕ Nuevo
+            </Link>
+
             {draftId ? (
-              <Link className={styles.toggleBtnAlt} href={`/admin/facturacion/facturados/${draftId}`}>
-                👁 Ver este borrador
+              <Link className={styles.toggleBtnAlt} href={`/admin/Facturacion/facturados/${draftId}`}>
+                👁 Ver actual
               </Link>
             ) : null}
-
-            <Link className={styles.toggleBtnAlt} href="/admin/facturacion/facturados">
-              📦 Ver listado
-            </Link>
           </div>
         </div>
 
@@ -613,7 +622,7 @@ export default function FacturaContainer() {
             <h1 className={styles.title}>Sistema de Facturación Clínica</h1>
             <p className={styles.subtitle}>
               Carga rápida, desglose por Dr/Clínica y exportación.
-              {draftId ? <span style={{ marginLeft: 10, opacity: 0.85 }}>📝 Borrador: {draftId}</span> : null}
+              {draftId ? <span className={styles.draftPill}>📝 Borrador: {draftId}</span> : null}
             </p>
             {lockMsg ? <div className={styles.alert}>{lockMsg}</div> : null}
           </div>
@@ -783,7 +792,6 @@ export default function FacturaContainer() {
           </button>
         </div>
       </div>
-
     </div>
   );
 }

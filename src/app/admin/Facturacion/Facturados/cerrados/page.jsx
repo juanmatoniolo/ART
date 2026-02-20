@@ -105,7 +105,7 @@ export default function CerradosPage() {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <Link href="/admin/facturacion" className={styles.btnGhost}>
+                        <Link href="/admin/Facturacion" className={styles.btnGhost}>
                             ← Volver
                         </Link>
                     </div>
@@ -152,7 +152,7 @@ export default function CerradosPage() {
                                 </div>
 
                                 <div className={styles.actions}>
-                                    <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/facturacion/facturados/${it.id}`}>
+                                    <Link className={`${styles.btn} ${styles.btnInfo}`} href={`/admin/Facturacion/facturados/${it.id}`}>
                                         👁 Ver detalle
                                     </Link>
                                     <button className={`${styles.btn} ${styles.btnGhostSmall}`} disabled title="Próximo paso: PDF/Excel">

@@ -6,11 +6,6 @@
  * ============================================================================
  */
 
-/**
- * Convierte un valor a número de forma robusta.
- * - Acepta "1.234,56" / "1234,56" / "1234.56" / "$ 1.234,56"
- * - Quita símbolos y maneja coma como decimal.
- */
 export const parseNumber = (val) => {
 	if (val == null || val === "") return 0;
 	if (typeof val === "number") return Number.isFinite(val) ? val : 0;
@@ -19,19 +14,15 @@ export const parseNumber = (val) => {
 		.trim()
 		.replace(/[^\d.,-]/g, "");
 
-	// Si hay coma y punto, elegimos cuál es decimal según la última aparición
 	if (s.includes(",") && s.includes(".")) {
 		const lastComma = s.lastIndexOf(",");
 		const lastDot = s.lastIndexOf(".");
 		if (lastComma > lastDot) {
-			// 1.234,56 => 1234.56
 			s = s.replace(/\./g, "").replace(",", ".");
 		} else {
-			// 1,234.56 => 1234.56
 			s = s.replace(/,/g, "");
 		}
 	} else if (s.includes(",")) {
-		// 1234,56 => 1234.56
 		s = s.replace(",", ".");
 	}
 
@@ -39,10 +30,6 @@ export const parseNumber = (val) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-/**
- * Formatea un número como moneda Argentina.
- * Devuelve string.
- */
 export const money = (n) => {
 	if (n == null || n === "" || n === "-") return "—";
 	const num = typeof n === "number" ? n : parseNumber(n);
@@ -54,9 +41,6 @@ export const money = (n) => {
 		: "—";
 };
 
-/**
- * Normaliza texto para búsqueda (sin tildes, minúsculas)
- */
 export const normalize = (s) =>
 	(s ?? "")
 		.toString()
@@ -64,12 +48,6 @@ export const normalize = (s) =>
 		.replace(/[\u0300-\u036f]/g, "")
 		.toLowerCase();
 
-/**
- * Normaliza códigos para comparar:
- * - "42.01.01" -> "420101"
- * - "420101"   -> "420101"
- * - "43 02 01" -> "430201"
- */
 export const normalizeCodeDigits = (code) =>
 	String(code ?? "").replace(/\D/g, "");
 
@@ -92,9 +70,6 @@ export const isSubsiguiente = (item) => {
 	);
 };
 
-/**
- * Vincula prácticas subsiguientes con su principal
- */
 export const vincularSubsiguientes = (item, data) => {
 	const idx = data.findIndex((d) =>
 		item.__key ? d.__key === item.__key : d.codigo === item.codigo,
@@ -110,15 +85,9 @@ export const vincularSubsiguientes = (item, data) => {
 	return [item];
 };
 
-/**
- * Escapa caracteres especiales para expresiones regulares
- */
 export const escapeRegExp = (s) =>
 	String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/**
- * Resalta el término de búsqueda en el texto (devuelve JSX)
- */
 export const highlight = (text, q) => {
 	if (!text || !q) return text;
 	const regex = new RegExp(`(${escapeRegExp(q)})`, "gi");
@@ -138,61 +107,71 @@ export const highlight = (text, q) => {
 /**
  * ============================================================================
  * PRÁCTICAS ESPECIALES (valores FIJOS del convenio)
- *
- * La idea: para ciertas prácticas, el importe NO sale de qgal/gto,
- * sino de un campo específico dentro del convenio (ej: "consulta", "Curaciones_R").
- *
- * Acá es donde vas a ir agregando nuevas reglas.
  * ============================================================================
  */
 
-/**
- * Helper: busca un número dentro de valoresConvenio probando varias claves.
- * Ej: buscarValor(['consulta','Consulta','CONSULTA'])
- */
 const buscarValor = (valoresConvenio, claves, defaultValue = null) => {
 	for (const clave of claves) {
 		const v = valoresConvenio?.[clave];
-		// OJO: 0 es válido, por eso chequeamos null/undefined
 		if (v !== null && v !== undefined && v !== "") return parseNumber(v);
 	}
 	return defaultValue;
 };
 
-/**
- * Helper: compara código soportando puntos o sin puntos
- * - codigoEs('43.02.01','430201') => true
- * - codigoEs('430201','43.02.01') => true
- */
 const codigoEs = (practicaCodigo, esperado) => {
 	const a = normalizeCodeDigits(practicaCodigo);
 	const b = normalizeCodeDigits(esperado);
 	return a !== "" && a === b;
 };
 
-/**
- * Detecta si una práctica es especial y devuelve:
- * { honorario, gasto, soloHonorario, soloGasto, label, baseInfo }
- *
- * - label/baseInfo son para la UI (si querés mostrar “Consulta (fijo)” etc.)
- */
 function esPracticaEspecial(practica, valoresConvenio) {
 	const cod = String(practica?.codigo || "").trim();
 	const desc = normalize(practica?.descripcion || "");
 
 	/**
-	 * ==========================
-	 * 1) CONSULTA (42.01.01)
-	 * ==========================
-	 * - código 42.01.01 (o 420101)
-	 * - importe fijo: valoresConvenio.consulta (o variantes)
-	 * - solo honorario (no hay gasto)
+	 * ✅ NUEVA REGLA
+	 * 43.01.01 / 43.10.01 / 43.11.01
+	 * - NO llevan honorarios médicos
+	 * - SOLO GASTO
+	 * - gasto = gto * diaPension (del convenio)
 	 */
+	const ES_PENSION_POR_GTO =
+		codigoEs(cod, "43.01.01") ||
+		codigoEs(cod, "43.10.01") ||
+		codigoEs(cod, "43.11.01");
+
+	if (ES_PENSION_POR_GTO) {
+		const diaPension =
+			buscarValor(
+				valoresConvenio,
+				[
+					"diaPension",
+					"pension",
+					"pensionDia",
+					"DiaPension",
+					"Pension",
+				],
+				0,
+			) || 0;
+
+		const gto = parseNumber(practica?.gto || 0);
+		const gasto = gto * diaPension;
+
+		return {
+			honorario: 0,
+			gasto,
+			soloHonorario: false,
+			soloGasto: true,
+			label: "Pensión (gto × díaPensión)",
+			baseInfo: { key: "diaPension", value: diaPension },
+		};
+	}
+
+	// 1) Consulta
 	const ES_CONSULTA =
 		codigoEs(cod, "42.01.01") ||
 		desc.includes("consulta") ||
 		cod.toLowerCase() === "consulta";
-
 	if (ES_CONSULTA) {
 		const valor = buscarValor(
 			valoresConvenio,
@@ -211,20 +190,10 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	/**
-	 * ==========================
-	 * 2) CURACIONES (43.02.01 / 430201)
-	 * ==========================
-	 * ✅ FIX: ahora se detecta por código exacto (con o sin puntos)
-	 * - Tu nomenclador trae "430201"
-	 * - Tu UI/usuario puede decir "43.02.01"
-	 * - Convenio: Curaciones_R (ej: 8820)
-	 *
-	 * Por defecto: se considera SOLO GASTO (como venías usando)
-	 */
+	// 2) Curaciones (43.02.01 / 430201)
 	const ES_CURACION =
-		codigoEs(cod, "43.02.01") || // "43.02.01" -> "430201"
-		codigoEs(cod, "430201") || // "430201"
+		codigoEs(cod, "43.02.01") ||
+		codigoEs(cod, "430201") ||
 		desc === "curaciones" ||
 		desc.includes("curacion") ||
 		desc.includes("curación");
@@ -233,7 +202,7 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		const valor = buscarValor(
 			valoresConvenio,
 			[
-				"Curaciones_R", // ✅ tu caso real
+				"Curaciones_R",
 				"CURACIONES_R",
 				"Curaciones",
 				"curaciones",
@@ -255,18 +224,12 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	/**
-	 * ==========================
-	 * 3) ECG (ejemplos)
-	 * ==========================
-	 * OJO: acá las claves pueden variar mucho por convenio.
-	 */
+	// 3) ECG (ejemplos)
 	const ES_ECG =
 		cod.includes("17.01.01") ||
 		cod.includes("42.03.03") ||
 		desc.includes("ecg") ||
 		desc.includes("electro");
-
 	if (ES_ECG) {
 		const valor = buscarValor(
 			valoresConvenio,
@@ -278,7 +241,6 @@ function esPracticaEspecial(practica, valoresConvenio) {
 			],
 			null,
 		);
-
 		if (valor !== null) {
 			return {
 				honorario: valor,
@@ -291,11 +253,7 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	/**
-	 * ==========================
-	 * 4) ECO partes blandas (ejemplo)
-	 * ==========================
-	 */
+	// 4) ECO partes blandas (ejemplo)
 	const ES_ECO_PARTES =
 		cod.includes("18.06.01") || desc.includes("eco partes blandas");
 	if (ES_ECO_PARTES) {
@@ -307,7 +265,6 @@ function esPracticaEspecial(practica, valoresConvenio) {
 			],
 			null,
 		);
-
 		if (valor !== null) {
 			return {
 				honorario: valor,
@@ -320,11 +277,7 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	/**
-	 * ==========================
-	 * 5) ARTROSCOPIA (ejemplo)
-	 * ==========================
-	 */
+	// 5) Artroscopia (ejemplo)
 	const ES_ARTROSCOPIA =
 		cod.includes("120902") || desc.includes("artroscopia");
 	if (ES_ARTROSCOPIA) {
@@ -334,9 +287,7 @@ function esPracticaEspecial(practica, valoresConvenio) {
 				["Artroscopia Hombro", "Artroscopia Hombro (total)"],
 				null,
 			);
-
 			if (valor !== null) {
-				// Distribución ejemplo 70/30
 				const honorario = Math.round(valor * 0.7);
 				const gasto = valor - honorario;
 				return {
@@ -359,7 +310,6 @@ function esPracticaEspecial(practica, valoresConvenio) {
 				],
 				null,
 			);
-
 			if (valor !== null) {
 				return {
 					honorario: 0,
@@ -373,11 +323,7 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	/**
-	 * ==========================
-	 * 6) FKT (ejemplo)
-	 * ==========================
-	 */
+	// 6) FKT (ejemplo)
 	const ES_FKT = desc.includes("fkt");
 	if (ES_FKT) {
 		const valor = buscarValor(valoresConvenio, ["FKT", "fkt"], null);
@@ -393,25 +339,15 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	// No es especial
 	return null;
 }
 
 /**
  * ============================================================================
  * CÁLCULO DE PRÁCTICAS
- *
- * Devuelve:
- * { honorarioMedico, gastoSanatorial, total, formula, soloHonorario, soloGasto, meta? }
- *
- * meta es info extra para UI / debug:
- * - meta.kind: 'especial' | 'rx' | 'cirugia' | 'directo'
- * - meta.galenoBase / meta.gastoBase (valores convenio usados)
- * - meta.qgal / meta.gto
  * ============================================================================
  */
 export const calcularPractica = (practica, valoresConvenio) => {
-	// Defaults por seguridad
 	const defaults = {
 		galenoRx: 0,
 		gastoRx: 0,
@@ -422,7 +358,7 @@ export const calcularPractica = (practica, valoresConvenio) => {
 
 	const v = { ...defaults, ...(valoresConvenio || {}) };
 
-	// 1) Especiales (✅ acá entra Curaciones 43.02.01 / 430201)
+	// 1) Especiales
 	const especial = esPracticaEspecial(practica, v);
 	if (especial) {
 		const total = (especial.honorario || 0) + (especial.gasto || 0);
@@ -436,7 +372,6 @@ export const calcularPractica = (practica, valoresConvenio) => {
 				: `Especial: ${money(especial.honorario)} + ${money(especial.gasto)}`,
 			soloHonorario: especial.soloHonorario,
 			soloGasto: especial.soloGasto,
-
 			meta: {
 				kind: "especial",
 				baseKey: especial.baseInfo?.key,
@@ -446,7 +381,7 @@ export const calcularPractica = (practica, valoresConvenio) => {
 		};
 	}
 
-	// 2) No especial: usamos qgal y gto del nomenclador
+	// 2) No especial: usamos qgal y gto
 	const qgal = parseNumber(practica.qgal || practica.q_gal || 0);
 	const gto = parseNumber(practica.gto || 0);
 
@@ -496,8 +431,7 @@ export const calcularPractica = (practica, valoresConvenio) => {
 		};
 	}
 
-	// Otras prácticas:
-	// ⚠️ Esta lógica puede no ser la ideal, pero la dejo igual a tu implementación.
+	// Otras prácticas (directo)
 	const honorario = qgal * parseNumber(v.otrosGastos);
 	const gasto = gto * parseNumber(v.otrosGastos);
 
