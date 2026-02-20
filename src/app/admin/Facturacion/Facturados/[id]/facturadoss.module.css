@@ -398,3 +398,128 @@
         color: #0f7a33 !important;
     }
 }
+
+@media print {
+
+    /* Evitar cortes feos: SOLO clases locales */
+    .plainSection,
+    .totalBar,
+    .printFootMeta,
+    .printCharts {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+
+@media print {
+
+    /* Ocultar el header superior (acciones) dentro del layout local */
+    .header,
+    .headerActions {
+        display: none !important;
+    }
+
+    /* Ajustar paddings del área imprimible */
+    .content {
+        padding: 0 !important;
+    }
+
+    /* Evitar scroll en tablas en impresión */
+    .tableWrap {
+        overflow: visible !important;
+    }
+
+    /* Tipografías más compactas */
+    .plainTable {
+        font-size: 10px !important;
+    }
+
+    .sectionTitle {
+        font-size: 12px !important;
+    }
+
+    .sectionSubtotal {
+        font-size: 11px !important;
+    }
+
+    .totalLabelBig,
+    .totalValueBig {
+        font-size: 13px !important;
+    }
+
+    /* Si tenés el ShortText: al imprimir que se vea completo */
+    .shortText {
+        white-space: normal !important;
+    }
+
+    /* Evitar cortes feos: SOLO clases locales */
+    .plainSection,
+    .totalBar,
+    .printFootMeta,
+    .printCharts,
+    .printHeaderRow {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+
+@media print {
+
+    /* Las secciones y wrappers pueden partirse (evita huecos) */
+    .plainSection,
+    .tableWrap {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+
+    /* Evitar que el encabezado de cada sección quede solo al final */
+    .sectionHeader {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Tablas: se pueden partir */
+    .plainTable {
+        page-break-inside: auto !important;
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+
+    /* Pero NO partir una fila en dos páginas */
+    .plainTable tr {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* Repetir THEAD en cada página (Chrome lo hace mejor con display: table-header-group) */
+    .plainTable thead {
+        display: table-header-group;
+    }
+
+    .plainTable tfoot {
+        display: table-footer-group;
+    }
+}
+
+.printHeaderCompact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+/* Optimización máxima para impresión */
+@media print {
+    .printHeaderCompact {
+        font-size: 11px !important;
+        gap: 14px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .printHeaderCompact span {
+        white-space: nowrap;
+        /* evita que se parta en 2 líneas */
+    }
+}

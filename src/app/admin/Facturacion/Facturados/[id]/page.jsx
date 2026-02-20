@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ref, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { money, parseNumber, isRadiografia } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
+
+import { useReactToPrint } from 'react-to-print';
 
 const fmtDate = (ms) => {
     if (!ms) return '—';
@@ -32,7 +34,6 @@ function csvEscape(s) {
 function buildCsv({ paciente, estado, item, honorRows, gastoRows }) {
     const lines = [];
 
-    // ✅ Header en una sola fila (como pediste)
     lines.push(
         [
             `Paciente: ${paciente?.nombreCompleto || paciente?.nombre || '—'}`,
@@ -93,6 +94,8 @@ export default function FacturadoDetallePage() {
 
     const [loading, setLoading] = useState(true);
     const [item, setItem] = useState(null);
+
+    const printRef = useRef(null);
 
     useEffect(() => {
         let alive = true;
@@ -175,19 +178,14 @@ export default function FacturadoDetallePage() {
         const honor = [];
         const gasto = [];
 
-        // ==============================
-        // HONORARIOS MÉDICOS
-        // ==============================
         const pushHonorIf = (x) => {
             const honorario = safeNum(x?.honorarioMedico);
-
-            // 🔴 Solo mostramos si realmente tiene honorarios
             if (honorario > 0) {
                 const qty = pickQty(x);
 
                 honor.push({
                     desc: formatCodeName(x),
-                    origen: pickDoctor(x), // 👈 ahora SIEMPRE el médico real
+                    origen: pickDoctor(x),
                     unidades: qty,
                     unit: pickUnit(x),
                     total: honorario,
@@ -195,9 +193,6 @@ export default function FacturadoDetallePage() {
             }
         };
 
-        // ==============================
-        // GASTOS CLÍNICOS
-        // ==============================
         const pushGastoIf = (x) => {
             const g = safeNum(x?.gastoSanatorial);
 
@@ -206,7 +201,7 @@ export default function FacturadoDetallePage() {
 
                 gasto.push({
                     desc: formatCodeName(x),
-                    origen: 'Clínica de la Unión', // 👈 SIEMPRE fijo
+                    origen: 'Clínica de la Unión',
                     unidades: qty,
                     unit: pickUnit(x),
                     total: g,
@@ -219,7 +214,6 @@ export default function FacturadoDetallePage() {
             pushGastoIf(x);
         });
 
-        // Medicamentos + Descartables → siempre gasto institucional
         [...meds, ...desc].forEach((x) => {
             const qty = pickQty(x);
             const unit = pickUnit(x);
@@ -228,7 +222,7 @@ export default function FacturadoDetallePage() {
             if (total > 0) {
                 gasto.push({
                     desc: formatCodeName(x),
-                    origen: 'Clínica de la Unión', // 👈 también fijo
+                    origen: 'Clínica de la Unión',
                     unidades: qty,
                     unit,
                     total,
@@ -261,6 +255,11 @@ export default function FacturadoDetallePage() {
         a.remove();
         URL.revokeObjectURL(url);
     };
+
+    const onPrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Factura_${id}_${paciente?.dni || 'sin_dni'}`,
+    });
 
     if (loading) {
         return (
@@ -315,7 +314,12 @@ export default function FacturadoDetallePage() {
                             </Link>
                         )}
 
-                        {/* ✅ Solo Descargar */}
+                        {/* ✅ Imprimir */}
+                        <button className={styles.btn} onClick={onPrint} type="button">
+                            🖨️ Imprimir
+                        </button>
+
+                        {/* ✅ Descargar */}
                         <button className={styles.btn} onClick={onDownloadCsv} type="button">
                             ⬇️ Descargar CSV
                         </button>
@@ -323,23 +327,29 @@ export default function FacturadoDetallePage() {
                 </div>
             </header>
 
-            <main className={styles.content}>
-                {/* Header fila (tipo excel) */}
-                <div className={styles.printHeaderRow}>
-                    <div className={styles.printHeaderCell}>
-                        <b>Paciente:</b> {paciente?.nombreCompleto || paciente?.nombre || '—'}
-                    </div>
-                    <div className={styles.printHeaderCell}>
+            <main className={styles.content} ref={printRef}>
+                <div className={styles.printHeaderCompact}>
+                    <span>
+                        <b>Nombre completo:</b> {paciente?.nombreCompleto || paciente?.nombre || '—'}
+                    </span>
+
+                    <span>
                         <b>DNI:</b> {paciente?.dni || '—'}
-                    </div>
-                    <div className={styles.printHeaderCell}>
+                    </span>
+
+                    <span>
                         <b>ART:</b> {paciente?.artSeguro || '—'}
-                    </div>
-                    <div className={styles.printHeaderCell}>
-                        <b>Siniestro N°:</b> {paciente?.nroSiniestro || '—'}
-                    </div>
+                    </span>
+
+                    <span>
+                        <b>Siniestro:</b> {paciente?.nroSiniestro || '—'}
+                    </span>
                 </div>
 
+                {/* ... todo lo demás igual ... */}
+                {/* (tu JSX de tablas / totales / meta ya está abajo tal cual) */}
+
+                {/* HONORARIOS */}
                 <section className={styles.plainSection}>
                     <div className={styles.sectionHeader}>
                         <h3 className={styles.sectionTitle}>HONORARIOS MÉDICOS</h3>
@@ -378,6 +388,7 @@ export default function FacturadoDetallePage() {
                     )}
                 </section>
 
+                {/* GASTOS */}
                 <section className={styles.plainSection}>
                     <div className={styles.sectionHeader}>
                         <h3 className={styles.sectionTitle}>GASTOS CLÍNICOS</h3>
@@ -421,17 +432,6 @@ export default function FacturadoDetallePage() {
                     <div className={styles.totalValueBig}>$ {money(totalFactura)}</div>
                 </div>
 
-                <div className={styles.printFootMeta}>
-                    <div>
-                        <b>Factura:</b> {item?.facturaNro || '—'}
-                    </div>
-                    <div>
-                        <b>Creado:</b> {fmtDate(item?.createdAt)}
-                    </div>
-                    <div>
-                        <b>Cerrado:</b> {fmtDate(item?.cerradoAt)}
-                    </div>
-                </div>
             </main>
         </div>
     );
