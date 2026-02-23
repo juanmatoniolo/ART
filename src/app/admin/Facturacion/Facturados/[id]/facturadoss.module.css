@@ -390,3 +390,8 @@
         padding-top: 4px;
     }
 }
+
+.printNumber {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ref, onValue, remove, get, update } from 'firebase/database';
+import { ref, onValue, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { money, parseNumber } from '../utils/calculos';
 import styles from './facturados.module.css';
@@ -53,14 +53,11 @@ export default function FacturadosPage() {
     const [loading, setLoading] = useState(true);
 
     const [q, setQ] = useState('');
-    const [estado, setEstado] = useState('todos'); // todos | cerrado | borrador
-    const [art, setArt] = useState(''); // artKey
-    const [orden, setOrden] = useState('fecha_desc'); // criterio de orden
+    const [estado, setEstado] = useState('todos');
+    const [art, setArt] = useState('');
+    const [orden, setOrden] = useState('fecha_desc');
 
-    // Selección múltiple
     const [selectedIds, setSelectedIds] = useState(new Set());
-
-    // Estado para feedback de eliminación
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
@@ -68,7 +65,6 @@ export default function FacturadosPage() {
         if (e === 'cerrado' || e === 'borrador' || e === 'todos') {
             setEstado(e);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -87,7 +83,6 @@ export default function FacturadosPage() {
         );
     }, []);
 
-    // Construir items
     const items = useMemo(() => {
         const obj = raw || {};
         const arr = Object.entries(obj).map(([id, v]) => {
@@ -131,7 +126,6 @@ export default function FacturadosPage() {
                 convenioNombre,
                 facturaNro,
                 total,
-                // Fecha a mostrar según estado
                 fecha: estadoVal === 'cerrado' ? (closedAt || createdAt) : (updatedAt || createdAt),
             };
         });
@@ -151,7 +145,6 @@ export default function FacturadosPage() {
                 case 'total_desc':
                     return (b.total || 0) - (a.total || 0);
                 case 'estado_cerrado':
-                    // Primero cerrados, luego borradores
                     if (a.estado !== b.estado) {
                         return a.estado === 'cerrado' ? -1 : 1;
                     }
@@ -225,7 +218,6 @@ export default function FacturadosPage() {
 
     const isAllSelected = selectedIds.size === filtered.length && filtered.length > 0;
 
-    // Actualizar query de estado sin recargar
     const setEstadoQuery = (next) => {
         const params = new URLSearchParams(sp.toString());
         if (!next || next === 'todos') params.delete('estado');
@@ -234,7 +226,7 @@ export default function FacturadosPage() {
         setEstado(next || 'todos');
     };
 
-    // Exportar a Excel (similar a Cerrados pero con columna Estado)
+    // Exportar a Excel (igual que antes, con columna Estado)
     const exportToExcel = () => {
         const selected = Array.from(selectedIds);
         if (selected.length === 0) {
@@ -356,7 +348,7 @@ export default function FacturadosPage() {
             allRows.forEach((row, idx) => {
                 const rowData = [
                     globalCdU,
-                    idx === 0 ? estadoItem : '',   // Estado solo en primera fila
+                    idx === 0 ? estadoItem : '',
                     idx === 0 ? nombre : '',
                     idx === 0 ? dni : '',
                     idx === 0 ? nroSiniestro : '',
@@ -389,7 +381,6 @@ export default function FacturadosPage() {
         selected.forEach(id => {
             const item = raw[id];
             if (!item) return;
-            // Recalcular rápidamente (podríamos usar item.totales si existe)
             const sumItems = (arr, field) => {
                 if (!arr) return 0;
                 return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
@@ -444,35 +435,47 @@ export default function FacturadosPage() {
         XLSX.writeFile(wb, `facturados_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
 
-    // Eliminar múltiples siniestros
+    // Eliminar múltiples siniestros (optimizado con Promise.all)
     const deleteSelected = async () => {
         if (selectedIds.size === 0) {
             alert('Seleccione al menos un siniestro.');
             return;
         }
-        const confirmMsg = `¿Está seguro de eliminar ${selectedIds.size} siniestro(s)? Esta acción no se puede deshacer.`;
+        const total = selectedIds.size;
+        const confirmMsg = `¿Está seguro de eliminar ${total} siniestro(s)? Esta acción no se puede deshacer.`;
         if (!window.confirm(confirmMsg)) return;
 
         setDeleting(true);
+        let successCount = 0;
+        let errorCount = 0;
+
         try {
-            for (const id of selectedIds) {
-                // Obtener el item para liberar lock si existe
-                const snap = await get(ref(db, `Facturacion/${id}`));
-                if (snap.exists()) {
-                    const item = snap.val();
-                    // Si tiene siniestroKey, eliminar el lock
-                    if (item?.siniestroKey) {
-                        await remove(ref(db, `Facturacion/siniestros/${item.siniestroKey}`));
+            const deletePromises = Array.from(selectedIds).map(async (id) => {
+                try {
+                    const snap = await get(ref(db, `Facturacion/${id}`));
+                    if (snap.exists()) {
+                        const item = snap.val();
+                        if (item?.siniestroKey) {
+                            await remove(ref(db, `Facturacion/siniestros/${item.siniestroKey}`));
+                        }
+                        await remove(ref(db, `Facturacion/${id}`));
+                        successCount++;
+                    } else {
+                        errorCount++;
                     }
-                    // Eliminar el siniestro
-                    await remove(ref(db, `Facturacion/${id}`));
+                } catch (err) {
+                    console.error(`Error eliminando ${id}:`, err);
+                    errorCount++;
                 }
-            }
-            alert('Siniestros eliminados correctamente.');
+            });
+
+            await Promise.all(deletePromises);
+
+            alert(`Eliminación completada: ${successCount} exitosos, ${errorCount} fallidos.`);
             setSelectedIds(new Set()); // Limpiar selección
         } catch (error) {
             console.error(error);
-            alert('Error al eliminar: ' + error.message);
+            alert('Error en la eliminación: ' + error.message);
         } finally {
             setDeleting(false);
         }
@@ -511,7 +514,6 @@ export default function FacturadosPage() {
                     </div>
                 </div>
 
-                {/* Switch rápido por estado */}
                 <div className={styles.quickSwitch}>
                     <button
                         type="button"
