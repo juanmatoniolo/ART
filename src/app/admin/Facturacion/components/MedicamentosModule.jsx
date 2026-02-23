@@ -505,6 +505,43 @@ export default function MedicamentosModule({
     return arr;
   }, [combos]);
 
+  /**
+   * Componente local para input de cantidad con estado local
+   * Permite escribir libremente (ej: "0,3") y solo al perder foco se normaliza
+   */
+  const CantidadInput = ({ tipo, itemId, initialValue }) => {
+    const [localValue, setLocalValue] = useState(formatQtyAR(initialValue));
+
+    // Sincronizar si el valor externo cambia (ej: al editar combo o al usar botones)
+    useEffect(() => {
+      setLocalValue(formatQtyAR(initialValue));
+    }, [initialValue]);
+
+    const handleBlur = () => {
+      setComboQty(tipo, itemId, localValue);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.currentTarget.blur();
+      }
+    };
+
+    return (
+      <input
+        className={styles.qtyInput}
+        type="text"
+        inputMode="decimal"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        placeholder="1"
+      />
+    );
+  };
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.headerRow}>
@@ -669,7 +706,6 @@ export default function MedicamentosModule({
                       </div>
                     </div>
 
-
                     <div className={styles.comboPreview}>
                       {(c.items || []).slice(0, 5).map((it) => {
                         const resolved = catalogIndex.get(`${it.tipo}:${it.itemId}`);
@@ -819,26 +855,32 @@ export default function MedicamentosModule({
                               <div className={styles.qtyBox}>
                                 <button
                                   className={styles.qtyBtn}
-                                  onClick={() => setComboQty(x.tipo, x.itemId, Math.max(0.01, qtyNum - step))}
+                                  onClick={() => {
+                                    const newVal = Math.max(0.01, qtyNum - step);
+                                    setComboQty(x.tipo, x.itemId, newVal);
+                                  }}
                                   title="Disminuir"
+                                  tabIndex={-1}
+                                  onMouseDown={(e) => e.preventDefault()}
                                 >
                                   −
                                 </button>
 
-                                {/* ✅ sin spinners y acepta coma */}
-                                <input
-                                  className={styles.qtyInput}
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={formatQtyAR(qtyNum)}
-                                  onChange={(e) => setComboQty(x.tipo, x.itemId, e.target.value)}
-                                  placeholder="1"
+                                <CantidadInput
+                                  tipo={x.tipo}
+                                  itemId={x.itemId}
+                                  initialValue={qtyNum}
                                 />
 
                                 <button
                                   className={styles.qtyBtn}
-                                  onClick={() => setComboQty(x.tipo, x.itemId, qtyNum + step)}
+                                  onClick={() => {
+                                    const newVal = qtyNum + step;
+                                    setComboQty(x.tipo, x.itemId, newVal);
+                                  }}
                                   title="Aumentar"
+                                  tabIndex={-1}
+                                  onMouseDown={(e) => e.preventDefault()}
                                 >
                                   +
                                 </button>

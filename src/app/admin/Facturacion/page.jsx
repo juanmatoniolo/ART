@@ -25,7 +25,7 @@ export default function FacturacionDashboardPage() {
             <div className={styles.cardCta}>Ir a cargar →</div>
           </Link>
 
-          <Link href="/admin/Facturacion/facturados" className={`${styles.card} ${styles.cardSecondary}`}>
+          <Link href="/admin/Facturacion/Facturados" className={`${styles.card} ${styles.cardSecondary}`}>
             <div className={styles.cardIcon}>📦</div>
             <div className={styles.cardTitle}>Facturados</div>
             <div className={styles.cardDesc}>

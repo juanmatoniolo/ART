@@ -705,3 +705,93 @@
     color: var(--color-text-tertiary);
     font-weight: 700;
 }
+
+/* ========================================
+   ESTILOS PARA IMPRESIÓN (escala de grises)
+   ======================================== */
+.printView {
+  display: none;
+}
+
+@media print {
+  /* Ocultar elementos interactivos y de pantalla */
+  .screenView {
+    display: none;
+  }
+  .printView {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    color: black;
+    background: white;
+    padding: 0.5in;
+    max-width: 100%;
+  }
+  /* Encabezado */
+  .printHeader h1 {
+    font-size: 18pt;
+    margin-bottom: 16pt;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8pt;
+  }
+  .printPaciente p {
+    margin: 4pt 0;
+    font-size: 11pt;
+  }
+  /* Secciones */
+  .printHonorarios, .printGastos {
+    margin-top: 20pt;
+  }
+  .printHonorarios h3, .printGastos h3 {
+    font-size: 14pt;
+    margin: 12pt 0 8pt;
+    border-bottom: 1px solid #333;
+    padding-bottom: 4pt;
+  }
+  .printSection h4 {
+    font-size: 12pt;
+    margin: 10pt 0 5pt;
+    font-weight: bold;
+  }
+  /* Tablas */
+  .printTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15pt;
+    font-size: 10pt;
+  }
+  .printTable th {
+    background: #eee;
+    font-weight: bold;
+    text-align: left;
+    padding: 6pt 4pt;
+    border: 1px solid #aaa;
+  }
+  .printTable td {
+    padding: 4pt;
+    border: 1px solid #aaa;
+    vertical-align: top;
+  }
+  .printNumber {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+  }
+  /* Totales */
+  .printTotales {
+    margin-top: 20pt;
+    border-top: 2px solid #000;
+    padding-top: 10pt;
+  }
+  .printTotalLine {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12pt;
+    margin: 4pt 0;
+  }
+  .printTotalFinal {
+    font-weight: bold;
+    font-size: 14pt;
+    margin-top: 8pt;
+    border-top: 1px solid #333;
+    padding-top: 6pt;
+  }
+}

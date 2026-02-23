@@ -1,7 +1,6 @@
 /* ===========================
-   Base
+   Base (pantalla)
    =========================== */
-
 .container {
     width: 100%;
     min-height: 100vh;
@@ -104,44 +103,20 @@
     padding: 14px;
 }
 
-/* ===========================
-   Print scope + header row
-   =========================== */
-
-.printRoot {}
-
-.printHeaderRow {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1.2fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
-    padding: 10px 12px;
+/* Línea del paciente en pantalla */
+.patientLine {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
     background: rgba(0, 0, 0, 0.14);
+    font-size: 14px;
+    font-weight: 500;
 }
 
-@media (max-width: 900px) {
-    .printHeaderRow {
-        grid-template-columns: 1fr;
-    }
-}
-
-.printHeaderCell {
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.88);
-    overflow-wrap: anywhere;
-}
-
-.printHeaderCell b {
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 1000;
-}
-
-/* ===========================
-   Secciones + tablas tipo Excel
-   =========================== */
-
+/* Secciones + tablas (pantalla) */
 .plainSection {
     padding: 12px;
     border-radius: 14px;
@@ -176,6 +151,16 @@
     border: 1px solid rgba(59, 130, 246, 0.25);
     padding: 6px 10px;
     border-radius: 999px;
+}
+
+.subsection {
+    margin-top: 12px;
+}
+.subsectionTitle {
+    margin: 8px 0 4px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .tableWrap {
@@ -293,233 +278,115 @@
     font-variant-numeric: tabular-nums;
 }
 
-.printFootMeta {
-    margin-top: 10px;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    color: rgba(255, 255, 255, 0.70);
-    font-weight: 800;
-    font-size: 0.9rem;
-}
-
 /* ===========================
-   PRINT (build-safe)
+   Vista de impresión compacta
    =========================== */
+.screenView {
+    display: block;
+}
+
+.printRoot {
+    display: none;
+}
 
 @media print {
-    @page {
-        size: A4;
-        margin: 12mm;
-    }
-
-    .printRoot,
-    .printRoot :global(*) {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .headerActions,
-    .btn,
-    .btnGhost,
-    .btnPrimary,
-    .moreBtn {
+    .screenView {
         display: none !important;
     }
-
-    .container {
-        background: #fff !important;
-        color: #111 !important;
-        padding: 0 !important;
+    .printRoot {
+        display: block !important;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10pt;
+        color: black;
+        background: white;
+        padding: 0.2in;
+        max-width: 100%;
     }
 
-    .header,
-    .content,
-    .plainSection,
-    .printHeaderRow {
-        background: #fff !important;
-        color: #111 !important;
-        box-shadow: none !important;
-        border: 1px solid #cfcfcf !important;
+    /* Línea del paciente en una línea */
+    .printPacienteLine {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #333;
+        font-size: 10pt;
+        white-space: normal;
     }
-
-    .title,
-    .sectionTitle {
-        color: #111 !important;
-    }
-
-    .subtitle,
-    .printHeaderCell,
-    .printFootMeta {
-        color: #333 !important;
-    }
-
-    .tableWrap {
-        overflow: visible !important;
-        border: 1px solid #cfcfcf !important;
-    }
-
-    .plainTable {
-        min-width: 0 !important;
-        width: 100% !important;
-        background: #fff !important;
-        border-collapse: collapse !important;
-    }
-
-    .plainTable thead th {
-        background: #f3f4f6 !important;
-        color: #111 !important;
-        border-bottom: 1px solid #cfcfcf !important;
-    }
-
-    .plainTable td {
-        color: #111 !important;
-        border-bottom: 1px solid #e6e6e6 !important;
-    }
-
-    .plainSection {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .printRoot :global(tr),
-    .printRoot :global(td),
-    .printRoot :global(th) {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .totalBar {
-        border: 2px solid #16a34a !important;
-        background: #ecfdf5 !important;
-    }
-
-    .totalValueBig {
-        color: #0f7a33 !important;
-    }
-}
-
-@media print {
-
-    /* Evitar cortes feos: SOLO clases locales */
-    .plainSection,
-    .totalBar,
-    .printFootMeta,
-    .printCharts {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-}
-
-@media print {
-
-    /* Ocultar el header superior (acciones) dentro del layout local */
-    .header,
-    .headerActions {
-        display: none !important;
-    }
-
-    /* Ajustar paddings del área imprimible */
-    .content {
-        padding: 0 !important;
-    }
-
-    /* Evitar scroll en tablas en impresión */
-    .tableWrap {
-        overflow: visible !important;
-    }
-
-    /* Tipografías más compactas */
-    .plainTable {
-        font-size: 10px !important;
-    }
-
-    .sectionTitle {
-        font-size: 12px !important;
-    }
-
-    .sectionSubtotal {
-        font-size: 11px !important;
-    }
-
-    .totalLabelBig,
-    .totalValueBig {
-        font-size: 13px !important;
-    }
-
-    /* Si tenés el ShortText: al imprimir que se vea completo */
-    .shortText {
-        white-space: normal !important;
-    }
-
-    /* Evitar cortes feos: SOLO clases locales */
-    .plainSection,
-    .totalBar,
-    .printFootMeta,
-    .printCharts,
-    .printHeaderRow {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-}
-
-@media print {
-
-    /* Las secciones y wrappers pueden partirse (evita huecos) */
-    .plainSection,
-    .tableWrap {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-    }
-
-    /* Evitar que el encabezado de cada sección quede solo al final */
-    .sectionHeader {
-        break-after: avoid !important;
-        page-break-after: avoid !important;
-    }
-
-    /* Tablas: se pueden partir */
-    .plainTable {
-        page-break-inside: auto !important;
-        border-collapse: collapse !important;
-        width: 100% !important;
-    }
-
-    /* Pero NO partir una fila en dos páginas */
-    .plainTable tr {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-    }
-
-    /* Repetir THEAD en cada página (Chrome lo hace mejor con display: table-header-group) */
-    .plainTable thead {
-        display: table-header-group;
-    }
-
-    .plainTable tfoot {
-        display: table-footer-group;
-    }
-}
-
-.printHeaderCompact {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 10px;
-}
-
-/* Optimización máxima para impresión */
-@media print {
-    .printHeaderCompact {
-        font-size: 11px !important;
-        gap: 14px !important;
-        margin-bottom: 6px !important;
-    }
-
-    .printHeaderCompact span {
+    .printPacienteLine span {
         white-space: nowrap;
-        /* evita que se parta en 2 líneas */
+    }
+
+    /* Secciones compactas */
+    .printSectionCompact {
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+    .printSectionTitle {
+        font-weight: bold;
+        font-size: 11pt;
+        margin: 8px 0 2px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #999;
+        padding-bottom: 2px;
+    }
+    .printSubsectionTitle {
+        font-weight: bold;
+        font-size: 10pt;
+        margin: 6px 0 2px;
+        font-style: italic;
+    }
+
+    /* Tabla compacta */
+    .printTableCompact {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+        table-layout: fixed;
+    }
+    .printTableCompact th,
+    .printTableCompact td {
+        border: 1px solid #aaa;
+        padding: 3px 4px;
+        vertical-align: top;
+    }
+    .printTableCompact th {
+        background: #eee;
+        font-weight: bold;
+        text-align: left;
+    }
+    .printTableCompact td.printNumber {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Ajustes de ancho de columna (opcional, se puede modificar) */
+    .printTableCompact th:nth-child(1) { width: 30%; }
+    .printTableCompact th:nth-child(2) { width: 20%; }
+    .printTableCompact th:nth-child(3) { width: 8%; }
+    .printTableCompact th:nth-child(4) { width: 18%; }
+    .printTableCompact th:nth-child(5) { width: 24%; }
+
+    /* Totales compactos */
+    .printTotalesCompact {
+        margin-top: 12px;
+        border-top: 2px solid #000;
+        padding-top: 6px;
+    }
+    .printTotalLine {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10pt;
+        margin: 2px 0;
+    }
+    .printTotalLineFinal {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 11pt;
+        margin-top: 4px;
+        border-top: 1px solid #333;
+        padding-top: 4px;
     }
 }

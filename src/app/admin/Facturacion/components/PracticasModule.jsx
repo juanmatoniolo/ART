@@ -15,7 +15,6 @@ import {
 } from '../utils/calculos';
 import styles from './practicas.module.css';
 
-
 const DEFAULT_CODES = [
   '42.01.01',
   '43.02.01',
@@ -25,10 +24,24 @@ const DEFAULT_CODES = [
   '43.01.01',
   '43.10.01',
   '43.11.01',
-
 ];
 
-const normCode = (c) => String(c ?? '').replace(/\D/g, ''); // deja solo dígitos
+const normCode = (c) => String(c ?? '').replace(/\D/g, '');
+
+// Función auxiliar para calcular items personalizados (especiales)
+const calcularItemPersonalizado = (item, valoresConvenio) => {
+  if (!valoresConvenio || item.meta?.kind !== 'especial') {
+    return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
+  }
+  const baseKey = item.meta.baseKey;
+  const valorBase = Number(valoresConvenio[baseKey]) || 0;
+  return {
+    honorarioMedico: valorBase,
+    gastoSanatorial: 0,
+    soloHonorario: true,
+    soloGasto: false
+  };
+};
 
 export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
   const { valoresConvenio } = useConvenio();
@@ -107,7 +120,21 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
-    const calculo = calcularPractica(practica, valoresConvenio);
+    // Determinar si es personalizado
+    const esPersonalizado = practica.meta?.kind === 'especial';
+    let calculo;
+    if (esPersonalizado) {
+      const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
+      calculo = {
+        honorarioMedico: valorBase,
+        gastoSanatorial: 0,
+        soloHonorario: true,
+        soloGasto: false
+      };
+    } else {
+      calculo = calcularPractica(practica, valoresConvenio);
+    }
+
     const groupId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -150,22 +177,57 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..." agregada`, groupId);
   }, [valoresConvenio, agregarPractica, showTooltipMessage]);
 
-
+  // Resultados rápidos (cuando query vacío)
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
 
+    // 1. Items del nomenclador según DEFAULT_CODES
     const wanted = DEFAULT_CODES.map(normCode);
     const picked = [];
 
     for (const w of wanted) {
       const found = data.find((it) => normCode(it.codigo) === w);
       if (!found) continue;
-
-      // Mantener lógica: si tiene subsiguiente, lo vincula (si aplica)
       picked.push(...vincularSubsiguientes(found, data));
     }
 
-    // De-dup (por __key o por cap|codigo)
+    // 2. Items personalizados (ECG y Ecografía) si el convenio tiene los valores
+    if (valoresConvenio) {
+      // ECG
+      if (valoresConvenio['ECG_Y_EX_EN_CV']) {
+        picked.push({
+          codigo: '17.01.01',
+          descripcion: 'ECG',
+          capitulo: '17',
+          capituloNombre: 'Cardiología',
+          q_gal: 0,
+          gto: 0,
+          meta: {
+            kind: 'especial',
+            baseKey: 'ECG_Y_EX_EN_CV'
+          },
+          __key: 'custom-ecg'
+        });
+      }
+      // Ecografía partes blandas
+      if (valoresConvenio['Ecografia_partes_blandas_no_moduladas']) {
+        picked.push({
+          codigo: '18.06.01',
+          descripcion: 'Ecografía partes blandas',
+          capitulo: '18',
+          capituloNombre: 'Ecografías',
+          q_gal: 0,
+          gto: 0,
+          meta: {
+            kind: 'especial',
+            baseKey: 'Ecografia_partes_blandas_no_moduladas'
+          },
+          __key: 'custom-eco'
+        });
+      }
+    }
+
+    // Eliminar duplicados por __key
     const seen = new Map();
     picked.forEach((it) => {
       const key = it.__key || `${it.capitulo}|${it.codigo}`;
@@ -173,7 +235,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     });
 
     return Array.from(seen.values());
-  }, [data]);
+  }, [data, valoresConvenio]);
 
   /**
    * Resultados normales de búsqueda
@@ -217,9 +279,20 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
-    const calculo = valoresConvenio
-      ? calcularPractica(item, valoresConvenio)
-      : { honorarioMedico: 0, gastoSanatorial: 0 };
+
+    // Calcular según tipo
+    let calculo;
+    if (item.meta?.kind === 'especial') {
+      const valorBase = Number(valoresConvenio?.[item.meta.baseKey]) || 0;
+      calculo = {
+        honorarioMedico: valorBase,
+        gastoSanatorial: 0
+      };
+    } else {
+      calculo = valoresConvenio
+        ? calcularPractica(item, valoresConvenio)
+        : { honorarioMedico: 0, gastoSanatorial: 0 };
+    }
 
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
     const q = qLocal || query;
@@ -240,7 +313,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
-              <div className={styles.baseLine}>{money(item.qgal || 0)}</div>
+              <div className={styles.baseLine}>{money(item.q_gal || 0)}</div>
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
 
@@ -275,7 +348,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
         </td>
-
 
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>{money(item.gto || 0)}</div>
@@ -338,8 +410,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             />
           </div>
 
-          {/* ✅ Si query vacío, NO mostramos “Ingrese un término”, mostramos:
-              "Accesos rápidos" como resultados normales en tabla */}
           <div className={styles.buscadorInfo}>
             {qTrim === ''
               ? `${resultados.length} accesos rápidos`

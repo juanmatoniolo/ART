@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, remove, get, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money } from '../utils/calculos';
+import { money, parseNumber } from '../utils/calculos';
 import styles from './facturados.module.css';
+import * as XLSX from 'xlsx';
 
 const normalizeKey = (s) =>
     String(s ?? '')
@@ -39,6 +40,11 @@ const fmtDate = (ms) => {
     }
 };
 
+const safeNum = (v) => {
+    const n = typeof v === 'number' ? v : parseNumber(v);
+    return Number.isFinite(n) ? n : 0;
+};
+
 export default function FacturadosPage() {
     const sp = useSearchParams();
     const router = useRouter();
@@ -49,14 +55,19 @@ export default function FacturadosPage() {
     const [q, setQ] = useState('');
     const [estado, setEstado] = useState('todos'); // todos | cerrado | borrador
     const [art, setArt] = useState(''); // artKey
+    const [orden, setOrden] = useState('fecha_desc'); // criterio de orden
 
-    // ✅ toma estado desde query (?estado=borrador|cerrado|todos)
+    // Selección múltiple
+    const [selectedIds, setSelectedIds] = useState(new Set());
+
+    // Estado para feedback de eliminación
+    const [deleting, setDeleting] = useState(false);
+
     useEffect(() => {
         const e = sp.get('estado');
         if (e === 'cerrado' || e === 'borrador' || e === 'todos') {
             setEstado(e);
         }
-        // no setear por defecto si no viene
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -76,6 +87,7 @@ export default function FacturadosPage() {
         );
     }, []);
 
+    // Construir items
     const items = useMemo(() => {
         const obj = raw || {};
         const arr = Object.entries(obj).map(([id, v]) => {
@@ -119,18 +131,44 @@ export default function FacturadosPage() {
                 convenioNombre,
                 facturaNro,
                 total,
+                // Fecha a mostrar según estado
+                fecha: estadoVal === 'cerrado' ? (closedAt || createdAt) : (updatedAt || createdAt),
             };
         });
 
-        // Orden: cerrados primero por fecha cierre, luego borradores por updatedAt/createdAt
+        // Aplicar orden
         arr.sort((a, b) => {
-            const aKey = a.estado === 'cerrado' ? (a.closedAt || a.createdAt) : (a.updatedAt || a.createdAt);
-            const bKey = b.estado === 'cerrado' ? (b.closedAt || b.createdAt) : (b.updatedAt || b.createdAt);
-            return (bKey || 0) - (aKey || 0);
+            let aVal, bVal;
+            switch (orden) {
+                case 'fecha_asc':
+                    return (a.fecha || 0) - (b.fecha || 0);
+                case 'nombre_asc':
+                    return (a.pacienteNombre || '').localeCompare(b.pacienteNombre || '');
+                case 'nombre_desc':
+                    return (b.pacienteNombre || '').localeCompare(a.pacienteNombre || '');
+                case 'total_asc':
+                    return (a.total || 0) - (b.total || 0);
+                case 'total_desc':
+                    return (b.total || 0) - (a.total || 0);
+                case 'estado_cerrado':
+                    // Primero cerrados, luego borradores
+                    if (a.estado !== b.estado) {
+                        return a.estado === 'cerrado' ? -1 : 1;
+                    }
+                    return (b.fecha || 0) - (a.fecha || 0);
+                case 'estado_borrador':
+                    if (a.estado !== b.estado) {
+                        return a.estado === 'borrador' ? -1 : 1;
+                    }
+                    return (b.fecha || 0) - (a.fecha || 0);
+                case 'fecha_desc':
+                default:
+                    return (b.fecha || 0) - (a.fecha || 0);
+            }
         });
 
         return arr;
-    }, [raw]);
+    }, [raw, orden]);
 
     const counts = useMemo(() => {
         let cerrados = 0;
@@ -169,13 +207,275 @@ export default function FacturadosPage() {
         });
     }, [items, q, estado, art]);
 
-    // ✅ helper para actualizar query sin recargar
+    // Handlers de selección
+    const toggleSelect = (id) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) newSelected.delete(id);
+        else newSelected.add(id);
+        setSelectedIds(newSelected);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === filtered.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(filtered.map(it => it.id)));
+        }
+    };
+
+    const isAllSelected = selectedIds.size === filtered.length && filtered.length > 0;
+
+    // Actualizar query de estado sin recargar
     const setEstadoQuery = (next) => {
         const params = new URLSearchParams(sp.toString());
         if (!next || next === 'todos') params.delete('estado');
         else params.set('estado', next);
-        router.push(`/admin/Facturacion/facturados?${params.toString()}`);
+        router.push(`/admin/Facturacion/Facturados?${params.toString()}`);
         setEstado(next || 'todos');
+    };
+
+    // Exportar a Excel (similar a Cerrados pero con columna Estado)
+    const exportToExcel = () => {
+        const selected = Array.from(selectedIds);
+        if (selected.length === 0) {
+            alert('Seleccione al menos un siniestro.');
+            return;
+        }
+
+        const headers = [
+            'CdU', 'Estado', 'Nombre completo', 'DNI', 'N° Siniestro',
+            'Tipo', 'Categoría', 'Código', 'Descripción',
+            'Cantidad', 'Valor unitario', 'Total línea', 'Origen',
+            'Subtotal Honorarios', 'Subtotal Gastos', 'Total Siniestro'
+        ];
+        const rows = [headers];
+
+        let globalCdU = 1;
+
+        selected.forEach((id, index) => {
+            const item = raw[id];
+            if (!item) return;
+
+            const paciente = item.paciente || {};
+            const nombre = paciente.nombreCompleto || paciente.nombre || '';
+            const dni = paciente.dni || '';
+            const nroSiniestro = paciente.nroSiniestro || '';
+            const estadoItem = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
+
+            const honorRows = [];
+            const gastoRows = [];
+
+            const processItem = (x, categoria) => {
+                const honorario = safeNum(x?.honorarioMedico);
+                const gasto = safeNum(x?.gastoSanatorial);
+                const cantidad = safeNum(x?.cantidad ?? x?.unidades ?? 1) || 1;
+                const totalItem = safeNum(x?.total);
+                const unit = cantidad > 0 ? totalItem / cantidad : 0;
+
+                const desc = x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+                const codigo = x?.codigo || x?.code || x?.cod || '';
+                let origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
+
+                if (honorario > 0) {
+                    honorRows.push({
+                        tipo: 'HONORARIO',
+                        categoria,
+                        codigo,
+                        desc,
+                        cantidad,
+                        unit,
+                        total: honorario,
+                        origen: origen || ''
+                    });
+                }
+                if (gasto > 0) {
+                    gastoRows.push({
+                        tipo: 'GASTO',
+                        categoria,
+                        codigo,
+                        desc,
+                        cantidad,
+                        unit,
+                        total: gasto,
+                        origen: 'Clínica de la Unión'
+                    });
+                }
+            };
+
+            // Prácticas
+            (item.practicas || []).forEach(p => processItem(p, 'Práctica'));
+            // Cirugías
+            (item.cirugias || []).forEach(c => processItem(c, 'Cirugía'));
+            // Laboratorios
+            (item.laboratorios || []).forEach(l => processItem(l, 'Laboratorio'));
+            // Medicamentos
+            (item.medicamentos || []).forEach(m => {
+                const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
+                if (gasto > 0) {
+                    const cantidad = safeNum(m?.cantidad ?? m?.unidades ?? 1) || 1;
+                    const unit = cantidad > 0 ? gasto / cantidad : 0;
+                    gastoRows.push({
+                        tipo: 'GASTO',
+                        categoria: 'Medicación',
+                        codigo: '',
+                        desc: m?.nombre || '',
+                        cantidad,
+                        unit,
+                        total: gasto,
+                        origen: 'Clínica de la Unión'
+                    });
+                }
+            });
+            // Descartables
+            (item.descartables || []).forEach(d => {
+                const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
+                if (gasto > 0) {
+                    const cantidad = safeNum(d?.cantidad ?? d?.unidades ?? 1) || 1;
+                    const unit = cantidad > 0 ? gasto / cantidad : 0;
+                    gastoRows.push({
+                        tipo: 'GASTO',
+                        categoria: 'Descartable',
+                        codigo: '',
+                        desc: d?.nombre || '',
+                        cantidad,
+                        unit,
+                        total: gasto,
+                        origen: 'Clínica de la Unión'
+                    });
+                }
+            });
+
+            const totalHonor = honorRows.reduce((acc, r) => acc + r.total, 0);
+            const totalGasto = gastoRows.reduce((acc, r) => acc + r.total, 0);
+            const totalSiniestro = totalHonor + totalGasto;
+
+            const allRows = [...honorRows, ...gastoRows];
+
+            if (allRows.length === 0) return;
+
+            allRows.forEach((row, idx) => {
+                const rowData = [
+                    globalCdU,
+                    idx === 0 ? estadoItem : '',   // Estado solo en primera fila
+                    idx === 0 ? nombre : '',
+                    idx === 0 ? dni : '',
+                    idx === 0 ? nroSiniestro : '',
+                    row.tipo,
+                    row.categoria,
+                    row.codigo,
+                    row.desc,
+                    row.cantidad,
+                    row.unit,
+                    row.total,
+                    row.origen,
+                    idx === 0 ? totalHonor : '',
+                    idx === 0 ? totalGasto : '',
+                    idx === 0 ? totalSiniestro : ''
+                ];
+                rows.push(rowData);
+                globalCdU++;
+            });
+
+            if (index < selected.length - 1) {
+                rows.push(Array(headers.length).fill(''));
+            }
+        });
+
+        // Totales generales
+        let totalHonorGeneral = 0;
+        let totalGastoGeneral = 0;
+        let totalGeneral = 0;
+
+        selected.forEach(id => {
+            const item = raw[id];
+            if (!item) return;
+            // Recalcular rápidamente (podríamos usar item.totales si existe)
+            const sumItems = (arr, field) => {
+                if (!arr) return 0;
+                return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
+            };
+            let honor = 0, gasto = 0;
+            honor += sumItems(item.practicas, 'honorarioMedico');
+            honor += sumItems(item.cirugias, 'honorarioMedico');
+            honor += sumItems(item.laboratorios, 'honorarioMedico');
+            gasto += sumItems(item.practicas, 'gastoSanatorial');
+            gasto += sumItems(item.cirugias, 'gastoSanatorial');
+            gasto += sumItems(item.laboratorios, 'gastoSanatorial');
+            gasto += sumItems(item.medicamentos, 'gastoSanatorial');
+            gasto += sumItems(item.medicamentos, 'total');
+            gasto += sumItems(item.descartables, 'gastoSanatorial');
+            gasto += sumItems(item.descartables, 'total');
+            totalHonorGeneral += honor;
+            totalGastoGeneral += gasto;
+            totalGeneral += honor + gasto;
+        });
+
+        const totalRow = Array(headers.length).fill('');
+        totalRow[1] = 'TOTALES GENERALES';
+        totalRow[13] = totalHonorGeneral;
+        totalRow[14] = totalGastoGeneral;
+        totalRow[15] = totalGeneral;
+        rows.push(totalRow);
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+
+        const colWidths = [
+            { wch: 6 },  // CdU
+            { wch: 10 }, // Estado
+            { wch: 25 }, // Nombre
+            { wch: 12 }, // DNI
+            { wch: 15 }, // N° Siniestro
+            { wch: 10 }, // Tipo
+            { wch: 15 }, // Categoría
+            { wch: 12 }, // Código
+            { wch: 50 }, // Descripción
+            { wch: 8 },  // Cantidad
+            { wch: 12 }, // Valor unit.
+            { wch: 12 }, // Total línea
+            { wch: 25 }, // Origen
+            { wch: 15 }, // Subtotal Honorarios
+            { wch: 15 }, // Subtotal Gastos
+            { wch: 15 }  // Total Siniestro
+        ];
+        ws['!cols'] = colWidths;
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Siniestros');
+        XLSX.writeFile(wb, `facturados_${new Date().toISOString().slice(0,10)}.xlsx`);
+    };
+
+    // Eliminar múltiples siniestros
+    const deleteSelected = async () => {
+        if (selectedIds.size === 0) {
+            alert('Seleccione al menos un siniestro.');
+            return;
+        }
+        const confirmMsg = `¿Está seguro de eliminar ${selectedIds.size} siniestro(s)? Esta acción no se puede deshacer.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        setDeleting(true);
+        try {
+            for (const id of selectedIds) {
+                // Obtener el item para liberar lock si existe
+                const snap = await get(ref(db, `Facturacion/${id}`));
+                if (snap.exists()) {
+                    const item = snap.val();
+                    // Si tiene siniestroKey, eliminar el lock
+                    if (item?.siniestroKey) {
+                        await remove(ref(db, `Facturacion/siniestros/${item.siniestroKey}`));
+                    }
+                    // Eliminar el siniestro
+                    await remove(ref(db, `Facturacion/${id}`));
+                }
+            }
+            alert('Siniestros eliminados correctamente.');
+            setSelectedIds(new Set()); // Limpiar selección
+        } catch (error) {
+            console.error(error);
+            alert('Error al eliminar: ' + error.message);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return (
@@ -184,7 +484,7 @@ export default function FacturadosPage() {
                 <div className={styles.headerTop}>
                     <div className={styles.titleBlock}>
                         <h1 className={styles.title}>📦 Facturados / Siniestros</h1>
-                        <p className={styles.subtitle}>Lista de cerrados y borradores desde Firebase (/Facturacion).</p>
+                        <p className={styles.subtitle}>Seleccione para exportar o eliminar múltiples registros.</p>
                     </div>
 
                     <div className={styles.headerActions}>
@@ -194,10 +494,24 @@ export default function FacturadosPage() {
                         <Link href="/admin/Facturacion/Nuevo" className={styles.btnPrimary}>
                             ➕ Nueva factura
                         </Link>
+                        <button
+                            className={`${styles.btn} ${styles.btnPrimary}`}
+                            onClick={exportToExcel}
+                            disabled={selectedIds.size === 0}
+                        >
+                            ⬇️ Exportar seleccionados
+                        </button>
+                        <button
+                            className={`${styles.btn} ${styles.btnDanger}`}
+                            onClick={deleteSelected}
+                            disabled={selectedIds.size === 0 || deleting}
+                        >
+                            {deleting ? 'Eliminando...' : '🗑️ Eliminar seleccionados'}
+                        </button>
                     </div>
                 </div>
 
-                {/* ✅ NUEVO: switch rápido por estado (compatible con tu panel) */}
+                {/* Switch rápido por estado */}
                 <div className={styles.quickSwitch}>
                     <button
                         type="button"
@@ -206,7 +520,6 @@ export default function FacturadosPage() {
                     >
                         📝 Borradores ({counts.borradores})
                     </button>
-
                     <button
                         type="button"
                         className={`${styles.switchBtn} ${estado === 'cerrado' ? styles.switchBtnActive : ''}`}
@@ -214,7 +527,6 @@ export default function FacturadosPage() {
                     >
                         ✅ Facturados ({counts.cerrados})
                     </button>
-
                     <button
                         type="button"
                         className={`${styles.switchBtn} ${estado === 'todos' ? styles.switchBtnActive : ''}`}
@@ -256,9 +568,25 @@ export default function FacturadosPage() {
                             ))}
                         </select>
 
-                        <select className={styles.select} value="fecha_desc" onChange={() => { }}>
-                            <option value="fecha_desc">Fecha ↓</option>
+                        <select className={styles.select} value={orden} onChange={(e) => setOrden(e.target.value)}>
+                            <option value="fecha_desc">Fecha ↓ (reciente primero)</option>
+                            <option value="fecha_asc">Fecha ↑ (más antiguo primero)</option>
+                            <option value="nombre_asc">Nombre ↑ (A-Z)</option>
+                            <option value="nombre_desc">Nombre ↓ (Z-A)</option>
+                            <option value="total_desc">Total ↓ (mayor primero)</option>
+                            <option value="total_asc">Total ↑ (menor primero)</option>
+                            <option value="estado_cerrado">Primero cerrados</option>
+                            <option value="estado_borrador">Primero borradores</option>
                         </select>
+
+                        <label className={styles.checkboxAll}>
+                            <input
+                                type="checkbox"
+                                checked={isAllSelected}
+                                onChange={toggleSelectAll}
+                            />
+                            <span>Seleccionar todos</span>
+                        </label>
                     </div>
                 </div>
             </header>
@@ -272,11 +600,18 @@ export default function FacturadosPage() {
                     <div className={styles.grid}>
                         {filtered.map((it) => {
                             const isClosed = it.estado === 'cerrado';
-                            const fecha = isClosed ? (it.closedAt || it.createdAt) : (it.updatedAt || it.createdAt);
+                            const fecha = it.fecha;
 
                             return (
                                 <article key={it.id} className={styles.card}>
                                     <div className={styles.cardTop}>
+                                        <div className={styles.checkboxInline}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.has(it.id)}
+                                                onChange={() => toggleSelect(it.id)}
+                                            />
+                                        </div>
                                         <div className={styles.state}>
                                             <span className={`${styles.badge} ${isClosed ? styles.badgeOk : styles.badgeDraft}`}>
                                                 {isClosed ? 'CERRADO' : 'BORRADOR'}
@@ -307,7 +642,7 @@ export default function FacturadosPage() {
                                         )}
 
                                         <div className={styles.actions}>
-                                            <Link className={styles.btn} href={`/admin/Facturacion/facturados/${it.id}`}>
+                                            <Link className={styles.btn} href={`/admin/Facturacion/Facturados/${it.id}`}>
                                                 👁 Ver detalle
                                             </Link>
 
@@ -316,14 +651,6 @@ export default function FacturadosPage() {
                                                     ✏️ Retomar
                                                 </Link>
                                             )}
-
-                                            <button
-                                                className={`${styles.btn} ${styles.btnGhostSmall}`}
-                                                disabled
-                                                title="Próximo paso: PDF/Excel"
-                                            >
-                                                ⬇️ Descargar
-                                            </button>
                                         </div>
                                     </div>
                                 </article>
