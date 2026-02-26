@@ -184,7 +184,6 @@
     transform: none;
 }
 
-
 /* Panels */
 .searchPanel,
 .combosPanel {
@@ -418,15 +417,19 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Tarjetas de combo uniformes */
 .comboCard {
     border-radius: 16px;
     border: 1px solid var(--border);
     background: #0d182b;
     padding: 12px;
     transition: 0.18s ease;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-
+    /* Altura mínima para uniformidad */
+    min-height: 320px;
+    /* Ajustar según contenido */
 }
 
 .comboCard:hover {
@@ -436,6 +439,14 @@
 
 .comboDisabled {
     opacity: 0.55;
+}
+
+.comboTop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .comboTitle {
@@ -468,12 +479,31 @@
     font-size: 0.78rem;
 }
 
+/* Selector de cantidad en combo */
+.comboQtySelector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #0b1424;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.comboQtyLabel {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 900;
+}
+
+/* Acciones del combo */
 .comboActions {
     display: flex;
-    flex-flow: column-reverse wrap;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 10px;
-
+    margin-top: auto;
+    /* para que se pegue al fondo si la tarjeta tiene altura variable */
 }
 
 .btnAddCombo {
@@ -484,12 +514,29 @@
     gap: 8px;
     padding: 10px 12px;
     border-radius: 12px;
+    border: 1px solid rgba(34, 197, 94, 0.45);
+    background: rgba(34, 197, 94, 0.14);
+    color: #bbf7d0;
+    font-weight: 950;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.btnAddCombo:hover {
+    background: rgba(34, 197, 94, 0.22);
+    border-color: rgba(34, 197, 94, 0.75);
+    transform: translateY(-1px);
+}
+
+.btnAddCombo:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .comboActionsRow2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    /* 50% y 50% */
     gap: 10px;
 }
 
@@ -502,13 +549,88 @@
     gap: 8px;
     padding: 10px 12px;
     border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #0b1424;
+    color: var(--text);
+    font-weight: 950;
+    cursor: pointer;
+    transition: 0.18s ease;
 }
 
-.comboPreview {
+.btnGhost:hover,
+.btnDanger:hover {
+    background: var(--card2);
+    border-color: var(--border2);
+    transform: translateY(-1px);
+}
+
+.btnDanger {
+    border-color: rgba(239, 68, 68, 0.55);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fecaca;
+}
+
+.btnDanger:hover {
+    background: rgba(239, 68, 68, 0.20);
+    border-color: rgba(239, 68, 68, 0.85);
+}
+
+/* Acordeón para los ítems del combo */
+.comboDetails {
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+}
+
+.comboSummary {
+    list-style: none;
+    /* elimina el triángulo por defecto en algunos navegadores */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 950;
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 6px 0;
+    user-select: none;
+}
+
+.comboSummary::-webkit-details-marker {
+    display: none;
+    /* oculta el triángulo en Chrome/Safari */
+}
+
+.comboSummary::before {
+    content: "▶";
+    display: inline-block;
+    font-size: 0.8rem;
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+    color: var(--primary);
+}
+
+.comboDetails[open] .comboSummary::before {
+    transform: rotate(90deg);
+}
+
+.comboSummary:hover {
+    color: var(--text);
+}
+
+.comboSummary span {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 900;
+}
+
+/* Contenedor de los ítems dentro del acordeón */
+.comboItems {
     display: grid;
     gap: 6px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
+    padding: 8px 0 4px 16px;
+    /* indentación */
 }
 
 .comboPreviewRow {
@@ -522,6 +644,7 @@
     opacity: 0.9;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    color: var(--primary);
 }
 
 .comboItem {
@@ -535,9 +658,10 @@
     color: var(--muted);
     font-weight: 900;
     font-size: 0.85rem;
+    padding-left: 16px;
 }
 
-/* Modal */
+/* Modal (sin cambios) */
 .modalOverlay {
     position: fixed;
     inset: 0;

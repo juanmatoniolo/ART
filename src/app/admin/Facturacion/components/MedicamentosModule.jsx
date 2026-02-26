@@ -88,6 +88,7 @@ export default function MedicamentosModule({
   descartablesAgregados,
   agregarMedicamento,
   agregarDescartable,
+  actualizarItem,
   onAtras,
   onSiguiente
 }) {
@@ -95,11 +96,23 @@ export default function MedicamentosModule({
    * ========= Estado catálogo =========
    */
   const [busqueda, setBusqueda] = useState('');
-  const [items, setItems] = useState([]); // catálogo unificado meds+desc
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const medsDataRef = useRef(null);
   const descDataRef = useRef(null);
+
+  /**
+   * ========= Cantidades por ítem (para la vista de búsqueda) =========
+   * key: `${tipoKey}:${sourceId}`
+   */
+  const [itemQuantities, setItemQuantities] = useState({});
+
+  /**
+   * ========= Cantidades por combo =========
+   * key: comboId
+   */
+  const [comboQuantities, setComboQuantities] = useState({});
 
   /**
    * ========= Combos (RTDB) =========
@@ -110,7 +123,7 @@ export default function MedicamentosModule({
   /**
    * ========= UX =========
    */
-  const [modo, setModo] = useState('buscar'); // 'buscar' | 'combos'
+  const [modo, setModo] = useState('buscar');
   const searchRef = useRef(null);
 
   // Toast
@@ -149,7 +162,6 @@ export default function MedicamentosModule({
   const [comboTags, setComboTags] = useState('');
   const [comboSearch, setComboSearch] = useState('');
   const [comboSelected, setComboSelected] = useState([]);
-  // comboSelected: [{ tipo:'medicamento'|'descartable', itemId, cantidad }]
 
   const resetModal = () => {
     setEditingId(null);
@@ -299,51 +311,54 @@ export default function MedicamentosModule({
   }, [items, busqueda]);
 
   /**
-   * ========= Agregar item individual =========
+   * ========= Función de agregar/actualizar item =========
    */
-  const handleAgregarItem = useCallback(
-    (item, cantidad = 1) => {
-      const qty = clampQty(cantidad);
+  const agregarOActualizarItem = useCallback(
+    (item, cantidadAgregar) => {
+      const qty = clampQty(cantidadAgregar);
       const key = `${item.tipoKey}:${item.sourceId}`;
       const displayName = String(item.nombre || '').replace(/_/g, ' ').slice(0, 42);
 
-      if (item.tipoKey === 'medicamento') {
-        const id = `med-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        agregarMedicamento({
+      const lista = item.tipoKey === 'medicamento' ? medicamentosAgregados : descartablesAgregados;
+      const existente = lista.find((i) => i.tipo === item.tipoKey && i.sourceId === item.sourceId);
+
+      if (existente) {
+        const nuevaCantidad = clampQty(existente.cantidad + qty);
+        const nuevoTotal = item.precio * nuevaCantidad;
+        actualizarItem(existente.id, {
+          cantidad: nuevaCantidad,
+          total: nuevoTotal
+        });
+        showToast(`✓ ${displayName} x${formatQtyAR(nuevaCantidad)} (actualizado)`, key);
+      } else {
+        const id = `${item.tipoKey === 'medicamento' ? 'med' : 'desc'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const nuevoItem = {
           id,
-          tipo: 'medicamento',
+          tipo: item.tipoKey,
+          sourceId: item.sourceId,
           nombre: item.nombre,
           presentacion: item.presentacion,
           precio: item.precio,
           cantidad: qty,
           valorUnitario: item.precio,
           total: item.precio * qty
-        });
-        showToast(`✓ Agregado: ${displayName}`, key);
-        return;
+        };
+        if (item.tipoKey === 'medicamento') {
+          agregarMedicamento(nuevoItem);
+        } else {
+          agregarDescartable(nuevoItem);
+        }
+        showToast(`✓ ${displayName} x${formatQtyAR(qty)}`, key);
       }
-
-      const id = `desc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      agregarDescartable({
-        id,
-        tipo: 'descartable',
-        nombre: item.nombre,
-        presentacion: item.presentacion,
-        precio: item.precio,
-        cantidad: qty,
-        valorUnitario: item.precio,
-        total: item.precio * qty
-      });
-      showToast(`✓ Agregado: ${displayName}`, key);
     },
-    [agregarMedicamento, agregarDescartable, showToast]
+    [medicamentosAgregados, descartablesAgregados, agregarMedicamento, agregarDescartable, actualizarItem, showToast]
   );
 
   /**
-   * ========= Agregar combo =========
+   * ========= Agregar combo con cantidad =========
    */
   const handleAgregarCombo = useCallback(
-    (comboId, combo) => {
+    (comboId, combo, veces = 1) => {
       const comboItems = combo?.items ?? [];
       if (comboItems.length === 0) {
         showToast('⚠️ El combo no tiene items', `combo:${comboId}`);
@@ -354,9 +369,10 @@ export default function MedicamentosModule({
       let missing = 0;
 
       for (const ci of comboItems) {
-        const tipo = ci?.tipo; // 'medicamento'|'descartable'
+        const tipo = ci?.tipo;
         const itemId = ci?.itemId;
-        const cantidad = clampQty(ci?.cantidad);
+        const cantidadBase = clampQty(ci?.cantidad);
+        const cantidadTotal = clampQty(cantidadBase * veces);
 
         if (!tipo || !itemId) {
           missing++;
@@ -369,18 +385,18 @@ export default function MedicamentosModule({
           continue;
         }
 
-        handleAgregarItem(found, cantidad);
+        agregarOActualizarItem(found, cantidadTotal);
         added++;
       }
 
       const name = combo?.nombre || 'Combo';
       if (added > 0) {
-        showToast(`✓ Combo agregado: ${name} (${added}${missing ? `, faltan ${missing}` : ''})`, `combo:${comboId}`);
+        showToast(`✓ Combo "${name}" x${formatQtyAR(veces)} agregado (${added}${missing ? `, faltan ${missing}` : ''})`, `combo:${comboId}`);
       } else {
         showToast(`⚠️ No se pudo agregar el combo: ${name}`, `combo:${comboId}`);
       }
     },
-    [catalogIndex, handleAgregarItem, showToast]
+    [catalogIndex, agregarOActualizarItem, showToast]
   );
 
   /**
@@ -483,7 +499,10 @@ export default function MedicamentosModule({
     if (e.key === 'Enter') {
       e.preventDefault();
       const first = filtrados[0];
-      if (first) handleAgregarItem(first, 1);
+      if (first) {
+        const qty = itemQuantities[`${first.tipoKey}:${first.sourceId}`] || 1;
+        agregarOActualizarItem(first, qty);
+      }
     }
   };
 
@@ -507,18 +526,17 @@ export default function MedicamentosModule({
 
   /**
    * Componente local para input de cantidad con estado local
-   * Permite escribir libremente (ej: "0,3") y solo al perder foco se normaliza
    */
-  const CantidadInput = ({ tipo, itemId, initialValue }) => {
-    const [localValue, setLocalValue] = useState(formatQtyAR(initialValue));
+  const CantidadInput = ({ value, onChange, step, min = 0.01 }) => {
+    const [localValue, setLocalValue] = useState(formatQtyAR(value));
 
-    // Sincronizar si el valor externo cambia (ej: al editar combo o al usar botones)
     useEffect(() => {
-      setLocalValue(formatQtyAR(initialValue));
-    }, [initialValue]);
+      setLocalValue(formatQtyAR(value));
+    }, [value]);
 
     const handleBlur = () => {
-      setComboQty(tipo, itemId, localValue);
+      const parsed = clampQty(localValue);
+      onChange(parsed);
     };
 
     const handleKeyDown = (e) => {
@@ -537,7 +555,7 @@ export default function MedicamentosModule({
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        placeholder="1"
+        placeholder={formatQtyAR(min)}
       />
     );
   };
@@ -610,6 +628,7 @@ export default function MedicamentosModule({
                 filtrados.map((item) => {
                   const rowKey = `${item.tipoKey}:${item.sourceId}`;
                   const isRecent = rowKey === recentKey;
+                  const qty = itemQuantities[rowKey] || 1;
 
                   return (
                     <div key={rowKey} className={`${styles.quickRow} ${isRecent ? styles.rowRecent : ''}`}>
@@ -626,9 +645,40 @@ export default function MedicamentosModule({
 
                       <div className={styles.quickRight}>
                         <div className={styles.quickPrice}>$ {money(item.precio)}</div>
+
+                        <div className={styles.qtyBox}>
+                          <button
+                            className={styles.qtyBtn}
+                            onClick={() => {
+                              const newVal = Math.max(0.01, qty - stepFor(qty));
+                              setItemQuantities(prev => ({ ...prev, [rowKey]: newVal }));
+                            }}
+                            title="Disminuir"
+                            tabIndex={-1}
+                          >
+                            −
+                          </button>
+                          <CantidadInput
+                            value={qty}
+                            onChange={(newVal) => setItemQuantities(prev => ({ ...prev, [rowKey]: newVal }))}
+                            step={stepFor(qty)}
+                          />
+                          <button
+                            className={styles.qtyBtn}
+                            onClick={() => {
+                              const newVal = qty + stepFor(qty);
+                              setItemQuantities(prev => ({ ...prev, [rowKey]: newVal }));
+                            }}
+                            title="Aumentar"
+                            tabIndex={-1}
+                          >
+                            +
+                          </button>
+                        </div>
+
                         <button
                           className={`${styles.btnAdd} ${isRecent ? styles.btnAddRecent : ''}`}
-                          onClick={() => handleAgregarItem(item, 1)}
+                          onClick={() => agregarOActualizarItem(item, qty)}
                           title="Agregar a la factura"
                         >
                           {isRecent ? '✓' : '➕'}
@@ -639,7 +689,7 @@ export default function MedicamentosModule({
                 })
               )}
               <div className={styles.hintLine}>
-                Tip: presioná <b>Enter</b> para agregar el primer resultado.
+                Tip: presioná <b>Enter</b> para agregar el primer resultado con la cantidad seleccionada.
               </div>
             </div>
           )}
@@ -661,6 +711,7 @@ export default function MedicamentosModule({
                 const nombre = c.nombre || 'Combo';
                 const activo = c.activo !== false;
                 const countItems = (c.items || []).length;
+                const comboQty = comboQuantities[comboId] || 1;
 
                 return (
                   <div key={comboId} className={`${styles.comboCard} ${!activo ? styles.comboDisabled : ''}`}>
@@ -678,13 +729,47 @@ export default function MedicamentosModule({
                       </div>
                     </div>
 
+                    <div className={styles.comboQtySelector}>
+                      <span className={styles.comboQtyLabel}>Cantidad:</span>
+                      <div className={styles.qtyBox}>
+                        <button
+                          className={styles.qtyBtn}
+                          onClick={() => {
+                            const newVal = Math.max(1, comboQty - 1);
+                            setComboQuantities(prev => ({ ...prev, [comboId]: newVal }));
+                          }}
+                          title="Disminuir"
+                          tabIndex={-1}
+                        >
+                          −
+                        </button>
+                        <CantidadInput
+                          value={comboQty}
+                          onChange={(newVal) => setComboQuantities(prev => ({ ...prev, [comboId]: newVal }))}
+                          step={1}
+                          min={1}
+                        />
+                        <button
+                          className={styles.qtyBtn}
+                          onClick={() => {
+                            const newVal = comboQty + 1;
+                            setComboQuantities(prev => ({ ...prev, [comboId]: newVal }));
+                          }}
+                          title="Aumentar"
+                          tabIndex={-1}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
                     <div className={styles.comboActions}>
                       <button
                         className={styles.btnAddCombo}
-                        onClick={() => handleAgregarCombo(comboId, c)}
+                        onClick={() => handleAgregarCombo(comboId, c, comboQty)}
                         disabled={!activo}
                       >
-                        ➕ Agregar combo
+                        ➕ Agregar combo x{formatQtyAR(comboQty)}
                       </button>
 
                       <div className={styles.comboActionsRow2}>
@@ -706,22 +791,24 @@ export default function MedicamentosModule({
                       </div>
                     </div>
 
-                    <div className={styles.comboPreview}>
-                      {(c.items || []).slice(0, 5).map((it) => {
-                        const resolved = catalogIndex.get(`${it.tipo}:${it.itemId}`);
-                        const label = resolved ? String(resolved.nombre).replace(/_/g, ' ') : `${it.tipo}:${it.itemId}`;
-
-                        return (
-                          <div key={`${it.tipo}:${it.itemId}`} className={styles.comboPreviewRow}>
-                            <span className={styles.comboQty}>×{formatQtyAR(clampQty(it.cantidad))}</span>
-                            <span className={styles.comboItem}>{label}</span>
-                          </div>
-                        );
-                      })}
-                      {(c.items || []).length > 5 && (
-                        <div className={styles.comboMore}>+ {(c.items || []).length - 5} más…</div>
-                      )}
-                    </div>
+                    {/* Acordeón para los ítems del combo */}
+                    <details className={styles.comboDetails}>
+                      <summary className={styles.comboSummary}>
+                        Contenido <span>({c.items?.length || 0} ítems)</span>
+                      </summary>
+                      <div className={styles.comboItems}>
+                        {(c.items || []).map((it) => {
+                          const resolved = catalogIndex.get(`${it.tipo}:${it.itemId}`);
+                          const label = resolved ? String(resolved.nombre).replace(/_/g, ' ') : `${it.tipo}:${it.itemId}`;
+                          return (
+                            <div key={`${it.tipo}:${it.itemId}`} className={styles.comboPreviewRow}>
+                              <span className={styles.comboQty}>×{formatQtyAR(clampQty(it.cantidad))}</span>
+                              <span className={styles.comboItem}>{label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </details>
                   </div>
                 );
               })}
@@ -867,9 +954,9 @@ export default function MedicamentosModule({
                                 </button>
 
                                 <CantidadInput
-                                  tipo={x.tipo}
-                                  itemId={x.itemId}
-                                  initialValue={qtyNum}
+                                  value={qtyNum}
+                                  onChange={(newVal) => setComboQty(x.tipo, x.itemId, newVal)}
+                                  step={step}
                                 />
 
                                 <button

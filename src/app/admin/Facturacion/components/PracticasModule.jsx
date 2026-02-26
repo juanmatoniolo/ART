@@ -28,21 +28,6 @@ const DEFAULT_CODES = [
 
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
 
-// Función auxiliar para calcular items personalizados (especiales)
-const calcularItemPersonalizado = (item, valoresConvenio) => {
-  if (!valoresConvenio || item.meta?.kind !== 'especial') {
-    return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
-  }
-  const baseKey = item.meta.baseKey;
-  const valorBase = Number(valoresConvenio[baseKey]) || 0;
-  return {
-    honorarioMedico: valorBase,
-    gastoSanatorial: 0,
-    soloHonorario: true,
-    soloGasto: false
-  };
-};
-
 export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
   const { valoresConvenio } = useConvenio();
 
@@ -54,6 +39,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const debouncedQuery = useDebounce(query, 300);
 
   const [modoBusqueda, setModoBusqueda] = useState(true);
+
+  // Estado para la selección de artroscopia (simple/compleja)
+  const [artroscopiaSelections, setArtroscopiaSelections] = useState({});
 
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState('');
@@ -117,13 +105,29 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
 
+  // Manejador para cambiar el tipo de artroscopia
+  const handleArtroscopiaChange = (key, tipo) => {
+    setArtroscopiaSelections(prev => ({ ...prev, [key]: tipo }));
+  };
+
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
-    // Determinar si es personalizado
-    const esPersonalizado = practica.meta?.kind === 'especial';
     let calculo;
-    if (esPersonalizado) {
+    const esArtroscopia = practica.codigo === '120902';
+
+    if (esArtroscopia) {
+      // Obtener el gasto según la selección
+      const tipo = artroscopiaSelections[practica.__key] || 'simple';
+      const gastoKey = tipo === 'compleja' ? 'Artroscopia_Hombro' : 'Artroscopia_Simple_Gastos_Sanatoriales';
+      const gasto = Number(valoresConvenio[gastoKey]) || 0;
+      calculo = {
+        honorarioMedico: 0,
+        gastoSanatorial: gasto,
+        soloHonorario: false,
+        soloGasto: true
+      };
+    } else if (practica.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
       calculo = {
         honorarioMedico: valorBase,
@@ -174,8 +178,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     }
 
     agregados.forEach(item => agregarPractica(item));
-    showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..." agregada`, groupId);
-  }, [valoresConvenio, agregarPractica, showTooltipMessage]);
+    const tipoMsg = esArtroscopia ? ` (${artroscopiaSelections[practica.__key] || 'simple'})` : '';
+    showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
+  }, [valoresConvenio, artroscopiaSelections, agregarPractica, showTooltipMessage]);
 
   // Resultados rápidos (cuando query vacío)
   const defaultResultados = useMemo(() => {
@@ -191,7 +196,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       picked.push(...vincularSubsiguientes(found, data));
     }
 
-    // 2. Items personalizados (ECG y Ecografía) si el convenio tiene los valores
+    // 2. Items personalizados (ECG, Ecografía, Artroscopia) si el convenio tiene los valores
     if (valoresConvenio) {
       // ECG
       if (valoresConvenio['ECG_Y_EX_EN_CV']) {
@@ -223,6 +228,19 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             baseKey: 'Ecografia_partes_blandas_no_moduladas'
           },
           __key: 'custom-eco'
+        });
+      }
+      // Artroscopia (si tiene al menos uno de los dos valores)
+      if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] || valoresConvenio['Artroscopia_Hombro']) {
+        picked.push({
+          codigo: '120902',
+          descripcion: 'Artroscopia',
+          capitulo: '12',
+          capituloNombre: 'Procedimientos',
+          q_gal: 0,
+          gto: 0,
+          // No usamos meta especial, lo trataremos directamente en render y handle
+          __key: 'custom-artroscopia'
         });
       }
     }
@@ -279,10 +297,19 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
+    const esArtroscopia = item.codigo === '120902';
 
     // Calcular según tipo
     let calculo;
-    if (item.meta?.kind === 'especial') {
+    if (esArtroscopia) {
+      const tipo = artroscopiaSelections[key] || 'simple';
+      const gastoKey = tipo === 'compleja' ? 'Artroscopia_Hombro' : 'Artroscopia_Simple_Gastos_Sanatoriales';
+      const gasto = Number(valoresConvenio?.[gastoKey]) || 0;
+      calculo = {
+        honorarioMedico: 0,
+        gastoSanatorial: gasto
+      };
+    } else if (item.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio?.[item.meta.baseKey]) || 0;
       calculo = {
         honorarioMedico: valorBase,
@@ -310,6 +337,31 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
           <div className={styles.desc}>{highlight(item.descripcion, q)}</div>
 
+          {esArtroscopia && (
+            <div className={styles.artroscopiaSelector}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name={`artro-${key}`}
+                  checked={artroscopiaSelections[key] === 'simple' || !artroscopiaSelections[key]}
+                  onChange={() => handleArtroscopiaChange(key, 'simple')}
+                />
+                <span className={styles.radioCustom}></span>
+                Simple (${money(Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0)})
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name={`artro-${key}`}
+                  checked={artroscopiaSelections[key] === 'compleja'}
+                  onChange={() => handleArtroscopiaChange(key, 'compleja')}
+                />
+                <span className={styles.radioCustom}></span>
+                Compleja (Hombro) (${money(Number(valoresConvenio?.['Artroscopia_Hombro']) || 0)})
+              </label>
+            </div>
+          )}
+
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
@@ -325,7 +377,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           </div>
 
           <div className={styles.cardActions}>
-            <button onClick={() => handleAgregar(item)} className={styles.btnAgregar}>➕ Agregar</button>
+            <button onClick={() => handleAgregar(item)} className={styles.btnAgregar}>
+              ➕ Agregar
+            </button>
           </div>
         </article>
       );
@@ -337,7 +391,31 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${isRecent ? styles.recentlyAddedRow : ''}`}
       >
         <td className={styles.codeCell}>{highlight(item.codigo, q)}</td>
-        <td className={styles.descCell}>{highlight(item.descripcion, q)}</td>
+        <td className={styles.descCell}>
+          {highlight(item.descripcion, q)}
+          {esArtroscopia && (
+            <div className={styles.tableArtroscopiaSelector}>
+              <label className={styles.radioLabelInline}>
+                <input
+                  type="radio"
+                  name={`artro-tab-${key}`}
+                  checked={artroscopiaSelections[key] === 'simple' || !artroscopiaSelections[key]}
+                  onChange={() => handleArtroscopiaChange(key, 'simple')}
+                />
+                <span>Simple</span>
+              </label>
+              <label className={styles.radioLabelInline}>
+                <input
+                  type="radio"
+                  name={`artro-tab-${key}`}
+                  checked={artroscopiaSelections[key] === 'compleja'}
+                  onChange={() => handleArtroscopiaChange(key, 'compleja')}
+                />
+                <span>Compleja</span>
+              </label>
+            </div>
+          )}
+        </td>
         <td className={styles.capCell}>
           <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
         </td>

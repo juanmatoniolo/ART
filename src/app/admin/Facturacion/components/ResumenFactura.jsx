@@ -4,17 +4,29 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { money, parseNumber } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
 
-// Función unificada para cantidades (decimal > 0)
+// Helper para redondear a 1 decimal
+const to1Decimal = (n) => {
+  const num = parseNumber(n);
+  return Number.isFinite(num) ? Math.round(num * 10) / 10 : 0;
+};
+
+// Función unificada para cantidades (decimal > 0) con 1 decimal
 const clampDecimalQty = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n) || n <= 0) return 1;
-  return n;
+  return to1Decimal(n);
 };
 
+// Formateo de cantidad: 1 decimal, pero sin ",0" si es entero
 const fmtQtyInput = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n)) return '1';
-  return String(n).replace('.', ',');
+  // Redondear a 1 decimal
+  const rounded = to1Decimal(n);
+  // Convertir a string con un decimal (ej. 1.0 -> "1,0")
+  const withDecimal = rounded.toFixed(1).replace('.', ',');
+  // Si termina en ",0", quitar el ",0"
+  return withDecimal.replace(/,0$/, '');
 };
 
 const stopBubbling = (e) => {
@@ -105,6 +117,7 @@ export default function ResumenFactura({
     desc: true
   });
 
+  // Los totales monetarios se calculan con money (2 decimales), pero sumamos con parseNumber
   const totalSeccion = (items) =>
     items.reduce((acc, it) => acc + (parseNumber(it?.total) || 0), 0);
 
@@ -153,16 +166,21 @@ export default function ResumenFactura({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.prestadorNombre || '—'}</td>
-                <td>{item.codigo || '—'}</td>
-                <td>{item.descripcion || item.nombre || '—'}</td>
-                <td className={styles.printNumber}>{fmtQtyInput(item.cantidad)}</td>
-                <td className={styles.printNumber}>$ {money(item.honorarioMedico / item.cantidad)}</td>
-                <td className={styles.printNumber}>$ {money(item.honorarioMedico)}</td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const cantidad = clampDecimalQty(item.cantidad);
+              const total = parseNumber(item.honorarioMedico);
+              const unitario = total / cantidad;
+              return (
+                <tr key={item.id}>
+                  <td>{item.prestadorNombre || '—'}</td>
+                  <td>{item.codigo || '—'}</td>
+                  <td>{item.descripcion || item.nombre || '—'}</td>
+                  <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
+                  <td className={styles.printNumber}>$ {money(unitario)}</td>
+                  <td className={styles.printNumber}>$ {money(total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -187,16 +205,21 @@ export default function ResumenFactura({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.prestadorNombre || 'Clínica de la Unión'}</td>
-                <td>{item.codigo || '—'}</td>
-                <td>{item.descripcion || item.nombre || '—'}</td>
-                <td className={styles.printNumber}>{fmtQtyInput(item.cantidad)}</td>
-                <td className={styles.printNumber}>$ {money(item.gastoSanatorial / item.cantidad)}</td>
-                <td className={styles.printNumber}>$ {money(item.gastoSanatorial)}</td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const cantidad = clampDecimalQty(item.cantidad);
+              const total = parseNumber(item.gastoSanatorial);
+              const unitario = total / cantidad;
+              return (
+                <tr key={item.id}>
+                  <td>{item.prestadorNombre || 'Clínica de la Unión'}</td>
+                  <td>{item.codigo || '—'}</td>
+                  <td>{item.descripcion || item.nombre || '—'}</td>
+                  <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
+                  <td className={styles.printNumber}>$ {money(unitario)}</td>
+                  <td className={styles.printNumber}>$ {money(total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -219,14 +242,19 @@ export default function ResumenFactura({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.nombre} ({item.presentacion})</td>
-                <td className={styles.printNumber}>{fmtQtyInput(item.cantidad)}</td>
-                <td className={styles.printNumber}>$ {money(item.valorUnitario)}</td>
-                <td className={styles.printNumber}>$ {money(item.total)}</td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const cantidad = clampDecimalQty(item.cantidad);
+              const unitario = parseNumber(item.valorUnitario);
+              const total = parseNumber(item.total);
+              return (
+                <tr key={item.id}>
+                  <td>{item.nombre} ({item.presentacion})</td>
+                  <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
+                  <td className={styles.printNumber}>$ {money(unitario)}</td>
+                  <td className={styles.printNumber}>$ {money(total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -243,7 +271,10 @@ export default function ResumenFactura({
         <button
           type="button"
           className={styles.btnCantidad}
-          onClick={() => actualizarCantidad(itemId, Math.max(0.01, cur - step))}
+          onClick={() => {
+            const newVal = to1Decimal(Math.max(0.01, cur - step));
+            actualizarCantidad(itemId, newVal);
+          }}
           title="Restar"
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
@@ -258,7 +289,10 @@ export default function ResumenFactura({
         <button
           type="button"
           className={styles.btnCantidad}
-          onClick={() => actualizarCantidad(itemId, cur + step)}
+          onClick={() => {
+            const newVal = to1Decimal(cur + step);
+            actualizarCantidad(itemId, newVal);
+          }}
           title="Sumar"
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}

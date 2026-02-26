@@ -733,7 +733,9 @@ export default function FacturaContainer() {
             <motion.div key="cirugias" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <CirugiasModule
                 cirugiasAgregadas={cirugias}
+                practicasAgregadas={practicas}        // ← agregado
                 agregarCirugia={agregarCirugia}
+                agregarPractica={agregarPractica}      // ← agregado
                 onAtras={() => setActiveTab('practicas')}
                 onSiguiente={() => setActiveTab('laboratorios')}
               />
@@ -758,6 +760,7 @@ export default function FacturaContainer() {
                 descartablesAgregados={descartables}
                 agregarMedicamento={agregarMedicamento}
                 agregarDescartable={agregarDescartable}
+                actualizarItem={actualizarItem}   // ← nueva prop
                 onAtras={() => setActiveTab('laboratorios')}
                 onSiguiente={() => setActiveTab('resumen')}
               />
