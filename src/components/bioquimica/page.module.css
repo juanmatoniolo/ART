@@ -458,3 +458,32 @@
         display: block;
     }
 }
+
+
+.select {
+    width: 100%;
+    background: #1f2937;        /* fondo oscuro */
+    color: #f9fafb;             /* texto claro */
+    border: 1px solid #4b5563;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23e5e7eb%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.2rem;
+}
+
+.select option {
+    background: #1f2937;
+    color: #f9fafb;
+}
+
+.select:focus {
+    border-color: #6fa17b;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
+}

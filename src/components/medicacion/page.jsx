@@ -102,63 +102,67 @@ export default function MedyDescartablesPage() {
                     className={styles.search}
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    placeholder='Buscar (ej: "suero dextrosa 10", "ampolla", "Medicación")'
+                    placeholder='Buscar (ej: "suero", "ampolla", "descartable")'
                 />
             </div>
 
-            <table className={styles.table}>
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Presentación</th>
-                        <th>Tipo</th>
-                        <th style={{ textAlign: "right" }}>Precio ($)</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {filtrados.length === 0 ? (
+            <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                    <thead>
                         <tr>
-                            <td colSpan={4} style={{ padding: 12 }}>
-                                No hay coincidencias.
-                            </td>
+                            <th>Producto</th>
+                            <th>Presentación</th>
+                            <th>Tipo</th>
+                            <th>Precio ($)</th>
                         </tr>
-                    ) : (
-                        filtrados.map((item) => {
-                            const esMedicacion = item.tipo === "Medicacion";
+                    </thead>
 
-                            return (
-                                <tr key={item.id}>
-                                    <td>{String(item.nombre).replace(/_/g, " ")}</td>
+                    <tbody>
+                        {filtrados.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} className={styles.noResults}>
+                                    No hay coincidencias.
+                                </td>
+                            </tr>
+                        ) : (
+                            filtrados.map((item) => {
+                                const esMedicacion = item.tipo === "Medicacion";
 
-                                    <td>
-                                        <span className={styles.presentacion}>
-                                            {item.presentacion.charAt(0).toUpperCase() + item.presentacion.slice(1)}
-                                        </span>
-                                    </td>
+                                return (
+                                    <tr key={item.id}>
+                                        <td className={styles.productCell}>
+                                            {String(item.nombre).replace(/_/g, " ")}
+                                        </td>
 
-                                    <td>
-                                        {esMedicacion ? (
-                                            <span className={styles.medicacion}>{item.tipoFormatted}</span>
-                                        ) : (
-                                            <span className={styles.descartable}>{item.tipoFormatted}</span>
-                                        )}
-                                    </td>
+                                        <td>
+                                            <span className={styles.presentacion}>
+                                                {item.presentacion.charAt(0).toUpperCase() + item.presentacion.slice(1)}
+                                            </span>
+                                        </td>
 
-                                    <td style={{ textAlign: "right" }}>
-                                        {Number(item.precio ?? 0).toLocaleString("es-AR", {
-                                            style: "currency",
-                                            currency: "ARS",
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </td>
-                                </tr>
-                            );
-                        })
-                    )}
-                </tbody>
-            </table>
+                                        <td>
+                                            {esMedicacion ? (
+                                                <span className={styles.medicacion}>{item.tipoFormatted}</span>
+                                            ) : (
+                                                <span className={styles.descartable}>{item.tipoFormatted}</span>
+                                            )}
+                                        </td>
+
+                                        <td className={styles.priceCell}>
+                                            {Number(item.precio ?? 0).toLocaleString("es-AR", {
+                                                style: "currency",
+                                                currency: "ARS",
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

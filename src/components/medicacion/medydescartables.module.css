@@ -1,34 +1,39 @@
 /* =========================
-   CONTENEDOR
-========================= */
+   medydescartables.module.css
+   Mobile-first / Oscuro / Consistente
+   ========================= */
+
+/* =========================
+   Contenedor principal (mobile first)
+   ========================= */
 .wrapper {
-    padding: 2rem;
-    max-width: 1100px;
+    padding: 1rem;
+    max-width: 1400px;
     margin: 0 auto;
-    background-color: var(--bg-content);
+    background-color: #0b1220;
     border-radius: 16px;
     box-shadow: 0 0 22px rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    margin-top: 2EM;
+    margin-top: 1rem;
 }
 
 .title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text-light);
-    margin-bottom: 1.4rem;
+    color: #e5e7eb;
+    margin-bottom: 1rem;
     text-align: center;
-    border-bottom: 2px solid var(--color-primary);
-    padding-bottom: 0.6rem;
+    border-bottom: 2px solid #6fa17b;
+    padding-bottom: 0.5rem;
 }
 
 /* =========================
-   BARRA DE BÚSQUEDA
-========================= */
+   Barra de búsqueda
+   ========================= */
 .controls {
     position: relative;
     display: flex;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.5rem;
 }
 
 .controls::before {
@@ -38,123 +43,161 @@
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.7;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .search {
     width: 100%;
     padding: 12px 14px 12px 42px;
     border-radius: 12px;
-    border: 1px solid rgba(111, 161, 123, 0.35);
-    /* primary-light */
-    background-color: var(--bg-dark);
-    color: var(--text-light);
+    border: 1px solid #4b5563;
+    background: #1f2937;  /* fondo sólido oscuro */
+    color: #f9fafb;       /* texto claro */
     font-size: 1rem;
     outline: none;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search::placeholder {
-    color: var(--text-muted);
+    color: #9ca3af;
 }
 
 .search:focus {
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.25);
-    background-color: #0e1625;
+    border-color: #6fa17b;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
 /* =========================
-   TABLA
-========================= */
+   Contenedor de tabla con scroll horizontal en móvil
+   ========================= */
+.tableWrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #0b1220;
+}
+
 .table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background-color: var(--bg-content);
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 600px; /* fuerza scroll en móvil si es necesario */
+    border-collapse: collapse;
+    background: #0b1220;
 }
 
 .table thead th {
-    background-color: var(--color-primary);
+    background-color: #6fa17b;
     color: #ffffff;
     text-align: left;
-    padding: 14px;
+    padding: 12px 10px;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .table tbody td {
-    padding: 12px 14px;
+    padding: 10px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    color: var(--text-light);
-    font-size: 0.95rem;
-}
-
-.table tbody tr {
-    transition: background-color 0.15s ease;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .table tbody tr:hover {
     background-color: rgba(68, 121, 77, 0.12);
-    /* primary suave */
 }
 
-.table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.table tbody td:first-child {
+.productCell {
     font-weight: 600;
+    white-space: normal;
+    word-break: break-word;
+    min-width: 180px;
 }
 
-/* =========================
-   BADGES (TIPO)
-========================= */
+.priceCell {
+    text-align: right;
+    font-family: monospace;
+}
+
+.noResults {
+    padding: 20px;
+    text-align: center;
+    color: #9ca3af;
+}
+
+/* Badges */
 .medicacion,
 .descartable {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     border-radius: 999px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 0.2px;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
-/* 💊 Medicación */
 .medicacion {
-    color: var(--color-primary-light);
+    color: #8fbc8f;
     background-color: rgba(111, 161, 123, 0.18);
     border-color: rgba(111, 161, 123, 0.35);
 }
 
-/* 🧷 Descartable */
 .descartable {
-    color: var(--color-warning);
+    color: #facc15;
     background-color: rgba(250, 204, 21, 0.15);
     border-color: rgba(250, 204, 21, 0.35);
 }
 
+.presentacion {
+    font-style: italic;
+    color: #cbd5e1;
+}
+
 /* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 700px) {
+   Ajustes para tablets (min-width: 640px)
+   ========================= */
+@media (min-width: 640px) {
     .wrapper {
-        padding: 1.2rem;
+        padding: 1.5rem;
     }
 
     .title {
-        font-size: 1.35rem;
+        font-size: 1.6rem;
+        margin-bottom: 1.2rem;
     }
 
-    .table thead th,
+    .table {
+        min-width: 0; /* ya no fuerza scroll */
+    }
+
+    .table thead th {
+        padding: 14px;
+        font-size: 0.95rem;
+    }
+
     .table tbody td {
-        padding: 10px;
-        font-size: 0.9rem;
+        padding: 12px 14px;
+        font-size: 0.95rem;
+    }
+
+    .productCell {
+        min-width: 0;
     }
 }
 
+/* =========================
+   Ajustes para desktop (min-width: 1024px)
+   ========================= */
+@media (min-width: 1024px) {
+    .wrapper {
+        padding: 2rem;
+    }
+
+    .table thead th {
+        font-size: 1rem;
+    }
+}
