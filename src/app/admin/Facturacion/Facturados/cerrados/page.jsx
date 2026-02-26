@@ -36,7 +36,6 @@ export default function CerradosPage() {
     const [q, setQ] = useState('');
     const [art, setArt] = useState('');
 
-    // Selección múltiple
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     useEffect(() => {
@@ -104,7 +103,6 @@ export default function CerradosPage() {
         });
     }, [items, q, art]);
 
-    // Handlers de selección
     const toggleSelect = (id) => {
         const newSelected = new Set(selectedIds);
         if (newSelected.has(id)) newSelected.delete(id);
@@ -122,7 +120,6 @@ export default function CerradosPage() {
 
     const isAllSelected = selectedIds.size === filtered.length && filtered.length > 0;
 
-    // Exportar a Excel con el formato solicitado
     const exportToExcel = () => {
         const selected = Array.from(selectedIds);
         if (selected.length === 0) {
@@ -130,7 +127,6 @@ export default function CerradosPage() {
             return;
         }
 
-        // Encabezados: incluimos las columnas M, N, O para los subtotales
         const headers = [
             'CdU', 'Nombre completo', 'DNI', 'N° Siniestro',
             'Tipo', 'Categoría', 'Código', 'Descripción',
@@ -139,9 +135,8 @@ export default function CerradosPage() {
         ];
         const rows = [headers];
 
-        let globalCdU = 1; // Contador global de filas de detalle (excluye encabezados y filas en blanco)
+        let globalCdU = 1;
 
-        // Procesar cada siniestro seleccionado
         selected.forEach((id, index) => {
             const item = data[id];
             if (!item) return;
@@ -151,11 +146,9 @@ export default function CerradosPage() {
             const dni = paciente.dni || '';
             const nroSiniestro = paciente.nroSiniestro || '';
 
-            // Recolectar todas las líneas de honorarios y gastos
             const honorRows = [];
             const gastoRows = [];
 
-            // Función para procesar cada ítem
             const processItem = (x, categoria) => {
                 const honorario = safeNum(x?.honorarioMedico);
                 const gasto = safeNum(x?.gastoSanatorial);
@@ -167,7 +160,6 @@ export default function CerradosPage() {
                 const codigo = x?.codigo || x?.code || x?.cod || '';
                 let origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
 
-                // Para honorarios, si no hay origen, dejamos vacío
                 if (honorario > 0) {
                     honorRows.push({
                         tipo: 'HONORARIO',
@@ -194,13 +186,10 @@ export default function CerradosPage() {
                 }
             };
 
-            // Prácticas
             (item.practicas || []).forEach(p => processItem(p, 'Práctica'));
-            // Cirugías
             (item.cirugias || []).forEach(c => processItem(c, 'Cirugía'));
-            // Laboratorios
             (item.laboratorios || []).forEach(l => processItem(l, 'Laboratorio'));
-            // Medicamentos (solo gasto)
+
             (item.medicamentos || []).forEach(m => {
                 const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
                 if (gasto > 0) {
@@ -218,7 +207,7 @@ export default function CerradosPage() {
                     });
                 }
             });
-            // Descartables (solo gasto)
+
             (item.descartables || []).forEach(d => {
                 const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
                 if (gasto > 0) {
@@ -237,25 +226,19 @@ export default function CerradosPage() {
                 }
             });
 
-            // Calcular subtotales del siniestro
             const totalHonor = honorRows.reduce((acc, r) => acc + r.total, 0);
             const totalGasto = gastoRows.reduce((acc, r) => acc + r.total, 0);
             const totalSiniestro = totalHonor + totalGasto;
 
-            // Ordenar: primero todos los honorarios, luego todos los gastos
             const allRows = [...honorRows, ...gastoRows];
-
-            // Si no hay filas, saltamos (no debería ocurrir en cerrados)
             if (allRows.length === 0) return;
 
-            // Generar filas de detalle
             allRows.forEach((row, idx) => {
-                // Los datos del paciente solo en la primera fila del siniestro
                 const rowData = [
-                    globalCdU,                     // CdU
-                    idx === 0 ? nombre : '',       // Nombre completo
-                    idx === 0 ? dni : '',          // DNI
-                    idx === 0 ? nroSiniestro : '', // N° Siniestro
+                    globalCdU,
+                    idx === 0 ? nombre : '',
+                    idx === 0 ? dni : '',
+                    idx === 0 ? nroSiniestro : '',
                     row.tipo,
                     row.categoria,
                     row.codigo,
@@ -264,7 +247,6 @@ export default function CerradosPage() {
                     row.unit,
                     row.total,
                     row.origen,
-                    // En la primera fila ponemos los subtotales, en las demás vacío
                     idx === 0 ? totalHonor : '',
                     idx === 0 ? totalGasto : '',
                     idx === 0 ? totalSiniestro : ''
@@ -273,15 +255,11 @@ export default function CerradosPage() {
                 globalCdU++;
             });
 
-            // Fila en blanco después de cada siniestro, excepto el último
             if (index < selected.length - 1) {
-                rows.push(Array(headers.length).fill('')); // Fila vacía
-                // No incrementamos CdU
+                rows.push(Array(headers.length).fill(''));
             }
         });
 
-        // Agregar fila de totales generales al final
-        // Calculamos sumas totales sobre todos los siniestros
         let totalHonorGeneral = 0;
         let totalGastoGeneral = 0;
         let totalGeneral = 0;
@@ -289,10 +267,7 @@ export default function CerradosPage() {
         selected.forEach(id => {
             const item = data[id];
             if (!item) return;
-            // Podríamos recalcular, pero para simplificar usamos los totales ya guardados en item si existen
-            // O podemos volver a calcular como antes:
             let honor = 0, gasto = 0;
-            // Función simple para sumar
             const sumItems = (arr, field) => {
                 if (!arr) return 0;
                 return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
@@ -304,7 +279,7 @@ export default function CerradosPage() {
             gasto += sumItems(item.cirugias, 'gastoSanatorial');
             gasto += sumItems(item.laboratorios, 'gastoSanatorial');
             gasto += sumItems(item.medicamentos, 'gastoSanatorial');
-            gasto += sumItems(item.medicamentos, 'total'); // por si acaso
+            gasto += sumItems(item.medicamentos, 'total');
             gasto += sumItems(item.descartables, 'gastoSanatorial');
             gasto += sumItems(item.descartables, 'total');
 
@@ -313,19 +288,16 @@ export default function CerradosPage() {
             totalGeneral += honor + gasto;
         });
 
-        // Fila de totales generales (sin CdU)
         const totalRow = [
-            '', '', '', '', // vacío hasta Tipo
+            '', '', '', '',
             'TOTALES GENERALES', '', '', '', '', '', '', '',
             totalHonorGeneral, totalGastoGeneral, totalGeneral
         ];
         rows.push(totalRow);
 
-        // Crear libro de Excel
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(rows);
 
-        // Ajustar ancho de columnas opcionalmente (opcional)
         const colWidths = [
             { wch: 6 },  // CdU
             { wch: 25 }, // Nombre completo
