@@ -418,7 +418,7 @@ export default function InsumosAdmin() {
             </div>
 
             {/* ✅ Dropdown único: Descargar lista */}
-            <div className={styles.content} style={{ paddingTop: 0 }}>
+            <div className={styles.content} style={{ paddingTop: 0, marginBottom: "1.5rem" }}>
                 <select
                     className={styles.selectTipo}
                     defaultValue=""
