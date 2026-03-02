@@ -1,4 +1,4 @@
-/* ================= LAYOUT PRINCIPAL ================= */
+/* ================= LAYOUT PRINCIPAL (mobile-first) ================= */
 .layout {
   min-height: 100vh;
   display: flex;
@@ -11,8 +11,8 @@
 .header {
   background: #111827;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0 1.5rem;
-  height: 70px;
+  padding: 0 1rem;
+  height: 60px; /* más compacto en móvil */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,60 +25,35 @@
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .brand {
   font-weight: 900;
-  font-size: 1.25rem;
+  font-size: 1rem; /* más pequeño en móvil */
   letter-spacing: 0.02em;
   color: #f0f9ff;
-}
-
-.desktopNav {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  justify-content: center;
-}
-
-.navLink {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 30px;
-  color: #d1d5db;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.navLink:hover {
-  background: rgba(111, 161, 123, 0.15);
-  color: #ffffff;
+/* Desktop nav oculto en móvil por defecto */
+.desktopNav {
+  display: none;
 }
 
-.navLink.active {
-  background: linear-gradient(90deg, #44794d, #6fa17b);
-  color: white;
-  font-weight: 600;
-}
-
+/* Header right */
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .iconButton {
   background: transparent;
   border: none;
   color: #d1d5db;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -97,13 +72,13 @@
 }
 
 .mobileMenuButton {
-  display: none;
+  display: flex;
   background: transparent;
   border: none;
   color: #e5e7eb;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   align-items: center;
   justify-content: center;
@@ -115,12 +90,12 @@
 
 /* ================= MENÚ MÓVIL ================= */
 .mobileMenu {
-  display: none;
   background: #111827;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 1rem;
+  padding: 0.5rem;
+  display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .mobileNavLink {
@@ -166,7 +141,7 @@
 
 .content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -176,8 +151,8 @@
   background: #111827;
   color: #9ca3af;
   text-align: center;
-  padding: 0.9rem 1rem;
-  font-size: 0.82rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
 }
 
 .loading {
@@ -186,42 +161,81 @@
   text-align: center;
 }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 1024px) {
+/* ================= TABLET Y DESKTOP ================= */
+@media (min-width: 768px) {
+  .header {
+    height: 70px;
+    padding: 0 1.5rem;
+  }
+
+  .brand {
+    font-size: 1.25rem;
+  }
+
   .desktopNav {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .navLink {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    color: #d1d5db;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .navLink:hover {
+    background: rgba(111, 161, 123, 0.15);
+    color: #ffffff;
+  }
+
+  .navLink.active {
+    background: linear-gradient(90deg, #44794d, #6fa17b);
+    color: white;
+    font-weight: 600;
   }
 
   .mobileMenuButton {
-    display: flex;
+    display: none;
   }
 
-  .mobileMenu {
-    display: flex;
-  }
-
-  .header {
-    padding: 0 1rem;
-  }
-}
-
-@media (min-width: 1025px) {
   .mobileMenu {
     display: none !important;
   }
+
+  .content {
+    padding: 1.5rem;
+  }
+
+  .footer {
+    padding: 0.9rem 1rem;
+    font-size: 0.82rem;
+  }
 }
 
+@media (min-width: 1024px) {
+  .content {
+    padding: 1.5rem 2rem;
+  }
+}
 
-
-
-/*//////////////////////////////////////////////////////////////////////////*/
+/* ================= DASHBOARD (mobile-first) ================= */
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
   color: #f0f9ff;
@@ -229,22 +243,22 @@
 
 .subtitle {
   color: #9ca3af;
-  margin-bottom: 2rem;
-  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
+  grid-template-columns: 1fr; /* 1 columna en móvil */
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .card {
   background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -254,31 +268,32 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
 .cardIcon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(68, 121, 77, 0.1);
   color: #6fa17b;
+  flex-shrink: 0;
 }
 
 .cardContent h3 {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: #9ca3af;
   margin-bottom: 0.25rem;
 }
 
 .cardContent p {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #f0f9ff;
   line-height: 1.2;
@@ -289,29 +304,29 @@
 }
 
 .sectionTitle {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: #e5e7eb;
 }
 
 .recentGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .recentCard {
   background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .recentCard h4 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: #d1d5db;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 0.5rem;
@@ -320,36 +335,60 @@
 .placeholder {
   color: #6b7280;
   text-align: center;
-  padding: 2rem 0;
+  padding: 1.5rem 0;
   font-style: italic;
 }
 
-.loading {
-  text-align: center;
-  padding: 3rem;
-  color: #9ca3af;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .title {
-    font-size: 1.5rem;
+/* Tablet */
+@media (min-width: 640px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
+  .recentGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .title {
+    font-size: 1.8rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
   .statsGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .recentGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
   }
 
   .card {
-    padding: 1rem;
+    padding: 1.5rem;
   }
 
   .cardIcon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
   }
 
   .cardContent p {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+  }
+}
+
+/* Para pantallas muy grandes, 4 columnas */
+@media (min-width: 1400px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

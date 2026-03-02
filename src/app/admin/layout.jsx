@@ -1,3 +1,4 @@
+// layout.jsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -40,9 +41,13 @@ export default function AdminLayout({ children }) {
     router.push("/login");
   };
 
-  const isActive = (href) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href) => {
+    if (href === "/admin") {
+      return pathname === "/admin";
+    }
+    return pathname.startsWith(href + "/") || pathname === href;
+  };
 
-  // Cierra el menú móvil al navegar
   const handleLinkClick = () => {
     setMobileMenuOpen(false);
   };
@@ -50,27 +55,25 @@ export default function AdminLayout({ children }) {
   if (!isClient) {
     return <div className={styles.loading}>Cargando...</div>;
   }
-const navItems = [
-    { href: "/admin", label: "", icon: Home },
+
+  const navItems = [
+    { href: "/admin", label: "", icon: Home, showLabel: false }, // solo icono
     { href: "/admin/comunicador", label: "Comunicador", icon: Users },
-  /*   { href: "/admin/empleados", label: "Empleados", icon: Briefcase }, */
     { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
     { href: "/admin/med-descartables", label: "Med + Descartables", icon: Pill },
     { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
-  /*   { href: "/admin/Siniestro", label: "Siniestros", icon: FolderTree }, */
-    { href: "/admin/cx", label: "CX", icon: FolderTree }, 
-];
+    { href: "/admin/cx", label: "CX", icon: FolderTree },
+  ];
 
   return (
     <div className={styles.layout}>
-      {/* Header superior */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <Image src="/logo.png" alt="Logo" width={40} height={40} priority />
           <span className={styles.brand}>Clínica Unión</span>
         </div>
 
-        {/* Navegación desktop */}
+        {/* Desktop navigation */}
         <nav className={styles.desktopNav}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -79,9 +82,10 @@ const navItems = [
                 key={item.href}
                 href={item.href}
                 className={`${styles.navLink} ${isActive(item.href) ? styles.active : ""}`}
+                title={item.label || "Inicio"}
               >
                 <Icon size={18} />
-                <span>{item.label}</span>
+                {item.label && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -102,8 +106,6 @@ const navItems = [
           >
             <LogOut size={20} />
           </button>
-
-          {/* Botón menú móvil */}
           <button
             className={styles.mobileMenuButton}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -114,7 +116,6 @@ const navItems = [
         </div>
       </header>
 
-      {/* Menú móvil desplegable */}
       {mobileMenuOpen && (
         <div className={styles.mobileMenu}>
           {navItems.map((item) => {
@@ -127,7 +128,7 @@ const navItems = [
                 onClick={handleLinkClick}
               >
                 <Icon size={20} />
-                <span>{item.label}</span>
+                <span>{item.label || "Inicio"}</span>
               </Link>
             );
           })}
@@ -150,7 +151,6 @@ const navItems = [
         </div>
       )}
 
-      {/* Contenido principal */}
       <main className={styles.main}>
         <div className={styles.content}>{children}</div>
         <footer className={styles.footer}>

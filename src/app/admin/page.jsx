@@ -1,3 +1,4 @@
+// page.jsx (dashboard)
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,8 +11,6 @@ import {
   Pill,
   BookOpen,
   FolderTree,
-  Activity,
-  Calendar,
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -19,32 +18,27 @@ export default function AdminDashboard() {
     pacientes: 0,
     empleados: 0,
     facturas: 0,
-    siniestros: 0,
+    // siniestros: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aquí puedes conectar con tu API o Firebase para obtener datos reales
     const fetchStats = async () => {
       try {
-        // Ejemplo de llamadas simuladas
-        const [pacientesRes, empleadosRes, facturasRes, siniestrosRes] = await Promise.all([
+        const [pacientesRes, empleadosRes, facturasRes] = await Promise.all([
           fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
           fetch("https://datos-clini-default-rtdb.firebaseio.com/empleados.json"),
           fetch("https://datos-clini-default-rtdb.firebaseio.com/facturas.json"),
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/siniestros.json"),
         ]);
 
         const pacientes = await pacientesRes.json();
         const empleados = await empleadosRes.json();
         const facturas = await facturasRes.json();
-        const siniestros = await siniestrosRes.json();
 
         setStats({
           pacientes: pacientes ? Object.keys(pacientes).length : 0,
           empleados: empleados ? Object.keys(empleados).length : 0,
           facturas: facturas ? Object.keys(facturas).length : 0,
-          siniestros: siniestros ? Object.keys(siniestros).length : 0,
         });
       } catch (error) {
         console.error("Error cargando estadísticas:", error);
@@ -93,11 +87,11 @@ export default function AdminDashboard() {
       href: "/admin/nomencladores",
     },
     {
-      title: "Siniestros",
-      value: stats.siniestros,
+      title: "CX",
+      value: "—",
       icon: FolderTree,
       color: "#b45309",
-      href: "/admin/Siniestro",
+      href: "/admin/cx",
     },
   ];
 
@@ -134,7 +128,6 @@ export default function AdminDashboard() {
         <div className={styles.recentGrid}>
           <div className={styles.recentCard}>
             <h4>Últimos pacientes</h4>
-            {/* Aquí podrías listar los últimos pacientes registrados */}
             <p className={styles.placeholder}>Sin datos recientes</p>
           </div>
           <div className={styles.recentCard}>
