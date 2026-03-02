@@ -7,6 +7,7 @@ import ConveniosArt from '@/components/convenios/page';
 import NomencladorBioq from '@/components/bioquimica/page';
 import NomencladorAoter from '@/components/aoter/page';
 import styles from './page.module.css';
+import Link from 'next/link';
 
 export default function NomencladorGlobal() {
   const [activeTab, setActiveTab] = useState('nacional');
@@ -35,9 +36,12 @@ export default function NomencladorGlobal() {
         {/* Header (sobrio) */}
         <div className={styles.cardHeader}>
           <h1 className={styles.title}>Nomencladores</h1>
-          <p className={styles.subtitle}>
-            Seleccione una sección para consultar y gestionar información.
-          </p>
+
+          <span>
+            <Link href="admin/nomencladores/editar" className={styles.subtitle}>
+              Edición
+            </Link>
+          </span>
         </div>
 
         {/* Tabs */}

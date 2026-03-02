@@ -1,0 +1,293 @@
+/* Tema oscuro consistente con el layout de admin */
+.page {
+    min-height: 100%;
+    background: #0f172a; /* fondo oscuro general */
+    color: #e5e7eb;
+    padding: 20px 0;
+}
+
+.shell {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #f0f9ff;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.headerActions {
+    display: flex;
+    gap: 10px;
+}
+
+.ghostBtn {
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #e5e7eb;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ghostBtn:hover {
+    background: #1e293b;
+}
+
+.ghostBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Card principal */
+.card {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Secciones */
+.section {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.section:last-of-type {
+    margin-bottom: 0;
+}
+
+.sectionHead {
+    margin-bottom: 16px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f0f9ff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sectionTitle::before {
+    content: "";
+    width: 6px;
+    height: 24px;
+    background: #44794d;
+    border-radius: 4px;
+}
+
+.sectionHint {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 640px) {
+    .grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.field, .fieldFull {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fieldFull {
+    grid-column: 1 / -1;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #d1d5db;
+}
+
+/* Inputs */
+.input {
+    height: 46px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 0 14px;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input::placeholder {
+    color: #6b7280;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #44794d;
+    box-shadow: 0 0 0 3px rgba(68, 121, 77, 0.3);
+}
+
+.inputError {
+    border-color: #ef4444 !important;
+}
+
+.errorText {
+    font-size: 13px;
+    color: #f87171;
+    font-weight: 500;
+}
+
+/* Chips (radio buttons) */
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #d1d5db;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chip input {
+    accent-color: #44794d;
+    margin: 0;
+}
+
+.chipActive {
+    border-color: #44794d;
+    background: #1e3a2a;
+    color: #ffffff;
+}
+
+/* Botón principal */
+.primaryBtn {
+    width: 100%;
+    height: 52px;
+    border-radius: 30px;
+    border: none;
+    background: #44794d;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover {
+    background: #396742;
+}
+
+.primaryBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Footer y PDF */
+.footer {
+    margin-top: 24px;
+}
+
+.pdfRow {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pdfActionsRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.pdfActions {
+    display: flex;
+    gap: 8px;
+}
+
+.secondaryBtn {
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #e5e7eb;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.secondaryBtn:hover {
+    background: #1e293b;
+}
+
+/* Mensajes tipo toast */
+.toastInfo {
+    background: #1e3a8a20;
+    border: 1px solid #3b82f6;
+    color: #93c5fd;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.toastSuccess {
+    background: #14532d20;
+    border: 1px solid #22c55e;
+    color: #86efac;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.toastDanger {
+    background: #7f1d1d20;
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}

@@ -2,31 +2,27 @@
 import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 
-export default function Home() {
+export default function WhatsAppSender() {
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [dia, setDia] = useState("");
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
-
   const [bioquimico, setBioquimico] = useState("confalonieri");
   const [cardiologo, setCardiologo] = useState("percara");
-
   const [preview, setPreview] = useState("");
 
   const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
   useEffect(() => {
-    const base = buildMessage();
-    setPreview(base);
+    setPreview(buildMessage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
   const buildMessage = () => {
-    let text = "";
-
+    // ... (el contenido de los mensajes se mantiene igual) ...
     if (mensaje === "1") {
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
 Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
@@ -41,9 +37,8 @@ También le dejamos las kinesiólogas que trabajan con ART:
 
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
     }
-
     if (mensaje === "2") {
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
 
 *Indicaciones importantes:*
@@ -55,9 +50,8 @@ Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene 
 
 *Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
     }
-
     if (mensaje === "3") {
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.
 Puede pasar a retirar la orden por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
@@ -69,7 +63,6 @@ Ingreso por *Roque Sáenz Peña*.
 • *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.
 • *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
-
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
@@ -77,8 +70,7 @@ Ingreso por *Roque Sáenz Peña*.
 *Dirección:* Bolívar 1695 (esquina con 9 de Julio)`
           : `Dr. Capovilla
 *Dirección:* Bolívar 1645 (entre Pablo Estampa y 9 de Julio)`;
-
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
 *Indicaciones:*
@@ -88,7 +80,6 @@ Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobad
 *Profesional:*
 ${profesional}`;
     }
-
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
@@ -96,8 +87,7 @@ ${profesional}`;
 *Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
           : `Bioquímico Mármol
 *Dirección:* Sarmiento 2610`;
-
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
 *Profesional:*
@@ -108,9 +98,8 @@ ${profesional}
 • Llevar documento
 • Llegar 10 a 15 minutos antes`;
     }
-
     if (mensaje === "6") {
-      text = `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *ecografía fue aprobada* y tiene turno para *${dia} a las ${hora}*.
 
 *Lugar de realización:*
@@ -121,10 +110,8 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
 • Asistir con documento
 • Llegar 10 a 15 minutos antes`;
     }
-
-    // ✅ NUEVO: Mensaje 7 – Cirugía Aprobada
     if (mensaje === "7") {
-      text = `CLÍNICA DE LA UNIÓN S.A.
+      return `CLÍNICA DE LA UNIÓN S.A.
 
 Buen día, *${name}*.
 
@@ -132,7 +119,7 @@ Le informamos que su *intervención quirúrgica ha sido aprobada*.
 
 Para continuar con el circuito administrativo y la programación, le solicitamos que se presente el *${dia} a las ${hora}*. 
 
-Favor de completar y enviar por este medio los siguietes datos:
+Favor de completar y enviar por este medio los siguientes datos:
 
 
 • Apellido:
@@ -158,14 +145,12 @@ Quedamos a la espera de su información para avanzar.
 
 Muchas gracias.`;
     }
-
-    return text;
+    return "";
   };
 
   const createWaLink = () => {
     if (!phone) return "";
-    return `https://wa.me/${phone}?text=${encodeURIComponent(preview)}`;
-    // Si querés, podés sanitizar el phone (solo números) antes.
+    return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
   };
 
   const canSend = phone && name && (!requiresDateTime || (dia && hora));
@@ -175,90 +160,145 @@ Muchas gracias.`;
       <div className={styles.card}>
         <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
-        <input
-          type="text"
-          placeholder="Número de teléfono (ej: 549xxxxxxxxx)"
-          className={styles.input}
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <input
-          type="text"
-          placeholder="Nombre del paciente"
-          className={styles.input}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        {requiresDateTime && (
-          <>
+        <div className={styles.formGrid}>
+          {/* Teléfono */}
+          <div className={styles.field}>
+            <label htmlFor="phone" className={styles.label}>
+              Número de teléfono <span className={styles.required}>*</span>
+            </label>
             <input
-              type="text"
-              placeholder="Día del turno"
+              id="phone"
+              type="tel"
               className={styles.input}
-              value={dia}
-              onChange={(e) => setDia(e.target.value)}
+              placeholder="Ej: 5493456123456"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
+          </div>
 
+          {/* Nombre paciente */}
+          <div className={styles.field}>
+            <label htmlFor="name" className={styles.label}>
+              Nombre del paciente <span className={styles.required}>*</span>
+            </label>
             <input
+              id="name"
               type="text"
-              placeholder="Hora del turno"
               className={styles.input}
-              value={hora}
-              onChange={(e) => setHora(e.target.value)}
+              placeholder="Nombre completo"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
-          </>
-        )}
+          </div>
 
-        {mensaje === "5" && (
-          <select
-            className={styles.input}
-            value={bioquimico}
-            onChange={(e) => setBioquimico(e.target.value)}
-          >
-            <option value="confalonieri">Bioquímica Confalonieri</option>
-            <option value="marmol">Bioquímico Mármol</option>
-          </select>
-        )}
+          {/* Campos condicionales: fecha y hora */}
+          {requiresDateTime && (
+            <>
+              <div className={styles.field}>
+                <label htmlFor="dia" className={styles.label}>
+                  Día del turno <span className={styles.required}>*</span>
+                </label>
+                <input
+                  id="dia"
+                  type="text"
+                  className={styles.input}
+                  placeholder="Ej: lunes 15/04"
+                  value={dia}
+                  onChange={(e) => setDia(e.target.value)}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="hora" className={styles.label}>
+                  Hora del turno <span className={styles.required}>*</span>
+                </label>
+                <input
+                  id="hora"
+                  type="text"
+                  className={styles.input}
+                  placeholder="Ej: 10:30"
+                  value={hora}
+                  onChange={(e) => setHora(e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
-        {mensaje === "4" && (
-          <select
-            className={styles.input}
-            value={cardiologo}
-            onChange={(e) => setCardiologo(e.target.value)}
-          >
-            <option value="percara">Dr. Percara</option>
-            <option value="capovilla">Dr. Capovilla</option>
-          </select>
-        )}
+          {/* Selector de mensaje */}
+          <div className={styles.field}>
+            <label htmlFor="mensaje" className={styles.label}>
+              Tipo de mensaje
+            </label>
+            <select
+              id="mensaje"
+              className={styles.input}
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+            >
+              <option value="1">Mensaje 1 – FKT Aprobada</option>
+              <option value="2">Mensaje 2 – RMN Aprobada</option>
+              <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
+              <option value="4">Mensaje 4 – Electrocardiograma</option>
+              <option value="5">Mensaje 5 – Estudios Laboratorio</option>
+              <option value="6">Mensaje 6 – Ecografía Aprobada</option>
+              <option value="7">Mensaje 7 – Cirugía Aprobada</option>
+            </select>
+          </div>
 
-        <select
-          className={styles.input}
-          value={mensaje}
-          onChange={(e) => setMensaje(e.target.value)}
-        >
-          <option value="1">Mensaje 1 – FKT Aprobada</option>
-          <option value="2">Mensaje 2 – RMN Aprobada</option>
-          <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
-          <option value="4">Mensaje 4 – Electrocardiograma</option>
-          <option value="5">Mensaje 5 – Estudios Laboratorio</option>
-          <option value="6">Mensaje 6 – Ecografía Aprobada</option>
-          <option value="7">Mensaje 7 – Cirugía Aprobada</option>
-        </select>
+          {/* Selector de bioquímico (solo mensaje 5) */}
+          {mensaje === "5" && (
+            <div className={styles.field}>
+              <label htmlFor="bioquimico" className={styles.label}>
+                Bioquímico
+              </label>
+              <select
+                id="bioquimico"
+                className={styles.input}
+                value={bioquimico}
+                onChange={(e) => setBioquimico(e.target.value)}
+              >
+                <option value="confalonieri">Bioquímica Confalonieri</option>
+                <option value="marmol">Bioquímico Mármol</option>
+              </select>
+            </div>
+          )}
 
+          {/* Selector de cardiólogo (solo mensaje 4) */}
+          {mensaje === "4" && (
+            <div className={styles.field}>
+              <label htmlFor="cardiologo" className={styles.label}>
+                Cardiólogo
+              </label>
+              <select
+                id="cardiologo"
+                className={styles.input}
+                value={cardiologo}
+                onChange={(e) => setCardiologo(e.target.value)}
+              >
+                <option value="percara">Dr. Percara</option>
+                <option value="capovilla">Dr. Capovilla</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Área de previsualización */}
         <div className={styles.previewBox}>
+          <label htmlFor="preview" className={styles.label}>
+            Vista previa del mensaje
+          </label>
           <textarea
+            id="preview"
             className={styles.textarea}
             value={preview}
             onChange={(e) => setPreview(e.target.value)}
           />
         </div>
 
+        {/* Botón de envío */}
         <a
           href={canSend ? createWaLink() : "#"}
           target="_blank"
-          className={styles.button}
+          className={`${styles.button} ${!canSend ? styles.buttonDisabled : ""}`}
           onClick={(e) => {
             if (!canSend) e.preventDefault();
           }}
