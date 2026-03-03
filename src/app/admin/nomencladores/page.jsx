@@ -38,7 +38,7 @@ export default function NomencladorGlobal() {
           <h1 className={styles.title}>Nomencladores</h1>
 
           <span>
-            <Link href="admin/nomencladores/editar" className={styles.subtitle}>
+            <Link href="nomencladores/editar" className={styles.subtitle}>
               Edición
             </Link>
           </span>

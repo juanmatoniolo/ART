@@ -92,7 +92,6 @@ const vincularSubsiguientes = (item, data) => {
   return [item];
 };
 
-// ✅ Solo para mostrar (no cambia el value real)
 const formatConvenioLabel = (s) =>
   String(s ?? '')
     .replace(/_+/g, ' ')
@@ -119,6 +118,7 @@ export default function NomencladorNacional() {
   const [galenoQuir, setGalenoQuir] = useState(0);
   const [diaPension, setDiaPension] = useState(0);
   const [otrosGastos, setOtrosGastos] = useState(0);
+  const [galenoComun, setGalenoComun] = useState(0);
 
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
@@ -194,6 +194,7 @@ export default function NomencladorNacional() {
     const galenoQuirRaw = pick(['Galeno_Quir', 'Galeno Quir', 'Galeno Quirúrgico', 'Galeno Quirurgico']);
     const pensionRaw = pick(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión', 'Dia Pension', 'Día Pension']);
     const otrosGastosRaw = pick(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos', 'Otros Gastos Medicos']);
+    const galenoComunRaw = pick(['Galeno_Comun', 'Galeno_General', 'Honorario_Basico', 'Galeno Comun']);
 
     setGastoRx(parseNumber(gastoRaw));
     setGalenoRxPractica(parseNumber(galenoRaw));
@@ -201,6 +202,7 @@ export default function NomencladorNacional() {
     setGalenoQuir(parseNumber(galenoQuirRaw));
     setDiaPension(parseNumber(pensionRaw));
     setOtrosGastos(parseNumber(otrosGastosRaw));
+    setGalenoComun(parseNumber(galenoComunRaw));
 
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
@@ -248,6 +250,18 @@ export default function NomencladorNacional() {
     const gto = parseNumber(it.gto);
     const gal = parseNumber(it.q_gal);
 
+    // Caso especial para código 400101: reemplazar valores por los calculados
+    if (String(it.codigo) === '400101') {
+      const galCalculado = gal * galenoComun;
+      const gtoCalculado = gto * diaPension;
+      return {
+        gal: galCalculado,
+        gto: gtoCalculado,
+        extraGal: null,
+        extraGto: null
+      };
+    }
+
     const capituloNum = Number(String(it.capitulo ?? '').replace(/\D/g, '')) || 0;
     const capituloNombre = it.capituloNombre ?? '';
 
@@ -288,35 +302,31 @@ export default function NomencladorNacional() {
               Consultá prácticas y costos según convenio. Podés buscar global o por capítulos.
             </p>
           </div>
-
-
         </div>
         <div className={styles.chips} aria-label="Valores del convenio">
           <span className={`${styles.chip} ${styles.chipGastoRx}`}>
             <b>Gasto Rx</b> <span className={styles.chipValue}>{money(gastoRx)}</span>
           </span>
-
           <span className={`${styles.chip} ${styles.chipGalenoRx}`}>
             <b>Galeno Rx</b> <span className={styles.chipValue}>{money(galenoRxPractica)}</span>
           </span>
-
           <span className={`${styles.chip} ${styles.chipGtoOperatorio}`}>
             <b>G. Oper.</b> <span className={styles.chipValue}>{money(gastoOperatorio)}</span>
           </span>
-
           <span className={`${styles.chip} ${styles.chipGalenoQuir}`}>
             <b>Gal. Quir.</b> <span className={styles.chipValue}>{money(galenoQuir)}</span>
           </span>
-
           <span className={`${styles.chip} ${styles.chipPension}`}>
             <b>Pensión</b> <span className={styles.chipValue}>{money(diaPension)}</span>
           </span>
-
           <span className={`${styles.chip} ${styles.chipOtros}`}>
             <b>Otros</b> <span className={styles.chipValue}>{money(otrosGastos)}</span>
           </span>
+          <span className={`${styles.chip} ${styles.chipGalenoComun}`}>
+            <b>Galeno Común</b> <span className={styles.chipValue}>{money(galenoComun)}</span>
+          </span>
         </div>
-        {/* ✅ toolbar ahora aguanta sidebar expandido */}
+
         <div className={styles.toolbar}>
           <div className={styles.controlBlock}>
             <label className={styles.label}>Convenio</label>
@@ -331,9 +341,6 @@ export default function NomencladorNacional() {
             </select>
           </div>
 
-
-
-
           <button
             className={styles.switchButton}
             onClick={() => setModoBusqueda((p) => !p)}
@@ -345,9 +352,9 @@ export default function NomencladorNacional() {
 
         {alerta && <div className={styles.alert}>{alerta}</div>}
       </div>
+
       {modoBusqueda ? (
         <>
-          {/* ✅ Buscador prolijo, barra */}
           <div className={styles.searchBar} role="search" aria-label="Buscar práctica">
             <span className={styles.searchIcon} aria-hidden="true">
               <svg viewBox="0 0 24 24" width="18" height="18">
@@ -381,7 +388,6 @@ export default function NomencladorNacional() {
             )}
           </div>
 
-          {/* Mobile cards */}
           <div className={styles.mobileList}>
             {resultadosGlobales.length === 0 ? (
               <div className={styles.noResults}>Sin resultados.</div>
@@ -393,8 +399,9 @@ export default function NomencladorNacional() {
                 return (
                   <article
                     key={key}
-                    className={`${styles.card} ${isRadiografia(it) ? styles.rxCard : ''} ${isSubsiguiente(it) ? styles.subsiguienteCard : ''
-                      }`}
+                    className={`${styles.card} ${isRadiografia(it) ? styles.rxCard : ''} ${
+                      isSubsiguiente(it) ? styles.subsiguienteCard : ''
+                    }`}
                   >
                     <div className={styles.cardTop}>
                       <div className={styles.code}>{highlight(it.codigo, query)}</div>
@@ -422,7 +429,6 @@ export default function NomencladorNacional() {
             )}
           </div>
 
-          {/* Desktop table */}
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -449,8 +455,9 @@ export default function NomencladorNacional() {
                     return (
                       <tr
                         key={key}
-                        className={`${isRadiografia(it) ? styles.rxRow : ''} ${isSubsiguiente(it) ? styles.subsiguienteRow : ''
-                          }`}
+                        className={`${isRadiografia(it) ? styles.rxRow : ''} ${
+                          isSubsiguiente(it) ? styles.subsiguienteRow : ''
+                        }`}
                       >
                         <td className={styles.codeCell}>{highlight(it.codigo, query)}</td>
                         <td className={styles.descCell}>{highlight(it.descripcion, query)}</td>
@@ -485,7 +492,6 @@ export default function NomencladorNacional() {
         </>
       ) : (
         <>
-          {/* (tu modo capítulos queda igual) */}
           <input
             type="text"
             className={styles.input}
@@ -539,7 +545,6 @@ export default function NomencladorNacional() {
                       inputMode="search"
                     />
 
-                    {/* resto igual */}
                     <div className={styles.mobileList}>
                       {practicasFiltradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados.</div>
@@ -552,8 +557,9 @@ export default function NomencladorNacional() {
                           return (
                             <article
                               key={key}
-                              className={`${styles.card} ${isRadiografia(itFull) ? styles.rxCard : ''} ${isSubsiguiente(itFull) ? styles.subsiguienteCard : ''
-                                }`}
+                              className={`${styles.card} ${isRadiografia(itFull) ? styles.rxCard : ''} ${
+                                isSubsiguiente(itFull) ? styles.subsiguienteCard : ''
+                              }`}
                             >
                               <div className={styles.cardTop}>
                                 <div className={styles.code}>{highlight(itFull.codigo, qLocal)}</div>
@@ -609,8 +615,9 @@ export default function NomencladorNacional() {
                               return (
                                 <tr
                                   key={key}
-                                  className={`${isRadiografia(itFull) ? styles.rxRow : ''} ${isSubsiguiente(itFull) ? styles.subsiguienteRow : ''
-                                    }`}
+                                  className={`${isRadiografia(itFull) ? styles.rxRow : ''} ${
+                                    isSubsiguiente(itFull) ? styles.subsiguienteRow : ''
+                                  }`}
                                 >
                                   <td className={styles.codeCell}>{highlight(itFull.codigo, qLocal)}</td>
                                   <td className={styles.descCell}>{highlight(itFull.descripcion, qLocal)}</td>

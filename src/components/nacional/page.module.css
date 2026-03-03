@@ -196,6 +196,15 @@
     background: rgba(148, 163, 184, 0.06);
 }
 
+/* Nuevo chip para galeno común */
+.chipGalenoComun {
+    border-left: 4px solid rgba(99, 102, 241, 0.95);
+    background: rgba(99, 102, 241, 0.08);
+}
+.chipGalenoComun .chipValue {
+    color: rgba(165, 180, 252, 0.95);
+}
+
 /* Alert */
 .alert {
     background: rgba(250, 204, 21, 0.14);
@@ -774,4 +783,24 @@
 
 .chipOtros .chipValue {
     color: rgba(226, 232, 240, 0.9);
+}
+
+.chipConsulta {
+  border-left: 4px solid rgba(99, 102, 241, 0.95);
+  background: rgba(99, 102, 241, 0.08);
+}
+.chipConsulta .chipValue {
+  color: rgba(165, 180, 252, 0.95);
+}
+
+.valueBig {
+  font-weight: 1000;
+  font-size: 1.25rem;
+  color: #e5e7eb;
+}
+
+.baseLine {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
 }

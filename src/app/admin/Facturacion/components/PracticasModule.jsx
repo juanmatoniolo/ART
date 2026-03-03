@@ -24,6 +24,7 @@ const DEFAULT_CODES = [
   '43.01.01',
   '43.10.01',
   '43.11.01',
+  '400101',      // código especial: se unifica todo en clínica
 ];
 
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
@@ -110,34 +111,74 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     setArtroscopiaSelections(prev => ({ ...prev, [key]: tipo }));
   };
 
-  const handleAgregar = useCallback((practica) => {
-    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+  // Función que devuelve los valores calculados para una práctica
+  const getCalculo = useCallback((practica) => {
+    if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
 
-    let calculo;
-    const esArtroscopia = practica.codigo === '120902';
+    // Caso especial: código 400101 → honorario y gasto por separado, pero con bandera de unificación
+    if (practica.codigo === '400101') {
+      const gal = parseFloat(practica.q_gal) || 0;
+      const gto = parseFloat(practica.gto) || 0;
+      const galenoComun = parseFloat(valoresConvenio['Galeno_Comun']) || 3465;
+      const diaPension = parseFloat(valoresConvenio['Pension']) || 0;
 
-    if (esArtroscopia) {
-      // Obtener el gasto según la selección
+      const honorario = gal * galenoComun;
+      const gasto = gto * diaPension;
+
+      return {
+        honorarioMedico: honorario,
+        gastoSanatorial: gasto,
+        soloHonorario: false,
+        soloGasto: false,
+        unificarEnClinica: true, // indica que al agregar se debe unificar todo en un ítem de clínica
+        // Guardamos los valores originales para mostrarlos en la UI
+        galOriginal: gal,
+        gtoOriginal: gto,
+      };
+    }
+
+    // Caso especial: código 431107 (Oxígeno en terapia) – gasto fijo, sin honorario
+    if (practica.codigo === '431107') {
+      return {
+        honorarioMedico: 0,
+        gastoSanatorial: 85000,
+        soloHonorario: false,
+        soloGasto: true,
+      };
+    }
+
+    // Artroscopia (código 120902) con selector
+    if (practica.codigo === '120902') {
       const tipo = artroscopiaSelections[practica.__key] || 'simple';
       const gastoKey = tipo === 'compleja' ? 'Artroscopia_Hombro' : 'Artroscopia_Simple_Gastos_Sanatoriales';
       const gasto = Number(valoresConvenio[gastoKey]) || 0;
-      calculo = {
+      return {
         honorarioMedico: 0,
         gastoSanatorial: gasto,
         soloHonorario: false,
-        soloGasto: true
+        soloGasto: true,
       };
-    } else if (practica.meta?.kind === 'especial') {
+    }
+
+    // Prácticas con meta especial (ECG, Ecografía, etc.)
+    if (practica.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
-      calculo = {
+      return {
         honorarioMedico: valorBase,
         gastoSanatorial: 0,
         soloHonorario: true,
-        soloGasto: false
+        soloGasto: false,
       };
-    } else {
-      calculo = calcularPractica(practica, valoresConvenio);
     }
+
+    // Resto: usar calcularPractica de utils
+    return calcularPractica(practica, valoresConvenio);
+  }, [valoresConvenio, artroscopiaSelections]);
+
+  const handleAgregar = useCallback((practica) => {
+    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+
+    const calculo = getCalculo(practica);
 
     const groupId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -153,34 +194,53 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     const agregados = [];
 
-    if (!calculo.soloGasto) {
+    // Si es un caso especial que debe unificarse en clínica (ej. 400101)
+    if (calculo.unificarEnClinica) {
+      const total = (calculo.honorarioMedico || 0) + (calculo.gastoSanatorial || 0);
+      // Personalizamos la descripción para que sea más clara
+      const descripcionPersonalizada = `Día de pensión UTI (Hon + Gastos)`;
       agregados.push({
-        id: `${baseId}-dr`,
+        id: `${baseId}-clin-unificado`,
         ...baseCommon,
-        prestadorTipo: 'Dr',
-        prestadorNombre: '',
-        honorarioMedico: calculo.honorarioMedico,
-        gastoSanatorial: 0,
-        total: calculo.honorarioMedico
-      });
-    }
-
-    if (!calculo.soloHonorario) {
-      agregados.push({
-        id: `${baseId}-clin`,
-        ...baseCommon,
+        descripcion: descripcionPersonalizada, // reemplazamos la descripción original
         prestadorTipo: 'Clinica',
         prestadorNombre: 'Clínica de la Unión',
         honorarioMedico: 0,
-        gastoSanatorial: calculo.gastoSanatorial,
-        total: calculo.gastoSanatorial
+        gastoSanatorial: total,
+        total: total
       });
+    } else {
+      // Comportamiento normal: agregar ítem de doctor si hay honorario
+      if (calculo.honorarioMedico > 0) {
+        agregados.push({
+          id: `${baseId}-dr`,
+          ...baseCommon,
+          prestadorTipo: 'Dr',
+          prestadorNombre: '',
+          honorarioMedico: calculo.honorarioMedico,
+          gastoSanatorial: 0,
+          total: calculo.honorarioMedico
+        });
+      }
+
+      // Agregar ítem de clínica si hay gasto
+      if (calculo.gastoSanatorial > 0) {
+        agregados.push({
+          id: `${baseId}-clin`,
+          ...baseCommon,
+          prestadorTipo: 'Clinica',
+          prestadorNombre: 'Clínica de la Unión',
+          honorarioMedico: 0,
+          gastoSanatorial: calculo.gastoSanatorial,
+          total: calculo.gastoSanatorial
+        });
+      }
     }
 
     agregados.forEach(item => agregarPractica(item));
-    const tipoMsg = esArtroscopia ? ` (${artroscopiaSelections[practica.__key] || 'simple'})` : '';
+    const tipoMsg = practica.codigo === '120902' ? ` (${artroscopiaSelections[practica.__key] || 'simple'})` : '';
     showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
-  }, [valoresConvenio, artroscopiaSelections, agregarPractica, showTooltipMessage]);
+  }, [valoresConvenio, artroscopiaSelections, agregarPractica, showTooltipMessage, getCalculo]);
 
   // Resultados rápidos (cuando query vacío)
   const defaultResultados = useMemo(() => {
@@ -196,7 +256,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       picked.push(...vincularSubsiguientes(found, data));
     }
 
-    // 2. Items personalizados (ECG, Ecografía, Artroscopia) si el convenio tiene los valores
+    // 2. Items personalizados
     if (valoresConvenio) {
       // ECG
       if (valoresConvenio['ECG_Y_EX_EN_CV']) {
@@ -207,10 +267,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           capituloNombre: 'Cardiología',
           q_gal: 0,
           gto: 0,
-          meta: {
-            kind: 'especial',
-            baseKey: 'ECG_Y_EX_EN_CV'
-          },
+          meta: { kind: 'especial', baseKey: 'ECG_Y_EX_EN_CV' },
           __key: 'custom-ecg'
         });
       }
@@ -223,14 +280,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           capituloNombre: 'Ecografías',
           q_gal: 0,
           gto: 0,
-          meta: {
-            kind: 'especial',
-            baseKey: 'Ecografia_partes_blandas_no_moduladas'
-          },
+          meta: { kind: 'especial', baseKey: 'Ecografia_partes_blandas_no_moduladas' },
           __key: 'custom-eco'
         });
       }
-      // Artroscopia (si tiene al menos uno de los dos valores)
+      // Artroscopia
       if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] || valoresConvenio['Artroscopia_Hombro']) {
         picked.push({
           codigo: '120902',
@@ -239,10 +293,19 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           capituloNombre: 'Procedimientos',
           q_gal: 0,
           gto: 0,
-          // No usamos meta especial, lo trataremos directamente en render y handle
           __key: 'custom-artroscopia'
         });
       }
+      // Oxígeno en terapia (código 431107) – siempre visible
+      picked.push({
+        codigo: '431107',
+        descripcion: 'Oxígeno en terapia',
+        capitulo: '43',
+        capituloNombre: 'Terapias',
+        q_gal: 0,
+        gto: 85000,
+        __key: 'custom-oxigeno'
+      });
     }
 
     // Eliminar duplicados por __key
@@ -255,9 +318,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     return Array.from(seen.values());
   }, [data, valoresConvenio]);
 
-  /**
-   * Resultados normales de búsqueda
-   */
+  // Resultados de búsqueda normal
   const resultadosBusqueda = useMemo(() => {
     const q = debouncedQuery.trim();
     if (!q) return [];
@@ -288,7 +349,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     return Array.from(seen.values());
   }, [debouncedQuery, data, fuse]);
 
-  // ✅ si query vacío => usar defaultResultados, si no => resultadosBusqueda
   const resultados = useMemo(() => {
     return debouncedQuery.trim() === '' ? defaultResultados : resultadosBusqueda;
   }, [debouncedQuery, defaultResultados, resultadosBusqueda]);
@@ -298,29 +358,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
     const esArtroscopia = item.codigo === '120902';
+    const es400101 = item.codigo === '400101';
 
-    // Calcular según tipo
-    let calculo;
-    if (esArtroscopia) {
-      const tipo = artroscopiaSelections[key] || 'simple';
-      const gastoKey = tipo === 'compleja' ? 'Artroscopia_Hombro' : 'Artroscopia_Simple_Gastos_Sanatoriales';
-      const gasto = Number(valoresConvenio?.[gastoKey]) || 0;
-      calculo = {
-        honorarioMedico: 0,
-        gastoSanatorial: gasto
-      };
-    } else if (item.meta?.kind === 'especial') {
-      const valorBase = Number(valoresConvenio?.[item.meta.baseKey]) || 0;
-      calculo = {
-        honorarioMedico: valorBase,
-        gastoSanatorial: 0
-      };
-    } else {
-      calculo = valoresConvenio
-        ? calcularPractica(item, valoresConvenio)
-        : { honorarioMedico: 0, gastoSanatorial: 0 };
-    }
-
+    const calculo = getCalculo(item);
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
     const q = qLocal || query;
 
@@ -365,13 +405,13 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
-              <div className={styles.baseLine}>{money(item.q_gal || 0)}</div>
+              {es400101 && <div className={styles.baseLine}>Gal: {money(item.q_gal || 0)}</div>}
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
 
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
-              <div className={styles.baseLine}>{money(item.gto || 0)}</div>
+              {es400101 && <div className={styles.baseLine}>Gto: {money(item.gto || 0)}</div>}
               <span className={styles.costValue}>{money(calculo.gastoSanatorial)}</span>
             </div>
           </div>
@@ -422,13 +462,15 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
-            <span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}
+            {es400101 && <span className={styles.miniLabel}>Gal:</span>} {es400101 ? money(item.q_gal || 0) : `Gal: ${money(item.q_gal || 0)}`}
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
         </td>
 
         <td className={styles.numericCell}>
-          <div className={styles.baseLine}>{money(item.gto || 0)}</div>
+          <div className={styles.baseLine}>
+            {es400101 && <span className={styles.miniLabel}>Gto:</span>} {es400101 ? money(item.gto || 0) : money(item.gto || 0)}
+          </div>
           <div className={styles.valueBig}>{money(calculo.gastoSanatorial)}</div>
         </td>
 
