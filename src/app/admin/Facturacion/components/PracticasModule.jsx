@@ -43,6 +43,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   // Estado para la selección de artroscopia (simple/compleja)
   const [artroscopiaSelections, setArtroscopiaSelections] = useState({});
+  // Estado para la selección de ECG (profesional/clínica)
+  const [ecgSelections, setEcgSelections] = useState({});
 
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipMessage, setTooltipMessage] = useState('');
@@ -106,14 +108,39 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
 
-  // Manejador para cambiar el tipo de artroscopia
+  // Manejadores para cambios de selección
   const handleArtroscopiaChange = (key, tipo) => {
     setArtroscopiaSelections(prev => ({ ...prev, [key]: tipo }));
+  };
+
+  const handleEcgChange = (key, tipo) => {
+    setEcgSelections(prev => ({ ...prev, [key]: tipo }));
   };
 
   // Función que devuelve los valores calculados para una práctica
   const getCalculo = useCallback((practica) => {
     if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
+
+    // --- ECG con selector profesional/clínica ---
+    if (practica.codigo === '17.01.01') {
+      const valorBase = Number(valoresConvenio['ECG_Y_EX_EN_CV']) || 0;
+      const tipo = ecgSelections[practica.__key] || 'profesional';
+      if (tipo === 'profesional') {
+        return {
+          honorarioMedico: valorBase,
+          gastoSanatorial: 0,
+          soloHonorario: true,
+          soloGasto: false,
+        };
+      } else {
+        return {
+          honorarioMedico: 0,
+          gastoSanatorial: valorBase,
+          soloHonorario: false,
+          soloGasto: true,
+        };
+      }
+    }
 
     // Caso especial: código 400101 → honorario y gasto por separado, pero con bandera de unificación
     if (practica.codigo === '400101') {
@@ -173,7 +200,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     // Resto: usar calcularPractica de utils
     return calcularPractica(practica, valoresConvenio);
-  }, [valoresConvenio, artroscopiaSelections]);
+  }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
 
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
@@ -238,9 +265,14 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     }
 
     agregados.forEach(item => agregarPractica(item));
-    const tipoMsg = practica.codigo === '120902' ? ` (${artroscopiaSelections[practica.__key] || 'simple'})` : '';
+    let tipoMsg = '';
+    if (practica.codigo === '120902') {
+      tipoMsg = ` (${artroscopiaSelections[practica.__key] || 'simple'})`;
+    } else if (practica.codigo === '17.01.01') {
+      tipoMsg = ` (${ecgSelections[practica.__key] || 'profesional'})`;
+    }
     showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
-  }, [valoresConvenio, artroscopiaSelections, agregarPractica, showTooltipMessage, getCalculo]);
+  }, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
 
   // Resultados rápidos (cuando query vacío)
   const defaultResultados = useMemo(() => {
@@ -258,7 +290,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     // 2. Items personalizados
     if (valoresConvenio) {
-      // ECG
+      // ECG (sin meta, se maneja por código)
       if (valoresConvenio['ECG_Y_EX_EN_CV']) {
         picked.push({
           codigo: '17.01.01',
@@ -267,7 +299,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           capituloNombre: 'Cardiología',
           q_gal: 0,
           gto: 0,
-          meta: { kind: 'especial', baseKey: 'ECG_Y_EX_EN_CV' },
+          // meta eliminado para que no sea tratado como "especial"
           __key: 'custom-ecg'
         });
       }
@@ -358,6 +390,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const esRX = isRadiografia(item);
     const esSubs = isSubsiguiente(item);
     const esArtroscopia = item.codigo === '120902';
+    const esECG = item.codigo === '17.01.01';
     const es400101 = item.codigo === '400101';
 
     const calculo = getCalculo(item);
@@ -398,6 +431,31 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                 />
                 <span className={styles.radioCustom}></span>
                 Compleja (Hombro) (${money(Number(valoresConvenio?.['Artroscopia_Hombro']) || 0)})
+              </label>
+            </div>
+          )}
+
+          {esECG && (
+            <div className={styles.ecgSelector}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name={`ecg-${key}`}
+                  checked={ecgSelections[key] === 'profesional' || !ecgSelections[key]}
+                  onChange={() => handleEcgChange(key, 'profesional')}
+                />
+                <span className={styles.radioCustom}></span>
+                Profesional (Dr) (${money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name={`ecg-${key}`}
+                  checked={ecgSelections[key] === 'clinica'}
+                  onChange={() => handleEcgChange(key, 'clinica')}
+                />
+                <span className={styles.radioCustom}></span>
+                Clínica (${money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
               </label>
             </div>
           )}
@@ -452,6 +510,28 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   onChange={() => handleArtroscopiaChange(key, 'compleja')}
                 />
                 <span>Compleja</span>
+              </label>
+            </div>
+          )}
+          {esECG && (
+            <div className={styles.tableEcgSelector}>
+              <label className={styles.radioLabelInline}>
+                <input
+                  type="radio"
+                  name={`ecg-tab-${key}`}
+                  checked={ecgSelections[key] === 'profesional' || !ecgSelections[key]}
+                  onChange={() => handleEcgChange(key, 'profesional')}
+                />
+                <span>Profesional</span>
+              </label>
+              <label className={styles.radioLabelInline}>
+                <input
+                  type="radio"
+                  name={`ecg-tab-${key}`}
+                  checked={ecgSelections[key] === 'clinica'}
+                  onChange={() => handleEcgChange(key, 'clinica')}
+                />
+                <span>Clínica</span>
               </label>
             </div>
           )}

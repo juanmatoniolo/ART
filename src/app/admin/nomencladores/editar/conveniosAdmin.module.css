@@ -1,11 +1,11 @@
 /* =========================
    Convenios Admin – CSS Module
-   Sobrio / Admin / Sin transparencias raras
+   Sobrio / Admin / Mobile First / UI UX Optimizado
    ========================= */
 
 /* ===== Wrapper ===== */
 .wrapper {
-    padding: 1.5rem;
+    padding: 1rem;                /* mobile: padding reducido */
     max-width: 1400px;
     margin: 0 auto;
     color: #e5e7eb;
@@ -13,10 +13,11 @@
 
 /* ===== Title ===== */
 .title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;            /* mobile: un poco más pequeño */
     font-weight: 900;
     margin-bottom: 1rem;
     color: #6fa17b;
+    line-height: 1.2;
 }
 
 /* ===== Message ===== */
@@ -28,25 +29,26 @@
     border-radius: 12px;
     margin-bottom: 1rem;
     font-weight: 700;
+    word-break: break-word;        /* evita desbordes */
 }
 
 /* ===== Create Row ===== */
 .newRow {
     display: flex;
+    flex-direction: column;        /* mobile: apilado */
     gap: 0.75rem;
     margin-bottom: 1.25rem;
-    flex-wrap: wrap;
 }
 
 .input {
-    flex: 1;
-    min-width: 220px;
+    width: 100%;                   /* mobile: ocupa todo el ancho */
     background: #0f172a;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 10px;
-    padding: 0.65rem 0.8rem;
+    padding: 0.75rem 0.8rem;       /* mobile: mayor área táctil */
     color: #e5e7eb;
-    font-size: 0.95rem;
+    font-size: 1rem;               /* base 16px para evitar zoom */
+    line-height: 1.5;
 }
 
 .input:focus {
@@ -62,11 +64,15 @@
 .btnWarning {
     border: none;
     border-radius: 10px;
-    padding: 0.6rem 1rem;
+    padding: 0.75rem 1rem;         /* mobile: altura táctil */
     font-weight: 900;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: transform 0.12s ease, opacity 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;            /* evita saltos de línea no deseados */
 }
 
 .btnPrimary {
@@ -98,30 +104,42 @@
     color: #0b1220;
 }
 
+/* ===== Button Row (fila de botones adicionales) ===== */
+.buttonRow {
+    display: flex;
+    flex-direction: column;        /* mobile: apilado */
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
 /* ===== Table ===== */
 .tableWrapper {
     background: #0f172a;
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;               /* mobile: scroll horizontal */
     border: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 1rem;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.9rem;              /* mobile: ligeramente más pequeño */
+    min-width: 600px;                /* fuerza scroll si es necesario */
 }
 
 .table th,
 .table td {
-    padding: 0.75rem 0.9rem;
+    padding: 0.75rem 0.6rem;        /* mobile: padding horizontal reducido */
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    vertical-align: middle;
 }
 
 .table th {
     background: #111827;
     text-transform: uppercase;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     color: #9ca3af;
 }
@@ -130,17 +148,25 @@
     background: rgba(111, 161, 123, 0.08);
 }
 
+/* Acciones en tabla */
 .actions {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.3rem;
+    flex-wrap: wrap;                /* mobile: si no caben, saltan */
 }
 
 .actions button {
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 1.1rem;
-    padding: 0.2rem 0.4rem;
+    font-size: 1.2rem;              /* mobile: iconos más grandes */
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    transition: background 0.1s;
+}
+
+.actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* ===== Editor ===== */
@@ -149,63 +175,196 @@
     background: #0f172a;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 14px;
-    padding: 1.25rem;
+    padding: 1rem;                   /* mobile: menos padding */
 }
 
 .editorCard h4 {
     margin-bottom: 1rem;
-    font-size: 1.25rem;
-    color: #6fa17b;
-}
-
-.editorActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 1rem;
-}
-
-/* ===== Modal Overlay ===== */
-.modalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(11, 18, 32, 0.88);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 3000;
-}
-
-/* ===== Modal ===== */
-.modal {
-    background: #0b1220;
-    border-radius: 14px;
-    padding: 1.5rem;
-    width: 95%;
-    max-width: 420px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-}
-
-.modal h4 {
-    margin-bottom: 0.75rem;
     font-size: 1.2rem;
     color: #6fa17b;
 }
 
+.editorHeader {
+    display: flex;
+    flex-direction: column;          /* mobile: apilado */
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.editorHeader h4 {
+    margin-bottom: 0;
+}
+
+.editorActions {
+    display: flex;
+    flex-direction: column;          /* mobile: apilado */
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.editorActions button {
+    width: 100%;                     /* mobile: botones full width */
+}
+
+/* ===== Editor Sections ===== */
+.editorSection {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.editorSection h5 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #ccc;
+}
+
+/* Tablas de edición (valores generales y honorarios) */
+.editTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.editTable th {
+    text-align: left;
+    padding: 0.6rem 0.4rem;
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.editTable td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid #333;
+    vertical-align: middle;
+}
+
+.editTable input {
+    width: 100%;
+    padding: 0.6rem 0.5rem;         /* mobile: mayor área táctil */
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #1a1a1a;
+    color: white;
+    font-size: 1rem;
+}
+
+/* Botón pequeño de eliminar (dentro de tablas de edición) */
+.btnDangerSmall {
+    padding: 0.4rem 0.6rem;
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 6px;
+    color: #fecaca;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnDangerSmall:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+/* ===== JSON details ===== */
+.jsonDetails {
+    margin: 1.5rem 0;
+    padding: 0.75rem;
+    border: 1px dashed #666;
+    border-radius: 6px;
+}
+
+.jsonDetails summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0.25rem 0;
+}
+
+.jsonDetails pre {
+    font-size: 0.8rem;
+    max-height: 200px;
+    overflow: auto;
+    background: #0a0f1a;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+/* ===== Hint text ===== */
+.hint {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+/* ===== Select (para modales) ===== */
+.select {
+    width: 100%;
+    padding: 0.75rem 0.8rem;        /* mobile: área táctil */
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: #0f172a;
+    color: #e5e7eb;
+    font-size: 1rem;
+    margin: 0.25rem 0 1rem;
+}
+
+/* ===== Modal Overlay (fijo) ===== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 18, 32, 0.95); /* un poco más opaco para mejor foco */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 1rem;                      /* para que el modal no toque bordes */
+}
+
+/* ===== Modal base ===== */
+.modal {
+    background: #0b1220;
+    border-radius: 20px;
+    padding: 1.5rem 1.2rem;
+    width: 100%;
+    max-width: 480px;                  /* un poco más ancho para desktop */
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+    max-height: 90vh;
+    overflow-y: auto;                   /* seguro si hay mucho contenido */
+}
+
+.modal h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    color: #6fa17b;
+}
+
 .modalBody {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
 }
 
 .modalActions {
     display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
+    flex-direction: column;             /* mobile: apilado */
+    gap: 0.75rem;
 }
 
-/* ===== SOLID VARIANT (Renombrar) ===== */
+.modalActions button {
+    width: 100%;                        /* mobile: full width */
+}
+
+/* Variante solid (renombrar) */
 .modalOverlaySolid {
-    background: transparent;
+    background: transparent;            /* se mantiene igual, pero overlay sigue */
 }
 
 .modalSolid {
@@ -213,226 +372,166 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 640px) {
-    .newRow {
-        flex-direction: column;
-    }
-
-    .actions {
-        flex-wrap: wrap;
-    }
-
-    .title {
-        font-size: 1.35rem;
-    }
-}
-
-
-
-
-
-
-.buttonRow {
-    display: flex;
-    gap: 10px;
-    margin: 10px 0;
-}
-
-.select {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    background: white;
-    font-size: 1rem;
-    margin: 5px 0;
-}
-
-.editorSection {
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #444;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.03);
-}
-
-.editTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 10px 0;
-}
-
-.editTable th {
-    text-align: left;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    font-weight: 600;
-}
-
-.editTable td {
-    padding: 6px 8px;
-    border-bottom: 1px solid #333;
-}
-
-.editTable input {
-    width: 100%;
-    padding: 6px 8px;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background: #1a1a1a;
-    color: white;
-}
-
-.btnDangerSmall {
-    padding: 4px 8px;
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 4px;
-    color: #fecaca;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.btnDangerSmall:hover {
-    background: rgba(239, 68, 68, 0.3);
-}
-
-.jsonDetails {
-    margin: 20px 0;
-    padding: 10px;
-    border: 1px dashed #666;
-    border-radius: 4px;
-}
-
-.jsonDetails summary {
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.hint {
-    font-size: 0.9rem;
-    color: #aaa;
-    margin-top: 4px;
-}
-
-.editorHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
+/* Modal de aumento (específico) */
 .modalAumento {
     background: #0f172a;
-    border-radius: 16px;
-    padding: 24px;
-    width: 90%;
+    border-radius: 20px;
+    padding: 1.5rem;
+    width: 100%;
     max-width: 500px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modalAumento h3 {
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 1.2rem;
     color: #6fa17b;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
+}
+
+.modalAumento .modalBody {
+    margin-bottom: 1rem;
 }
 
 .porcentajesGrid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin: 15px 0;
+    grid-template-columns: 1fr;        /* mobile: una columna */
+    gap: 1rem;
+    margin: 1rem 0;
 }
 
 .porcentajesGrid label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0.3rem;
     color: #aaa;
     font-size: 0.9rem;
 }
 
 .modalAumento .modalActions {
-    margin-top: 25px;
+    margin-top: 1.5rem;
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.modalAumento {
-  background: #0f172a;
-  border-radius: 16px;
-  padding: 24px;
-  width: 90%;
-  max-width: 500px;
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+/* ============================================= */
+/* ========== MEDIA QUERIES (Tablet y Desktop) ========= */
+/* ============================================= */
+
+/* Tablet (pantallas de al menos 640px) */
+@media (min-width: 640px) {
+    .wrapper {
+        padding: 1.5rem;
+    }
+
+    .title {
+        font-size: 1.6rem;
+    }
+
+    .newRow {
+        flex-direction: row;            /* fila */
+        align-items: center;
+    }
+
+    .input {
+        width: auto;
+        flex: 1;
+    }
+
+    .buttonRow {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .table {
+        font-size: 0.95rem;
+        min-width: 0;                   /* ya no fuerza scroll si no es necesario */
+    }
+
+    .table th,
+    .table td {
+        padding: 0.75rem 0.9rem;
+    }
+
+    .table th {
+        font-size: 0.8rem;
+    }
+
+    .actions {
+        flex-wrap: nowrap;              /* acciones en una línea */
+        gap: 0.4rem;
+    }
+
+    .actions button {
+        font-size: 1.1rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .editorHeader {
+        flex-direction: row;             /* título y botón en fila */
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .editorActions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+
+    .editorActions button {
+        width: auto;                     /* botones de tamaño automático */
+    }
+
+    .modalActions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+
+    .modalActions button {
+        width: auto;
+    }
+
+    .porcentajesGrid {
+        grid-template-columns: 1fr 1fr;  /* dos columnas */
+    }
+
+    .modalAumento .modalActions {
+        flex-direction: row;
+    }
 }
 
-.modalAumento h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #6fa17b;
-  font-size: 1.4rem;
-}
+/* Desktop (pantallas de al menos 1024px) */
+@media (min-width: 1024px) {
+    .wrapper {
+        padding: 2rem;
+    }
 
-.porcentajesGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 15px 0;
-}
+    .title {
+        font-size: 1.8rem;
+    }
 
-.porcentajesGrid label {
-  display: block;
-  margin-bottom: 5px;
-  color: #aaa;
-  font-size: 0.9rem;
-}
+    .table th,
+    .table td {
+        padding: 1rem 1rem;
+    }
 
-.modalAumento .modalActions {
-  margin-top: 25px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
+    .editorCard {
+        padding: 1.5rem;
+    }
 
-.modalAumento {
-  background: #0f172a;
-  border-radius: 16px;
-  padding: 24px;
-  width: 90%;
-  max-width: 500px;
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-}
+    .editTable th,
+    .editTable td {
+        padding: 0.75rem 0.8rem;
+    }
 
-.modalAumento h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #6fa17b;
-  font-size: 1.4rem;
-}
+    .modal {
+        padding: 2rem;
+    }
 
-.porcentajesGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 15px 0;
-}
-
-.porcentajesGrid label {
-  display: block;
-  margin-bottom: 5px;
-  color: #aaa;
-  font-size: 0.9rem;
-}
-
-.modalAumento .modalActions {
-  margin-top: 25px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+    .modalAumento {
+        padding: 2rem;
+    }
 }

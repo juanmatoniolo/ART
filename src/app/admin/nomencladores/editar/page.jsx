@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ref, set, remove, get, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import styles from "./conveniosAdmin.module.css";
+import * as XLSX from "xlsx";
 
 /* =========================
    Utils
@@ -13,7 +14,6 @@ const prettyKey = (k) => k.replace(/_/g, " ");
 // Formatea número con puntos de miles (ej. 1234567 -> "1.234.567")
 const formatNumber = (num) => {
   if (num === undefined || num === null) return "";
-  // Asegurar que sea número entero (redondeado)
   const entero = Math.round(Number(num));
   return entero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
@@ -218,7 +218,6 @@ export default function ConveniosAdmin() {
     
     let newData;
     if (!baseData) {
-      // Usar la plantilla por defecto
       newData = JSON.parse(JSON.stringify(PLANTILLA_BASE));
       setMensaje("ℹ️ No se encontró la plantilla OCTUBRE, se usó la plantilla por defecto.");
     } else {
@@ -262,10 +261,8 @@ export default function ConveniosAdmin() {
     const factorHonorarios = 1 + pHonorarios / 100;
     const factorGastos = 1 + pGastos / 100;
 
-    // Redondear a entero
     const roundInt = (num) => Math.round(num);
 
-    // Función recursiva para aplicar factor a una rama (objeto o array)
     const applyFactorToBranch = (obj, factor) => {
       if (Array.isArray(obj)) {
         return obj.map((item) => applyFactorToBranch(item, factor));
@@ -282,22 +279,19 @@ export default function ConveniosAdmin() {
         if (typeof parsed === "number") {
           return roundInt(parsed * factor);
         } else {
-          return obj; // strings no numéricos (ej. "-")
+          return obj;
         }
       } else {
         return obj;
       }
     };
 
-    // Clonar datos origen
     const newData = JSON.parse(JSON.stringify(sourceData));
 
-    // Aplicar factor a honorarios_medicos (siempre con factorHonorarios)
     if (newData.honorarios_medicos) {
       newData.honorarios_medicos = applyFactorToBranch(newData.honorarios_medicos, factorHonorarios);
     }
 
-    // Separar valores_generales en dos grupos: los que son honorarios y los que son gastos
     if (newData.valores_generales) {
       const generales = newData.valores_generales;
       const honorariosGenerales = {};
@@ -311,11 +305,9 @@ export default function ConveniosAdmin() {
         }
       }
 
-      // Aplicar factores
       const honorariosAplicados = applyFactorToBranch(honorariosGenerales, factorHonorarios);
       const gastosAplicados = applyFactorToBranch(gastosGenerales, factorGastos);
 
-      // Combinar
       newData.valores_generales = { ...gastosAplicados, ...honorariosAplicados };
     }
 
@@ -375,84 +367,169 @@ export default function ConveniosAdmin() {
     setTimeout(() => setMensaje(""), 3000);
   };
 
+  /* ===== Generar Excel con bordes ===== */
+  const descargarExcel = (nombre) => {
+    const data = convenios[nombre];
+    if (!data) return;
+
+    const dataNormalizada = convertirValoresANumero(JSON.parse(JSON.stringify(data)));
+    const nombreLegible = prettyKey(nombre);
+
+    // Preparar datos para la hoja "Valores Generales"
+    const generales = dataNormalizada.valores_generales || {};
+    const conceptosOrdenados = ordenValoresGenerales.filter(key => generales.hasOwnProperty(key));
+    const otrosConceptos = Object.keys(generales).filter(key => !ordenValoresGenerales.includes(key));
+    const todosConceptos = [...conceptosOrdenados, ...otrosConceptos];
+
+    // Crear array de arrays para valores generales
+    const wsDataGenerales = [
+      ['Concepto', 'Valor'],
+      ...todosConceptos.map(key => [
+        prettyKey(key),
+        generales[key]
+      ])
+    ];
+
+    // Crear libro y hoja
+    const wb = XLSX.utils.book_new();
+    const wsGenerales = XLSX.utils.aoa_to_sheet(wsDataGenerales);
+
+    // Aplicar bordes a todas las celdas
+    const rangeGenerales = XLSX.utils.decode_range(wsGenerales['!ref']);
+    for (let R = rangeGenerales.s.r; R <= rangeGenerales.e.r; R++) {
+      for (let C = rangeGenerales.s.c; C <= rangeGenerales.e.c; C++) {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!wsGenerales[cellRef]) continue;
+        wsGenerales[cellRef].s = {
+          border: {
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      }
+    }
+    // Ajustar ancho de columnas
+    wsGenerales['!cols'] = [{ wch: 40 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsGenerales, 'Valores Generales');
+
+    // Hoja de Honorarios Médicos
+    const honorarios = dataNormalizada.honorarios_medicos || [];
+    const wsDataHonorarios = [
+      ['Nivel', 'Cirujano', 'Ayudante 1', 'Ayudante 2'],
+      ...honorarios.map((row, idx) => [
+        idx + 1,
+        row.Cirujano || 0,
+        row.Ayudante_1 || 0,
+        row.Ayudante_2 || 0
+      ])
+    ];
+    const wsHonorarios = XLSX.utils.aoa_to_sheet(wsDataHonorarios);
+    const rangeHonorarios = XLSX.utils.decode_range(wsHonorarios['!ref']);
+    for (let R = rangeHonorarios.s.r; R <= rangeHonorarios.e.r; R++) {
+      for (let C = rangeHonorarios.s.c; C <= rangeHonorarios.e.c; C++) {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!wsHonorarios[cellRef]) continue;
+        wsHonorarios[cellRef].s = {
+          border: {
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      }
+    }
+    wsHonorarios['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsHonorarios, 'Honorarios Médicos');
+
+    // Guardar archivo
+    XLSX.writeFile(wb, `convenio_${nombreLegible.replace(/\s+/g, '_')}.xlsx`);
+    setMensaje(`✅ Excel generado: ${nombreLegible}`);
+    setTimeout(() => setMensaje(""), 3000);
+  };
+
+  /* ===== Generar HTML para impresión ===== */
+  const generarHTMLImpresion = (data, nombre) => {
+    const nombreConvenio = prettyKey(nombre);
+    const generales = data.valores_generales || {};
+
+    const conceptosOrdenados = ordenValoresGenerales.filter(key => generales.hasOwnProperty(key));
+    const otrosConceptos = Object.keys(generales).filter(key => !ordenValoresGenerales.includes(key));
+    const todosConceptos = [...conceptosOrdenados, ...otrosConceptos];
+
+    return `
+      <html>
+        <head>
+          <title>Convenio ${nombreConvenio}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 15px; font-size: 11px; }
+            h1 { color: #333; font-size: 16px; }
+            h2 { margin-top: 20px; border-bottom: 1px solid #ccc; font-size: 14px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+            th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+            th { background-color: #e0e0e0; }
+            .valor { text-align: right; }
+            tbody tr:nth-child(even) { background-color: #f2f2f2; }
+            tbody tr:nth-child(odd) { background-color: #ffffff; }
+          </style>
+        </head>
+        <body>
+          <h1>Convenio: ${nombreConvenio}</h1>
+          <h2>Valores Generales</h2>
+          <table>
+            <thead>
+              <tr><th>Concepto</th><th>Valor</th></tr>
+            </thead>
+            <tbody>
+              ${todosConceptos.map(key => {
+                const val = generales[key];
+                const valorFormateado = typeof val === 'number' ? formatNumber(val) : val;
+                return `<tr><td>${prettyKey(key)}</td><td class="valor">${valorFormateado}</td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          <h2>Honorarios Médicos por Complejidad</h2>
+          <table>
+            <thead>
+              <tr><th>Nivel</th><th>Cirujano</th><th>Ayudante 1</th><th>Ayudante 2</th></tr>
+            </thead>
+            <tbody>
+              ${(data.honorarios_medicos || []).map((row, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td class="valor">${formatNumber(row.Cirujano)}</td>
+                  <td class="valor">${formatNumber(row.Ayudante_1)}</td>
+                  <td class="valor">${formatNumber(row.Ayudante_2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+  };
+
+  /* ===== Impresión desde el editor ===== */
   const imprimirConvenio = () => {
     if (!activo) {
       alert("Seleccioná un convenio para imprimir");
       return;
     }
-
-    const data = editBuffer;
-    const nombreConvenio = prettyKey(activo);
-
-    // Ordenar valores generales según la lista
-    const generales = data.valores_generales || {};
-    const conceptosOrdenados = ordenValoresGenerales.filter(key => generales.hasOwnProperty(key));
-    const otrosConceptos = Object.keys(generales).filter(key => !ordenValoresGenerales.includes(key));
-    const todosConceptos = [...conceptosOrdenados, ...otrosConceptos];
-
-    // Construir el HTML de la ventana de impresión con formato de miles
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-    <html>
-      <head>
-        <title>Convenio ${nombreConvenio}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 15px; font-size: 11px; }
-          h1 { color: #333; font-size: 16px; }
-          h2 { margin-top: 20px; border-bottom: 1px solid #ccc; font-size: 14px; }
-          table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
-          th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-          th { background-color: #e0e0e0; }
-          .valor { text-align: right; }
-          .footer { margin-top: 20px; font-size: 0.85em; color: #666; }
-          /* Rayado (zebra stripes) */
-          tbody tr:nth-child(even) {
-            background-color: #f2f2f2;
-          }
-          tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Convenio: ${nombreConvenio}</h1>
-        <h2>Valores Generales</h2>
-        <table>
-          <thead>
-            <tr><th>Concepto</th><th>Valor</th></tr>
-          </thead>
-          <tbody>
-            ${todosConceptos.map(key => {
-              const val = generales[key];
-              const valorFormateado = typeof val === 'number' ? formatNumber(val) : val;
-              return `
-              <tr>
-                <td>${prettyKey(key)}</td>
-                <td class="valor">${valorFormateado}</td>
-              </tr>
-            `}).join('')}
-          </tbody>
-        </table>
-        <h2>Honorarios Médicos por Complejidad</h2>
-        <table>
-          <thead>
-            <tr><th>Nivel</th><th>Cirujano</th><th>Ayudante 1</th><th>Ayudante 2</th></tr>
-          </thead>
-          <tbody>
-            ${data.honorarios_medicos.map((row, idx) => `
-              <tr>
-                <td>${idx + 1}</td>
-                <td class="valor">${formatNumber(row.Cirujano)}</td>
-                <td class="valor">${formatNumber(row.Ayudante_1)}</td>
-                <td class="valor">${formatNumber(row.Ayudante_2)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-       
-      </body>
-    </html>
-  `);
+    printWindow.document.write(generarHTMLImpresion(editBuffer, activo));
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  /* ===== Impresión desde la lista ===== */
+  const imprimirConvenioDesdeLista = (nombre) => {
+    const data = convenios[nombre];
+    if (!data) return;
+    const dataNormalizada = convertirValoresANumero(JSON.parse(JSON.stringify(data)));
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(generarHTMLImpresion(dataNormalizada, nombre));
     printWindow.document.close();
     printWindow.print();
   };
@@ -494,26 +571,24 @@ export default function ConveniosAdmin() {
       }));
     };
 
-    // Obtener lista de conceptos existentes, pero ordenados según el orden deseado
     const conceptosExistentes = Object.keys(editBuffer.valores_generales || {});
     const conceptosOrdenados = ordenValoresGenerales.filter(key => conceptosExistentes.includes(key));
     const otrosConceptos = conceptosExistentes.filter(key => !ordenValoresGenerales.includes(key));
     const todosConceptos = [...conceptosOrdenados, ...otrosConceptos];
 
-    // Honorarios: solo se edita Cirujano
-const handleCirujanoChange = (index, newVal) => {
-  const redondeado = newVal;
-  const newHonorarios = [...editBuffer.honorarios_medicos];
-  newHonorarios[index] = {
-    Cirujano: redondeado,
-    Ayudante_1: Math.round(redondeado * 0.3 * 100) / 100,
-    Ayudante_2: index >= 3 ? Math.round(redondeado * 0.2 * 100) / 100 : 0, // a partir del nivel 4 (índice 3) hay 2 ayudantes
-  };
-  setEditBuffer(prev => ({
-    ...prev,
-    honorarios_medicos: newHonorarios
-  }));
-};
+    const handleCirujanoChange = (index, newVal) => {
+      const redondeado = newVal;
+      const newHonorarios = [...editBuffer.honorarios_medicos];
+      newHonorarios[index] = {
+        Cirujano: redondeado,
+        Ayudante_1: Math.round(redondeado * 0.3 * 100) / 100,
+        Ayudante_2: index >= 3 ? Math.round(redondeado * 0.2 * 100) / 100 : 0,
+      };
+      setEditBuffer(prev => ({
+        ...prev,
+        honorarios_medicos: newHonorarios
+      }));
+    };
 
     const handleAddHonorario = () => {
       setEditBuffer(prev => ({
@@ -543,7 +618,6 @@ const handleCirujanoChange = (index, newVal) => {
           </button>
         </div>
 
-        {/* Valores Generales ordenados */}
         <div className={styles.editorSection}>
           <h5>📋 Valores Generales</h5>
           <table className={styles.editTable}>
@@ -584,7 +658,6 @@ const handleCirujanoChange = (index, newVal) => {
           </button>
         </div>
 
-        {/* Honorarios Médicos */}
         <div className={styles.editorSection}>
           <h5>👨‍⚕️ Honorarios Médicos (por complejidad)</h5>
           <p className={styles.hint}>Ayudante 1 = 30% del Cirujano, Ayudante 2 = 20% del Cirujano (cada uno). Para complejidades menores a 4, el segundo ayudante no se utiliza (queda en 0).</p>
@@ -626,7 +699,6 @@ const handleCirujanoChange = (index, newVal) => {
           </button>
         </div>
 
-        {/* Vista JSON (opcional) */}
         <details className={styles.jsonDetails}>
           <summary>🔍 Ver JSON completo</summary>
           <pre style={{ fontSize: 12, opacity: 0.8, maxHeight: '300px', overflow: 'auto' }}>
@@ -652,7 +724,6 @@ const handleCirujanoChange = (index, newVal) => {
 
       {mensaje && <div className={styles.message}>{mensaje}</div>}
 
-      {/* Crear desde plantilla */}
       <div className={styles.newRow}>
         <input
           className={styles.input}
@@ -665,20 +736,17 @@ const handleCirujanoChange = (index, newVal) => {
         </button>
       </div>
 
-      {/* Botón de aumento porcentual */}
       <div className={styles.buttonRow}>
         <button className={styles.btnSecondary} onClick={abrirModalPorcentaje}>
           📈 Aumentar / Reducir % desde existente
         </button>
       </div>
 
-      {/* Tabla de convenios */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
               <th>Convenio</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -686,15 +754,12 @@ const handleCirujanoChange = (index, newVal) => {
             {Object.entries(convenios).map(([nombre, data]) => (
               <tr key={nombre}>
                 <td>{prettyKey(nombre)}</td>
-                <td>
-                  {Object.keys(data.valores_generales || {}).length
-                    ? "🟢 Cargado"
-                    : "🟡 Sin datos"}
-                </td>
                 <td className={styles.actions}>
-                  <button onClick={() => editar(nombre)}>✏️</button>
-                  <button onClick={() => setModalRenombrar(nombre)}>📝</button>
-                  <button onClick={() => setModalEliminar(nombre)}>🗑️</button>
+                  <button onClick={() => editar(nombre)} title="Editar">✏️</button>
+                  <button onClick={() => setModalRenombrar(nombre)} title="Renombrar">📝</button>
+                  <button onClick={() => imprimirConvenioDesdeLista(nombre)} title="Imprimir">🖨️</button>
+                  {/* <button onClick={() => descargarExcel(nombre)} title="Descargar Excel">⬇️</button> */}
+                  <button onClick={() => setModalEliminar(nombre)} title="Eliminar">🗑️</button>
                 </td>
               </tr>
             ))}
@@ -702,10 +767,8 @@ const handleCirujanoChange = (index, newVal) => {
         </table>
       </div>
 
-      {/* Editor visual */}
       <EditorValores />
 
-      {/* Modal de aumento porcentual (rediseñado) */}
       {showPercentModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalAumento}>
@@ -773,7 +836,6 @@ const handleCirujanoChange = (index, newVal) => {
         </div>
       )}
 
-      {/* Modales Eliminar / Renombrar */}
       {modalEliminar && (
         <Modal
           title="Eliminar convenio"
@@ -809,9 +871,6 @@ const handleCirujanoChange = (index, newVal) => {
   );
 }
 
-/* =========================
-   Modal reutilizable
-   ========================= */
 function Modal({
   title,
   message,
