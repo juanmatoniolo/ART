@@ -436,6 +436,7 @@ export default function FacturadosPage() {
   };
 
   // ================= NUEVA FUNCIÓN PARA IMPRIMIR ART =================
+// ================= FUNCIÓN PARA IMPRIMIR ART (OPTIMIZADA PARA UNA SOLA PÁGINA) =================
 const printART = (id) => {
   const item = raw[id];
   if (!item) return;
@@ -469,21 +470,21 @@ const printART = (id) => {
   const camposLab = [
     { label: 'Código', field: 'codigo' },
     { label: 'Descripción', field: 'descripcion' },
-    { label: 'Cantidad', field: 'cantidad', format: 'number' },
-    { label: 'Valor Unitario', field: 'valorUnitario', format: 'money' },
+    { label: 'Cant.', field: 'cantidad', format: 'number' },
+    { label: 'V. Unit.', field: 'valorUnitario', format: 'money' },
     { label: 'Total', field: 'total', format: 'money' },
-    { label: 'Bioquímico', field: 'prestadorNombre' }
+    { label: 'Bioq.', field: 'prestadorNombre' }
   ];
 
   const camposMedDesc = [
     { label: 'Descripción', field: 'nombre' },
     { label: 'Presentación', field: 'presentacion' },
-    { label: 'Cantidad', field: 'cantidad', format: 'number' },
-    { label: 'Valor Unitario', field: 'valorUnitario', format: 'money' },
+    { label: 'Cant.', field: 'cantidad', format: 'number' },
+    { label: 'V. Unit.', field: 'valorUnitario', format: 'money' },
     { label: 'Total', field: 'total', format: 'money' }
   ];
 
-  // Construir HTML
+  // Construir HTML con estilos compactos
   let html = `
     <html>
       <head>
@@ -491,11 +492,12 @@ const printART = (id) => {
         <style>
           body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 10mm;
             position: relative;
-            min-height: 100vh;
+            min-height: auto;
+            font-size: 11px;
+            line-height: 1.3;
           }
-          /* Marca de agua */
           .watermark {
             position: fixed;
             top: 50%;
@@ -506,82 +508,97 @@ const printART = (id) => {
             pointer-events: none;
           }
           .watermark img {
-            width: 400px;
+            width: 300px;
             height: auto;
           }
-          h1 { color: #333; font-size: 24px; margin-top: 0; }
+          h1 {
+            color: #333;
+            font-size: 18px;
+            margin: 0 0 8px 0;
+            padding: 0;
+          }
           .header-info {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 12px;
             background: #f5f5f5;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 11px;
           }
           .header-info p {
             margin: 0;
           }
-          h2 { color: #555; font-size: 18px; margin-top: 20px; margin-bottom: 10px; }
+          h2 {
+            color: #555;
+            font-size: 14px;
+            margin: 12px 0 6px 0;
+            padding: 0;
+            border-bottom: 1px solid #ccc;
+          }
           table {
             border-collapse: collapse;
             width: 100%;
-            margin-bottom: 15px;
-            font-size: 13px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            page-break-inside: avoid;
           }
           th {
             background: #e0e0e0;
             text-align: left;
-            padding: 8px;
+            padding: 4px;
             border: 1px solid #ccc;
+            font-weight: bold;
           }
           td {
-            padding: 6px 8px;
+            padding: 3px 4px;
             border: 1px solid #ccc;
           }
           .subtotal {
             font-weight: bold;
             text-align: right;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            padding-right: 10px;
+            margin: 2px 0 6px 0;
+            padding-right: 4px;
+            font-size: 11px;
           }
           .totales {
-            margin-top: 30px;
-            border-top: 2px solid #333;
-            padding-top: 15px;
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+            page-break-inside: avoid;
           }
           .totals-summary p {
-            margin: 4px 0;
+            margin: 3px 0;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 11px;
           }
           .total-general {
-            font-size: 16px;
+            font-size: 13px;
             color: #000;
-            margin-top: 8px;
+            margin-top: 5px;
           }
           .footer-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 30px;
+            margin-top: 15px;
             border-top: 1px solid #aaa;
-            padding-top: 20px;
+            padding-top: 10px;
+            page-break-inside: avoid;
           }
           .signature-area {
             text-align: center;
             flex: 1;
           }
           .signature-line {
-            font-size: 18px;
-            letter-spacing: 2px;
-            margin-bottom: 5px;
+            font-size: 14px;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
             color: #333;
           }
           .signature-label {
-            font-size: 12px;
+            font-size: 9px;
             color: #555;
           }
           .clinic-logo {
@@ -589,14 +606,18 @@ const printART = (id) => {
             flex: 1;
           }
           .clinic-logo img {
-            max-width: 100px;
+            max-width: 70px;
             height: auto;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
           }
           .clinic-info {
-            font-size: 10px;
+            font-size: 8px;
             color: #666;
-            line-height: 1.3;
+            line-height: 1.2;
+          }
+          /* Evitar saltos de página dentro de elementos importantes */
+          h2, table, .subtotal, .totales, .footer-section {
+            page-break-inside: avoid;
           }
         </style>
       </head>
@@ -619,7 +640,7 @@ const printART = (id) => {
     html += `<table><thead><tr>${camposLab.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
     html += `<tbody>${generarFilas(item.laboratorios, camposLab)}</tbody>`;
     html += `</table>`;
-    html += `<div class="subtotal">Subtotal Laboratorios: $ ${money(totalLab)}</div>`;
+    html += `<div class="subtotal">Subtotal Lab: $ ${money(totalLab)}</div>`;
   }
 
   // Medicamentos
@@ -628,7 +649,7 @@ const printART = (id) => {
     html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
     html += `<tbody>${generarFilas(item.medicamentos, camposMedDesc)}</tbody>`;
     html += `</table>`;
-    html += `<div class="subtotal">Subtotal Medicamentos: $ ${money(totalMed)}</div>`;
+    html += `<div class="subtotal">Subtotal Med: $ ${money(totalMed)}</div>`;
   }
 
   // Descartables
@@ -637,7 +658,7 @@ const printART = (id) => {
     html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
     html += `<tbody>${generarFilas(item.descartables, camposMedDesc)}</tbody>`;
     html += `</table>`;
-    html += `<div class="subtotal">Subtotal Descartables: $ ${money(totalDesc)}</div>`;
+    html += `<div class="subtotal">Subtotal Desc: $ ${money(totalDesc)}</div>`;
   }
 
   // Totales y pie de página

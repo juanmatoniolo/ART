@@ -46,9 +46,6 @@
   margin: 0;
   font-size: 1.6rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #fff, #a5b4fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   line-height: 1.2;
 }
 
@@ -414,4 +411,16 @@
   .grid {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+
+.btnArt {
+  background: rgba(20, 184, 166, 0.15);
+  color: #99f6e4;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+.btnArt:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }

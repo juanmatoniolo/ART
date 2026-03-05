@@ -76,7 +76,6 @@ export default function CerradosPage() {
       const artNombre = v?.paciente?.artSeguro || v?.artNombre || v?.artSeguro || 'SIN ART';
       const artKey = v?.artKey || normalizeKey(artNombre);
 
-      // Determinar estado: si tiene cerradoAt o closedAt, es cerrado
       const cerradoAt = v?.cerradoAt || v?.closedAt || 0;
       const estado = v?.estado || (cerradoAt ? 'cerrado' : 'borrador');
 
@@ -93,7 +92,7 @@ export default function CerradosPage() {
         nroSiniestro,
         artNombre,
         artKey,
-        estado,          // ← AGREGADO: importante para el filtro
+        estado,
         closedAt: cerradoAt,
         total,
       };
@@ -344,6 +343,276 @@ export default function CerradosPage() {
     XLSX.writeFile(wb, 'siniestros_seleccionados.xlsx');
   };
 
+  // Función para imprimir reporte ART (laboratorios, medicamentos, descartables)
+ // Función para imprimir reporte ART (laboratorios, medicamentos, descartables) optimizada para una página
+const printART = (id) => {
+  const item = data[id];
+  if (!item) return;
+
+  const paciente = item.paciente || {};
+  const nombre = paciente.nombreCompleto || paciente.nombre || '';
+  const dni = paciente.dni || '';
+  const nroSiniestro = paciente.nroSiniestro || '';
+  const artNombre = item.artNombre || paciente.artSeguro || 'SIN ART';
+
+  // Función para generar filas de tabla
+  const generarFilas = (items, campos) => {
+    return items.map(it => {
+      return `<tr>${campos.map(c => {
+        let valor = it[c.field];
+        if (c.format === 'money') valor = `$ ${money(valor)}`;
+        else if (c.format === 'number') valor = valor || 0;
+        else valor = valor || '—';
+        return `<td>${valor}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+  };
+
+  // Calcular totales por categoría
+  const totalLab = (item.laboratorios || []).reduce((acc, it) => acc + safeNum(it.total), 0);
+  const totalMed = (item.medicamentos || []).reduce((acc, it) => acc + safeNum(it.total), 0);
+  const totalDesc = (item.descartables || []).reduce((acc, it) => acc + safeNum(it.total), 0);
+  const totalGeneral = totalLab + totalMed + totalDesc;
+
+  // Definir campos para cada tipo
+  const camposLab = [
+    { label: 'Código', field: 'codigo' },
+    { label: 'Descripción', field: 'descripcion' },
+    { label: 'Cantidad', field: 'cantidad', format: 'number' },
+    { label: 'V. Unitario', field: 'valorUnitario', format: 'money' }, // Abreviado
+    { label: 'Total', field: 'total', format: 'money' },
+    { label: 'Bioquímico', field: 'prestadorNombre' }
+  ];
+
+  const camposMedDesc = [
+    { label: 'Descripción', field: 'nombre' },
+    { label: 'Presentación', field: 'presentacion' },
+    { label: 'Cantidad', field: 'cantidad', format: 'number' },
+    { label: 'V. Unitario', field: 'valorUnitario', format: 'money' }, // Abreviado
+    { label: 'Total', field: 'total', format: 'money' }
+  ];
+
+  // Construir HTML con estilos optimizados para impresión
+  let html = `
+    <html>
+      <head>
+        <title>ART - ${artNombre} - ${nroSiniestro}</title>
+        <style>
+          /* Reset y estilos base */
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 11px; /* Reducido para ahorrar espacio */
+            line-height: 1.3;
+            margin: 10px; /* Márgenes más pequeños */
+            padding: 0;
+            position: relative;
+            min-height: auto;
+          }
+          .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            opacity: 0.08; /* Un poco más tenue */
+            z-index: -1;
+            pointer-events: none;
+          }
+          .watermark img {
+            width: 350px; /* Ligeramente más pequeño */
+            height: auto;
+          }
+          h1 {
+            color: #333;
+            font-size: 18px; /* Reducido */
+            margin: 0 0 8px 0;
+            font-weight: bold;
+          }
+          .header-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #f5f5f5;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 11px;
+          }
+          .header-info p {
+            margin: 0;
+          }
+          h2 {
+            color: #555;
+            font-size: 14px;
+            margin: 12px 0 6px 0;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #ccc;
+          }
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 10px; /* Tabla más compacta */
+          }
+          th {
+            background: #e0e0e0;
+            text-align: left;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            font-weight: 600;
+          }
+          td {
+            padding: 3px 6px;
+            border: 1px solid #ccc;
+          }
+          .subtotal {
+            font-weight: bold;
+            text-align: right;
+            margin: 2px 0 8px 0;
+            padding-right: 6px;
+            font-size: 11px;
+          }
+          .totales {
+            margin-top: 16px;
+            border-top: 1.5px solid #333;
+            padding-top: 8px;
+          }
+          .totals-summary p {
+            margin: 3px 0;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: right;
+          }
+          .total-general {
+            font-size: 13px;
+            color: #000;
+            margin-top: 5px;
+          }
+          .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            border-top: 1px solid #aaa;
+            padding-top: 12px;
+          }
+          .signature-area {
+            text-align: center;
+            flex: 1;
+          }
+          .signature-line {
+            font-size: 16px;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+            color: #333;
+          }
+          .signature-label {
+            font-size: 9px;
+            color: #555;
+          }
+          .clinic-logo {
+            text-align: center;
+            flex: 1;
+          }
+          .clinic-logo img {
+            max-width: 70px; /* Logo más pequeño */
+            height: auto;
+            margin-bottom: 2px;
+          }
+          .clinic-info {
+            font-size: 8px;
+            color: #666;
+            line-height: 1.2;
+          }
+          /* Evitar saltos de página dentro de tablas y elementos importantes */
+          @media print {
+            body { margin: 0.2in; }
+            h2, table, .subtotal, .totales, .footer-section {
+              page-break-inside: avoid;
+            }
+            .watermark img {
+              opacity: 0.07;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="watermark">
+          <img src="/logo.jpg" alt="Clínica de la Unión">
+        </div>
+        <h1>Reporte para ART</h1>
+        <div class="header-info">
+          <p><strong>ART:</strong> ${artNombre}</p>
+          <p><strong>Paciente:</strong> ${nombre}</p>
+          <p><strong>DNI:</strong> ${dni}</p>
+          <p><strong>N° Siniestro:</strong> ${nroSiniestro}</p>
+        </div>
+  `;
+
+  // Laboratorios
+  if (item.laboratorios && item.laboratorios.length > 0) {
+    html += `<h2>Laboratorios</h2>`;
+    html += `<table><thead><tr>${camposLab.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
+    html += `<tbody>${generarFilas(item.laboratorios, camposLab)}</tbody>`;
+    html += `</table>`;
+    html += `<div class="subtotal">Subtotal Laboratorios: $ ${money(totalLab)}</div>`;
+  }
+
+  // Medicamentos
+  if (item.medicamentos && item.medicamentos.length > 0) {
+    html += `<h2>Medicamentos</h2>`;
+    html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
+    html += `<tbody>${generarFilas(item.medicamentos, camposMedDesc)}</tbody>`;
+    html += `</table>`;
+    html += `<div class="subtotal">Subtotal Medicamentos: $ ${money(totalMed)}</div>`;
+  }
+
+  // Descartables
+  if (item.descartables && item.descartables.length > 0) {
+    html += `<h2>Descartables</h2>`;
+    html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
+    html += `<tbody>${generarFilas(item.descartables, camposMedDesc)}</tbody>`;
+    html += `</table>`;
+    html += `<div class="subtotal">Subtotal Descartables: $ ${money(totalDesc)}</div>`;
+  }
+
+  // Totales y pie de página
+  html += `
+      <div class="totales">
+        <div class="totals-summary">
+          <p>Total Laboratorios: $ ${money(totalLab)}</p>
+          <p>Total Medicamentos: $ ${money(totalMed)}</p>
+          <p>Total Descartables: $ ${money(totalDesc)}</p>
+          <p class="total-general"><strong>TOTAL GENERAL: $ ${money(totalGeneral)}</strong></p>
+        </div>
+
+        <div class="footer-section">
+          <div class="signature-area">
+            <div class="signature-line">_________________________</div>
+            <div class="signature-label">Firma y sello del responsable</div>
+          </div>
+          <div class="clinic-logo">
+            <img src="/logo.jpg" alt="Clínica de la Unión">
+            <div class="clinic-info">
+              Clínica de la Unión S.A.<br>
+              Chajarí, Entre Ríos - Av. Siburu 1085
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+};
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -440,8 +709,8 @@ export default function CerradosPage() {
                     <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
                       ✏️ Editar
                     </Link>
-                    <button className={`${styles.btn} ${styles.btnGhostSmall}`} disabled title="Próximamente">
-                      ⬇️ Descargar
+                    <button className={`${styles.btn} ${styles.btnArt}`} onClick={() => printART(it.id)}>
+                      🖨️ ART
                     </button>
                   </div>
                 </div>
