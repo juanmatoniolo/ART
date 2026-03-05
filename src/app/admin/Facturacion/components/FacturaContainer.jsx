@@ -22,7 +22,7 @@ import {
   calcularLaboratorio,
   money as moneyFmt,
   parseNumber,
-  isRadiografia, // ✅ para forzar Dr en RX
+  isRadiografia,
 } from '../utils/calculos';
 
 import styles from './facturacion.module.css';
@@ -55,7 +55,7 @@ const prettyLabel = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-/** ===== Practicas: aplicar prestador Dr/Clinica ===== */
+// ========== Funciones de cálculo auxiliares ==========
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
   const honor = safeNum(calculoBase?.honorarioMedico);
   const gasto = safeNum(calculoBase?.gastoSanatorial);
@@ -121,7 +121,7 @@ export default function FacturaContainer() {
 
   const totalItems = useMemo(
     () => practicas.length + cirugias.length + laboratorios.length + medicamentos.length + descartables.length,
-    [practicas.length, cirugias.length, laboratorios.length, medicamentos.length, descartables.length]
+    [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
   const chips = useMemo(() => {
@@ -147,7 +147,7 @@ export default function FacturaContainer() {
     return { honor, gasto, total: honor + gasto };
   }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
-  // ===== Load localStorage =====
+  // ===== Load localStorage (solo si no hay draft) =====
   useEffect(() => {
     if (!isClient) return;
 
@@ -166,7 +166,7 @@ export default function FacturaContainer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient]);
 
-  // ===== Load draft from Firebase when ?draft=ID =====
+  // ========== CARGA DEL DRAFT (ULTRA TOLERANTE - AHORA PERMITE CERRADOS) ==========
   useEffect(() => {
     if (!isClient) return;
     if (!draftFromUrl) return;
@@ -187,28 +187,89 @@ export default function FacturaContainer() {
         }
 
         const v = snap.val();
+        console.log('📦 Datos crudos desde Firebase:', v); // <- Para depurar
+
         const estado = v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador');
 
+        // ✅ AHORA PERMITIMOS CARGAR CERRADOS, solo mostramos advertencia
         if (estado === 'cerrado') {
-          setLockMsg('Este siniestro está CERRADO. No se puede retomar para editar.');
-          setLoadingDraft(false);
-          return;
+          setLockMsg('⚠️ Este siniestro está CERRADO. Podés editarlo, pero al guardar pasará a borrador.');
         }
 
-        setDraftId(draftFromUrl);
-        setPaciente(v?.paciente || paciente);
+        // --- Normalización EXTREMA de paciente ---
+        const pacienteData = v?.paciente || {};
 
+        const findValue = (sources, ...keys) => {
+          for (const source of sources) {
+            if (source && typeof source === 'object') {
+              for (const key of keys) {
+                if (source[key] !== undefined && source[key] !== null && source[key] !== '') {
+                  return source[key];
+                }
+              }
+            }
+          }
+          return '';
+        };
+
+        const nombre = findValue(
+          [pacienteData, v],
+          'nombreCompleto', 'nombre', 'apellido', 'fullName', 'pacienteNombre', 'nombrePaciente'
+        );
+
+        const dni = findValue(
+          [pacienteData, v],
+          'dni', 'documento', 'DNI', 'Documento'
+        );
+
+        const art = findValue(
+          [pacienteData, v],
+          'artSeguro', 'art', 'seguro', 'artNombre', 'ART'
+        );
+
+        const siniestro = findValue(
+          [pacienteData, v],
+          'nroSiniestro', 'siniestro', 'numeroSiniestro', 'NroSiniestro'
+        );
+
+        const fecha = findValue(
+          [pacienteData, v],
+          'fechaAtencion', 'fecha', 'atencion', 'fecha_atencion'
+        ) || todayISO();
+
+        setPaciente({
+          nombreCompleto: nombre,
+          dni: dni,
+          artSeguro: art,
+          nroSiniestro: siniestro,
+          fechaAtencion: fecha,
+        });
+
+        // --- Normalizar arrays ---
         setPracticas(Array.isArray(v?.practicas) ? v.practicas : []);
         setCirugias(Array.isArray(v?.cirugias) ? v.cirugias : []);
         setLaboratorios(Array.isArray(v?.laboratorios) ? v.laboratorios : []);
         setMedicamentos(Array.isArray(v?.medicamentos) ? v.medicamentos : []);
         setDescartables(Array.isArray(v?.descartables) ? v.descartables : []);
 
-        if (v?.convenio) cambiarConvenio(v.convenio);
+        // --- Establecer el convenio de forma segura ---
+        if (v?.convenio) {
+          if (convenios && convenios[v.convenio]) {
+            cambiarConvenio(v.convenio);
+          }
+        } else if (v?.convenioNombre) {
+          const claveEncontrada = Object.keys(convenios || {}).find(
+            key => convenios[key]?.nombre === v.convenioNombre
+          );
+          if (claveEncontrada) {
+            cambiarConvenio(claveEncontrada);
+          }
+        }
 
+        setDraftId(draftFromUrl);
         setActiveTab('datos');
       } catch (e) {
-        console.error(e);
+        console.error('Error al cargar draft:', e);
         setLockMsg('Error al cargar el borrador desde Firebase.');
       } finally {
         if (alive) setLoadingDraft(false);
@@ -218,8 +279,7 @@ export default function FacturaContainer() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftFromUrl, isClient]);
+  }, [draftFromUrl, isClient, convenios]);
 
   // ===== Auto save (local) =====
   useEffect(() => {
@@ -236,7 +296,7 @@ export default function FacturaContainer() {
   }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
 
   // =========================
-  // 🔒 Lock de siniestro (evita duplicados)
+  // 🔒 Lock de siniestro (evita duplicados) - MODIFICADO PARA PERMITIR REABRIR CERRADOS
   // =========================
   const acquireSiniestroLock = useCallback(async ({ siniestroKey, desiredEstado, idCandidate }) => {
     const lockRef = ref(db, `Facturacion/siniestros/${siniestroKey}`);
@@ -246,7 +306,20 @@ export default function FacturaContainer() {
         return { status: desiredEstado, id: idCandidate || null, updatedAt: Date.now() };
       }
 
-      if (curr.status === 'cerrado') return; // abort
+      // Permitir reabrir un cerrado como borrador
+      if (curr.status === 'cerrado' && desiredEstado === 'borrador') {
+        return { ...curr, status: 'borrador', updatedAt: Date.now() };
+      }
+
+      // Permitir actualizar un cerrado (por ejemplo, volver a cerrarlo)
+      if (curr.status === 'cerrado' && desiredEstado === 'cerrado') {
+        return { ...curr, updatedAt: Date.now() };
+      }
+
+      // Si está cerrado y cualquier otro caso, abortar
+      if (curr.status === 'cerrado') {
+        return; // abort
+      }
 
       if (curr.status === 'borrador') {
         return { ...curr, updatedAt: Date.now() };
@@ -289,7 +362,7 @@ export default function FacturaContainer() {
 
       const lockAttempt = await acquireSiniestroLock({ siniestroKey, desiredEstado: estado, idCandidate: id });
       if (!lockAttempt.ok && lockAttempt.reason === 'closed') {
-        setLockMsg('Este siniestro ya está CERRADO. No se puede volver a guardar/retomar.');
+        setLockMsg('Este siniestro ya está CERRADO y no se puede modificar.');
         throw new Error('Siniestro cerrado (lock)');
       }
 
@@ -429,7 +502,7 @@ export default function FacturaContainer() {
         let merged = { ...current, ...patch };
 
         if (kind === 'practica') {
-          merged = forceRxDoctor(merged); // ✅ RX siempre Retamoso
+          merged = forceRxDoctor(merged);
 
           if (patchEsSoloTexto(patch)) {
             setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
@@ -521,7 +594,6 @@ export default function FacturaContainer() {
     Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
   }, [isClient]);
 
-  // ✅ guardar (va abajo ahora)
   const guardarSiniestro = useCallback(async () => {
     if (!isClient) return;
 
@@ -588,17 +660,14 @@ export default function FacturaContainer() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        {/* ✅ navegación rápida: Borradores / Cerrados / Todos */}
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
             <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/borradores">
               📝 Borradores
             </Link>
-
             <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/cerrados">
               ✅ Cerrados
             </Link>
-
             <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Facturados">
               📦 Todos
             </Link>
@@ -627,7 +696,6 @@ export default function FacturaContainer() {
             {lockMsg ? <div className={styles.alert}>{lockMsg}</div> : null}
           </div>
 
-          {/* ✅ ARRIBA: solo Limpiar + Cerrar */}
           <div className={styles.headerActions}>
             <button className={styles.btnSecundario} onClick={limpiarFactura}>
               🗑️ Limpiar
@@ -733,9 +801,9 @@ export default function FacturaContainer() {
             <motion.div key="cirugias" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <CirugiasModule
                 cirugiasAgregadas={cirugias}
-                practicasAgregadas={practicas}        // ← agregado
+                practicasAgregadas={practicas}
                 agregarCirugia={agregarCirugia}
-                agregarPractica={agregarPractica}      // ← agregado
+                agregarPractica={agregarPractica}
                 onAtras={() => setActiveTab('practicas')}
                 onSiguiente={() => setActiveTab('laboratorios')}
               />
@@ -760,7 +828,7 @@ export default function FacturaContainer() {
                 descartablesAgregados={descartables}
                 agregarMedicamento={agregarMedicamento}
                 agregarDescartable={agregarDescartable}
-                actualizarItem={actualizarItem}   // ← nueva prop
+                actualizarItem={actualizarItem}
                 onAtras={() => setActiveTab('laboratorios')}
                 onSiguiente={() => setActiveTab('resumen')}
               />
@@ -787,7 +855,6 @@ export default function FacturaContainer() {
         </AnimatePresence>
       </div>
 
-      {/* ✅ ABAJO: Guardar borrador */}
       <div className={styles.footerBar}>
         <div className={styles.footerActions}>
           <button className={styles.btnSecundario} onClick={guardarSiniestro}>

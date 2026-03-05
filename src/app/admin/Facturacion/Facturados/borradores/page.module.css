@@ -1,9 +1,7 @@
 /* ========================================
-   facturados.module.css - Versión compacta (tipo lista)
-   Mobile First, más pequeño y denso
+   page.module.css - Tarjetas compactas para Borradores
    ======================================== */
 
-/* ---------- Contenedor principal ---------- */
 .container {
   --bg-primary: #0f172a;
   --bg-card: #1e293b;
@@ -12,7 +10,7 @@
   --accent-blue: #3b82f6;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
-  --accent-teal: #14b8a6;
+  --accent-orange: #f97316;
   --border-subtle: #334155;
   --border-input: #4b5565;
   --shadow-sm: 0 2px 4px -1px rgb(0 0 0 / 0.3);
@@ -60,7 +58,16 @@
   font-weight: 400;
 }
 
-/* ---------- Header top (título + acciones) ---------- */
+.alert {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fecaca;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
 .headerTop {
   display: flex;
   flex-direction: column;
@@ -74,13 +81,13 @@
   gap: 8px;
 }
 
-/* Botones base más pequeños */
+/* Botones base */
 .btn,
 .btnGhost,
 .btnPrimary,
-.btnDanger,
-.btnArt,
-.btnInfo {
+.btnInfo,
+.btnOk,
+.btnDanger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -110,71 +117,43 @@
   box-shadow: none;
 }
 
-.btnDanger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fecaca;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.btnArt {
-  background: rgba(20, 184, 166, 0.15);
-  color: #99f6e4;
-  border: 1px solid rgba(20, 184, 166, 0.3);
-}
-
 .btnInfo {
   background: rgba(59, 130, 246, 0.15);
   color: #bfdbfe;
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-.btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-  border: 1px solid var(--border-input);
+.btnOk {
+  background: rgba(34, 197, 94, 0.15);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.btnDanger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn:hover,
 .btnGhost:hover,
 .btnPrimary:hover,
-.btnDanger:hover,
-.btnArt:hover,
-.btnInfo:hover {
+.btnInfo:hover,
+.btnOk:hover,
+.btnDanger:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* ---------- Switch de estado ---------- */
-.quickSwitch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0;
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.switchBtn {
-  flex: 1 1 auto;
-  padding: 8px 12px;
-  border-radius: 30px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  border: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
-  border: 1px solid transparent;
-}
-
-.switchBtnActive {
-  background: var(--accent-blue);
-  color: white;
-  border-color: var(--accent-blue);
-}
-
-/* ---------- Toolbar (búsqueda y filtros) ---------- */
+/* ---------- Toolbar ---------- */
 .toolbar {
   display: flex;
   flex-direction: column;
@@ -182,11 +161,12 @@
   margin-top: 12px;
 }
 
-.searchBlock {
-  width: 100%;
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.search,
 .input,
 .select {
   width: 100%;
@@ -214,13 +194,12 @@
   color: white;
 }
 
-.filters {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.input:focus,
+.select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
-/* Checkbox "Seleccionar todos" compacto */
 .checkboxAll {
   display: inline-flex;
   align-items: center;
@@ -241,19 +220,6 @@
   accent-color: var(--accent-blue);
 }
 
-/* Checkbox individual en cada tarjeta */
-.checkboxInline {
-  display: flex;
-  align-items: center;
-  margin-right: 6px;
-}
-
-.checkboxInline input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent-blue);
-}
-
 /* ---------- Grid de tarjetas ---------- */
 .grid {
   display: grid;
@@ -261,7 +227,7 @@
   gap: 12px;
 }
 
-/* ---------- Tarjeta de siniestro ---------- */
+/* ---------- Tarjeta ---------- */
 .card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
@@ -276,6 +242,18 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.checkboxInline {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.checkboxInline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-blue);
 }
 
 .state {
@@ -298,16 +276,10 @@
   border: 1px solid transparent;
 }
 
-.badgeOk {
-  background: rgba(34, 197, 94, 0.15);
-  color: #bbf7d0;
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
 .badgeDraft {
-  background: rgba(59, 130, 246, 0.15);
-  color: #bfdbfe;
-  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(249, 115, 22, 0.15);
+  color: #fed7aa;
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .date {
@@ -371,27 +343,6 @@
   border: 1px solid var(--border-subtle);
 }
 
-.facturaLine,
-.facturaLineMuted {
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  margin-bottom: 10px;
-}
-
-.facturaLine {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  color: #bfdbfe;
-}
-
-.facturaLineMuted {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-}
-
-/* Acciones de la tarjeta más compactas */
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -435,9 +386,9 @@
   .btn,
   .btnGhost,
   .btnPrimary,
-  .btnDanger,
-  .btnArt,
-  .btnInfo {
+  .btnInfo,
+  .btnOk,
+  .btnDanger {
     width: auto;
     padding: 8px 16px;
   }
@@ -449,9 +400,10 @@
     gap: 8px;
   }
 
-  .select {
+  .select,
+  .input {
     width: auto;
-    min-width: 140px;
+    min-width: 160px;
     flex: 1 1 auto;
   }
 
@@ -472,20 +424,6 @@
     padding: 20px;
   }
 
-  .toolbar {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .searchBlock {
-    flex: 2;
-  }
-
-  .filters {
-    flex: 3;
-    justify-content: flex-end;
-  }
-
   .grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
@@ -500,7 +438,3 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
-
-
-
-/* ///////////////////////////////////////////////////////////////////  */

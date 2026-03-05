@@ -795,3 +795,12 @@
     padding-top: 6pt;
   }
 }
+
+.printSubtotal {
+  text-align: right;
+  font-weight: 600;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding-right: 8px;
+  border-top: 1px dashed #ccc;
+}

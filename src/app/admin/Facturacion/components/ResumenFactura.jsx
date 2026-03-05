@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { money, parseNumber } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
+import * as XLSX from 'xlsx';
 
 // Helper para redondear a 1 decimal
 const to1Decimal = (n) => {
@@ -21,11 +22,8 @@ const clampDecimalQty = (v) => {
 const fmtQtyInput = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n)) return '1';
-  // Redondear a 1 decimal
   const rounded = to1Decimal(n);
-  // Convertir a string con un decimal (ej. 1.0 -> "1,0")
   const withDecimal = rounded.toFixed(1).replace('.', ',');
-  // Si termina en ",0", quitar el ",0"
   return withDecimal.replace(/,0$/, '');
 };
 
@@ -105,7 +103,6 @@ export default function ResumenFactura({
   limpiarFactura,
   onAtras
 }) {
-  // Para la vista normal (pantalla) mantenemos los acordeones, pero para impresión se ignora
   const [open, setOpen] = useState({
     practicas: true,
     practHon: true,
@@ -117,7 +114,6 @@ export default function ResumenFactura({
     desc: true
   });
 
-  // Los totales monetarios se calculan con money (2 decimales), pero sumamos con parseNumber
   const totalSeccion = (items) =>
     items.reduce((acc, it) => acc + (parseNumber(it?.total) || 0), 0);
 
@@ -128,7 +124,6 @@ export default function ResumenFactura({
     return { honor, gasto, total: honor + gasto };
   }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
-  // Separación prácticas como antes
   const practicasHonorarios = useMemo(
     () => practicas.filter((p) => String(p?.prestadorTipo) === 'Dr'),
     [practicas]
@@ -138,8 +133,14 @@ export default function ResumenFactura({
     [practicas]
   );
 
-  // Para impresión, vamos a generar las secciones planas
-  // Datos del paciente
+  // Subtotales por categoría para impresión
+  const totalPracticasHonorarios = useMemo(() => totalSeccion(practicasHonorarios), [practicasHonorarios]);
+  const totalPracticasGastos = useMemo(() => totalSeccion(practicasGastos), [practicasGastos]);
+  const totalCirugias = useMemo(() => totalSeccion(cirugias), [cirugias]);
+  const totalLaboratorios = useMemo(() => totalSeccion(laboratorios), [laboratorios]);
+  const totalMedicamentos = useMemo(() => totalSeccion(medicamentos), [medicamentos]);
+  const totalDescartables = useMemo(() => totalSeccion(descartables), [descartables]);
+
   const pacienteData = {
     nombre: paciente?.nombreCompleto || '—',
     dni: paciente?.dni || '—',
@@ -148,7 +149,98 @@ export default function ResumenFactura({
     fecha: paciente?.fechaAtencion || '—'
   };
 
-  // Función para renderizar una tabla genérica para honorarios (Dr)
+  // ================= FUNCIÓN DE EXPORTACIÓN A EXCEL =================
+  const exportarDetalle = () => {
+    const rows = [];
+
+    rows.push(['RESUMEN DE FACTURACIÓN']);
+    rows.push([]);
+    rows.push(['Paciente:', pacienteData.nombre]);
+    rows.push(['DNI:', pacienteData.dni]);
+    rows.push(['ART/Seguro:', pacienteData.art]);
+    rows.push(['N° Siniestro:', pacienteData.siniestro]);
+    rows.push(['Fecha de atención:', pacienteData.fecha]);
+    rows.push([]);
+
+    rows.push(['CATEGORÍA', 'TIPO', 'CÓDIGO', 'DESCRIPCIÓN', 'CANTIDAD', 'VALOR UNITARIO', 'HONORARIO', 'GASTO', 'TOTAL', 'ORIGEN']);
+
+    const agregarItems = (items, categoria, tipo) => {
+      items.forEach(it => {
+        const cantidad = clampDecimalQty(it.cantidad);
+        const unitario = parseNumber(it.valorUnitario) || (parseNumber(it.total) / cantidad) || 0;
+        const honorario = parseNumber(it.honorarioMedico) || 0;
+        const gasto = parseNumber(it.gastoSanatorial) || 0;
+        const total = parseNumber(it.total) || 0;
+        const origen = it.prestadorNombre || it.doctorNombre || it.medico || (categoria.includes('Gasto') ? 'Clínica' : '');
+        rows.push([
+          categoria,
+          tipo,
+          it.codigo || '',
+          it.descripcion || it.nombre || '',
+          cantidad,
+          unitario,
+          honorario,
+          gasto,
+          total,
+          origen
+        ]);
+      });
+    };
+
+    agregarItems(practicasHonorarios, 'Prácticas - Honorarios', 'Dr');
+    agregarItems(practicasGastos, 'Prácticas - Gastos', 'Clínica');
+    agregarItems(cirugias, 'Cirugías', 'Dr');
+    agregarItems(laboratorios, 'Laboratorios', 'Bioquímico');
+    agregarItems(medicamentos, 'Medicación', 'Gasto');
+    agregarItems(descartables, 'Descartables', 'Gasto');
+
+    rows.push([]);
+    rows.push(['SUBTOTALES POR CATEGORÍA']);
+
+    const categorias = [
+      { nombre: 'Honorarios Médicos', items: [...practicasHonorarios, ...cirugias, ...laboratorios] },
+      { nombre: 'Gastos Clínicos (Prácticas)', items: practicasGastos },
+      { nombre: 'Laboratorios', items: laboratorios },
+      { nombre: 'Medicación', items: medicamentos },
+      { nombre: 'Descartables', items: descartables },
+    ];
+
+    categorias.forEach(cat => {
+      const totalCat = cat.items.reduce((acc, it) => acc + (parseNumber(it.total) || 0), 0);
+      if (totalCat > 0) {
+        rows.push([cat.nombre, '', '', '', '', '', '', '', money(totalCat)]);
+      }
+    });
+
+    rows.push([]);
+    rows.push(['TOTALES GENERALES']);
+    rows.push(['Honorarios:', '', '', '', '', '', '', '', money(totales.honor)]);
+    rows.push(['Gastos:', '', '', '', '', '', '', '', money(totales.gasto)]);
+    rows.push(['TOTAL:', '', '', '', '', '', '', '', money(totales.total)]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    const colWidths = [
+      { wch: 20 }, // CATEGORÍA
+      { wch: 15 }, // TIPO
+      { wch: 12 }, // CÓDIGO
+      { wch: 40 }, // DESCRIPCIÓN
+      { wch: 10 }, // CANTIDAD
+      { wch: 15 }, // VALOR UNITARIO
+      { wch: 15 }, // HONORARIO
+      { wch: 15 }, // GASTO
+      { wch: 15 }, // TOTAL
+      { wch: 25 }, // ORIGEN
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Detalle Factura');
+    XLSX.writeFile(wb, `factura_${pacienteData.nombre}_${pacienteData.dni}.xlsx`);
+  };
+  // ================= FIN EXPORTACIÓN =================
+
+  // Funciones de renderizado para impresión
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -187,7 +279,6 @@ export default function ResumenFactura({
     );
   };
 
-  // Función para gastos de clínica (CdU)
   const renderTablaGastosClinica = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -226,7 +317,6 @@ export default function ResumenFactura({
     );
   };
 
-  // Para medicamentos y descartables (sin código, solo descripción)
   const renderTablaMedicamentos = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -261,7 +351,7 @@ export default function ResumenFactura({
     );
   };
 
-  // Renderizado de cantidad con decimales y prevención de scroll (para pantalla)
+  // Funciones para la vista en pantalla (acordeones)
   const renderCantidad = (item) => {
     const cur = clampDecimalQty(item?.cantidad);
     const step = cur < 1 ? 0.1 : 1;
@@ -431,7 +521,6 @@ export default function ResumenFactura({
           </div>
         </div>
 
-        {/* PRACTICAS separadas */}
         <Acordeon k="practicas" title="🏥 Prácticas" count={practicas.length} amount={totalSeccion(practicas)}>
           {practicas.length === 0 ? (
             <div className={styles.emptyBlock}>Sin prácticas.</div>
@@ -455,7 +544,6 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* CIRUGIAS con input Dr */}
         <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)}>
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
@@ -500,7 +588,6 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* LABS con input Bioquímico por estudio */}
         <Acordeon k="labs" title="🧪 Laboratorios" count={laboratorios.length} amount={totalSeccion(laboratorios)}>
           {laboratorios.length === 0 ? (
             <div className={styles.emptyBlock}>Sin laboratorios.</div>
@@ -553,7 +640,6 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* MED + DESC agrupados */}
         <Acordeon
           k="medDesc"
           title="💊 Medicación + 🧷 Descartables"
@@ -655,12 +741,17 @@ export default function ResumenFactura({
             <button type="button" className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
           </div>
           <div className={styles.botonesDerecha}>
-            <button type="button" className={styles.btnLimpiar} onClick={limpiarFactura}>🗑️ Limpiar factura</button>
+            <button type="button" className={styles.btnDescargar} onClick={exportarDetalle}>
+              📥 Descargar detalle
+            </button>
+            <button type="button" className={styles.btnLimpiar} onClick={limpiarFactura}>
+              🗑️ Limpiar factura
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Vista para impresión (oculta en pantalla, se muestra al imprimir) */}
+      {/* Vista para impresión (con subtotales) */}
       <div className={styles.printView}>
         <div className={styles.printHeader}>
           <h1>Resumen de Facturación</h1>
@@ -671,23 +762,41 @@ export default function ResumenFactura({
           </div>
         </div>
 
-        {/* Honorarios Médicos */}
+        {/* Honorarios Médicos con subtotales */}
         <div className={styles.printHonorarios}>
           <h3>Honorarios Médicos</h3>
           {renderTablaHonorarios(practicasHonorarios, 'Prácticas')}
+          {totalPracticasHonorarios > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Prácticas: $ {money(totalPracticasHonorarios)}</div>
+          )}
           {renderTablaHonorarios(cirugias, 'Cirugías')}
+          {totalCirugias > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Cirugías: $ {money(totalCirugias)}</div>
+          )}
           {renderTablaHonorarios(laboratorios, 'Laboratorio')}
+          {totalLaboratorios > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Laboratorio: $ {money(totalLaboratorios)}</div>
+          )}
         </div>
 
-        {/* Gastos Sanatoriales */}
+        {/* Gastos Sanatoriales con subtotales */}
         <div className={styles.printGastos}>
           <h3>Gastos Sanatoriales</h3>
           {renderTablaGastosClinica(practicasGastos, 'Gastos Clínica')}
+          {totalPracticasGastos > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Gastos Prácticas: $ {money(totalPracticasGastos)}</div>
+          )}
           {renderTablaMedicamentos(medicamentos, 'Medicación')}
+          {totalMedicamentos > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Medicación: $ {money(totalMedicamentos)}</div>
+          )}
           {renderTablaMedicamentos(descartables, 'Descartables')}
+          {totalDescartables > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Descartables: $ {money(totalDescartables)}</div>
+          )}
         </div>
 
-        {/* Subtotales y Total */}
+        {/* Totales generales */}
         <div className={styles.printTotales}>
           <div className={styles.printTotalLine}>
             <span>Subtotal Honorarios:</span>
