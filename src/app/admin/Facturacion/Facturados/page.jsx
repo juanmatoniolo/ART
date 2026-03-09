@@ -502,8 +502,8 @@ const printART = (id) => {
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-25deg);
-            opacity: 0.3;
+            transform: translate(-50%, -50%) ;
+            opacity: 0.2;
             z-index: -1;
             pointer-events: none;
           }
