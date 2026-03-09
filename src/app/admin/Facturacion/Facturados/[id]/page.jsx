@@ -653,7 +653,7 @@ export default function FacturadoDetallePage() {
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%) rotate(-25deg);
-                    opacity: 0.1;
+                    opacity: 0.3;
                     z-index: -1;
                     pointer-events: none;
                 }

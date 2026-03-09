@@ -20,7 +20,6 @@ export default function WhatsAppSender() {
   }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
   const buildMessage = () => {
-    // ... (el contenido de los mensajes se mantiene igual) ...
     if (mensaje === "1") {
       return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
@@ -145,6 +144,23 @@ Quedamos a la espera de su información para avanzar.
 
 Muchas gracias.`;
     }
+    // Mensaje 8: Ortopedia (versión resumida y clara)
+    if (mensaje === "8") {
+      return `Buen día, *${name}*.
+
+Le informamos los pasos para retirar su ortopedia:
+
+1. *Retirar autorización* en Mesa de Entrada de la Clínica (ingreso por Roque Sáenz Peña).  
+   Horarios: Lun a vie 8-12 y 16-20, sáb 8-12.
+
+2. *Ir a Distrimed* (9 de Julio 3240, frente a Farmacia Barbieri) con:  
+   - Copia de la denuncia  
+   - Autorización ortopédica
+
+3. *Consultar cobertura* en la ortopedia:  
+   - Si la ART cubre el 100%, retira sin cargo.  
+   - Si no, debe abonar y luego pedir reintegro a su ART (guardar factura).`;
+    }
     return "";
   };
 
@@ -241,6 +257,7 @@ Muchas gracias.`;
               <option value="5">Mensaje 5 – Estudios Laboratorio</option>
               <option value="6">Mensaje 6 – Ecografía Aprobada</option>
               <option value="7">Mensaje 7 – Cirugía Aprobada</option>
+              <option value="8">Mensaje 8 – Ortopedia</option>
             </select>
           </div>
 

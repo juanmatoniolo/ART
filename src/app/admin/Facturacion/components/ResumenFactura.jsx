@@ -265,7 +265,10 @@ export default function ResumenFactura({
               return (
                 <tr key={item.id}>
                   <td>{item.prestadorNombre || '—'}</td>
-                  <td>{item.codigo || '—'}</td>
+                  <td>
+                    {item.codigo || '—'}
+                    {item?.esRX && <span className={styles.badgeRx}>RX</span>}
+                  </td>
                   <td>{item.descripcion || item.nombre || '—'}</td>
                   <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
                   <td className={styles.printNumber}>$ {money(unitario)}</td>
@@ -303,7 +306,10 @@ export default function ResumenFactura({
               return (
                 <tr key={item.id}>
                   <td>{item.prestadorNombre || 'Clínica de la Unión'}</td>
-                  <td>{item.codigo || '—'}</td>
+                  <td>
+                    {item.codigo || '—'}
+                    {item?.esRX && <span className={styles.badgeRx}>RX</span>}
+                  </td>
                   <td>{item.descripcion || item.nombre || '—'}</td>
                   <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
                   <td className={styles.printNumber}>$ {money(unitario)}</td>
