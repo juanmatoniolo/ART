@@ -623,7 +623,7 @@ const printART = (id) => {
       </head>
       <body>
         <div class="watermark">
-          <img src="/logo.jpg" alt="Clínica de la Unión">
+          <img src="/logo.png" alt="Clínica de la Unión">
         </div>
         <h1>Reporte para ART</h1>
         <div class="header-info">
