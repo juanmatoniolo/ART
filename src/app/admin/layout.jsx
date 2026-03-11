@@ -16,6 +16,7 @@ import {
   Pill,
   BookOpen,
   FolderTree,
+  Stethoscope,   // <-- agregar
   Settings,
   LogOut,
   Menu,
@@ -56,14 +57,16 @@ export default function AdminLayout({ children }) {
     return <div className={styles.loading}>Cargando...</div>;
   }
 
-  const navItems = [
-    { href: "/admin", label: "", icon: Home, showLabel: false }, // solo icono
-    { href: "/admin/comunicador", label: "Comunicador", icon: Users },
-    { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
-    { href: "/admin/med-descartables", label: "Med + Descartables", icon: Pill },
-    { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
-    { href: "/admin/cx", label: "CX", icon: FolderTree },
-  ];
+// Dentro del componente, en la definición de navItems
+const navItems = [
+  { href: "/admin", label: "", icon: Home, showLabel: false },
+  { href: "/admin/comunicador", label: "Comunicador", icon: Users },
+  { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
+  { href: "/admin/med-descartables", label: "Med + Descartables", icon: Pill },
+  { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
+  { href: "/admin/cx", label: "CX", icon: FolderTree },
+  { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },  // <-- NUEVA LÍNEA
+];
 
   return (
     <div className={styles.layout}>

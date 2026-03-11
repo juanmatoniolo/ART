@@ -45,7 +45,7 @@ const isCanonDia = (c) => normalizeName(c) === 'dia';
 const isCanonMes = (c) => normalizeName(c) === 'mes';
 const isCanonAnio = (c) => {
   const n = normalizeName(c);
-  return n === 'anio' || n === 'año' || n === 'ano';
+  return n === 'anio' || n === 'AÑOS' || n === 'ano';
 };
 
 const isCanonCX = (c) => normalizeName(c) === 'cx';
@@ -394,7 +394,7 @@ export default function Page() {
 
   // ✅ Auto-set de edad: guarda en "edad" y en "edad-paciente" (si existen)
   useEffect(() => {
-    const next = edadCalculada ? `${edadCalculada} años` : '';
+    const next = edadCalculada ? `${edadCalculada} AÑOS` : '';
     if (!canonEdad && !canonEdadPaciente) return;
 
     setForm((prev) => {
@@ -572,7 +572,7 @@ export default function Page() {
     const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
     const nombresPaciente = [apellido, nombre].filter(Boolean).join(' ').trim(); // ✅ CONCAT
 
-    const edadValuePrint = edadCalculada ? `${edadCalculada} años` : '';
+    const edadValuePrint = edadCalculada ? `${edadCalculada} AÑOS` : '';
 
     const doctorRaw = canonDoctor ? (form?.[canonDoctor] ?? '').toString().trim() : '';
     const doctorPrint = doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
@@ -893,7 +893,7 @@ export default function Page() {
             <div className={`${styles.field} ${styles.fieldWide}`}>
               <div className={styles.labelRow}>
                 <label className={styles.fieldLabel}>Fecha de nacimiento</label>
-                <span className={styles.badge}>día / mes / año</span>
+                <span className={styles.badge}>día / mes / AÑOS</span>
               </div>
 
               <div className={styles.row3}>
@@ -924,7 +924,7 @@ export default function Page() {
                   />
                 </div>
                 <div>
-                  <div className={styles.subLabel}>Año</div>
+                  <div className={styles.subLabel}>AÑOS</div>
                   <input
                     className={styles.input}
                     name={canonAnio || 'anio'}
@@ -944,7 +944,7 @@ export default function Page() {
                 <label className={styles.fieldLabel}>Edad</label>
                 <span className={styles.badge}>auto</span>
               </div>
-              <input className={styles.input} value={edadCalculada ? `${edadCalculada} años` : ''} placeholder="—" readOnly disabled />
+              <input className={styles.input} value={edadCalculada ? `${edadCalculada} AÑOS` : ''} placeholder="—" readOnly disabled />
             </div>
           </div>
 

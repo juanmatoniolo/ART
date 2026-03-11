@@ -1,0 +1,291 @@
+/* ===== CONTENEDOR PRINCIPAL ===== */
+.container {
+  padding: 2rem;
+  background-color: #1e1e2f;  /* Fondo oscuro principal */
+  color: #f0f0f0;              /* Texto claro */
+  min-height: 100vh;
+}
+
+/* ===== ENCABEZADO ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  color: #ffffff;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* ===== BOTONES ===== */
+.btnPrimary {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btnPrimary:hover {
+  background-color: #1e5c22;
+}
+
+.btnSecondary {
+  background-color: #3a3a5a;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btnSecondary:hover {
+  background-color: #2a2a40;
+}
+
+.btnEdit, .btnDelete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin: 0 0.2rem;
+  color: #f0f0f0;
+  transition: transform 0.1s;
+}
+
+.btnEdit:hover, .btnDelete:hover {
+  transform: scale(1.1);
+}
+
+.btnDelete {
+  color: #ff6b6b;
+}
+
+.btnWhatsApp {
+  background-color: #25D366;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.btnWhatsApp:hover {
+  background-color: #128C7E;
+}
+
+.noPhone {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* ===== TABLA ===== */
+.tableWrapper {
+  overflow-x: auto;
+  background-color: #2a2a3c;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e0e0e0;
+}
+
+.table th {
+  background-color: #33334a;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 1rem 0.75rem;
+  border-bottom: 2px solid #4a4a6a;
+}
+
+.table td {
+  padding: 0.9rem 0.75rem;
+  border-bottom: 1px solid #3a3a5a;
+}
+
+.table tr:hover {
+  background-color: #2e2e45;
+}
+
+/* ===== FORMULARIO ===== */
+.form {
+  background-color: #2a2a3c;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 800px;
+  margin: 1rem 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.fullWidth {
+  grid-column: span 2;
+}
+
+.form label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #c0c0d0;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form input,
+.form textarea,
+.form select {
+  width: 100%;
+  padding: 0.7rem;
+  background-color: #1e1e2f;
+  border: 1px solid #4a4a6a;
+  border-radius: 4px;
+  color: #f0f0f0;
+  font-size: 1rem;
+}
+
+.form input:focus,
+.form textarea:focus,
+.form select:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.3);
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #e0e0e0;
+  font-weight: normal;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.3rem;
+  accent-color: #2e7d32;
+}
+
+.formActions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* ===== RANGO DE FECHAS (DASHBOARD) ===== */
+.dateRange {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  background-color: #2a2a3c;
+  padding: 1.2rem 1.5rem;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.dateRange label {
+  color: #c0c0d0;
+  font-weight: 500;
+}
+
+.dateRange input[type="date"] {
+  background-color: #1e1e2f;
+  border: 1px solid #4a4a6a;
+  color: #f0f0f0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+/* ===== TARJETAS DE TOTALES (DASHBOARD) ===== */
+.totales {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.totalCard {
+  background: linear-gradient(145deg, #2a2a3c, #202033);
+  padding: 1.8rem;
+  border-radius: 12px;
+  text-align: center;
+  flex: 1;
+  min-width: 200px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.totalCard span {
+  display: block;
+  font-size: 1rem;
+  color: #b0b0c0;
+  margin-bottom: 0.5rem;
+}
+
+.totalCard strong {
+  font-size: 2.2rem;
+  color: #81c784;  /* verde claro */
+  font-weight: 700;
+}
+
+/* ===== ESTADOS DE CARGA ===== */
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #a0a0b0;
+  font-size: 1.1rem;
+}
+
+.empty {
+  text-align: center;
+  color: #a0a0b0;
+  padding: 2rem;
+  font-style: italic;
+}
+
+/* ===== UTILIDADES ===== */
+.alert {
+  background-color: #c0392b;
+  color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

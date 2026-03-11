@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { money, parseNumber } from '../utils/calculos';
 import styles from './resumenFactura.module.css';
 import * as XLSX from 'xlsx';
+import useDoctors from '../../medicos/hooks/useDoctors';
 
 // Helper para redondear a 1 decimal
 const to1Decimal = (n) => {
@@ -36,29 +37,79 @@ const stopInputKeys = (e) => {
   if (e.key === 'Enter') e.preventDefault();
 };
 
-function StableNameInput({ value, placeholder, onCommit }) {
-  const [local, setLocal] = useState(value ?? '');
-  useEffect(() => {
-    setLocal(value ?? '');
-  }, [value]);
-  const commit = useCallback(() => {
-    onCommit?.(local);
-  }, [local, onCommit]);
+// Función para determinar si una cirugía requiere dos ayudantes
+const esNivelAlto = (item) => {
+  // Si tiene campo 'nivel' y es >= 4
+  if (item.nivel && Number(item.nivel) >= 4) return true;
+  // Si tiene categoría que indique alta complejidad
+  if (item.categoria) {
+    const cat = String(item.categoria).toLowerCase();
+    if (cat.includes('compleja') || cat.includes('alta') || cat.includes('nivel 4')) return true;
+  }
+  // Si tiene flag explícito
+  if (item.requiereDosAyudantes === true) return true;
+  return false;
+};
+
+// Componente selector de médicos con autocompletado e ID visible
+const DoctorSelect = ({ value, onChange, placeholder }) => {
+  const { doctors } = useDoctors();
+  const [inputValue, setInputValue] = useState(value || '');
+  const datalistId = `doctor-list-${Math.random().toString(36).substr(2, 9)}`;
+
+  const handleAddNew = () => {
+    window.open('/admin/medicos/nuevo', '_blank');
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    onChange(val);
+  };
+
+  const handleSelect = (e) => {
+    // Cuando se selecciona una opción del datalist, se asigna el valor
+    const selected = e.target.value;
+    setInputValue(selected);
+    onChange(selected);
+  };
+
+  // Formato para mostrar en la lista: ID - Apellido, Nombre truncado
+  const formatDoctorName = (doc, index) => {
+    const { apellido, nombre } = doc;
+    const nombreTruncado = nombre.length > 5 ? nombre.substring(0, 5) + '.' : nombre;
+    return `${index + 1} - ${apellido}, ${nombreTruncado}`;
+  };
+
   return (
-    <input
-      className={styles.inputDoctor}
-      placeholder={placeholder}
-      value={local}
-      onClick={stopBubbling}
-      onKeyDown={(e) => {
-        stopInputKeys(e);
-        if (e.key === 'Enter') commit();
-      }}
-      onChange={(e) => setLocal(e.target.value)}
-      onBlur={commit}
-    />
+    <div className={styles.doctorSelectContainer}>
+      <input
+        list={datalistId}
+        className={styles.doctorInput}
+        placeholder={placeholder}
+        value={inputValue}
+        onChange={handleInputChange}
+        onBlur={() => onChange(inputValue)}
+        onClick={stopBubbling}
+      />
+      <datalist id={datalistId}>
+        {doctors.map((doc, idx) => (
+          <option key={doc.id} value={`${doc.apellido}, ${doc.nombre}`}>
+            {formatDoctorName(doc, idx)}
+          </option>
+        ))}
+      </datalist>
+      <button
+        type="button"
+        className={styles.addDoctorBtn}
+        onClick={handleAddNew}
+        title="Agregar nuevo médico"
+      >
+        ➕
+      </button>
+    </div>
   );
-}
+};
 
 function CantidadInputResumen({ itemId, initialValue, onChange }) {
   const [localValue, setLocalValue] = useState(fmtQtyInput(initialValue));
@@ -240,7 +291,7 @@ export default function ResumenFactura({
   };
   // ================= FIN EXPORTACIÓN =================
 
-  // Funciones de renderizado para impresión
+  // Funciones de renderizado para impresión (sin cambios)
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -482,10 +533,10 @@ export default function ResumenFactura({
                 </div>
                 {mostrarInputDoctor && (
                   <div className={styles.doctorRow}>
-                    <StableNameInput
+                    <DoctorSelect
                       value={p?.prestadorNombre ?? ''}
                       placeholder="Dr que realiza…"
-                      onCommit={(val) => actualizarItem(p.id, { prestadorNombre: val })}
+                      onChange={(val) => actualizarItem(p.id, { prestadorNombre: val })}
                     />
                   </div>
                 )}
@@ -571,13 +622,33 @@ export default function ResumenFactura({
                       <td className={styles.columnaCodigo}><strong>{c.codigo || '—'}</strong></td>
                       <td className={styles.columnaDescripcion}>
                         <div className={styles.descPrincipal}>{c.descripcion || c.nombre || 'Cirugía'}</div>
+                        {/* Cirujano principal (siempre visible) */}
                         <div className={styles.doctorRow}>
-                          <StableNameInput
+                          <DoctorSelect
                             value={c?.prestadorNombre ?? ''}
-                            placeholder="Dr que realiza…"
-                            onCommit={(val) => actualizarItem(c.id, { prestadorNombre: val })}
+                            placeholder="Cirujano principal…"
+                            onChange={(val) => actualizarItem(c.id, { prestadorNombre: val })}
                           />
                         </div>
+                        {/* Ayudantes condicionales */}
+                        {esNivelAlto(c) && (
+                          <>
+                            <div className={styles.doctorRow}>
+                              <DoctorSelect
+                                value={c?.ayudante1 ?? ''}
+                                placeholder="Ayudante 1…"
+                                onChange={(val) => actualizarItem(c.id, { ayudante1: val })}
+                              />
+                            </div>
+                            <div className={styles.doctorRow}>
+                              <DoctorSelect
+                                value={c?.ayudante2 ?? ''}
+                                placeholder="Ayudante 2…"
+                                onChange={(val) => actualizarItem(c.id, { ayudante2: val })}
+                              />
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td className={styles.columnaCantidad}>{renderCantidad(c)}</td>
                       <td className={styles.columnaValor}>{renderValorStack(c)}</td>
@@ -616,10 +687,10 @@ export default function ResumenFactura({
                       <td className={styles.columnaDescripcion}>
                         <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
                         <div className={styles.doctorRow}>
-                          <StableNameInput
+                          <DoctorSelect
                             value={l?.prestadorNombre ?? ''}
                             placeholder="Bioquímico/a…"
-                            onCommit={(val) => actualizarItem(l.id, { prestadorNombre: val })}
+                            onChange={(val) => actualizarItem(l.id, { prestadorNombre: val })}
                           />
                         </div>
                       </td>
@@ -757,7 +828,7 @@ export default function ResumenFactura({
         </div>
       </div>
 
-      {/* Vista para impresión (con subtotales) */}
+      {/* Vista para impresión (con subtotales) - sin cambios */}
       <div className={styles.printView}>
         <div className={styles.printHeader}>
           <h1>Resumen de Facturación</h1>

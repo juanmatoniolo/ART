@@ -35,9 +35,9 @@ export const money = (n) => {
 	const num = typeof n === "number" ? n : parseNumber(n);
 	return Number.isFinite(num)
 		? num.toLocaleString("es-AR", {
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2,
-			})
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		})
 		: "—";
 };
 
@@ -513,4 +513,50 @@ export const obtenerHonorariosAoter = (complejidad, valoresConvenio) => {
 		ayudante1: toNumber(item?.Ayudante_1),
 		ayudante2: toNumber(item?.Ayudante_2),
 	};
+};
+
+
+// ... (código existente de money y parseNumber) ...
+
+// Nuevas funciones auxiliares
+export const normalizeKey = (s) =>
+	String(s ?? '')
+		.trim()
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^a-z0-9]+/g, '_')
+		.replace(/^_+|_+$/g, '');
+
+export const prettyLabel = (s) =>
+	String(s ?? '')
+		.replace(/_/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+
+export const norm = (s) =>
+	String(s ?? '')
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.trim();
+
+export const fmtDate = (ms) => {
+	if (!ms) return '—';
+	try {
+		return new Date(ms).toLocaleString('es-AR');
+	} catch {
+		return '—';
+	}
+};
+
+export const safeNum = (v) => {
+	const n = typeof v === 'number' ? v : parseNumber(v);
+	return Number.isFinite(n) ? n : 0;
+};
+
+// Redondeo a 2 decimales
+export const round2 = (n) => {
+  const num = parseNumber(n);
+  return Number.isFinite(num) ? Math.round((num + Number.EPSILON) * 100) / 100 : 0;
 };

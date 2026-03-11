@@ -502,3 +502,50 @@
 
 
 /* ///////////////////////////////////////////////////////////////////  */
+
+
+.dateRange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.dateInput {
+  border: none;
+  padding: 4px;
+  font-size: 0.9rem;
+  width: 120px;
+  outline: none;
+}
+
+.dateSeparator {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dateRange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.dateInput {
+  border: none;
+  padding: 4px;
+  font-size: 0.9rem;
+  width: 120px;
+  outline: none;
+}
+
+.dateSeparator {
+  color: #666;
+  font-size: 0.9rem;
+}

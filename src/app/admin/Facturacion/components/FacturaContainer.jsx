@@ -76,12 +76,18 @@ function normalizarLab(item, valoresConvenio) {
 }
 
 function normalizarMedDesc(item) {
-  const cantidad = Math.max(0.01, parseNumber(item?.cantidad) || 1);
-  const unit = safeNum(item?.valorUnitario ?? item?.precio ?? 0);
-  const total = unit * cantidad;
-  return { ...item, cantidad, valorUnitario: unit, honorarioMedico: 0, gastoSanatorial: total, total };
+  const cantidad = round2(Math.max(0.01, parseNumber(item?.cantidad) || 1));
+  const unit = round2(safeNum(item?.valorUnitario ?? item?.precio ?? 0));
+  const total = round2(unit * cantidad);
+  return {
+    ...item,
+    cantidad,
+    valorUnitario: unit,
+    honorarioMedico: 0,
+    gastoSanatorial: total,
+    total
+  };
 }
-
 const patchEsSoloTexto = (patch) => {
   if (!patch || typeof patch !== 'object') return true;
   const numericKeys = new Set(['cantidad', 'valorUnitario', 'precio', 'total', 'honorarioMedico', 'gastoSanatorial']);
