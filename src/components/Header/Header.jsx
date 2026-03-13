@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Stethoscope, Home, FileText, ClipboardList } from 'lucide-react';
+import { Stethoscope, Home, FileText, ClipboardList, Activity } from 'lucide-react';
 import styles from './Header.module.css';
 
 export default function Header() {
@@ -37,7 +37,15 @@ export default function Header() {
                     className={`${styles.navLink} ${pathname.startsWith('/cx') ? styles.active : ''}`}
                 >
                     <ClipboardList size={16} />
-                     CX
+                    CX
+                </Link>
+
+                <Link
+                    href="/uti"
+                    className={`${styles.navLink} ${pathname.startsWith('/uti') ? styles.active : ''}`}
+                >
+                    <Activity size={16} />
+                    UTI
                 </Link>
             </nav>
         </header>
