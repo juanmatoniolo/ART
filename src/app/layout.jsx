@@ -1,8 +1,9 @@
-// src/app/layout.jsx
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BootstrapClient from '@/components/BootstrapClient.jsx';
 
-// ✅ METADATA SEO (compatible con Next.js 14+)
+// ✅ Usamos variable de entorno para la URL base (o la definimos manualmente)
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://art-xi-six.vercel.app';
+
 export const metadata = {
   title: {
     default: "Clínica de la Unión S.A. | Sistema Médico Interno",
@@ -23,17 +24,17 @@ export const metadata = {
   authors: [{ name: "Clínica de la Unión S.A." }],
   creator: "Clínica de la Unión S.A.",
   publisher: "Clínica de la Unión S.A.",
-  metadataBase: new URL("https://clinica-union.vercel.app/"),
+  metadataBase: new URL(baseUrl),
 
   openGraph: {
     title: "Clínica de la Unión S.A. | Sistema Médico Interno",
     description:
       "Sistema administrativo interno de la Clínica de la Unión S.A. con herramientas para gestión de pacientes, empleados y facturación médica.",
-    url: "https://clinica-union.vercel.app/",
+    url: baseUrl,
     siteName: "Clínica de la Unión S.A.",
     images: [
       {
-        url: "/logo.png",
+        url: "/logo.png",          // Se resolverá como baseUrl/logo.png
         width: 1200,
         height: 630,
         alt: "Clínica de la Unión S.A. - Logo institucional",
@@ -48,7 +49,7 @@ export const metadata = {
     title: "Clínica de la Unión S.A.",
     description:
       "Plataforma administrativa interna para la gestión médica y administrativa de la Clínica de la Unión S.A.",
-    images: ["/logo.png"],
+    images: ["/logo.png"],          // También se resolverá como absoluta
     creator: "@clinicaunion",
   },
 
@@ -60,7 +61,6 @@ export const metadata = {
 
   manifest: "/manifest.json",
 
-  // 🧠 Seguridad SEO: no indexar el panel administrativo
   robots: {
     index: false,
     follow: false,
@@ -72,13 +72,12 @@ export const metadata = {
   },
 };
 
-// ✅ CONFIGURACIÓN DE VIEWPORT (separada)
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0f3d26", // Verde institucional médico
+  themeColor: "#0f3d26",
 };
 
 export default function RootLayout({ children }) {
