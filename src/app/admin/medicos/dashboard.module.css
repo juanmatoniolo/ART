@@ -1,0 +1,465 @@
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid #3a3a5a;
+    padding-bottom: 0;
+}
+
+.tab {
+    background: none;
+    border: none;
+    color: #7070a0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 0.65rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+    color: #c0c0e0;
+}
+
+.tabActive {
+    color: #e0e0f8;
+    border-bottom-color: #5b6aee;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────────── */
+.filterBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    background-color: #2a2a3c;
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.filterGroup label {
+    font-size: 0.78rem;
+    color: #a0a0b8;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.select,
+.dateInput,
+.textInput {
+    background-color: #1e1e2f;
+    border: 1px solid #4a4a6a;
+    border-radius: 6px;
+    color: #f0f0f0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    min-width: 180px;
+}
+
+.select:focus,
+.dateInput:focus,
+.textInput:focus {
+    outline: none;
+    border-color: #5b6aee;
+}
+
+.textInput {
+    min-width: 140px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.emptyState {
+    text-align: center;
+    color: #6a6a8a;
+    padding: 4rem 2rem;
+    font-size: 1.05rem;
+    font-style: italic;
+}
+
+/* ── Métricas ────────────────────────────────────────────────────────────── */
+.metricsRow {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.metricCard {
+    flex: 1;
+    min-width: 140px;
+    background: #2a2a3c;
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.metricLabel {
+    font-size: 0.75rem;
+    color: #8888aa;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.metricValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f0f0f0;
+}
+
+.colorBlue {
+    color: #5b9bd5;
+}
+
+.colorAmber {
+    color: #d4a04a;
+}
+
+.colorGreen {
+    color: #6abd72;
+}
+
+/* ── Secciones ───────────────────────────────────────────────────────────── */
+.section {
+    margin-bottom: 2.5rem;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #c8c8e0;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.sectionHeader .sectionTitle {
+    margin-bottom: 0;
+}
+
+.siniestroCount {
+    background: #3a3a5a;
+    color: #a0a0c8;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+}
+
+/* ── Top prácticas ───────────────────────────────────────────────────────── */
+.topPracticas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.practicaChip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #2a2a3c;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    border: 1px solid #3a3a5a;
+}
+
+.rolDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.practicaInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.practicaCodigo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #9090c0;
+    font-family: monospace;
+}
+
+.practicaDesc {
+    font-size: 0.9rem;
+    color: #d0d0e8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.practicaStats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.practicaCount {
+    font-size: 0.85rem;
+    color: #7070a0;
+    font-weight: 600;
+    min-width: 2rem;
+    text-align: right;
+}
+
+.practicaMonto {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6abd72;
+    min-width: 7rem;
+    text-align: right;
+}
+
+/* ── Tabla de siniestros / directorio ────────────────────────────────────── */
+.siniestroTable thead th {
+    white-space: nowrap;
+}
+
+.thSortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.thSortable:hover {
+    background-color: #3d3d5a !important;
+}
+
+.sortIcon {
+    margin-left: 0.3rem;
+    font-size: 0.72rem;
+    opacity: 0.6;
+}
+
+.siniestroRow {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.siniestroRow:hover {
+    background-color: #32324a !important;
+}
+
+.siniestroRow.expanded {
+    background-color: #2e2e48 !important;
+}
+
+.expandIcon {
+    font-size: 0.68rem;
+    color: #6060a0;
+}
+
+.nroSiniestro {
+    font-family: monospace;
+    font-size: 0.88rem;
+    color: #a0b0d8;
+    font-weight: 600;
+}
+
+.artBadge {
+    display: inline-block;
+    background: #2a3050;
+    color: #8090c0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #3a4070;
+    white-space: nowrap;
+}
+
+.practicasBadge {
+    display: inline-block;
+    background: #2d3a2d;
+    color: #6abd72;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.18rem 0.6rem;
+    border-radius: 20px;
+    border: 1px solid #3d5a3d;
+}
+
+.gastoCount {
+    display: inline-block;
+    background: #3a3020;
+    color: #d4a04a;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 10px;
+    margin-left: 0.4rem;
+    border: 1px solid #4a4030;
+}
+
+.montoCell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.montoHon {
+    font-size: 0.78rem;
+    color: #8090c0;
+}
+
+.montoTotal {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6abd72;
+}
+
+/* ── WhatsApp badge ──────────────────────────────────────────────────────── */
+.waBadge {
+    display: inline-block;
+    background: #1a3a2a;
+    color: #4abd72;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #2a5a3a;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+}
+
+.waBadge:hover {
+    background: #25D366;
+    color: white;
+    border-color: #25D366;
+}
+
+/* ── Detalle expandible ──────────────────────────────────────────────────── */
+.detailRow {
+    padding: 0 !important;
+    background-color: #1e1e30 !important;
+    border-top: none !important;
+}
+
+.detailContent {
+    padding: 1rem 1.5rem 1.2rem;
+    border-top: 2px solid #5b6aee44;
+}
+
+.detailGroup {
+    margin-bottom: 1.2rem;
+}
+
+.detailGroup:last-of-type {
+    margin-bottom: 0;
+}
+
+.detailGroupTitle {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #7070a0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.6rem 0;
+}
+
+.detailTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.detailTable th {
+    background: #252538;
+    color: #8080a8;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #3a3a58;
+}
+
+.detailTable td {
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid #2a2a40;
+    color: #d0d0e8;
+}
+
+.detailTable tr:last-child td {
+    border-bottom: none;
+}
+
+.detailCodigo {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #9090c0;
+    font-weight: 600;
+}
+
+.rolPill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.detailNum {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.detailTotal {
+    font-weight: 600;
+    color: #6abd72;
+}
+
+.detailTotales {
+    display: flex;
+    gap: 2rem;
+    justify-content: flex-end;
+    padding: 0.8rem 0 0;
+    border-top: 1px solid #3a3a58;
+    margin-top: 0.8rem;
+    font-size: 0.9rem;
+    color: #a0a0c0;
+}
+
+.detailTotales strong {
+    color: #e0e0f0;
+}
+
+.detailTotalFinal {
+    font-weight: 600;
+    color: #c0c0e0;
+}
+
+.detailTotalFinal strong {
+    color: #6abd72;
+}
