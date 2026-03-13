@@ -12,30 +12,30 @@ export default function FacturadosPage() {
 
 
   const {
-  loading,
-  q,
-  setQ,
-  estado,
-  setEstadoQuery,
-  art,
-  setArt,
-  orden,
-  setOrden,
-  selectedIds,
-  toggleSelect,
-  toggleSelectAll,
-  deleting,
-  deleteSelected,
-  exportCompleto,
-  printART,
-  counts,
-  arts,
-  filtered,
-  fechaDesde,        // 👈 Agregar
-  setFechaDesde,     // 👈 Agregar
-  fechaHasta,        // 👈 Agregar
-  setFechaHasta,     // 👈 Agregar
-} = useFacturados();
+    loading,
+    q,
+    setQ,
+    estado,
+    setEstadoQuery,
+    art,
+    setArt,
+    orden,
+    setOrden,
+    selectedIds,
+    toggleSelect,
+    toggleSelectAll,
+    deleting,
+    deleteSelected,
+    exportCompleto,
+    printART,
+    counts,
+    arts,
+    filtered,
+    fechaDesde,        // 👈 Agregar
+    setFechaDesde,     // 👈 Agregar
+    fechaHasta,        // 👈 Agregar
+    setFechaHasta,     // 👈 Agregar
+  } = useFacturados();
 
   return (
     <div className={styles.container}>

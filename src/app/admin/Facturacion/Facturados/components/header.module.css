@@ -1,0 +1,260 @@
+/* ========================================
+   header.module.css
+   ======================================== */
+
+/* ── Contenedor principal ── */
+.header {
+    background: #1e293b;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+/* ── Fila superior: brand + acciones ── */
+.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    border-bottom: 1px solid #334155;
+}
+
+/* Brand */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #60a5fa;
+}
+
+.icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.brandText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 0.76rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Acciones */
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.dividerV {
+    width: 1px;
+    height: 22px;
+    background: #334155;
+    flex-shrink: 0;
+}
+
+/* Botones base */
+.btnGhost,
+.btnPrimary,
+.btnExport,
+.btnDanger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border-radius: 30px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.13s ease;
+    white-space: nowrap;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.btnGhost svg,
+.btnPrimary svg,
+.btnExport svg,
+.btnDanger svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.btnGhost {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #334155;
+}
+
+.btnGhost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #f1f5f9;
+    border-color: #4b5565;
+}
+
+.btnPrimary {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.btnPrimary:hover {
+    background: #2563eb;
+}
+
+.btnExport {
+    background: rgba(20, 184, 166, 0.12);
+    color: #5eead4;
+    border: 1px solid rgba(20, 184, 166, 0.22);
+}
+
+.btnExport:hover {
+    background: rgba(20, 184, 166, 0.2);
+}
+
+.btnDanger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btnDanger:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+.btnExport:disabled,
+.btnDanger:disabled {
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+/* ── Tabs de estado ── */
+.tabsRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 20px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 5px 13px;
+    border-radius: 30px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    color: #64748b;
+    background: transparent;
+    transition: all 0.12s ease;
+}
+
+.tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+}
+
+.tabActive {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.tabCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 30px;
+    font-size: 0.63rem;
+    font-weight: 700;
+    margin-left: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tabActive .tabCount {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.tabSpacer {
+    flex: 1;
+}
+
+/* Badge de selección */
+.selBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 30px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+    font-size: 0.73rem;
+    font-weight: 600;
+}
+
+.selDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3b82f6;
+    flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions {
+        width: 100%;
+    }
+
+    .btnGhost,
+    .btnPrimary,
+    .btnExport,
+    .btnDanger {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .dividerV {
+        display: none;
+    }
+}

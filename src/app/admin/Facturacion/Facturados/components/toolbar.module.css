@@ -1,0 +1,237 @@
+/* ========================================
+   toolbar.module.css
+   ======================================== */
+
+/* ── Contenedor ── */
+.toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 20px;
+    background: #1e293b;
+    border-radius: 0 0 20px 20px;
+    border: 1px solid #334155;
+    border-top: none;
+    margin-bottom: 16px;
+}
+
+/* ── Búsqueda ── */
+.searchWrap {
+    position: relative;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.search {
+    width: 100%;
+    padding: 9px 14px 9px 36px;
+    border-radius: 30px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.search:focus {
+    border-color: #3b82f6;
+}
+
+.search::placeholder {
+    color: #475569;
+}
+
+/* ── Fila de filtros ── */
+.filtersRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+/* ── Select custom ── */
+.selectWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.selectWrap svg {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    color: #64748b;
+    pointer-events: none;
+}
+
+.sel {
+    padding: 7px 30px 7px 12px;
+    border-radius: 30px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 0.78rem;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: border-color 0.13s;
+}
+
+.sel:focus {
+    border-color: #3b82f6;
+}
+
+.sel option {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+/* ── Rango de fechas ── */
+.dateRange {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 30px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    overflow: hidden;
+    transition: border-color 0.13s;
+}
+
+.dateRange:focus-within {
+    border-color: #3b82f6;
+}
+
+.dateRange svg {
+    width: 13px;
+    height: 13px;
+    color: #64748b;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
+.dateInput {
+    border: none;
+    background: transparent;
+    color: #f1f5f9;
+    font-size: 0.78rem;
+    padding: 7px 8px;
+    outline: none;
+    width: 112px;
+    cursor: pointer;
+}
+
+.dateInput::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.dateSep {
+    color: #475569;
+    font-size: 0.72rem;
+    padding: 0 2px;
+}
+
+/* ── Checkbox seleccionar todos ── */
+.chkAll {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 30px;
+    background: #0f172a;
+    color: #94a3b8;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #334155;
+    white-space: nowrap;
+    transition: border-color 0.13s;
+}
+
+.chkAll:hover {
+    border-color: #4b5565;
+    color: #f1f5f9;
+}
+
+.chkAll input {
+    width: 14px;
+    height: 14px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+/* ── Contador de resultados ── */
+.resultsLabel {
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.resultsLabel strong {
+    color: #94a3b8;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .toolbar {
+        padding: 12px;
+        border-radius: 16px;
+        border-top: 1px solid #334155;
+        margin-top: 8px;
+    }
+
+    .filtersRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filterGroup {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .selectWrap,
+    .sel {
+        width: 100%;
+    }
+
+    .dateRange {
+        width: 100%;
+    }
+
+    .dateInput {
+        flex: 1;
+        width: auto;
+    }
+
+    .resultsLabel {
+        margin-left: 0;
+        text-align: right;
+    }
+}

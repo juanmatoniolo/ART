@@ -1,26 +1,32 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useDoctors from '../hooks/useDoctors';
 import DoctorForm from '../components/DoctorForm';
-import { useEffect, useState } from 'react';
 import styles from '../medicos.module.css';
 
 export default function MedicoEditPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id;
   const router = useRouter();
-  const { doctors, createDoctor, updateDoctor } = useDoctors();
-  const [initialData, setInitialData] = useState(null);
+  const { doctors, loading, createDoctor, updateDoctor } = useDoctors();
 
   const isNew = id === 'nuevo';
 
+  const initialData = useMemo(() => {
+    if (isNew) return {};
+    return doctors.find((d) => d.id === id) || null;
+  }, [doctors, id, isNew]);
+
   useEffect(() => {
-    if (!isNew && doctors.length > 0) {
-      const found = doctors.find((d) => d.id === id);
-      if (found) setInitialData(found);
-      else router.push('/admin/medicos');
+    if (isNew) return;
+    if (loading) return;
+
+    if (!initialData) {
+      router.replace('/admin/medicos');
     }
-  }, [id, doctors, isNew, router]);
+  }, [isNew, loading, initialData, router]);
 
   const handleSubmit = async (data) => {
     try {
@@ -36,7 +42,13 @@ export default function MedicoEditPage() {
     }
   };
 
-  if (!isNew && !initialData) return <div className={styles.loading}>Cargando...</div>;
+  if (!isNew && loading) {
+    return <div className={styles.loading}>Cargando...</div>;
+  }
+
+  if (!isNew && !initialData) {
+    return <div className={styles.loading}>Redirigiendo...</div>;
+  }
 
   return (
     <div className={styles.container}>

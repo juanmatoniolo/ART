@@ -584,11 +584,11 @@ export default function FacturadoDetallePage() {
         });
 
         const totalHonor = honorPracticasArr.reduce((a, r) => a + r.total, 0) +
-                           honorCirugiasArr.reduce((a, r) => a + r.total, 0) +
-                           honorLaboratoriosArr.reduce((a, r) => a + r.total, 0);
+            honorCirugiasArr.reduce((a, r) => a + r.total, 0) +
+            honorLaboratoriosArr.reduce((a, r) => a + r.total, 0);
         const totalGasto = gastoPracticasArr.reduce((a, r) => a + r.total, 0) +
-                           gastoMedicamentosArr.reduce((a, r) => a + r.total, 0) +
-                           gastoDescartablesArr.reduce((a, r) => a + r.total, 0);
+            gastoMedicamentosArr.reduce((a, r) => a + r.total, 0) +
+            gastoDescartablesArr.reduce((a, r) => a + r.total, 0);
 
         return {
             honorPracticas: honorPracticasArr,

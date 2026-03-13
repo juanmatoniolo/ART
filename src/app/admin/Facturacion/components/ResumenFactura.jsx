@@ -1,25 +1,20 @@
-'use client';
-
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { money, parseNumber } from '../utils/calculos';
-import styles from './resumenFactura.module.css';
+import styles from './ResumenFactura.module.css';
 import * as XLSX from 'xlsx';
 import useDoctors from '../../medicos/hooks/useDoctors';
 
-// Helper para redondear a 1 decimal
 const to1Decimal = (n) => {
   const num = parseNumber(n);
   return Number.isFinite(num) ? Math.round(num * 10) / 10 : 0;
 };
 
-// Función unificada para cantidades (decimal > 0) con 1 decimal
 const clampDecimalQty = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n) || n <= 0) return 1;
   return to1Decimal(n);
 };
 
-// Formateo de cantidad: 1 decimal, pero sin ",0" si es entero
 const fmtQtyInput = (v) => {
   const n = parseNumber(v);
   if (!Number.isFinite(n)) return '1';
@@ -32,78 +27,118 @@ const stopBubbling = (e) => {
   e.stopPropagation();
 };
 
-const stopInputKeys = (e) => {
-  e.stopPropagation();
-  if (e.key === 'Enter') e.preventDefault();
-};
-
-// Función para determinar si una cirugía requiere dos ayudantes
-const esNivelAlto = (item) => {
-  // Si tiene campo 'nivel' y es >= 4
-  if (item.nivel && Number(item.nivel) >= 4) return true;
-  // Si tiene categoría que indique alta complejidad
-  if (item.categoria) {
-    const cat = String(item.categoria).toLowerCase();
-    if (cat.includes('compleja') || cat.includes('alta') || cat.includes('nivel 4')) return true;
+const getRolLabel = (item) => {
+  if (item?.prestadorRol === 'Ayudante 2' && item?.ayudanteIndex) {
+    return `Ayudante 2 (${item.ayudanteIndex})`;
   }
-  // Si tiene flag explícito
-  if (item.requiereDosAyudantes === true) return true;
-  return false;
+  return item?.prestadorRol || 'Profesional';
 };
 
-// Componente selector de médicos con autocompletado e ID visible
-const DoctorSelect = ({ value, onChange, placeholder }) => {
+// ─── DoctorSelect ────────────────────────────────────────────────────────────
+// tabIndex: controla el orden de tabulación entre inputs de doctor
+// data-doctorinput: marca para que Enter pueda saltar al siguiente por tabIndex
+const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => {
   const { doctors } = useDoctors();
+
   const [inputValue, setInputValue] = useState(value || '');
-  const datalistId = `doctor-list-${Math.random().toString(36).substr(2, 9)}`;
+  const [datalistId] = useState(
+    () => `doctor-list-${Math.random().toString(36).slice(2, 11)}`
+  );
 
-  const handleAddNew = () => {
-    window.open('/admin/medicos/nuevo', '_blank');
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+
+  // Busca por índice numérico (1-based) o por texto parcial
+  const resolveDoctor = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+
+    if (/^\d+$/.test(trimmed)) {
+      const idx = parseInt(trimmed, 10) - 1;
+      if (idx >= 0 && idx < doctors.length) return doctors[idx];
+    }
+
+    const lower = trimmed.toLowerCase();
+    return doctors.find((doc) =>
+      `${doc.apellido} ${doc.nombre}`.toLowerCase().includes(lower) ||
+      `${doc.nombre} ${doc.apellido}`.toLowerCase().includes(lower)
+    );
   };
 
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setInputValue(val);
-    onChange(val);
+  // Resuelve el nombre y notifica al padre
+  const commitValue = (currentText) => {
+    const matched = resolveDoctor(currentText);
+    const finalValue = matched
+      ? `${matched.apellido || ''}, ${matched.nombre || ''}`.trim()
+      : currentText;
+    setInputValue(finalValue);
+    onChange(finalValue);
+    return finalValue;
   };
 
-  const handleSelect = (e) => {
-    // Cuando se selecciona una opción del datalist, se asigna el valor
-    const selected = e.target.value;
-    setInputValue(selected);
-    onChange(selected);
+  // Click afuera también resuelve el nombre
+  const handleBlur = () => commitValue(inputValue);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitValue(inputValue);
+      // Saltar manualmente al siguiente DoctorSelect en orden
+      const next = document.querySelector(
+        `[data-doctorinput][tabindex="${(tabIndex ?? 0) + 1}"]`
+      );
+      if (next) next.focus();
+    }
+    // Tab nativo funciona solo gracias al tabIndex en el <input>
   };
 
-  // Formato para mostrar en la lista: ID - Apellido, Nombre truncado
   const formatDoctorName = (doc, index) => {
-    const { apellido, nombre } = doc;
-    const nombreTruncado = nombre.length > 5 ? nombre.substring(0, 5) + '.' : nombre;
+    const apellido = doc?.apellido || '';
+    const nombre = doc?.nombre || '';
+    const nombreTruncado = nombre.length > 12 ? `${nombre.slice(0, 12)}…` : nombre;
     return `${index + 1} - ${apellido}, ${nombreTruncado}`;
   };
 
   return (
-    <div className={styles.doctorSelectContainer}>
+    <div
+      className={styles.doctorSelectContainer}
+      onClick={stopBubbling}
+      onMouseDown={stopBubbling}
+    >
       <input
         list={datalistId}
         className={styles.doctorInput}
         placeholder={placeholder}
         value={inputValue}
-        onChange={handleInputChange}
-        onBlur={() => onChange(inputValue)}
+        autoComplete="off"
+        tabIndex={tabIndex}
+        data-doctorinput="true"
+        onChange={(e) => setInputValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         onClick={stopBubbling}
+        onMouseDown={stopBubbling}
       />
+
       <datalist id={datalistId}>
         {doctors.map((doc, idx) => (
-          <option key={doc.id} value={`${doc.apellido}, ${doc.nombre}`}>
+          <option
+            key={doc.id}
+            value={`${doc.apellido || ''}, ${doc.nombre || ''}`.trim()}
+          >
             {formatDoctorName(doc, idx)}
           </option>
         ))}
       </datalist>
+
       <button
         type="button"
         className={styles.addDoctorBtn}
-        onClick={handleAddNew}
-        title="Agregar nuevo médico"
+        onClick={() => window.open('/admin/medicos/nuevo', '_blank', 'noopener,noreferrer')}
+        title={`Agregar nuevo médico${roleLabel ? ` (${roleLabel})` : ''}`}
+        tabIndex={-1}
+        onMouseDown={(e) => e.preventDefault()}
       >
         ➕
       </button>
@@ -111,26 +146,32 @@ const DoctorSelect = ({ value, onChange, placeholder }) => {
   );
 };
 
+// ─── CantidadInputResumen ─────────────────────────────────────────────────────
 function CantidadInputResumen({ itemId, initialValue, onChange }) {
   const [localValue, setLocalValue] = useState(fmtQtyInput(initialValue));
+
   useEffect(() => {
     setLocalValue(fmtQtyInput(initialValue));
   }, [initialValue]);
+
   const handleBlur = () => {
     const parsed = clampDecimalQty(localValue);
     onChange(itemId, parsed);
   };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       e.currentTarget.blur();
     }
   };
+
   return (
     <input
       className={`${styles.inputCantidad} ${styles.inputCantidadDecimal}`}
       type="text"
       inputMode="decimal"
+      tabIndex={-1}
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       onBlur={handleBlur}
@@ -141,6 +182,7 @@ function CantidadInputResumen({ itemId, initialValue, onChange }) {
   );
 }
 
+// ─── ResumenFactura ───────────────────────────────────────────────────────────
 export default function ResumenFactura({
   paciente,
   practicas,
@@ -152,7 +194,7 @@ export default function ResumenFactura({
   actualizarItem,
   eliminarItem,
   limpiarFactura,
-  onAtras
+  onAtras,
 }) {
   const [open, setOpen] = useState({
     practicas: true,
@@ -162,14 +204,20 @@ export default function ResumenFactura({
     labs: true,
     medDesc: true,
     med: true,
-    desc: true
+    desc: true,
   });
 
   const totalSeccion = (items) =>
     items.reduce((acc, it) => acc + (parseNumber(it?.total) || 0), 0);
 
   const totales = useMemo(() => {
-    const all = [...practicas, ...cirugias, ...laboratorios, ...medicamentos, ...descartables];
+    const all = [
+      ...practicas,
+      ...cirugias,
+      ...laboratorios,
+      ...medicamentos,
+      ...descartables,
+    ];
     const honor = all.reduce((acc, it) => acc + (parseNumber(it?.honorarioMedico) || 0), 0);
     const gasto = all.reduce((acc, it) => acc + (parseNumber(it?.gastoSanatorial) || 0), 0);
     return { honor, gasto, total: honor + gasto };
@@ -179,12 +227,12 @@ export default function ResumenFactura({
     () => practicas.filter((p) => String(p?.prestadorTipo) === 'Dr'),
     [practicas]
   );
+
   const practicasGastos = useMemo(
     () => practicas.filter((p) => String(p?.prestadorTipo) !== 'Dr'),
     [practicas]
   );
 
-  // Subtotales por categoría para impresión
   const totalPracticasHonorarios = useMemo(() => totalSeccion(practicasHonorarios), [practicasHonorarios]);
   const totalPracticasGastos = useMemo(() => totalSeccion(practicasGastos), [practicasGastos]);
   const totalCirugias = useMemo(() => totalSeccion(cirugias), [cirugias]);
@@ -192,15 +240,22 @@ export default function ResumenFactura({
   const totalMedicamentos = useMemo(() => totalSeccion(medicamentos), [medicamentos]);
   const totalDescartables = useMemo(() => totalSeccion(descartables), [descartables]);
 
+  // tabIndex global para todos los DoctorSelect, en orden de aparición en pantalla
+  // Prácticas honorarios: 1..N
+  // Cirugías: N+1..M
+  // Laboratorios: M+1..K
+  const tabOffsetCirugias = practicasHonorarios.length + 1;
+  const tabOffsetLabs = tabOffsetCirugias + cirugias.length;
+
   const pacienteData = {
     nombre: paciente?.nombreCompleto || '—',
     dni: paciente?.dni || '—',
     art: paciente?.artSeguro || '—',
     siniestro: paciente?.nroSiniestro || '—',
-    fecha: paciente?.fechaAtencion || '—'
+    fecha: paciente?.fechaAtencion || '—',
   };
 
-  // ================= FUNCIÓN DE EXPORTACIÓN A EXCEL =================
+  // ─── Excel export ────────────────────────────────────────────────────────────
   const exportarDetalle = () => {
     const rows = [];
 
@@ -213,28 +268,20 @@ export default function ResumenFactura({
     rows.push(['Fecha de atención:', pacienteData.fecha]);
     rows.push([]);
 
-    rows.push(['CATEGORÍA', 'TIPO', 'CÓDIGO', 'DESCRIPCIÓN', 'CANTIDAD', 'VALOR UNITARIO', 'HONORARIO', 'GASTO', 'TOTAL', 'ORIGEN']);
+    rows.push([
+      'CATEGORÍA', 'TIPO', 'ROL', 'CÓDIGO', 'DESCRIPCIÓN',
+      'CANTIDAD', 'VALOR UNITARIO', 'HONORARIO', 'GASTO', 'TOTAL', 'ORIGEN',
+    ]);
 
     const agregarItems = (items, categoria, tipo) => {
-      items.forEach(it => {
+      items.forEach((it) => {
         const cantidad = clampDecimalQty(it.cantidad);
-        const unitario = parseNumber(it.valorUnitario) || (parseNumber(it.total) / cantidad) || 0;
+        const total = parseNumber(it.total) || 0;
+        const unitario = parseNumber(it.valorUnitario) || (cantidad > 0 ? total / cantidad : 0) || 0;
         const honorario = parseNumber(it.honorarioMedico) || 0;
         const gasto = parseNumber(it.gastoSanatorial) || 0;
-        const total = parseNumber(it.total) || 0;
         const origen = it.prestadorNombre || it.doctorNombre || it.medico || (categoria.includes('Gasto') ? 'Clínica' : '');
-        rows.push([
-          categoria,
-          tipo,
-          it.codigo || '',
-          it.descripcion || it.nombre || '',
-          cantidad,
-          unitario,
-          honorario,
-          gasto,
-          total,
-          origen
-        ]);
+        rows.push([categoria, tipo, getRolLabel(it), it.codigo || '', it.descripcion || it.nombre || '', cantidad, unitario, honorario, gasto, total, origen]);
       });
     };
 
@@ -256,42 +303,28 @@ export default function ResumenFactura({
       { nombre: 'Descartables', items: descartables },
     ];
 
-    categorias.forEach(cat => {
+    categorias.forEach((cat) => {
       const totalCat = cat.items.reduce((acc, it) => acc + (parseNumber(it.total) || 0), 0);
-      if (totalCat > 0) {
-        rows.push([cat.nombre, '', '', '', '', '', '', '', money(totalCat)]);
-      }
+      if (totalCat > 0) rows.push([cat.nombre, '', '', '', '', '', '', '', '', money(totalCat)]);
     });
 
     rows.push([]);
     rows.push(['TOTALES GENERALES']);
-    rows.push(['Honorarios:', '', '', '', '', '', '', '', money(totales.honor)]);
-    rows.push(['Gastos:', '', '', '', '', '', '', '', money(totales.gasto)]);
-    rows.push(['TOTAL:', '', '', '', '', '', '', '', money(totales.total)]);
+    rows.push(['Honorarios:', '', '', '', '', '', '', '', '', money(totales.honor)]);
+    rows.push(['Gastos:', '', '', '', '', '', '', '', '', money(totales.gasto)]);
+    rows.push(['TOTAL:', '', '', '', '', '', '', '', '', money(totales.total)]);
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
-
-    const colWidths = [
-      { wch: 20 }, // CATEGORÍA
-      { wch: 15 }, // TIPO
-      { wch: 12 }, // CÓDIGO
-      { wch: 40 }, // DESCRIPCIÓN
-      { wch: 10 }, // CANTIDAD
-      { wch: 15 }, // VALOR UNITARIO
-      { wch: 15 }, // HONORARIO
-      { wch: 15 }, // GASTO
-      { wch: 15 }, // TOTAL
-      { wch: 25 }, // ORIGEN
+    ws['!cols'] = [
+      { wch: 24 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 40 },
+      { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 },
     ];
-    ws['!cols'] = colWidths;
-
     XLSX.utils.book_append_sheet(wb, ws, 'Detalle Factura');
     XLSX.writeFile(wb, `factura_${pacienteData.nombre}_${pacienteData.dni}.xlsx`);
   };
-  // ================= FIN EXPORTACIÓN =================
 
-  // Funciones de renderizado para impresión (sin cambios)
+  // ─── Print helpers ────────────────────────────────────────────────────────────
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -300,21 +333,18 @@ export default function ResumenFactura({
         <table className={styles.printTable}>
           <thead>
             <tr>
-              <th>Dr</th>
-              <th>Código</th>
-              <th>Práctica</th>
-              <th>Cantidad</th>
-              <th>Valor unitario</th>
-              <th>Total</th>
+              <th>Rol</th><th>Dr</th><th>Código</th><th>Práctica</th>
+              <th>Cantidad</th><th>Valor unitario</th><th>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => {
               const cantidad = clampDecimalQty(item.cantidad);
               const total = parseNumber(item.honorarioMedico);
-              const unitario = total / cantidad;
+              const unitario = cantidad > 0 ? total / cantidad : total;
               return (
                 <tr key={item.id}>
+                  <td>{getRolLabel(item)}</td>
                   <td>{item.prestadorNombre || '—'}</td>
                   <td>
                     {item.codigo || '—'}
@@ -341,19 +371,15 @@ export default function ResumenFactura({
         <table className={styles.printTable}>
           <thead>
             <tr>
-              <th>CdU</th>
-              <th>Código</th>
-              <th>Práctica</th>
-              <th>Cantidad</th>
-              <th>Valor unitario</th>
-              <th>Total</th>
+              <th>CdU</th><th>Código</th><th>Práctica</th>
+              <th>Cantidad</th><th>Valor unitario</th><th>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => {
               const cantidad = clampDecimalQty(item.cantidad);
               const total = parseNumber(item.gastoSanatorial);
-              const unitario = total / cantidad;
+              const unitario = cantidad > 0 ? total / cantidad : total;
               return (
                 <tr key={item.id}>
                   <td>{item.prestadorNombre || 'Clínica de la Unión'}</td>
@@ -382,10 +408,7 @@ export default function ResumenFactura({
         <table className={styles.printTable}>
           <thead>
             <tr>
-              <th>Descripción</th>
-              <th>Cantidad</th>
-              <th>Valor unitario</th>
-              <th>Total</th>
+              <th>Descripción</th><th>Cantidad</th><th>Valor unitario</th><th>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -395,7 +418,7 @@ export default function ResumenFactura({
               const total = parseNumber(item.total);
               return (
                 <tr key={item.id}>
-                  <td>{item.nombre} ({item.presentacion})</td>
+                  <td>{item.nombre} {item.presentacion ? `(${item.presentacion})` : ''}</td>
                   <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
                   <td className={styles.printNumber}>$ {money(unitario)}</td>
                   <td className={styles.printNumber}>$ {money(total)}</td>
@@ -408,38 +431,35 @@ export default function ResumenFactura({
     );
   };
 
-  // Funciones para la vista en pantalla (acordeones)
+  // ─── Cantidad stepper ─────────────────────────────────────────────────────────
   const renderCantidad = (item) => {
     const cur = clampDecimalQty(item?.cantidad);
     const step = cur < 1 ? 0.1 : 1;
     const itemId = item.id;
+
     return (
       <div className={styles.contadorCantidad} onClick={stopBubbling}>
         <button
           type="button"
           className={styles.btnCantidad}
-          onClick={() => {
-            const newVal = to1Decimal(Math.max(0.01, cur - step));
-            actualizarCantidad(itemId, newVal);
-          }}
+          onClick={() => actualizarCantidad(itemId, to1Decimal(Math.max(0.01, cur - step)))}
           title="Restar"
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
         >
           −
         </button>
+
         <CantidadInputResumen
           itemId={itemId}
           initialValue={cur}
           onChange={actualizarCantidad}
         />
+
         <button
           type="button"
           className={styles.btnCantidad}
-          onClick={() => {
-            const newVal = to1Decimal(cur + step);
-            actualizarCantidad(itemId, newVal);
-          }}
+          onClick={() => actualizarCantidad(itemId, to1Decimal(cur + step))}
           title="Sumar"
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
@@ -450,6 +470,7 @@ export default function ResumenFactura({
     );
   };
 
+  // ─── Valor stack ──────────────────────────────────────────────────────────────
   const renderValorStack = (item) => (
     <div className={styles.valorStack}>
       <div className={styles.valorLine}>
@@ -464,14 +485,21 @@ export default function ResumenFactura({
         <span className={styles.valorLabel}>Total</span>
         <span className={styles.valorNumber}>{money(item?.total ?? 0)}</span>
       </div>
-      {item?.formula && <div className={styles.formulaPequeña}>{item.formula}</div>}
+      {item?.prestadorRol && (
+        <div className={styles.rolePill}>{getRolLabel(item)}</div>
+      )}
+      {item?.formula && (
+        <div className={styles.formulaPequeña}>{item.formula}</div>
+      )}
     </div>
   );
 
+  // ─── Acordeon — tabIndex={-1} para que Tab no pare en el botón header ────────
   const Acordeon = ({ k, title, count, amount, children }) => (
     <section className={styles.acSection}>
       <button
         type="button"
+        tabIndex={-1}
         className={styles.acHeader}
         onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}
       >
@@ -490,6 +518,7 @@ export default function ResumenFactura({
     <div className={styles.subAcc}>
       <button
         type="button"
+        tabIndex={-1}
         className={styles.subAccHeader}
         onClick={() => setOpen((p) => ({ ...p, [k]: !p[k] }))}
       >
@@ -504,7 +533,8 @@ export default function ResumenFactura({
     </div>
   );
 
-  const TablaPracticas = ({ items, mostrarInputDoctor }) => (
+  // ─── TablaPracticas — startTabIndex para numerar DoctorSelect en orden ────────
+  const TablaPracticas = ({ items, mostrarInputDoctor, startTabIndex = 1 }) => (
     <div className={styles.tableContainer}>
       <table className={styles.table}>
         <thead>
@@ -517,34 +547,42 @@ export default function ResumenFactura({
           </tr>
         </thead>
         <tbody>
-          {items.map((p) => (
+          {items.map((p, i) => (
             <tr key={p.id} className={p?.esRX ? styles.rxRow : ''}>
               <td className={styles.columnaCodigo}>
                 <strong>{p.codigo}</strong>
                 {p?.esRX && <span className={styles.badgeRx}>RX</span>}
               </td>
+
               <td className={styles.columnaDescripcion}>
                 <div className={styles.descPrincipal}>{p.descripcion}</div>
                 <div className={styles.subMeta}>
                   <span className={styles.metaPill}>{p.prestadorTipo || '—'}</span>
-                  <span className={styles.metaText}>
-                    {p.capitulo} – {p.capituloNombre}
-                  </span>
+                  <span className={styles.metaText}>{p.capitulo} – {p.capituloNombre}</span>
                 </div>
                 {mostrarInputDoctor && (
                   <div className={styles.doctorRow}>
                     <DoctorSelect
                       value={p?.prestadorNombre ?? ''}
                       placeholder="Dr que realiza…"
+                      roleLabel={getRolLabel(p)}
+                      tabIndex={startTabIndex + i}
                       onChange={(val) => actualizarItem(p.id, { prestadorNombre: val })}
                     />
                   </div>
                 )}
               </td>
+
               <td className={styles.columnaCantidad}>{renderCantidad(p)}</td>
               <td className={styles.columnaValor}>{renderValorStack(p)}</td>
               <td className={styles.columnaAcciones}>
-                <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(p.id)} title="Eliminar">
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={styles.btnEliminar}
+                  onClick={() => eliminarItem(p.id)}
+                  title="Eliminar"
+                >
                   🗑️
                 </button>
               </td>
@@ -555,11 +593,11 @@ export default function ResumenFactura({
     </div>
   );
 
+  // ─── JSX ──────────────────────────────────────────────────────────────────────
   return (
     <div className={styles.tabContent}>
       <h2>📋 Resumen</h2>
 
-      {/* Vista para pantalla (con acordeones) */}
       <div className={styles.screenView}>
         <div className={styles.infoResumen}>
           <div className={styles.infoPaciente}>
@@ -570,6 +608,7 @@ export default function ResumenFactura({
             <p><b>ART/Seguro:</b> {paciente?.artSeguro || '—'}</p>
             <p><b>Siniestro:</b> {paciente?.nroSiniestro || '—'}</p>
           </div>
+
           <div className={styles.infoConvenio}>
             <h3>🧮 Totales</h3>
             <p><b>Honorarios:</b> $ {money(totales.honor)}</p>
@@ -578,29 +617,51 @@ export default function ResumenFactura({
           </div>
         </div>
 
+        {/* ── Prácticas ──────────────────────────────────────────────────────── */}
         <Acordeon k="practicas" title="🏥 Prácticas" count={practicas.length} amount={totalSeccion(practicas)}>
           {practicas.length === 0 ? (
             <div className={styles.emptyBlock}>Sin prácticas.</div>
           ) : (
             <>
-              <SubAcordeon k="practHon" title="👨‍⚕️ Honorarios (Dr)" count={practicasHonorarios.length} amount={totalSeccion(practicasHonorarios)}>
+              <SubAcordeon
+                k="practHon"
+                title="👨‍⚕️ Honorarios (Dr)"
+                count={practicasHonorarios.length}
+                amount={totalSeccion(practicasHonorarios)}
+              >
                 {practicasHonorarios.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay honorarios cargados.</div>
                 ) : (
-                  <TablaPracticas items={practicasHonorarios} mostrarInputDoctor={true} />
+                  // tabIndex 1..practicasHonorarios.length
+                  <TablaPracticas
+                    items={practicasHonorarios}
+                    mostrarInputDoctor={true}
+                    startTabIndex={1}
+                  />
                 )}
               </SubAcordeon>
-              <SubAcordeon k="practGas" title="🏥 Gastos (Clínica)" count={practicasGastos.length} amount={totalSeccion(practicasGastos)}>
+
+              <SubAcordeon
+                k="practGas"
+                title="🏥 Gastos (Clínica)"
+                count={practicasGastos.length}
+                amount={totalSeccion(practicasGastos)}
+              >
                 {practicasGastos.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay gastos cargados.</div>
                 ) : (
-                  <TablaPracticas items={practicasGastos} mostrarInputDoctor={false} />
+                  // Gastos no tienen input de doctor → startTabIndex no importa
+                  <TablaPracticas
+                    items={practicasGastos}
+                    mostrarInputDoctor={false}
+                  />
                 )}
               </SubAcordeon>
             </>
           )}
         </Acordeon>
 
+        {/* ── Cirugías ───────────────────────────────────────────────────────── */}
         <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)}>
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
@@ -617,43 +678,40 @@ export default function ResumenFactura({
                   </tr>
                 </thead>
                 <tbody>
-                  {cirugias.map((c) => (
+                  {cirugias.map((c, i) => (
                     <tr key={c.id}>
-                      <td className={styles.columnaCodigo}><strong>{c.codigo || '—'}</strong></td>
-                      <td className={styles.columnaDescripcion}>
-                        <div className={styles.descPrincipal}>{c.descripcion || c.nombre || 'Cirugía'}</div>
-                        {/* Cirujano principal (siempre visible) */}
-                        <div className={styles.doctorRow}>
-                          <DoctorSelect
-                            value={c?.prestadorNombre ?? ''}
-                            placeholder="Cirujano principal…"
-                            onChange={(val) => actualizarItem(c.id, { prestadorNombre: val })}
-                          />
-                        </div>
-                        {/* Ayudantes condicionales */}
-                        {esNivelAlto(c) && (
-                          <>
-                            <div className={styles.doctorRow}>
-                              <DoctorSelect
-                                value={c?.ayudante1 ?? ''}
-                                placeholder="Ayudante 1…"
-                                onChange={(val) => actualizarItem(c.id, { ayudante1: val })}
-                              />
-                            </div>
-                            <div className={styles.doctorRow}>
-                              <DoctorSelect
-                                value={c?.ayudante2 ?? ''}
-                                placeholder="Ayudante 2…"
-                                onChange={(val) => actualizarItem(c.id, { ayudante2: val })}
-                              />
-                            </div>
-                          </>
-                        )}
+                      <td className={styles.columnaCodigo}>
+                        <strong>{c.codigo || '—'}</strong>
                       </td>
+
+                      <td className={styles.columnaDescripcion}>
+                        <div className={styles.descPrincipal}>
+                          {c.descripcion || c.nombre || 'Cirugía'}
+                        </div>
+                        <div className={styles.rolesBlock}>
+                          <div className={styles.roleItem}>
+                            <label className={styles.roleLabel}>{getRolLabel(c)}:</label>
+                            <DoctorSelect
+                              value={c?.prestadorNombre ?? ''}
+                              placeholder={`Dr ${getRolLabel(c).toLowerCase()}...`}
+                              roleLabel={getRolLabel(c)}
+                              tabIndex={tabOffsetCirugias + i}
+                              onChange={(val) => actualizarItem(c.id, { prestadorNombre: val })}
+                            />
+                          </div>
+                        </div>
+                      </td>
+
                       <td className={styles.columnaCantidad}>{renderCantidad(c)}</td>
                       <td className={styles.columnaValor}>{renderValorStack(c)}</td>
                       <td className={styles.columnaAcciones}>
-                        <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(c.id)} title="Eliminar">
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          className={styles.btnEliminar}
+                          onClick={() => eliminarItem(c.id)}
+                          title="Eliminar"
+                        >
                           🗑️
                         </button>
                       </td>
@@ -665,6 +723,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
+        {/* ── Laboratorios ───────────────────────────────────────────────────── */}
         <Acordeon k="labs" title="🧪 Laboratorios" count={laboratorios.length} amount={totalSeccion(laboratorios)}>
           {laboratorios.length === 0 ? (
             <div className={styles.emptyBlock}>Sin laboratorios.</div>
@@ -681,19 +740,27 @@ export default function ResumenFactura({
                   </tr>
                 </thead>
                 <tbody>
-                  {laboratorios.map((l) => (
+                  {laboratorios.map((l, i) => (
                     <tr key={l.id}>
-                      <td className={styles.columnaCodigo}><strong>{l.codigo || '—'}</strong></td>
+                      <td className={styles.columnaCodigo}>
+                        <strong>{l.codigo || '—'}</strong>
+                      </td>
+
                       <td className={styles.columnaDescripcion}>
-                        <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
+                        <div className={styles.descPrincipal}>
+                          {l.descripcion || l.nombre || 'Laboratorio'}
+                        </div>
                         <div className={styles.doctorRow}>
                           <DoctorSelect
                             value={l?.prestadorNombre ?? ''}
                             placeholder="Bioquímico/a…"
+                            roleLabel="Bioquímico/a"
+                            tabIndex={tabOffsetLabs + i}
                             onChange={(val) => actualizarItem(l.id, { prestadorNombre: val })}
                           />
                         </div>
                       </td>
+
                       <td className={styles.columnaCantidad}>{renderCantidad(l)}</td>
                       <td className={styles.columnaValor}>
                         <div className={styles.valorStack}>
@@ -701,11 +768,19 @@ export default function ResumenFactura({
                             <span className={styles.valorLabel}>Total</span>
                             <span className={styles.valorNumber}>{money(l.total)}</span>
                           </div>
-                          {l?.formula && <div className={styles.formulaPequeña}>{l.formula}</div>}
+                          {l?.formula && (
+                            <div className={styles.formulaPequeña}>{l.formula}</div>
+                          )}
                         </div>
                       </td>
                       <td className={styles.columnaAcciones}>
-                        <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(l.id)} title="Eliminar">
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          className={styles.btnEliminar}
+                          onClick={() => eliminarItem(l.id)}
+                          title="Eliminar"
+                        >
                           🗑️
                         </button>
                       </td>
@@ -717,6 +792,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
+        {/* ── Medicación + Descartables ───────────────────────────────────────── */}
         <Acordeon
           k="medDesc"
           title="💊 Medicación + 🧷 Descartables"
@@ -756,7 +832,13 @@ export default function ResumenFactura({
                           </div>
                         </td>
                         <td className={styles.columnaAcciones}>
-                          <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(m.id)} title="Eliminar">
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            className={styles.btnEliminar}
+                            onClick={() => eliminarItem(m.id)}
+                            title="Eliminar"
+                          >
                             🗑️
                           </button>
                         </td>
@@ -767,6 +849,7 @@ export default function ResumenFactura({
               </div>
             )}
           </SubAcordeon>
+
           <SubAcordeon k="desc" title="🧷 Descartables" count={descartables.length} amount={totalSeccion(descartables)}>
             {descartables.length === 0 ? (
               <div className={styles.emptyBlock}>Sin descartables.</div>
@@ -800,7 +883,13 @@ export default function ResumenFactura({
                           </div>
                         </td>
                         <td className={styles.columnaAcciones}>
-                          <button type="button" className={styles.btnEliminar} onClick={() => eliminarItem(d.id)} title="Eliminar">
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            className={styles.btnEliminar}
+                            onClick={() => eliminarItem(d.id)}
+                            title="Eliminar"
+                          >
                             🗑️
                           </button>
                         </td>
@@ -813,9 +902,12 @@ export default function ResumenFactura({
           </SubAcordeon>
         </Acordeon>
 
+        {/* ── Botones ─────────────────────────────────────────────────────────── */}
         <div className={styles.botonesResumen}>
           <div className={styles.botonesIzquierda}>
-            <button type="button" className={styles.btnAtras} onClick={onAtras}>← Atrás</button>
+            <button type="button" className={styles.btnAtras} onClick={onAtras}>
+              ← Atrás
+            </button>
           </div>
           <div className={styles.botonesDerecha}>
             <button type="button" className={styles.btnDescargar} onClick={exportarDetalle}>
@@ -828,7 +920,7 @@ export default function ResumenFactura({
         </div>
       </div>
 
-      {/* Vista para impresión (con subtotales) - sin cambios */}
+      {/* ── Vista de impresión ──────────────────────────────────────────────── */}
       <div className={styles.printView}>
         <div className={styles.printHeader}>
           <h1>Resumen de Facturación</h1>
@@ -839,7 +931,6 @@ export default function ResumenFactura({
           </div>
         </div>
 
-        {/* Honorarios Médicos con subtotales */}
         <div className={styles.printHonorarios}>
           <h3>Honorarios Médicos</h3>
           {renderTablaHonorarios(practicasHonorarios, 'Prácticas')}
@@ -856,7 +947,6 @@ export default function ResumenFactura({
           )}
         </div>
 
-        {/* Gastos Sanatoriales con subtotales */}
         <div className={styles.printGastos}>
           <h3>Gastos Sanatoriales</h3>
           {renderTablaGastosClinica(practicasGastos, 'Gastos Clínica')}
@@ -873,7 +963,6 @@ export default function ResumenFactura({
           )}
         </div>
 
-        {/* Totales generales */}
         <div className={styles.printTotales}>
           <div className={styles.printTotalLine}>
             <span>Subtotal Honorarios:</span>
