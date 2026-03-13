@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { money, parseNumber } from '../utils/calculos';
-import styles from './ResumenFactura.module.css';
+import styles from './resumenFactura.module.css';
 import * as XLSX from 'xlsx';
 import useDoctors from '../../medicos/hooks/useDoctors';
 

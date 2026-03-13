@@ -93,8 +93,6 @@
     color: #f1f5f9;
     font-size: 0.78rem;
     outline: none;
-    appearance: none;
-    -webkit-appearance: none;
     cursor: pointer;
     transition: border-color 0.13s;
 }
