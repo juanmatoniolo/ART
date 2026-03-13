@@ -1,5 +1,5 @@
 // src/app/admin/Facturacion/Facturados/components/Toolbar.jsx
-import styles from './toolbar.module.css';
+import styles from './Toolbar.module.css';
 import { prettyLabel } from '../../utils/calculos';
 
 export default function Toolbar({
