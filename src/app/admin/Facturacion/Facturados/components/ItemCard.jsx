@@ -1,6 +1,6 @@
 // src/app/admin/Facturacion/Facturados/components/ItemCard.jsx
 import Link from 'next/link';
-import styles from './ItemCard.module.css';
+import styles from './Card.module.css';
 import { money, fmtDate, prettyLabel } from '../../utils/calculos';
 
 export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART }) {
