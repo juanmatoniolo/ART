@@ -326,3 +326,19 @@
   border-top-color: #2563a8; border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.evoTimelineCarga {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-left: 6px;
+  font-style: italic;
+  border-bottom: 1px dotted #aaa;
+  cursor: help;
+}
+
+.evoHistCarga {
+  font-size: 0.7rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-left: 4px;
+}

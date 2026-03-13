@@ -67,7 +67,12 @@ function generarTextoHistoria(paciente) {
   if (paciente.examenes) bloques.push('', linea, '🔬 EXÁMENES', paciente.examenes);
   if (evols.length > 0) {
     bloques.push('', linea, `📅 EVOLUCIONES (${evols.length})`);
-    evols.forEach((ev, i) => bloques.push('', `[${i + 1}] ${ev.fechaDoc} — Dr. ${ev.medicoEvolucion || '—'}`, ev.texto || '—'));
+    evols.forEach((ev, i) => bloques.push(
+      '',
+      `[${i + 1}] ${ev.fechaDoc} — Dr. ${ev.medicoEvolucion || '—'}`,
+      `(Cargado: ${ev.fechaReal || '—'})`,
+      ev.texto || '—'
+    ));
   }
   bloques.push('', linea, 'Fin de historia clínica');
   return bloques.join('\n');
@@ -202,7 +207,6 @@ function ResumenModal({ paciente, onClose }) {
   const [copiedWA, setCopiedWA] = useState(false);
   const printAreaRef = useRef(null);
 
-  // importamos useRef arriba
   const evoluciones = [...(paciente?.evoluciones || [])].sort((a, b) => new Date(a.fechaDoc) - new Date(b.fechaDoc));
 
   useEffect(() => {
@@ -260,7 +264,12 @@ function ResumenModal({ paciente, onClose }) {
       `Dr. ingreso: ${paciente.medicoIngreso || '—'}`,
       '', '*📅 Evoluciones:*',
     ];
-    evs.forEach(ev => lines.push('', `*${ev.fechaDoc}* — _Dr. ${ev.medicoEvolucion || '—'}_`, ev.texto || '—'));
+    evs.forEach(ev => lines.push(
+      '',
+      `*${ev.fechaDoc}* — _Dr. ${ev.medicoEvolucion || '—'}_`,
+      `_(cargado: ${ev.fechaReal || '—'})_`,
+      ev.texto || '—'
+    ));
     await navigator.clipboard.writeText(lines.join('\n'));
     setCopiedWA(true); setTimeout(() => setCopiedWA(false), 2500);
   };
@@ -348,7 +357,14 @@ function ResumenModal({ paciente, onClose }) {
                         <div className={styles.evoTimelineDot} />
                         <div style={{ flex: 1 }}>
                           <div className={styles.evoTimelineHeader}>
-                            <span className={styles.evoTimelineDate}><Calendar size={11} /> {ev.fechaDoc}</span>
+                            <span className={styles.evoTimelineDate}>
+                              <Calendar size={11} /> {ev.fechaDoc}
+                              {ev.fechaReal && (
+                                <span className={styles.evoTimelineCarga} title="Fecha de carga en sistema">
+                                  (cargado {ev.fechaReal})
+                                </span>
+                              )}
+                            </span>
                             {ev.medicoEvolucion && <span className={styles.evoTimelineDoctor}>Dr. {ev.medicoEvolucion}</span>}
                           </div>
                           <p className={styles.evoTimelineText}>{ev.texto}</p>
@@ -425,14 +441,25 @@ export default function UtiPage() {
     setSaving(true);
     const ahora = new Date().toISOString();
     let nuevasEvoluciones = editId ? (pacienteEnCama(camaSeleccionada)?.evoluciones || []) : [];
+
     if (formData.evolucionTexto.trim()) {
+      // Formatear fecha actual como DD/MM/AAAA HH:MM
+      const ahoraDate = new Date();
+      const dia = String(ahoraDate.getDate()).padStart(2, '0');
+      const mes = String(ahoraDate.getMonth() + 1).padStart(2, '0');
+      const año = ahoraDate.getFullYear();
+      const hora = String(ahoraDate.getHours()).padStart(2, '0');
+      const min = String(ahoraDate.getMinutes()).padStart(2, '0');
+      const fechaRealFormateada = `${dia}/${mes}/${año} ${hora}:${min}`;
+
       nuevasEvoluciones = [...nuevasEvoluciones, {
         fechaDoc: formData.evolucionFechaDoc,
-        fechaReal: ahora,
+        fechaReal: fechaRealFormateada,
         texto: formData.evolucionTexto.trim(),
         medicoEvolucion: formData.medicoEvolucion.trim(),
       }];
     }
+
     const dataToSave = {
       paciente: formData.paciente, medicoIngreso: formData.medicoIngreso,
       obraSocial: formData.obraSocial, fechaIngreso: formData.fechaIngreso,
@@ -442,6 +469,7 @@ export default function UtiPage() {
       evoluciones: nuevasEvoluciones, cama: camaSeleccionada,
       activo: true, ultimaActualizacion: ahora,
     };
+
     try {
       if (editId) await update(ref(db, `UTI/${editId}`), dataToSave);
       else        await update(push(ref(db, 'UTI')), dataToSave);
@@ -633,7 +661,12 @@ export default function UtiPage() {
                             .map((ev, i) => (
                               <div key={i} className={styles.evoHistItem}>
                                 <div className={styles.evoHistHeader}>
-                                  <span className={styles.evoHistDate}><Calendar size={11} /> {ev.fechaDoc}</span>
+                                  <span className={styles.evoHistDate}>
+                                    <Calendar size={11} /> {ev.fechaDoc}
+                                    {ev.fechaReal && (
+                                      <span className={styles.evoHistCarga}> (cargado {ev.fechaReal})</span>
+                                    )}
+                                  </span>
                                   {ev.medicoEvolucion && <span className={styles.evoHistDoc}>Dr. {ev.medicoEvolucion}</span>}
                                 </div>
                                 <p className={styles.evoHistText}>{ev.texto}</p>

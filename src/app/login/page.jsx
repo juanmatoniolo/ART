@@ -51,6 +51,7 @@ export default function LoginPage() {
                 DR: '/doctores',
                 MDE: '/mesa-de-entrada',
                 FARM: '/farmacia',
+                UTI: '/uti/admin', 
             };
 
             router.push(routes[userData.TipoEmpleado] || '/admin');
@@ -62,10 +63,8 @@ export default function LoginPage() {
 
     return (
         <div className={styles.wrapper}>
-            {/* NAVBAR minimalista (igual que Home) */}
             <Header />
 
-            {/* Contenido */}
             <main className={styles.main}>
                 <section className={styles.card} aria-labelledby="login-title">
                     <h1 id="login-title" className={styles.title}>Iniciar sesión</h1>
