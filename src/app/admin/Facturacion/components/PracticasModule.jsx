@@ -187,6 +187,22 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       };
     }
 
+    // --- Radiografías (Capítulo 34) ---
+    // --- Radiografías (Capítulo 34) ---
+    if (practica.capitulo === '34' || (practica.capituloNombre && practica.capituloNombre.toLowerCase().includes('radiolog'))) {
+      const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
+      const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
+
+      const honorario = (galenoRx * (practica.q_gal || 0)) + ((gastoRx * (practica.gto || 0)) / 2);
+      const gasto = ((gastoRx * (practica.gto || 0)) / 2);
+
+      return {
+        honorarioMedico: honorario,
+        gastoSanatorial: gasto,
+        soloHonorario: false,
+        soloGasto: false,
+      };
+    }
     // Prácticas con meta especial (ECG, Ecografía, etc.)
     if (practica.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
@@ -201,7 +217,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     // Resto: usar calcularPractica de utils
     return calcularPractica(practica, valoresConvenio);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
-
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
