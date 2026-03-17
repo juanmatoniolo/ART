@@ -1,7 +1,7 @@
 /*
  * page.module.css — UTI (Unidad de Terapia Intensiva)
  * Versión unificada con soporte para gestión de camas, historial, timeline,
- * reingreso, expediente y resumen. Mobile-first, responsive y con modales visibles.
+ * reingreso, expediente, resumen, EXAMENES y PENDIENTES. Mobile-first, responsive.
  */
 
 /* ─── Variables globales ────────────────────────────────────────────────── */
@@ -28,6 +28,16 @@
   --amber-600: #d97706;
   --amber-100: #fef3c7;
   --amber-50: #fffbeb;
+
+  --purple-700: #6d28d9;
+  --purple-600: #7c3aed;
+  --purple-100: #ede9fe;
+  --purple-50: #f5f3ff;
+
+  --teal-700: #0f766e;
+  --teal-600: #0d9488;
+  --teal-100: #ccfbf1;
+  --teal-50: #f0fdfa;
 
   --slate-900: #0f172a;
   --slate-800: #1e293b;
@@ -196,7 +206,7 @@
   border: 1.5px solid #fbbf24;
 }
 
-/* ─── Topbar de administración (común) ──────────────────────────────────── */
+/* ─── Topbar de administración ──────────────────────────────────────────── */
 .adminTopbar {
   display: flex;
   align-items: center;
@@ -311,7 +321,7 @@
   border-color: #fecaca;
 }
 
-/* ─── Stats grid (tarjetas de estadísticas) ─────────────────────────────── */
+/* ─── Stats grid ────────────────────────────────────────────────────────── */
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -400,7 +410,15 @@
   color: var(--amber-600);
 }
 
-/* ─── Stats row (para camas) ────────────────────────────────────────────── */
+.sPurple {
+  color: var(--purple-600);
+}
+
+.sTeal {
+  color: var(--teal-600);
+}
+
+/* ─── Stats row (camas) ─────────────────────────────────────────────────── */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -493,7 +511,7 @@
   flex-shrink: 0;
 }
 
-/* ─── Content panel (vistas) ────────────────────────────────────────────── */
+/* ─── Content panel ─────────────────────────────────────────────────────── */
 .contentPanel {
   background: var(--white);
   border: 1.5px solid var(--slate-200);
@@ -644,6 +662,12 @@
 .tdPaciente {
   font-weight: 700;
   color: var(--slate-900) !important;
+}
+
+.tdDni {
+  font-size: 0.8rem;
+  color: var(--slate-500) !important;
+  font-weight: 500;
 }
 
 .tdFecha {
@@ -864,7 +888,6 @@
   background: #7c3aed;
 }
 
-/* violeta */
 .tlDotAlta {
   background: var(--green-600);
 }
@@ -875,6 +898,10 @@
 
 .tlDotIngreso {
   background: var(--blue-600);
+}
+
+.tlDotExamen {
+  background: var(--teal-600);
 }
 
 .tlContent {
@@ -956,7 +983,7 @@
   border: 1.5px solid var(--slate-200);
 }
 
-/* ─── Camas (bed management) ─────────────────────────────────────────────── */
+/* ─── Camas ──────────────────────────────────────────────────────────────── */
 .bedsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1092,6 +1119,13 @@
   line-height: 1.3;
 }
 
+.bedDni {
+  font-size: 0.7rem;
+  color: var(--slate-500);
+  font-weight: 500;
+  margin: 0;
+}
+
 .bedMedico {
   font-size: 0.72rem;
   color: var(--blue-600);
@@ -1118,6 +1152,18 @@
   font-weight: 700;
   background: var(--red-100);
   color: var(--red-700);
+  padding: 0.18rem 0.5rem;
+  border-radius: 20px;
+}
+
+.bedPendientesBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  background: var(--amber-100);
+  color: var(--amber-700);
   padding: 0.18rem 0.5rem;
   border-radius: 20px;
 }
@@ -1191,7 +1237,7 @@
   border-color: var(--blue-800);
 }
 
-/* ─── Formulario panel (ingreso/edición) ─────────────────────────────────── */
+/* ─── Formulario panel ───────────────────────────────────────────────────── */
 .formPanel {
   background: var(--white);
   border: 1.5px solid var(--slate-200);
@@ -1303,6 +1349,31 @@
   color: var(--blue-600);
   border-bottom-color: var(--blue-600);
   background: var(--white);
+}
+
+/* Badge de conteo en tabs */
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: var(--slate-200);
+  color: var(--slate-600);
+}
+
+.tabBadgeAmber {
+  background: var(--amber-100);
+  color: var(--amber-700);
+}
+
+.tabBadgeBlue {
+  background: var(--blue-100);
+  color: var(--blue-700);
 }
 
 /* ─── Cuerpo del formulario ──────────────────────────────────────────────── */
@@ -1511,6 +1582,24 @@
   background: var(--blue-800);
 }
 
+.btnTeal {
+  background: var(--teal-600);
+  color: var(--white);
+}
+
+.btnTeal:hover {
+  background: var(--teal-700);
+}
+
+.btnPurple {
+  background: var(--purple-600);
+  color: var(--white);
+}
+
+.btnPurple:hover {
+  background: var(--purple-700);
+}
+
 /* ─── Evoluciones anteriores en formulario ───────────────────────────────── */
 .evoHistList {
   display: flex;
@@ -1572,7 +1661,539 @@
   margin: 0;
 }
 
-/* ─── Overlay para modales (Reingresar, Evolucionar) ─────────────────────── */
+/* ─── EXAMENES — formulario de carga ────────────────────────────────────── */
+.examenForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--teal-50);
+  border: 1.5px solid var(--teal-100);
+  border-radius: var(--radius-lg);
+}
+
+.examenFormTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--teal-700);
+  margin: 0;
+}
+
+.tipoExamenGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .tipoExamenGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 640px) {
+  .tipoExamenGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.tipoExamenBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--slate-200);
+  background: var(--white);
+  color: var(--slate-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  font-family: var(--font);
+  min-height: 64px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.tipoExamenBtn:hover {
+  border-color: var(--teal-600);
+  color: var(--teal-700);
+  background: var(--teal-50);
+  transform: translateY(-1px);
+}
+
+.tipoExamenBtnActive {
+  background: var(--teal-600);
+  border-color: var(--teal-600);
+  color: var(--white);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
+.tipoExamenIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.examenLinkInput {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--white);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.8rem 0.45rem 0.55rem;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+
+.examenLinkInput:focus-within {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
+.examenLinkIcon {
+  color: var(--slate-400);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.examenLinkField {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.88rem;
+  color: var(--slate-900);
+  outline: none;
+  font-family: var(--font);
+  min-height: 36px;
+}
+
+.examenLinkField::placeholder {
+  color: var(--slate-400);
+}
+
+.examenLinkOpenBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--teal-50);
+  color: var(--teal-700);
+  border: 1.5px solid var(--teal-100);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  font-family: var(--font);
+  flex-shrink: 0;
+}
+
+.examenLinkOpenBtn:hover {
+  background: var(--teal-600);
+  color: var(--white);
+  border-color: var(--teal-600);
+}
+
+/* Lista de exámenes cargados (en formulario) */
+.examenHistList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  background: var(--slate-50);
+}
+
+.examenHistItem {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--slate-200);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.examenHistItem:last-child {
+  border-bottom: none;
+}
+
+.examenHistHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.examenTipoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--teal-50);
+  color: var(--teal-700);
+  border: 1.5px solid var(--teal-100);
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+}
+
+.examenHistDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--blue-600);
+}
+
+.examenHistDoc {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-radius: 20px;
+  padding: 0.1rem 0.45rem;
+}
+
+.examenHistText {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--slate-700);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.examenHistLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--teal-700);
+  background: var(--teal-50);
+  border: 1.5px solid var(--teal-100);
+  border-radius: var(--radius-sm);
+  padding: 0.22rem 0.6rem;
+  text-decoration: none;
+  transition: all var(--t);
+  align-self: flex-start;
+}
+
+.examenHistLink:hover {
+  background: var(--teal-600);
+  color: var(--white);
+  border-color: var(--teal-600);
+}
+
+/* ─── PENDIENTES ─────────────────────────────────────────────────────────── */
+/* Vista de pendientes como lista */
+.pendientesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pendientesSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--slate-50);
+  border-bottom: 1.5px solid var(--slate-200);
+}
+
+.pendientesSectionTitle {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--slate-500);
+  flex: 1;
+  margin: 0;
+}
+
+.pendientesCount {
+  background: var(--amber-100);
+  color: var(--amber-700);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.pendienteItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-bottom: 1.5px solid #f1f5f9;
+  transition: background var(--t);
+}
+
+.pendienteItem:last-child {
+  border-bottom: none;
+}
+
+.pendienteItem:hover {
+  background: #fafcff;
+}
+
+.pendienteCheckbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--slate-300);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all var(--t);
+}
+
+.pendienteCheckbox:hover {
+  border-color: var(--amber-600);
+  background: var(--amber-50);
+}
+
+.pendienteCheckboxResuelto {
+  background: var(--green-600);
+  border-color: var(--green-600);
+}
+
+.pendienteContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.pendienteHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.pendientePaciente {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--slate-900);
+}
+
+.pendienteDni {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  font-weight: 500;
+}
+
+.pendienteTipoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.pendienteBadgeExamen {
+  background: var(--teal-50);
+  color: var(--teal-700);
+  border: 1.5px solid var(--teal-100);
+}
+
+.pendienteBadgeEvol {
+  background: var(--purple-50);
+  color: var(--purple-700);
+  border: 1.5px solid var(--purple-100);
+}
+
+.pendienteBadgeAlerta {
+  background: var(--red-50);
+  color: var(--red-700);
+  border: 1.5px solid var(--red-100);
+}
+
+.pendienteDescripcion {
+  font-size: 0.84rem;
+  color: var(--slate-700);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pendienteMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.pendienteFecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--slate-500);
+}
+
+.pendienteCama {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  background: var(--blue-50);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.pendienteResueltoText {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.pendientesEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 3rem 1rem;
+  color: var(--green-700);
+}
+
+.pendientesEmptyIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--green-50);
+  border: 2px solid var(--green-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.pendientesEmptyTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--green-700);
+  margin: 0;
+}
+
+.pendientesEmptyDesc {
+  font-size: 0.84rem;
+  color: var(--slate-500);
+  margin: 0;
+  text-align: center;
+}
+
+/* Formulario inline para agregar pendiente */
+.pendienteNuevoForm {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-top: 1.5px solid var(--slate-200);
+  background: var(--white);
+  flex-wrap: wrap;
+}
+
+.pendienteNuevoInput {
+  flex: 1;
+  min-width: 180px;
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.88rem;
+  color: var(--slate-900);
+  background: var(--slate-50);
+  font-family: var(--font);
+  min-height: 42px;
+  outline: none;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+
+.pendienteNuevoInput:focus {
+  border-color: var(--amber-600);
+  box-shadow: 0 0 0 3px var(--amber-100);
+  background: var(--white);
+}
+
+.pendienteNuevoInput::placeholder {
+  color: var(--slate-400);
+}
+
+.pendienteAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--amber-600);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  font-family: var(--font);
+  min-height: 42px;
+}
+
+.pendienteAddBtn:hover {
+  background: var(--amber-700);
+}
+
+.pendienteAddBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Pendientes en la tarjeta de cama (badges compactos) */
+.pendientesCamaList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.9rem;
+  border-top: 1px solid var(--amber-100);
+  background: var(--amber-50);
+}
+
+.pendienteCamaItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--amber-700);
+}
+
+.pendienteCamaDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber-600);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* ─── Overlay para modales ───────────────────────────────────────────────── */
 .solidOverlay {
   position: fixed;
   inset: 0;
@@ -1589,7 +2210,7 @@
   background: var(--white);
   border-radius: 28px;
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -1666,6 +2287,13 @@
   font-weight: 800;
   color: #0f172a;
   margin: 0 0 0.2rem;
+}
+
+.pacienteInfoDni {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate-500);
+  margin: 0 0 0.15rem;
 }
 
 .pacienteInfoSub {
@@ -1818,7 +2446,6 @@
   margin-top: 0.5rem;
 }
 
-/* Ajustes responsive para modales */
 @media (max-width: 480px) {
   .modalBox {
     max-width: 95%;
@@ -1891,6 +2518,10 @@
 
 .modalContainer .modalHeaderTraslado {
   background: #d97706;
+}
+
+.modalContainer .modalHeaderExamen {
+  background: var(--teal-600);
 }
 
 .modalContainer .modalHeaderZoom {
@@ -2008,6 +2639,15 @@
   background: #b45309;
 }
 
+.btnExamenModal {
+  background: var(--teal-600);
+  border-color: var(--teal-700);
+}
+
+.btnExamenModal:hover {
+  background: var(--teal-700);
+}
+
 @media (max-width: 480px) {
   .modalContainer .modalHeader {
     padding: 1rem;
@@ -2102,6 +2742,13 @@
   text-overflow: ellipsis;
 }
 
+.expedienteDni {
+  font-size: 0.78rem;
+  color: var(--slate-500);
+  font-weight: 600;
+  margin: 0.05rem 0 0;
+}
+
 .expedienteMeta {
   font-size: 0.86rem;
   color: var(--slate-500);
@@ -2190,6 +2837,58 @@
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
+}
+
+/* Tabs de sección dentro del expediente */
+.expedienteTabBar {
+  display: flex;
+  background: var(--white);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  padding: 0.35rem;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.expedienteTabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.expedienteTab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--slate-500);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font);
+}
+
+.expedienteTab:hover {
+  background: var(--slate-50);
+  color: var(--slate-700);
+}
+
+.expedienteTabActive {
+  background: var(--blue-600);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.expedienteTabActive .tabBadge {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--white);
 }
 
 /* Tarjeta de ingreso en expediente */
@@ -2299,6 +2998,32 @@
   border-radius: 999px;
 }
 
+.examenCountChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--teal-700);
+  background: var(--teal-50);
+  border: 1.5px solid var(--teal-100);
+  padding: 0.24rem 0.48rem;
+  border-radius: 999px;
+}
+
+.pendienteCountChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--amber-700);
+  background: var(--amber-50);
+  border: 1.5px solid var(--amber-100);
+  padding: 0.24rem 0.48rem;
+  border-radius: 999px;
+}
+
 .badgeActivo {
   font-size: 0.68rem;
   font-weight: 800;
@@ -2351,6 +3076,16 @@
   background: #f0fdf4;
 }
 
+.ingresoBtnExamen {
+  background: var(--white);
+  color: var(--teal-700);
+  border-color: var(--teal-100);
+}
+
+.ingresoBtnExamen:hover {
+  background: var(--teal-50);
+}
+
 .ingresoBtnReingresar {
   background: var(--white);
   color: var(--blue-600);
@@ -2390,6 +3125,16 @@
 .seccionTraslado {
   background: #fffbeb !important;
   border-left: 4px solid #fcd34d;
+}
+
+.seccionExamen {
+  background: var(--teal-50) !important;
+  border-left: 4px solid var(--teal-100);
+}
+
+.seccionPendiente {
+  background: var(--amber-50) !important;
+  border-left: 4px solid var(--amber-100);
 }
 
 .seccionTitulo {
@@ -2505,6 +3250,11 @@
   flex-shrink: 0;
 }
 
+.evoDotExamen {
+  background: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
 .evoContent {
   flex: 1;
   min-width: 0;
@@ -2512,6 +3262,11 @@
   border: 1px solid #e8eef6;
   border-radius: 14px;
   padding: 0.9rem 0.95rem;
+}
+
+.evoContentExamen {
+  background: var(--teal-50);
+  border-color: var(--teal-100);
 }
 
 .evoMeta {
@@ -2568,6 +3323,30 @@
   line-height: 1.72;
   white-space: pre-wrap;
   margin: 0.1rem 0 0;
+}
+
+/* Link de estudio en examen del expediente */
+.evoExamenLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal-700);
+  background: var(--white);
+  border: 1.5px solid var(--teal-100);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  display: flex;
+  transition: all var(--t);
+}
+
+.evoExamenLink:hover {
+  background: var(--teal-600);
+  color: var(--white);
+  border-color: var(--teal-600);
 }
 
 /* ─── Resumen fullscreen ─────────────────────────────────────────────────── */
@@ -2628,6 +3407,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+}
+
+.resumenTopbarDni {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  margin: 0.05rem 0 0;
 }
 
 .resumenTopbarMeta {
@@ -2713,6 +3498,16 @@
   margin: 0;
 }
 
+.resSectionTitleTeal {
+  background: linear-gradient(135deg, var(--teal-50), var(--slate-50));
+  color: var(--teal-700);
+}
+
+.resSectionTitleAmber {
+  background: linear-gradient(135deg, var(--amber-50), var(--slate-50));
+  color: var(--amber-700);
+}
+
 .resBadge {
   background: var(--blue-100);
   color: var(--blue-800);
@@ -2721,6 +3516,16 @@
   font-size: 0.75rem;
   font-weight: 800;
   margin-left: auto;
+}
+
+.resBadgeTeal {
+  background: var(--teal-100);
+  color: var(--teal-700);
+}
+
+.resBadgeAmber {
+  background: var(--amber-100);
+  color: var(--amber-700);
 }
 
 .resGrid {
@@ -2796,7 +3601,91 @@
   text-align: center;
 }
 
-/* Timeline en resumen (reutiliza .timelineItem de arriba) */
+/* Examen item en resumen */
+.resExamenItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.resExamenItem:last-child {
+  border-bottom: none;
+}
+
+.resExamenHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.resExamenLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal-700);
+  background: var(--teal-50);
+  border: 1.5px solid var(--teal-100);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem;
+  text-decoration: none;
+  transition: all var(--t);
+}
+
+.resExamenLink:hover {
+  background: var(--teal-600);
+  color: var(--white);
+  border-color: var(--teal-600);
+}
+
+/* Pendientes en resumen */
+.resPendienteItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.resPendienteItem:last-child {
+  border-bottom: none;
+}
+
+.resPendienteCheck {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.resPendienteCheckPendiente {
+  background: var(--amber-50);
+  border: 2px solid var(--amber-400);
+}
+
+.resPendienteCheckResuelto {
+  background: var(--green-600);
+  border: 2px solid var(--green-600);
+}
+
+.resPendienteTexto {
+  font-size: 0.88rem;
+  color: var(--slate-800);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.resPendienteTextoResuelto {
+  text-decoration: line-through;
+  color: var(--slate-400);
+}
+
+/* Timeline en resumen */
 .timeline {
   padding: 1rem;
   display: flex;
@@ -2837,6 +3726,11 @@
   box-shadow: 0 0 0 2px var(--blue-200);
   margin-top: 3px;
   flex-shrink: 0;
+}
+
+.timelineDotTeal {
+  background: var(--teal-600);
+  box-shadow: 0 0 0 2px var(--teal-100);
 }
 
 .timelineContent {
@@ -2889,4 +3783,296 @@
   padding: 0.8rem 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--slate-200);
+}
+
+.timelineTextTeal {
+  background: var(--teal-50);
+  border-color: var(--teal-100);
+}
+
+/* ─── Control de tipografía (NUEVO) ─────────────────────────────────────── */
+.fontControls {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  background: var(--slate-100);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: .2rem .35rem;
+}
+
+.fontBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  font-weight: 800;
+  color: var(--slate-700);
+  padding: .3rem .55rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--t);
+  line-height: 1;
+  white-space: nowrap;
+  font-size: 1rem;
+  /* heredará del html, por eso se escala bien */
+}
+
+.fontBtn:hover:not(:disabled) {
+  background: var(--white);
+  color: var(--blue-600);
+  box-shadow: var(--shadow-xs);
+}
+
+.fontBtn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.fontLabel {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--slate-500);
+  padding: 0 .3rem;
+  white-space: nowrap;
+  min-width: 54px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ─── Badge de reingreso en cama ─────────────────────────────────────────── */
+.bedReingresoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  font-size: .66rem;
+  font-weight: 700;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border: 1.5px solid var(--blue-100);
+  padding: .18rem .5rem;
+  border-radius: 20px;
+}
+
+/* ─── Chip de reingreso en el topbar del expediente ─────────────────────── */
+.reingresoChip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border: 1.5px solid var(--blue-200);
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .1rem .55rem;
+  margin-left: .5rem;
+  vertical-align: middle;
+}
+
+/* ─── Historial previo en el expediente ──────────────────────────────────── */
+.historialPrevioCard {
+  background: var(--slate-50);
+  border: 1.5px solid var(--blue-100);
+  border-left: 4px solid var(--blue-300);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+.historialPrevioHeader {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  padding: .75rem 1rem;
+  background: linear-gradient(135deg, var(--blue-50), var(--white));
+  border-bottom: 1px solid var(--blue-100);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--blue-800);
+}
+
+.historialPrevioFecha {
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--slate-500);
+}
+
+.historialPrevioBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  background: var(--white);
+  color: var(--blue-600);
+  border: 1.5px solid var(--blue-200);
+  border-radius: var(--radius-sm);
+  padding: .3rem .7rem;
+  font-size: .76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  font-family: var(--font);
+}
+
+.historialPrevioBtn:hover {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+}
+
+.historialPrevioResumen {
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.historialPrevioItem {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.historialPrevioStats {
+  display: flex;
+  gap: .75rem;
+  margin-top: .1rem;
+}
+
+.historialPrevioStat {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .72rem;
+  color: var(--slate-500);
+  font-weight: 600;
+}
+
+/* ─── Selector de cama en modal de reingreso ─────────────────────────────── */
+.camaSelector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .4rem;
+}
+
+@media (min-width: 440px) {
+  .camaSelector {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.camaBtn {
+  padding: .75rem .5rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--slate-200);
+  background: var(--white);
+  color: var(--slate-700);
+  font-size: .96rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--t);
+  font-family: var(--font);
+  min-height: 48px;
+}
+
+.camaBtn:hover:not(:disabled) {
+  border-color: var(--blue-400);
+  color: var(--blue-600);
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.camaBtnActive {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: var(--white);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+}
+
+/* ─── Stat cards clickeables — FIX ──────────────────────────────────────── */
+/* Override completo: quitar estilos nativos de button */
+.statCardClickable {
+  all: unset;
+  display: flex !important;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--white);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+  min-height: 110px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.statCardClickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(37, 99, 168, 0.13);
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.statCardClickable:active {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* El hint SIEMPRE oculto; solo visible en hover */
+.statCardHint {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(37, 99, 168, 0.07));
+  padding: 0.25rem 0.6rem 0.4rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--blue-600);
+  text-align: right;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+.statCardClickable:hover .statCardHint {
+  display: flex;
+}
+
+/* Acción reingreso en expediente */
+.actionReingreso {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  border: 1.5px solid var(--blue-200) !important;
+}
+
+.actionReingreso:hover {
+  background: var(--blue-600) !important;
+  color: var(--white) !important;
+  border-color: var(--blue-600) !important;
+}
+
+/* ─── Separador de historial previo en formulario ────────────────────────── */
+.histPrevioSep {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin-top: .5rem;
+  padding: .5rem .75rem;
+  background: linear-gradient(135deg, var(--blue-50), #f0f6ff);
+  border: 1.5px solid var(--blue-100);
+  border-radius: var(--radius-md);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--blue-700);
 }

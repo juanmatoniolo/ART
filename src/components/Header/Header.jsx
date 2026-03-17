@@ -40,13 +40,13 @@ export default function Header() {
                     CX
                 </Link>
 
-                <Link
+                {/*            <Link
                     href="/uti"
                     className={`${styles.navLink} ${pathname.startsWith('/uti') ? styles.active : ''}`}
                 >
                     <Activity size={16} />
                     UTI
-                </Link>
+                </Link> */}
             </nav>
         </header>
     );
