@@ -67,7 +67,6 @@ export function useOfflineQueue() {
 	const [pending, setPending] = useState(0);
 	const [syncing, setSyncing] = useState(false);
 
-	// Refrescar contador de pendientes
 	const refreshPending = useCallback(async () => {
 		try {
 			const items = await getAll();
@@ -89,12 +88,10 @@ export function useOfflineQueue() {
 		};
 	}, [refreshPending]);
 
-	// Cuando vuelve la conexión, sincronizar automáticamente
 	useEffect(() => {
 		if (online) syncQueue();
 	}, [online]);
 
-	// Sincronizar cola con Firebase
 	const syncQueue = useCallback(async () => {
 		let items;
 		try {
@@ -114,7 +111,6 @@ export function useOfflineQueue() {
 				}
 				await dequeue(item.id);
 			} catch {
-				// Si falla un item, dejar el resto en cola
 				break;
 			}
 		}
@@ -122,7 +118,6 @@ export function useOfflineQueue() {
 		await refreshPending();
 	}, [refreshPending]);
 
-	// Guardar (online → Firebase directo / offline → cola local)
 	const save = useCallback(
 		async ({ editId, data }) => {
 			if (online) {
@@ -134,7 +129,6 @@ export function useOfflineQueue() {
 					// Si falla aunque parezca online, encolar
 				}
 			}
-			// Guardar en cola offline
 			await enqueue({ editId, data });
 			await refreshPending();
 			return { ok: true, offline: true };
