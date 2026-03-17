@@ -527,16 +527,8 @@ export default function UTIPage() {
             </p>
           </div>
           <div className={s.expedienteTopbarActions}>
-            {regExp.activo && (
-              <button className={`${s.actionBtn} ${s.actionDone}`}
-                onClick={() => { setAltaModal({ id: regExp.id, tipo: "alta", paciente: regExp.paciente }); setVerExpId(null); }}>
-                <Ic d="M9 11l3 3L22 4" size={14} /><span className={s.actionLabel}>Alta</span>
-              </button>
-            )}
-            <button className={`${s.actionBtn} ${s.actionReingreso}`}
-              onClick={() => { setReingresarModal(regExp); setVerExpId(null); }}>
-              <Ic d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" size={14} /><span className={s.actionLabel}>Reingresar</span>
-            </button>
+
+
             <button className={`${s.actionBtn} ${s.actionCopy}`} onClick={() => {
               navigator.clipboard.writeText(generarTexto(regExp));
               setCopyToast(true); setTimeout(() => setCopyToast(false), 2500);
