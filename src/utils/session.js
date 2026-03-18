@@ -1,7 +1,7 @@
 // utils/session.js
 
 const SESSION_KEY = "userSession";
-const EXPIRATION_MS = 4 * 60 * 60 * 1000; // 4 horas
+const EXPIRATION_MS = 7 * 60 * 60 * 1000; // 7 horas
 
 export function setSession(userData) {
 	if (typeof window === "undefined") return; // ✅ Previene errores SSR

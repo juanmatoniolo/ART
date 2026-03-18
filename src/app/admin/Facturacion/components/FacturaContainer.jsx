@@ -33,6 +33,7 @@ const safeNum = (v) => {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+const round2 = (num) => Math.round(num * 100) / 100;
 
 const normalizeArtKey = (s) =>
   String(s ?? '')
