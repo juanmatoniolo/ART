@@ -9,10 +9,12 @@
 
 
 .shell {
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;       /* 👈 centra el contenido */
-  padding: 0 20px;      /* padding lateral */
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    /* 👈 centra el contenido */
+    padding: 0 20px;
+    /* padding lateral */
 }
 
 
@@ -288,4 +290,91 @@
     border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
+}
+
+/* ── Sección Fechas ── */
+.fechasWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (min-width: 640px) {
+    .fechasWrapper {
+        flex-direction: row;
+        gap: 24px;
+    }
+
+    .fechaGroup {
+        flex: 1;
+    }
+}
+
+.fechaGroup {
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.fechaGroupLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+}
+
+.fechaRow {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* Campo individual dentro de fechaRow */
+.datePartField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.datePartWide {
+    flex: 1.6;
+}
+
+.fechasWrapper {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.fechaGroup {
+    flex: 1;
+    min-width: 200px;
+}
+
+.fechaGroupLabel {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.fechaRow {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.datePartField {
+    flex: 1;
+    min-width: 60px;
+}
+
+.datePartWide {
+    flex: 2;
+}
+
+.inputReadonly {
+    background-color: #f5f5f5;
+    cursor: default;
 }

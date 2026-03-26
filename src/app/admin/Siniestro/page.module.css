@@ -1,7 +1,7 @@
 /* Tema oscuro consistente con el layout de admin */
 .page {
     min-height: 100%;
-    background: #0f172a; /* fondo oscuro general */
+    background: #0f172a;
     color: #e5e7eb;
     padding: 20px 0;
 }
@@ -64,7 +64,7 @@
     border: 1px solid #1e293b;
     border-radius: 20px;
     padding: 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 /* Secciones */
@@ -120,7 +120,8 @@
     }
 }
 
-.field, .fieldFull {
+.field,
+.fieldFull {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -162,10 +163,80 @@
     border-color: #ef4444 !important;
 }
 
+.inputReadonly {
+    background: #0f172a !important;
+    /* Fondo oscuro, pero no tan profundo */
+    /* Amarillo dorado, muy legible */
+    cursor: default;
+    font-weight: 700;
+    /* Negrita para destacar */
+    font-size: 16px;
+    /* Un poco más grande */
+    letter-spacing: 0.5px;
+    /* Espaciado suave */
+}
+
+.inputReadonly:focus {
+    border-color: #1e3a2a;
+    box-shadow: none;
+}
+
 .errorText {
     font-size: 13px;
     color: #f87171;
     font-weight: 500;
+}
+
+/* ── Sección Fechas ── */
+.fechasWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (min-width: 640px) {
+    .fechasWrapper {
+        flex-direction: row;
+        gap: 24px;
+    }
+
+    .fechaGroup {
+        flex: 1;
+    }
+}
+
+.fechaGroup {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.fechaGroupLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+}
+
+.fechaRow {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* Campo individual dentro de fechaRow */
+.datePartField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.datePartWide {
+    flex: 1.6;
 }
 
 /* Chips (radio buttons) */
@@ -264,7 +335,7 @@
     background: #1e293b;
 }
 
-/* Mensajes tipo toast */
+/* Toasts */
 .toastInfo {
     background: #1e3a8a20;
     border: 1px solid #3b82f6;
@@ -272,6 +343,7 @@
     padding: 12px;
     border-radius: 12px;
     font-weight: 500;
+    margin-bottom: 16px;
 }
 
 .toastSuccess {
@@ -290,4 +362,41 @@
     padding: 12px;
     border-radius: 12px;
     font-weight: 500;
+}
+
+.fechasWrapper {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.fechaGroup {
+    flex: 1;
+    min-width: 200px;
+}
+
+.fechaGroupLabel {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.fechaRow {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.datePartField {
+    flex: 1;
+    min-width: 60px;
+}
+
+.datePartWide {
+    flex: 2;
+}
+
+.inputReadonly {
+    background-color: #f5f5f5;
+    cursor: default;
 }

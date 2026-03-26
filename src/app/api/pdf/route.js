@@ -5,15 +5,10 @@ import { PDFDocument } from "pdf-lib";
 
 export const runtime = "nodejs";
 
-const LUGAR_FECHA_CONST = "Chajari, Entre Rios";
+const LUGAR_FECHA_CONST = "CHAJARÍ, ENTRE RÍOS";
 
 function templatePath() {
-	return path.join(
-		process.cwd(),
-		"src",
-		"templates",
-		"FORMULARIO-ART-UNIFICADO.pdf"
-	);
+	return path.join(process.cwd(), "src", "templates", "ART-COMPLETOS.pdf");
 }
 
 function onlyDigits(s) {
@@ -23,15 +18,27 @@ function onlyDigits(s) {
 function cleanText(s) {
 	const v = (s ?? "").toString().trim();
 	if (!v) return "";
-	// si usás "-" como “vacío”, lo convertimos en ""
 	if (v === "-" || v.toLowerCase() === "n/a") return "";
-	return v;
+	return v.toUpperCase();
+}
+
+function pad2(value) {
+	return String(value ?? "").padStart(2, "0");
 }
 
 function splitDateISO(iso) {
 	if (!iso) return { dia: "", mes: "", anio: "" };
 	const [yyyy, mm, dd] = iso.split("-");
-	return { dia: dd || "", mes: mm || "", anio: yyyy || "" };
+	return {
+		dia: dd ? pad2(dd) : "",
+		mes: mm ? pad2(mm) : "",
+		anio: yyyy || "",
+	};
+}
+
+function formatDate({ dia, mes, anio }) {
+	if (!dia || !mes || !anio) return "";
+	return `${pad2(dia)}-${pad2(mes)}-${anio}`;
 }
 
 function getPrestadorFromEnv() {
@@ -49,7 +56,7 @@ function getPrestadorFromEnv() {
 
 	const ddn = onlyDigits(process.env.PRESTADOR_TEL_DDN);
 	const tel = onlyDigits(process.env.PRESTADOR_TEL);
-	const celular = onlyDigits(`${ddn}${tel}`); // ej: 3456 + 441580
+	const celular = onlyDigits(`${ddn}${tel}`);
 
 	const mail = cleanText(process.env.PRESTADOR_MAIL);
 
@@ -73,14 +80,32 @@ function buildPdfFields(payload) {
 	const emp = payload.empleador || {};
 	const art = payload.ART || {};
 	const c = payload.consulta || {};
+	const fechaIngreso = payload.fechaIngreso || {};
+	const fechaDenuncia = payload.fechaDenuncia || {};
 
-	// ✅ Prestador SIEMPRE desde ENV
 	const p = getPrestadorFromEnv();
 
 	const nac = splitDateISO(t.nacimiento);
-	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(
-		t.nombre
-	)}`.trim();
+	const nombreEmpleado =
+		`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
+
+	const edad = t.edad ? `${t.edad} AÑOS` : "";
+
+	const fechaIngresoObj = {
+		dia: pad2(fechaIngreso.dia || ""),
+		mes: pad2(fechaIngreso.mes || ""),
+		anio: String(fechaIngreso.anio || ""),
+	};
+
+	const fechaDenunciaObj = {
+		dia: pad2(fechaDenuncia.dia || ""),
+		mes: pad2(fechaDenuncia.mes || ""),
+		anio: String(fechaDenuncia.anio || ""),
+	};
+
+	const fechaNacimientoStr = formatDate(nac);
+	const fechaIngresoStr = formatDate(fechaIngresoObj);
+	const fechaDenunciaStr = formatDate(fechaDenunciaObj);
 
 	return {
 		// ART
@@ -94,6 +119,22 @@ function buildPdfFields(payload) {
 		"empleado-dia": nac.dia,
 		"empleado-mes": nac.mes,
 		"empleado-anio": nac.anio,
+		"fecha-nacimiento": fechaNacimientoStr,
+
+		// Edad
+		"empleado-edad": edad,
+
+		// Fecha actual (ingreso) separada + completa
+		dia: fechaIngresoObj.dia,
+		mes: fechaIngresoObj.mes,
+		anio: fechaIngresoObj.anio,
+		"fecha-ingreso": fechaIngresoStr,
+
+		// Fecha de denuncia separada + completa
+		"dia-denuncia": fechaDenunciaObj.dia,
+		"mes-denuncia": fechaDenunciaObj.mes,
+		"anio-denuncia": fechaDenunciaObj.anio,
+		"fecha-denuncia": fechaDenunciaStr,
 
 		"Sexo M": t.sexo === "M",
 		F: t.sexo === "F",
@@ -145,16 +186,14 @@ function fillFormFields(form, fields) {
 	for (const [name, value] of Object.entries(fields || {})) {
 		let ok = false;
 
-		// TextField
 		try {
 			const tf = form.getTextField(name);
-			tf.setText(value == null ? "" : String(value));
+			tf.setText(value == null ? "" : String(value).toUpperCase());
 			ok = true;
 		} catch {}
 
 		if (ok) continue;
 
-		// Checkbox
 		try {
 			const cb = form.getCheckBox(name);
 			if (value === true) cb.check();
@@ -188,7 +227,6 @@ export async function GET(req) {
 		const form = pdfDoc.getForm();
 		const fieldNames = form.getFields().map((f) => f.getName());
 
-		// ✅ también devolvemos el prestador ya parseado desde ENV para confirmar
 		const prestador = getPrestadorFromEnv();
 
 		return NextResponse.json({
@@ -206,7 +244,7 @@ export async function GET(req) {
 				error: "No se pudo leer el template",
 				detail: e?.message || String(e),
 			},
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
@@ -218,7 +256,7 @@ export async function POST(req) {
 		if (!payload) {
 			return NextResponse.json(
 				{ error: "Falta payload" },
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
@@ -253,7 +291,7 @@ export async function POST(req) {
 				error: "No se pudo generar el PDF",
 				detail: e?.message || String(e),
 			},
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

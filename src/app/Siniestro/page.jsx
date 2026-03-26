@@ -4,9 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import { push, ref, set } from "firebase/database";
 import styles from "./SiniestroPage.module.css";
-import Header from "@/components/Header/Header";
 
-const STORAGE_KEY = "siniestro_form_simple_v1";
+const STORAGE_KEY = "siniestro_form_v2";
 
 const PRESTADOR_CONST = {
     nombre: "CLINICA DE LA UNION S.A",
@@ -22,31 +21,39 @@ const PRESTADOR_CONST = {
     mail: "clinicadelaunionart@gmail.com",
 };
 
+// Obtener fecha actual para valores por defecto
+const today = new Date();
+const defaultDay = String(today.getDate()).padStart(2, "0");
+const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
+const defaultYear = String(today.getFullYear());
 
 const initialForm = {
     ART: "",
     nroSiniestro: "",
-
     empleadorNombre: "",
     empleadorCuitDni: "",
-
     trabajadorApellido: "",
     trabajadorNombre: "",
     trabajadorDni: "",
-    trabajadorNacimiento: "",
+    trabajadorNacimiento: "",      // formato YYYY-MM-DD
     trabajadorSexo: "",
-
     trabajadorCalle: "",
     trabajadorNumero: "",
     trabajadorPiso: "",
     trabajadorDepto: "",
-
     trabajadorLocalidad: "",
     trabajadorProvincia: "",
     trabajadorCP: "",
     trabajadorTelefono: "",
-
-    consultaTipo: "", // AT | AIT | EP | INT
+    consultaTipo: "",
+    // Fechas adicionales
+    diaIngreso: defaultDay,
+    mesIngreso: defaultMonth,
+    anioIngreso: defaultYear,
+    diaDenuncia: defaultDay,
+    mesDenuncia: defaultMonth,
+    anioDenuncia: defaultYear,
+    trabajadorEdad: "",   // calculada automáticamente
 };
 
 function onlyDigits(s) {
@@ -59,28 +66,45 @@ function formatCuitIf11(value) {
     return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`;
 }
 
+// Calcula edad exacta en años entre fecha de nacimiento y fecha actual
+function calcularEdad(nacimiento) {
+    if (!nacimiento) return "";
+    const [y, m, d] = nacimiento.split("-").map(Number);
+    if (!y || !m || !d) return "";
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - y;
+    const mesActual = hoy.getMonth() + 1;
+    const diaActual = hoy.getDate();
+    if (mesActual < m || (mesActual === m && diaActual < d)) {
+        edad--;
+    }
+    return edad >= 0 ? String(edad) : "";
+}
+
 function validate(f) {
     const e = {};
-
-    // Solo validaciones de formato si se ingresa algo
-    
-    // Validación CUIT/DNI del empleador (solo formato)
     const empId = onlyDigits(f.empleadorCuitDni);
     if (empId && empId.length < 8 && empId.length > 0) {
         e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
     }
-
-    // Validación DNI del trabajador (solo formato)
     const dni = onlyDigits(f.trabajadorDni);
     if (dni && (dni.length < 7 || dni.length > 9)) {
         e.trabajadorDni = "DNI inválido (7 a 9 dígitos)";
     }
-
-    // Validación teléfono (solo formato)
     const tel = onlyDigits(f.trabajadorTelefono);
     if (tel && tel.length < 8) {
         e.trabajadorTelefono = "Teléfono inválido";
     }
+
+    // Validar fechas
+    const validarFecha = (dia, mes, anio, prefix) => {
+        const d = Number(dia), m = Number(mes), a = Number(anio);
+        if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
+        if (mes && (m < 1 || m > 12)) e[`${prefix}Mes`] = "Mes inválido";
+        if (anio && (a < 1900 || a > 2100)) e[`${prefix}Anio`] = "Año inválido";
+    };
+    validarFecha(f.diaIngreso, f.mesIngreso, f.anioIngreso, "ingreso");
+    validarFecha(f.diaDenuncia, f.mesDenuncia, f.anioDenuncia, "denuncia");
 
     return e;
 }
@@ -95,7 +119,7 @@ function Section({ title, subtitle, children }) {
             <div className={styles.sectionHead}>
                 <div>
                     <h3 className={styles.sectionTitle}>{title}</h3>
-                    {subtitle ? <div className={styles.sectionHint}>{subtitle}</div> : null}
+                    {subtitle && <div className={styles.sectionHint}>{subtitle}</div>}
                 </div>
             </div>
             {children}
@@ -103,19 +127,35 @@ function Section({ title, subtitle, children }) {
     );
 }
 
+function DatePartInput({ label, value, onChange, placeholder, maxLength, error, className }) {
+    return (
+        <div className={cx(styles.datePartField, className)}>
+            <label className={styles.label}>{label}</label>
+            <input
+                className={cx(styles.input, error && styles.inputError)}
+                value={value}
+                onChange={onChange}
+                inputMode="numeric"
+                placeholder={placeholder}
+                maxLength={maxLength}
+            />
+            {error && <div className={styles.errorText}>{error}</div>}
+        </div>
+    );
+}
+
 export default function SiniestroPage() {
     const [form, setForm] = useState(initialForm);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
-
     const [createdId, setCreatedId] = useState(null);
-
     const [pdfUrl, setPdfUrl] = useState(null);
     const [pdfFileName, setPdfFileName] = useState(null);
     const [pdfError, setPdfError] = useState(null);
 
     const submittingRef = useRef(false);
 
+    // Cargar borrador
     useEffect(() => {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -123,6 +163,7 @@ export default function SiniestroPage() {
         } catch { }
     }, []);
 
+    // Guardar borrador con debounce
     useEffect(() => {
         const t = setTimeout(() => {
             try {
@@ -132,13 +173,20 @@ export default function SiniestroPage() {
         return () => clearTimeout(t);
     }, [form]);
 
+    // Revocar URL del PDF al desmontar
     useEffect(() => {
         return () => {
-            try {
-                if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-            } catch { }
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl);
         };
     }, [pdfUrl]);
+
+    // Recalcular edad cuando cambia la fecha de nacimiento
+    useEffect(() => {
+        setForm((prev) => ({
+            ...prev,
+            trabajadorEdad: calcularEdad(prev.trabajadorNacimiento),
+        }));
+    }, [form.trabajadorNacimiento]);
 
     const canSubmit = useMemo(() => !saving, [saving]);
 
@@ -149,8 +197,7 @@ export default function SiniestroPage() {
     };
 
     function openPdf() {
-        if (!pdfUrl) return;
-        window.open(pdfUrl, "_blank", "noopener,noreferrer");
+        if (pdfUrl) window.open(pdfUrl, "_blank");
     }
 
     function downloadPdf() {
@@ -170,10 +217,7 @@ export default function SiniestroPage() {
 
         setCreatedId(null);
         setPdfError(null);
-
-        try {
-            if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-        } catch { }
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
         setPdfUrl(null);
         setPdfFileName(null);
 
@@ -187,21 +231,17 @@ export default function SiniestroPage() {
         setSaving(true);
         try {
             const payload = {
-                ART: { 
-                    nombre: form.ART.trim() || "", 
-                    nroSiniestro: form.nroSiniestro.trim() || "" 
-                },
-
+                ART: { nombre: form.ART.trim() || "", nroSiniestro: form.nroSiniestro.trim() || "" },
                 empleador: {
                     nombre: form.empleadorNombre.trim() || "",
                     cuit: onlyDigits(form.empleadorCuitDni) || "",
                 },
-
                 trabajador: {
                     apellido: form.trabajadorApellido.trim() || "",
                     nombre: form.trabajadorNombre.trim() || "",
                     dni: onlyDigits(form.trabajadorDni) || "",
                     nacimiento: form.trabajadorNacimiento || "",
+                    edad: form.trabajadorEdad,
                     sexo: form.trabajadorSexo || "",
                     calle: form.trabajadorCalle.trim() || "",
                     numero: form.trabajadorNumero.trim() || "",
@@ -212,11 +252,20 @@ export default function SiniestroPage() {
                     cp: onlyDigits(form.trabajadorCP) || "",
                     telefono: onlyDigits(form.trabajadorTelefono) || "",
                 },
-
                 consulta: { tipo: form.consultaTipo || "" },
-
+                fechaIngreso: {
+                    dia: form.diaIngreso,
+                    mes: form.mesIngreso,
+                    anio: form.anioIngreso,
+                    iso: `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`,
+                },
+                fechaDenuncia: {
+                    dia: form.diaDenuncia,
+                    mes: form.mesDenuncia,
+                    anio: form.anioDenuncia,
+                    iso: `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`,
+                },
                 prestador: PRESTADOR_CONST,
-
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
             };
@@ -225,7 +274,8 @@ export default function SiniestroPage() {
             await set(newRef, payload);
             setCreatedId(newRef.key);
 
-            const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${payload.trabajador.dni || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
+            const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${payload.trabajador.dni || "SIN_DNI"
+                }_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
 
             const res = await fetch("/api/pdf", {
                 method: "POST",
@@ -239,7 +289,6 @@ export default function SiniestroPage() {
                 const detail = ct.includes("application/json")
                     ? JSON.stringify(await res.json().catch(() => ({})), null, 2)
                     : await res.text().catch(() => "");
-
                 console.error("PDF FAIL:", { status: res.status, ct, detail });
                 setPdfError(`Falló la generación del PDF (${res.status}). Revisá consola.`);
                 return;
@@ -247,7 +296,6 @@ export default function SiniestroPage() {
 
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
-
             setPdfUrl(url);
             setPdfFileName(fileName);
         } catch (err) {
@@ -260,8 +308,6 @@ export default function SiniestroPage() {
     }
 
     return (
-    <>
-        <Header />
         <div className={styles.page}>
             <div className={styles.shell}>
                 <div className={styles.header}>
@@ -269,7 +315,6 @@ export default function SiniestroPage() {
                         <h1 className={styles.title}>Nuevo Siniestro</h1>
                         <p className={styles.subtitle}>Todos los campos son opcionales. Completá lo que necesites.</p>
                     </div>
-
                     <div className={styles.headerActions}>
                         <button
                             type="button"
@@ -280,14 +325,10 @@ export default function SiniestroPage() {
                                 setErrors({});
                                 setCreatedId(null);
                                 setPdfError(null);
-                                try {
-                                    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-                                } catch { }
+                                if (pdfUrl) URL.revokeObjectURL(pdfUrl);
                                 setPdfUrl(null);
                                 setPdfFileName(null);
-                                try {
-                                    localStorage.removeItem(STORAGE_KEY);
-                                } catch { }
+                                localStorage.removeItem(STORAGE_KEY);
                             }}
                         >
                             Limpiar
@@ -299,7 +340,7 @@ export default function SiniestroPage() {
 
                 <form onSubmit={onSubmit} autoComplete="on">
                     <div className={styles.card}>
-                        {/* ART + Motivo */}
+                        {/* Sección 1: ART + Motivo */}
                         <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
@@ -308,11 +349,10 @@ export default function SiniestroPage() {
                                         className={cx(styles.input, errors.ART && styles.inputError)}
                                         value={form.ART}
                                         onChange={onChange("ART")}
-                                        placeholder="Ej: Provincia ART, Galeno ART... (opcional)"
+                                        placeholder="Ej: Provincia ART, Galeno ART..."
                                     />
                                     {errors.ART && <div className={styles.errorText}>{errors.ART}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>N° siniestro</label>
                                     <input
@@ -323,7 +363,6 @@ export default function SiniestroPage() {
                                         placeholder="Opcional"
                                     />
                                 </div>
-
                                 <div className={styles.fieldFull}>
                                     <label className={styles.label}>Motivo de consulta</label>
                                     <div className={styles.chips}>
@@ -336,10 +375,8 @@ export default function SiniestroPage() {
                                             <label
                                                 key={val}
                                                 className={cx(styles.chip, form.consultaTipo === val && styles.chipActive)}
-                                                htmlFor={`motivo_${val}`}
                                             >
                                                 <input
-                                                    id={`motivo_${val}`}
                                                     type="radio"
                                                     name="motivo"
                                                     value={val}
@@ -350,25 +387,91 @@ export default function SiniestroPage() {
                                             </label>
                                         ))}
                                     </div>
-                                    {errors.consultaTipo && <div className={styles.errorText}>{errors.consultaTipo}</div>}
                                 </div>
                             </div>
                         </Section>
 
-                        {/* Empleador */}
-                        <Section title="2) Empleador" subtitle="Todos los campos son opcionales">
+                        {/* Sección 2: Fechas (Ingreso y Denuncia) */}
+                        <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
+                            <div className={styles.fechasWrapper}>
+                                {/* Fecha ingreso */}
+                                <div className={styles.fechaGroup}>
+                                    <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
+                                    <div className={styles.fechaRow}>
+                                        <DatePartInput
+                                            label="Día"
+                                            value={form.diaIngreso}
+                                            onChange={onChange("diaIngreso")}
+                                            placeholder="DD"
+                                            maxLength={2}
+                                            error={errors.ingresoDia}
+                                        />
+                                        <DatePartInput
+                                            label="Mes"
+                                            value={form.mesIngreso}
+                                            onChange={onChange("mesIngreso")}
+                                            placeholder="MM"
+                                            maxLength={2}
+                                            error={errors.ingresoMes}
+                                        />
+                                        <DatePartInput
+                                            label="Año"
+                                            value={form.anioIngreso}
+                                            onChange={onChange("anioIngreso")}
+                                            placeholder="AAAA"
+                                            maxLength={4}
+                                            error={errors.ingresoAnio}
+                                            className={styles.datePartWide}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Fecha denuncia */}
+                                <div className={styles.fechaGroup}>
+                                    <div className={styles.fechaGroupLabel}>Fecha de denuncia</div>
+                                    <div className={styles.fechaRow}>
+                                        <DatePartInput
+                                            label="Día"
+                                            value={form.diaDenuncia}
+                                            onChange={onChange("diaDenuncia")}
+                                            placeholder="DD"
+                                            maxLength={2}
+                                            error={errors.denunciaDia}
+                                        />
+                                        <DatePartInput
+                                            label="Mes"
+                                            value={form.mesDenuncia}
+                                            onChange={onChange("mesDenuncia")}
+                                            placeholder="MM"
+                                            maxLength={2}
+                                            error={errors.denunciaMes}
+                                        />
+                                        <DatePartInput
+                                            label="Año"
+                                            value={form.anioDenuncia}
+                                            onChange={onChange("anioDenuncia")}
+                                            placeholder="AAAA"
+                                            maxLength={4}
+                                            error={errors.denunciaAnio}
+                                            className={styles.datePartWide}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </Section>
+
+                        {/* Sección 3: Empleador */}
+                        <Section title="3) Empleador" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>Nombre empresa</label>
                                     <input
-                                        className={cx(styles.input, errors.empleadorNombre && styles.inputError)}
+                                        className={styles.input}
                                         value={form.empleadorNombre}
                                         onChange={onChange("empleadorNombre")}
-                                        placeholder="Razón social (opcional)"
+                                        placeholder="Razón social"
                                     />
-                                    {errors.empleadorNombre && <div className={styles.errorText}>{errors.empleadorNombre}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>CUIT / DNI</label>
                                     <input
@@ -377,38 +480,34 @@ export default function SiniestroPage() {
                                         onChange={onChange("empleadorCuitDni")}
                                         onBlur={onBlurCuitDni}
                                         inputMode="numeric"
-                                        placeholder="Opcional (solo números)"
+                                        placeholder="Solo números"
                                     />
                                     {errors.empleadorCuitDni && <div className={styles.errorText}>{errors.empleadorCuitDni}</div>}
                                 </div>
                             </div>
                         </Section>
 
-                        {/* Trabajador */}
-                        <Section title="3) Trabajador" subtitle="Todos los campos son opcionales">
+                        {/* Sección 4: Trabajador */}
+                        <Section title="4) Trabajador" subtitle="Todos los campos son opcionales">
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>Apellido</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorApellido && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorApellido}
                                         onChange={onChange("trabajadorApellido")}
-                                        placeholder="Apellido (opcional)"
+                                        placeholder="Apellido"
                                     />
-                                    {errors.trabajadorApellido && <div className={styles.errorText}>{errors.trabajadorApellido}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Nombre</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorNombre && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorNombre}
                                         onChange={onChange("trabajadorNombre")}
-                                        placeholder="Nombre (opcional)"
+                                        placeholder="Nombre"
                                     />
-                                    {errors.trabajadorNombre && <div className={styles.errorText}>{errors.trabajadorNombre}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>DNI</label>
                                     <input
@@ -416,29 +515,36 @@ export default function SiniestroPage() {
                                         value={form.trabajadorDni}
                                         onChange={onChange("trabajadorDni")}
                                         inputMode="numeric"
-                                        placeholder="DNI (opcional)"
+                                        placeholder="DNI"
                                     />
                                     {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
                                 </div>
 
+                                {/* Nacimiento */}
                                 <div className={styles.field}>
-                                    <label className={styles.label}>Nacimiento</label>
+                                    <label className={styles.label}>Fecha de nacimiento</label>
                                     <input
                                         type="date"
-                                        className={cx(styles.input, errors.trabajadorNacimiento && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorNacimiento}
                                         onChange={onChange("trabajadorNacimiento")}
                                     />
-                                    {errors.trabajadorNacimiento && <div className={styles.errorText}>{errors.trabajadorNacimiento}</div>}
+                                </div>
+                                <div className={styles.field}>
+                                    <label className={styles.label}>Edad (calculada)</label>
+                                    <input
+                                        className={cx(styles.input, styles.inputReadonly)}
+                                        value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""}
+                                        readOnly
+                                        tabIndex={-1}
+                                        placeholder="Se calcula automáticamente"
+                                    />
                                 </div>
 
                                 <div className={styles.field}>
                                     <label className={styles.label}>Sexo</label>
                                     <div className={styles.chips}>
-                                        {[
-                                            ["M", "M"],
-                                            ["F", "F"],
-                                        ].map(([val, label]) => (
+                                        {["M", "F"].map((val) => (
                                             <label
                                                 key={val}
                                                 className={cx(styles.chip, form.trabajadorSexo === val && styles.chipActive)}
@@ -450,13 +556,11 @@ export default function SiniestroPage() {
                                                     checked={form.trabajadorSexo === val}
                                                     onChange={onChange("trabajadorSexo")}
                                                 />
-                                                {label}
+                                                {val}
                                             </label>
                                         ))}
                                     </div>
-                                    {errors.trabajadorSexo && <div className={styles.errorText}>{errors.trabajadorSexo}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Teléfono</label>
                                     <input
@@ -464,76 +568,65 @@ export default function SiniestroPage() {
                                         value={form.trabajadorTelefono}
                                         onChange={onChange("trabajadorTelefono")}
                                         inputMode="numeric"
-                                        placeholder="Teléfono (opcional)"
+                                        placeholder="Teléfono"
                                     />
                                     {errors.trabajadorTelefono && <div className={styles.errorText}>{errors.trabajadorTelefono}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Calle</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorCalle && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorCalle}
                                         onChange={onChange("trabajadorCalle")}
-                                        placeholder="Calle (opcional)"
+                                        placeholder="Calle"
                                     />
-                                    {errors.trabajadorCalle && <div className={styles.errorText}>{errors.trabajadorCalle}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Número</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorNumero && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorNumero}
                                         onChange={onChange("trabajadorNumero")}
                                         inputMode="numeric"
-                                        placeholder="N° (opcional)"
+                                        placeholder="N°"
                                     />
-                                    {errors.trabajadorNumero && <div className={styles.errorText}>{errors.trabajadorNumero}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Piso</label>
-                                    <input 
-                                        className={styles.input} 
-                                        value={form.trabajadorPiso} 
-                                        onChange={onChange("trabajadorPiso")} 
-                                        placeholder="Piso (opcional)" 
+                                    <input
+                                        className={styles.input}
+                                        value={form.trabajadorPiso}
+                                        onChange={onChange("trabajadorPiso")}
+                                        placeholder="Piso"
                                     />
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Depto</label>
-                                    <input 
-                                        className={styles.input} 
-                                        value={form.trabajadorDepto} 
-                                        onChange={onChange("trabajadorDepto")} 
-                                        placeholder="Depto (opcional)" 
+                                    <input
+                                        className={styles.input}
+                                        value={form.trabajadorDepto}
+                                        onChange={onChange("trabajadorDepto")}
+                                        placeholder="Depto"
                                     />
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Localidad</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorLocalidad && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorLocalidad}
                                         onChange={onChange("trabajadorLocalidad")}
-                                        placeholder="Localidad (opcional)"
+                                        placeholder="Localidad"
                                     />
-                                    {errors.trabajadorLocalidad && <div className={styles.errorText}>{errors.trabajadorLocalidad}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>Provincia</label>
                                     <input
-                                        className={cx(styles.input, errors.trabajadorProvincia && styles.inputError)}
+                                        className={styles.input}
                                         value={form.trabajadorProvincia}
                                         onChange={onChange("trabajadorProvincia")}
-                                        placeholder="Provincia (opcional)"
+                                        placeholder="Provincia"
                                     />
-                                    {errors.trabajadorProvincia && <div className={styles.errorText}>{errors.trabajadorProvincia}</div>}
                                 </div>
-
                                 <div className={styles.field}>
                                     <label className={styles.label}>CP</label>
                                     <input
@@ -541,13 +634,12 @@ export default function SiniestroPage() {
                                         value={form.trabajadorCP}
                                         onChange={onChange("trabajadorCP")}
                                         inputMode="numeric"
-                                        placeholder="CP (opcional)"
+                                        placeholder="CP"
                                     />
                                 </div>
                             </div>
                         </Section>
 
-                        {/* Footer CTA + PDF debajo */}
                         <div className={styles.footer}>
                             <button type="submit" className={styles.primaryBtn} disabled={!canSubmit}>
                                 {saving ? "Guardando y generando..." : "Guardar y generar PDF"}
@@ -559,20 +651,16 @@ export default function SiniestroPage() {
                                         ✅ Guardado. ID: <b>{createdId}</b>
                                     </div>
                                 )}
-
                                 {pdfError && <div className={styles.toastDanger}>❌ {pdfError}</div>}
-
                                 {pdfUrl && (
                                     <div className={styles.toastSuccess}>
-                                        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                                            <div>
-                                                📄 PDF generado: <b style={{ wordBreak: "break-word" }}>{pdfFileName}</b>
-                                            </div>
+                                        <div className={styles.pdfActionsRow}>
+                                            <span>📄 PDF generado: <b>{pdfFileName}</b></span>
                                             <div className={styles.pdfActions}>
                                                 <button type="button" className={styles.secondaryBtn} onClick={openPdf}>
                                                     Abrir
                                                 </button>
-                                                <button type="button" className={styles.primaryBtn} style={{ height: 40, width: "auto" }} onClick={downloadPdf}>
+                                                <button type="button" className={styles.primaryBtn} onClick={downloadPdf}>
                                                     Descargar
                                                 </button>
                                             </div>
@@ -585,6 +673,5 @@ export default function SiniestroPage() {
                 </form>
             </div>
         </div>
-    </>
     );
 }

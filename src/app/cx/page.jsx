@@ -137,12 +137,12 @@ function safeUpper(v) {
 // ✅ Función para formatear número con separador de miles
 function formatNumberWithThousands(value) {
   if (!value) return '';
-  
+
   // Remover cualquier separador existente y caracteres no numéricos
   const numericValue = String(value).replace(/[^\d]/g, '');
-  
+
   if (!numericValue) return '';
-  
+
   // Formatear con separador de miles
   return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
@@ -156,7 +156,7 @@ function parseFormattedNumber(formattedValue) {
 // ✅ Función para generar nombre de archivo seguro
 function generateSafeFilename(baseName) {
   if (!baseName || baseName.trim() === '') return 'Paciente';
-  
+
   // Limpiar caracteres especiales y espacios
   return baseName
     .normalize('NFD') // Separar acentos
@@ -419,7 +419,7 @@ export default function Page() {
   // ✅ Función para obtener etiqueta amigable para los nuevos campos
   function getFriendlyLabel(canonName) {
     const n = normalizeName(canonName);
-    
+
     if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
       return 'Lugar de Nacimiento';
     }
@@ -429,14 +429,14 @@ export default function Page() {
     if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
       return 'N° Historia Clínica';
     }
-    
+
     return humanizeKey(canonName);
   }
 
   // ✅ Función para obtener placeholder amigable
   function getFriendlyPlaceholder(canonName) {
     const n = normalizeName(canonName);
-    
+
     if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
       return 'Ej: CHAJARÍ, ENTRE RIOS...';
     }
@@ -446,7 +446,7 @@ export default function Page() {
     if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
       return 'Ej: 12.345.678';
     }
-    
+
     return 'Completar...';
   }
 
@@ -479,10 +479,10 @@ export default function Page() {
         // ✅ Ordenar: primero los nuevos campos especiales, luego el resto alfabéticamente
         const isNewFieldA = isCanonNacimientoPaciente(a) || isCanonDomicilioPaciente(a) || isCanonHCPaciente(a);
         const isNewFieldB = isCanonNacimientoPaciente(b) || isCanonDomicilioPaciente(b) || isCanonHCPaciente(b);
-        
+
         if (isNewFieldA && !isNewFieldB) return -1;
         if (!isNewFieldA && isNewFieldB) return 1;
-        
+
         // Dentro de los nuevos campos, orden específico
         if (isNewFieldA && isNewFieldB) {
           const order = ['nacimiento-paciente', 'domicilio-paciente', 'hc-paciente'];
@@ -492,7 +492,7 @@ export default function Page() {
           const indexB = order.findIndex(o => normB.includes(o.replace('-', '')));
           if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         }
-        
+
         return a.localeCompare(b, 'es');
       });
   }, [
@@ -640,9 +640,9 @@ export default function Page() {
   function generateFilename(type) {
     const apellido = canonApellido ? (form?.[canonApellido] ?? '').toString().trim() : '';
     const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
-    
+
     let baseName = '';
-    
+
     if (apellido && nombre) {
       baseName = `${apellido} ${nombre}`;
     } else if (apellido) {
@@ -652,15 +652,15 @@ export default function Page() {
     } else {
       baseName = 'Paciente';
     }
-    
+
     // Limpiar el nombre para usarlo en nombre de archivo
     const safeName = generateSafeFilename(baseName);
-    
+
     // Agregar timestamp si el nombre está vacío
     if (!safeName || safeName.trim() === '') {
       return `Paciente-${type}-${Date.now()}`;
     }
-    
+
     return `${safeName}-${type}`;
   }
 
@@ -948,7 +948,7 @@ export default function Page() {
             </div>
           </div>
 
-  
+
 
 
           {orderedResto.length > 0 && (
