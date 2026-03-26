@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import styles from "./page.module.css";
 
 // Lista de médicos ordenada alfabéticamente
@@ -33,11 +32,6 @@ export default function CirugiasProgramadasPage() {
         labProfesional: "",
         labFecha: "",
     });
-
-    // Admin: carga masiva
-    const [archivoPreview, setArchivoPreview] = useState([]);
-    const [archivo, setArchivo] = useState(null);
-    const [mensaje, setMensaje] = useState("");
 
     const fetchCirugias = async () => {
         try {
@@ -284,199 +278,6 @@ export default function CirugiasProgramadasPage() {
         return diffDays >= 0 && diffDays <= 3;
     };
 
-    // === Estadísticas por médico (solo para Programadas) ===
-    const doctorStatsPendientes = () => {
-        const stats = {};
-        cirugiasPendientes().forEach((cx) => {
-            const dr = getDoctor(cx);
-            if (dr) {
-                stats[dr] = (stats[dr] || 0) + 1;
-            }
-        });
-        return Object.entries(stats)
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([nombre, cantidad]) => ({ nombre, cantidad }));
-    };
-
-    // === Exportar a Excel (toda la lista) ===
-    const exportarExcel = async (scope) => {
-        try {
-            setMensaje("📥 Generando Excel...");
-            const wb = XLSX.utils.book_new();
-
-            const filas = [
-                [
-                    "ID",
-                    "Paciente",
-                    "DNI",
-                    "Cirugía",
-                    "Médico",
-                    "Fecha estimada",
-                    "Realizada",
-                    "Fecha realización",
-                    "ECG Profesional",
-                    "Fecha ECG",
-                    "Lab Profesional",
-                    "Fecha Lab",
-                ],
-            ];
-
-            cirugias.forEach((cx) => {
-                filas.push([
-                    cx.id,
-                    `${cx.pacienteDatos?.apellido || ""} ${cx.pacienteDatos?.nombre || ""}`.trim(),
-                    cx.pacienteDatos?.dni || "",
-                    cx.formulario?.cx || "",
-                    getDoctor(cx),
-                    cx.fechaEstimada ? new Date(cx.fechaEstimada).toLocaleDateString() : "",
-                    cx.realizada ? "Sí" : "No",
-                    cx.fechaRealizacion ? new Date(cx.fechaRealizacion).toLocaleString() : "",
-                    cx.ecgProfesional || "",
-                    cx.ecgFecha ? new Date(cx.ecgFecha).toLocaleDateString() : "",
-                    cx.labProfesional || "",
-                    cx.labFecha ? new Date(cx.labFecha).toLocaleDateString() : "",
-                ]);
-            });
-
-            const ws = XLSX.utils.aoa_to_sheet(filas);
-            ws["!cols"] = [
-                { wch: 20 },
-                { wch: 30 },
-                { wch: 15 },
-                { wch: 30 },
-                { wch: 25 },
-                { wch: 15 },
-                { wch: 10 },
-                { wch: 20 },
-                { wch: 20 },
-                { wch: 15 },
-                { wch: 20 },
-                { wch: 15 },
-            ];
-            XLSX.utils.book_append_sheet(wb, ws, "Cirugías");
-            const fecha = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `cirugias_${fecha}.xlsx`);
-            setMensaje("✅ Excel exportado correctamente.");
-            setTimeout(() => setMensaje(""), 3000);
-        } catch (err) {
-            console.error(err);
-            setMensaje("❌ Error al exportar Excel.");
-            setTimeout(() => setMensaje(""), 3500);
-        }
-    };
-
-    // === Importar desde Excel ===
-    const handleExcelUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setArchivo(file);
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            const bstr = evt.target.result;
-            const wb = XLSX.read(bstr, { type: "binary" });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-
-            if (!data || data.length < 2) {
-                setMensaje("⚠️ El archivo no contiene datos.");
-                return;
-            }
-
-            const headers = data[0].map((h) => String(h).trim().toLowerCase());
-            const idxPaciente = headers.findIndex(
-                (h) => h.includes("paciente") || h === "nombre completo"
-            );
-            const idxDni = headers.findIndex((h) => h === "dni");
-            const idxCirugia = headers.findIndex((h) => h.includes("cirugía") || h === "cirugia");
-            const idxMedico = headers.findIndex((h) => h.includes("médico") || h === "medico");
-            const idxFecha = headers.findIndex((h) => h.includes("fecha estimada") || h === "fecha");
-            const idxEcgProf = headers.findIndex((h) => h.includes("ecg profesional") || h === "ecg");
-            const idxEcgFecha = headers.findIndex((h) => h.includes("fecha ecg"));
-            const idxLabProf = headers.findIndex((h) => h.includes("lab profesional") || h === "laboratorio");
-            const idxLabFecha = headers.findIndex((h) => h.includes("fecha lab"));
-
-            const rows = [];
-            for (let i = 1; i < data.length; i++) {
-                const row = data[i];
-                if (!row[idxPaciente] && !row[idxDni]) continue;
-
-                const nombreCompleto = row[idxPaciente] || "";
-                const partes = nombreCompleto.split(" ");
-                const apellido = partes.slice(0, -1).join(" ") || "";
-                const nombre = partes.slice(-1).join(" ") || "";
-
-                rows.push({
-                    pacienteDatos: {
-                        apellido,
-                        nombre,
-                        dni: row[idxDni] ? String(row[idxDni]) : "",
-                    },
-                    formulario: {
-                        cx: row[idxCirugia] || "",
-                    },
-                    doctor: row[idxMedico] || "",
-                    fechaEstimada: row[idxFecha]
-                        ? new Date(row[idxFecha]).toISOString().split("T")[0]
-                        : "",
-                    ecgProfesional: row[idxEcgProf] || "",
-                    ecgFecha: row[idxEcgFecha]
-                        ? new Date(row[idxEcgFecha]).toISOString().split("T")[0]
-                        : "",
-                    labProfesional: row[idxLabProf] || "",
-                    labFecha: row[idxLabFecha]
-                        ? new Date(row[idxLabFecha]).toISOString().split("T")[0]
-                        : "",
-                });
-            }
-
-            if (rows.length === 0) {
-                setMensaje("⚠️ No se encontraron datos válidos en el archivo.");
-                return;
-            }
-
-            setArchivoPreview(rows);
-            setMensaje(`✅ Se cargaron ${rows.length} registros para previsualizar.`);
-        };
-        reader.readAsBinaryString(file);
-    };
-
-    const confirmarCargaExcel = async () => {
-        if (!archivoPreview.length) {
-            setMensaje("⚠️ No hay datos para cargar.");
-            return;
-        }
-
-        try {
-            const updates = {};
-            for (const item of archivoPreview) {
-                const id = Date.now() + "_" + Math.random().toString(36).substr(2, 8);
-                updates[`cirugias/${id}`] = {
-                    ...item,
-                    realizada: false,
-                    fechaCreacion: new Date().toISOString(),
-                };
-            }
-
-            await fetch("https://datos-clini-default-rtdb.firebaseio.com/cirugias.json", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updates),
-            });
-
-            setArchivoPreview([]);
-            setArchivo(null);
-            setMensaje("✅ Datos cargados exitosamente.");
-            fetchCirugias();
-            setTimeout(() => setMensaje(""), 3000);
-        } catch (err) {
-            console.error(err);
-            setMensaje("❌ Error al cargar los datos.");
-            setTimeout(() => setMensaje(""), 3000);
-        }
-    };
-
     if (loading) {
         return (
             <main className={styles.page}>
@@ -496,15 +297,6 @@ export default function CirugiasProgramadasPage() {
                     <p className={styles.subtitle}>Programación, seguimiento e historial</p>
                 </div>
 
-                {mensaje && (
-                    <div
-                        className={`${styles.toast} ${mensaje.includes("✅") ? styles.toastSuccess : styles.toastInfo
-                            }`}
-                    >
-                        {mensaje}
-                    </div>
-                )}
-
                 {/* Tabs */}
                 <div className={styles.tabs}>
                     <button
@@ -519,48 +311,11 @@ export default function CirugiasProgramadasPage() {
                     >
                         📋 Historial
                     </button>
-                    <button
-                        className={`${styles.tab} ${tab === "admin" ? styles.active : ""}`}
-                        onClick={() => setTab("admin")}
-                    >
-                        ⚙️ Administración
-                    </button>
                 </div>
 
                 {/* ========== TAB PROGRAMADAS ========== */}
                 {tab === "programadas" && (
                     <>
-                        {/* Estadísticas rápidas por médico */}
-                        {doctorStatsPendientes().length > 0 && (
-                            <div className={styles.statsSection}>
-                                <h3 className={styles.statsTitle}>Pendientes por médico</h3>
-                                <div className={styles.statsGrid}>
-                                    {doctorStatsPendientes().map((stat) => (
-                                        <div key={stat.nombre} className={styles.statCard}>
-                                            <div className={styles.statName}>{stat.nombre}</div>
-                                            <div className={styles.statCounts}>
-                                                <span>Pendientes: {stat.cantidad}</span>
-                                            </div>
-                                            <button
-                                                className={styles.filterDoctorBtn}
-                                                onClick={() => setFilterDoctor(stat.nombre)}
-                                            >
-                                                Filtrar
-                                            </button>
-                                        </div>
-                                    ))}
-                                    {filterDoctor && (
-                                        <button
-                                            className={styles.clearDoctorFilterBtn}
-                                            onClick={() => setFilterDoctor("")}
-                                        >
-                                            Limpiar filtro médico
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
                         {/* Filtros */}
                         <div className={styles.filterContainer}>
                             <div className={styles.filterGroup}>
@@ -813,73 +568,6 @@ export default function CirugiasProgramadasPage() {
                             </div>
                         )}
                     </>
-                )}
-
-                {/* ========== TAB ADMINISTRACIÓN ========== */}
-                {tab === "admin" && (
-                    <div className={styles.adminSection}>
-                        <div className={styles.adminActions}>
-                            <button className={styles.btnPrimary} onClick={() => exportarExcel()}>
-                                📥 Exportar lista completa (Excel)
-                            </button>
-                            <div className={styles.importArea}>
-                                <input
-                                    id="excelCirugias"
-                                    type="file"
-                                    accept=".xlsx, .xls"
-                                    className={styles.fileInput}
-                                    onChange={handleExcelUpload}
-                                />
-                                <label htmlFor="excelCirugias" className={styles.fileInputLabel}>
-                                    📤 Seleccionar archivo Excel para importar
-                                </label>
-                                {archivo && <span className={styles.fileName}>{archivo.name}</span>}
-                            </div>
-                        </div>
-
-                        {archivoPreview.length > 0 && (
-                            <div className={styles.previewSection}>
-                                <h4>Previsualización ({archivoPreview.length} registros)</h4>
-                                <div className={styles.tableWrapper}>
-                                    <table className={styles.table}>
-                                        <thead>
-                                            <tr>
-                                                <th>Paciente</th>
-                                                <th>DNI</th>
-                                                <th>Cirugía</th>
-                                                <th>Médico</th>
-                                                <th>Fecha estimada</th>
-                                                <th>ECG Prof.</th>
-                                                <th>Fecha ECG</th>
-                                                <th>Lab Prof.</th>
-                                                <th>Fecha Lab</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {archivoPreview.map((item, idx) => (
-                                                <tr key={idx}>
-                                                    <td>
-                                                        {item.pacienteDatos?.apellido} {item.pacienteDatos?.nombre}
-                                                    </td>
-                                                    <td>{item.pacienteDatos?.dni}</td>
-                                                    <td>{item.formulario?.cx}</td>
-                                                    <td>{item.doctor}</td>
-                                                    <td>{item.fechaEstimada}</td>
-                                                    <td>{item.ecgProfesional}</td>
-                                                    <td>{item.ecgFecha}</td>
-                                                    <td>{item.labProfesional}</td>
-                                                    <td>{item.labFecha}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <button className={styles.btnSaveChanges} onClick={confirmarCargaExcel}>
-                                    ✅ Confirmar carga a Firebase
-                                </button>
-                            </div>
-                        )}
-                    </div>
                 )}
 
                 {/* Modal de edición (común) */}
