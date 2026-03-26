@@ -29,9 +29,9 @@ export default function Header() {
                     className={`${styles.navLink} ${pathname.startsWith('/Siniestro') ? styles.active : ''}`}
                 >
                     <FileText size={16} />
-                    Siniestros
+                    ART
                 </Link>
-
+                {/* 
                 <Link
                     href="/cx"
                     className={`${styles.navLink} ${pathname.startsWith('/cx') ? styles.active : ''}`}
@@ -39,7 +39,7 @@ export default function Header() {
                     <ClipboardList size={16} />
                     CX
                 </Link>
-
+ */}
                 {/*            <Link
                     href="/uti"
                     className={`${styles.navLink} ${pathname.startsWith('/uti') ? styles.active : ''}`}

@@ -1,4 +1,4 @@
-// page.jsx (dashboard)
+// app/admin/page.jsx (dashboard)
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,27 +18,65 @@ export default function AdminDashboard() {
     pacientes: 0,
     empleados: 0,
     facturas: 0,
-    // siniestros: 0,
+    medDesc: 0, // total monetario de medicamentos + descartables
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [pacientesRes, empleadosRes, facturasRes] = await Promise.all([
+        const [pacientesRes, empleadosRes, facturasRes, medDescRes] = await Promise.all([
           fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
           fetch("https://datos-clini-default-rtdb.firebaseio.com/empleados.json"),
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/facturas.json"),
+          fetch("https://datos-clini-default-rtdb.firebaseio.com/Facturacion.json"),
+          fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables.json"),
         ]);
 
         const pacientes = await pacientesRes.json();
         const empleados = await empleadosRes.json();
-        const facturas = await facturasRes.json();
+        const facturasData = await facturasRes.json();
+        const medDescData = await medDescRes.json();
+
+        // Contar pacientes y empleados
+        const pacientesCount = pacientes ? Object.keys(pacientes).length : 0;
+        const empleadosCount = empleados ? Object.keys(empleados).length : 0;
+
+        // Contar facturas cerradas (estado === "cerrado")
+        let facturadasCount = 0;
+        if (facturasData) {
+          const allItems = Object.values(facturasData);
+          const facturasArray = allItems.filter(
+            (item) => item && typeof item === "object" && item.estado !== undefined
+          );
+          facturadasCount = facturasArray.filter((f) => f.estado === "cerrado").length;
+          console.log("Facturas cerradas encontradas:", facturadasCount);
+        }
+
+        // Sumar total de medicamentos y descartables
+        let totalMedDesc = 0;
+        if (medDescData) {
+          // Se espera que medDescData tenga dos arrays: "medicamentos" y "descartables"
+          const medicamentos = medDescData.medicamentos || [];
+          const descartables = medDescData.descartables || [];
+
+          // Función auxiliar para sumar totales (cada ítem tiene un campo "total")
+          const sumarItems = (items) => {
+            if (!Array.isArray(items)) return 0;
+            return items.reduce((acc, item) => acc + (item.total || 0), 0);
+          };
+
+          const totalMed = sumarItems(medicamentos);
+          const totalDesc = sumarItems(descartables);
+          totalMedDesc = totalMed + totalDesc;
+
+          console.log("Total medicamentos + descartables:", totalMedDesc);
+        }
 
         setStats({
-          pacientes: pacientes ? Object.keys(pacientes).length : 0,
-          empleados: empleados ? Object.keys(empleados).length : 0,
-          facturas: facturas ? Object.keys(facturas).length : 0,
+          pacientes: pacientesCount,
+          empleados: empleadosCount,
+          facturas: facturadasCount,
+          medDesc: totalMedDesc,
         });
       } catch (error) {
         console.error("Error cargando estadísticas:", error);
@@ -46,7 +84,6 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     };
-
     fetchStats();
   }, []);
 
@@ -70,11 +107,11 @@ export default function AdminDashboard() {
       value: stats.facturas,
       icon: FileText,
       color: "#d97706",
-      href: "/admin/Facturacion",
+      href: "/admin/Facturacion/Facturados?estado=cerrado",
     },
     {
       title: "Med + Descartables",
-      value: "—",
+      value: stats.medDesc > 0 ? `$${stats.medDesc.toLocaleString()}` : "—",
       icon: Pill,
       color: "#7c3aed",
       href: "/admin/med-descartables",

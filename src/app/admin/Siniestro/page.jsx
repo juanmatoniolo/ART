@@ -56,6 +56,21 @@ const initialForm = {
     trabajadorEdad: "",   // calculada automáticamente
 };
 
+
+
+// Definir las opciones de ART ordenadas alfabéticamente
+const ART_OPTIONS = [
+    "Asociart",
+    "COMFYE",
+    "Federacion patronal AP",
+    "Federacion patronal ART",
+    "IAPS AP",
+    "IAPS ART",
+    "La segunda ART",
+    "La segunda personas",
+    "Medicar work",
+    "Victoria seguros"
+];
 function onlyDigits(s) {
     return (s ?? "").toString().replace(/\D/g, "");
 }
@@ -345,12 +360,16 @@ export default function SiniestroPage() {
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>ART</label>
-                                    <input
+                                    <select
                                         className={cx(styles.input, errors.ART && styles.inputError)}
                                         value={form.ART}
                                         onChange={onChange("ART")}
-                                        placeholder="Ej: Provincia ART, Galeno ART..."
-                                    />
+                                    >
+                                        <option value="">Seleccione una ART</option>
+                                        {ART_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
                                     {errors.ART && <div className={styles.errorText}>{errors.ART}</div>}
                                 </div>
                                 <div className={styles.field}>
