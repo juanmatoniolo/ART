@@ -1,11 +1,11 @@
-/* ── Base ──────────────────────────────────────────────────────────────────── */
+/* ==================== BASE ==================== */
 .page {
     min-height: 100vh;
     background: #0b1220;
     color: #e5e7eb;
 }
 
-/* ── Layout principal: formulario + sidebar ─────────────────────────────────── */
+/* ==================== LAYOUT PRINCIPAL ==================== */
 .layout {
     max-width: 1400px;
     margin: 0 auto;
@@ -23,7 +23,7 @@
     }
 }
 
-/* ── Columna del formulario ────────────────────────────────────────────────── */
+/* ==================== COLUMNA DEL FORMULARIO ==================== */
 .formColumn {
     display: flex;
     flex-direction: column;
@@ -31,7 +31,7 @@
     min-width: 0;
 }
 
-/* ── Secciones ─────────────────────────────────────────────────────────────── */
+/* ==================== SECCIONES ==================== */
 .section {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.07);
@@ -76,7 +76,7 @@
     gap: 16px;
 }
 
-/* ── Columnas del grid de sección ──────────────────────────────────────────── */
+/* ==================== GRIDS DE COLUMNAS ==================== */
 .cols2 {
     grid-template-columns: repeat(2, 1fr);
 }
@@ -106,7 +106,7 @@
     }
 }
 
-/* ── Clases de span ───────────────────────────────────────────────────────── */
+/* ==================== SPANS ==================== */
 .fieldWide {
     grid-column: 1 / -1;
 }
@@ -121,7 +121,7 @@
     }
 }
 
-/* ── Campo individual ─────────────────────────────────────────────────────── */
+/* ==================== CAMPOS ==================== */
 .field {
     display: flex;
     flex-direction: column;
@@ -151,7 +151,7 @@
     letter-spacing: 0.4px;
 }
 
-/* ── Input ───────────────────────────────────────────────────────────────── */
+/* ==================== INPUTS ==================== */
 .input {
     width: 100%;
     background: #1a2335;
@@ -188,7 +188,7 @@
     letter-spacing: 0.3px;
 }
 
-/* ── Hint debajo del campo ─────────────────────────────────────────────────── */
+/* ==================== HINTS ==================== */
 .hint {
     font-size: 11px;
     color: #475569;
@@ -209,7 +209,7 @@
     font-size: 10px;
 }
 
-/* ── Sexo chips ──────────────────────────────────────────────────────────── */
+/* ==================== SEXO CHIPS ==================== */
 .sexRowInline {
     display: flex;
     gap: 8px;
@@ -241,7 +241,7 @@
     font-weight: 700;
 }
 
-/* ── Checkbox ────────────────────────────────────────────────────────────── */
+/* ==================== CHECKBOX ==================== */
 .checkboxRow {
     display: flex;
     align-items: center;
@@ -267,7 +267,7 @@
     accent-color: #6fa17b;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+/* ==================== SIDEBAR ==================== */
 .sidebar {
     position: sticky;
     top: 24px;
@@ -290,7 +290,7 @@
     gap: 14px;
 }
 
-/* ── Vista previa del paciente ───────────────────────────────────────────── */
+/* ==================== VISTA PREVIA PACIENTE ==================== */
 .patientPreview {
     display: flex;
     align-items: center;
@@ -340,7 +340,7 @@
     color: #64748b;
 }
 
-/* ── CX preview ──────────────────────────────────────────────────────────── */
+/* ==================== PREVIEW CIRUGÍA ==================== */
 .cxPreview {
     display: flex;
     align-items: flex-start;
@@ -370,13 +370,13 @@
     line-height: 1.4;
 }
 
-/* ── Divider del sidebar ─────────────────────────────────────────────────── */
+/* ==================== DIVISOR ==================== */
 .sidebarDivider {
     height: 1px;
     background: rgba(255, 255, 255, 0.07);
 }
 
-/* ── Botones de descarga ─────────────────────────────────────────────────── */
+/* ==================== BOTONES DESCARGA ==================== */
 .downloadTitle {
     font-size: 11px;
     font-weight: 700;
@@ -439,7 +439,7 @@
     max-width: 200px;
 }
 
-/* ── Nota del sidebar ───────────────────────────────────────────────────── */
+/* ==================== NOTA SIDEBAR ==================== */
 .sidebarNote {
     font-size: 12px;
     color: #4b5568;
@@ -449,7 +449,7 @@
     margin: 0;
 }
 
-/* ── Banner de error ────────────────────────────────────────────────────── */
+/* ==================== BANNER ERROR ==================== */
 .bannerError {
     border: 1px solid rgba(239, 68, 68, 0.35);
     background: rgba(127, 29, 29, 0.35);
@@ -467,7 +467,7 @@
     margin-top: 6px;
 }
 
-/* ── Loading ────────────────────────────────────────────────────────────── */
+/* ==================== LOADING ==================== */
 .loadingState {
     display: flex;
     flex-direction: column;
@@ -492,4 +492,159 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* ==================== SELECTOR DE MODO ==================== */
+.modeSelector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.modeBtn {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    background: #1a2335;
+    color: #cbd5e1;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.modeBtn.active {
+    background: #44794d;
+    color: white;
+    border-color: #6fa17b;
+}
+
+.modeBtn:hover:not(.active) {
+    border-color: #6fa17b;
+    background: #1e2d40;
+}
+
+/* ==================== SECCIÓN PACIENTE EXISTENTE ==================== */
+.pacienteSection {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.pacienteSection h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin: 0 0 0.75rem 0;
+}
+
+.pacienteSelector {
+    margin-top: 0.5rem;
+}
+
+.pacienteList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #253348;
+    border-radius: 10px;
+    margin-top: 0.75rem;
+    background: #0b1220;
+}
+
+.pacienteItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #253348;
+    color: #e2e8f0;
+    transition: background 0.1s;
+}
+
+.pacienteItem:last-child {
+    border-bottom: none;
+}
+
+.pacienteItem:hover {
+    background: #1a2335;
+}
+
+.pacienteItem.selected {
+    background: rgba(111, 161, 123, 0.15);
+    border-left: 3px solid #6fa17b;
+}
+
+.pacienteDni {
+    color: #6b7280;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.selectedPacienteInfo {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(111, 161, 123, 0.1);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #a3d9ad;
+    border: 1px solid rgba(111, 161, 123, 0.3);
+}
+
+/* ==================== FECHA ESTIMATIVA Y ACCIONES ==================== */
+.fechaSection {
+    margin: 1.5rem 0 1rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
+}
+
+.primaryBtn {
+    background: #44794d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.primaryBtn:hover {
+    background: #5b9a63;
+}
+
+.primaryBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== CABECERA CON BOTÓN PROGRAMADAS ==================== */
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.programadasBtn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.programadasBtn:hover {
+    background: #1d4ed8;
 }

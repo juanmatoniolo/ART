@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import { PDFDocument } from 'pdf-lib';
 import Header from '@/components/Header/Header';
 
+// ==================== CONSTANTES Y FUNCIONES AUXILIARES ====================
 const MAPPING_URL = '/mappings/cd-campos_fields_rects.json';
 const TEMPLATE_FRENTE_URL = '/templates/FRENTE-CX.pdf';
 const TEMPLATE_DORSO_URL = '/templates/DORSO-CX.pdf';
@@ -30,24 +32,110 @@ function humanizeKey(k) {
 
 function isLikelyCheckbox(fieldType) { return fieldType === '/Btn'; }
 
-const isCanonDia = (c) => normalizeName(c) === 'dia';
-const isCanonMes = (c) => normalizeName(c) === 'mes';
-const isCanonAnio = (c) => { const n = normalizeName(c); return n === 'anio' || n === 'año' || n === 'ano'; };
-const isCanonCX = (c) => normalizeName(c) === 'cx';
-const isCanonApellido = (c) => normalizeName(c) === 'apellido-paciente' || normalizeName(c) === 'apellido';
-const isCanonNombre = (c) => normalizeName(c) === 'nombre-paciente' || normalizeName(c) === 'nombre';
-const isCanonNombresPaciente = (c) => normalizeName(c) === 'nombres-paciente';
-const isCanonServicio = (c) => normalizeName(c) === 'servicio';
-const isCanonEdad = (c) => normalizeName(c) === 'edad';
-const isCanonEdadPaciente = (c) => normalizeName(c) === 'edad-paciente';
-const isCanonEdadPacienteUI = (c) => { const n = normalizeName(c); return n === 'edad-paciente' || n.includes('edad-paciente') || n.includes('edad_paciente'); };
-const isCanonART = (c) => { const n = normalizeName(c); return n === 'art' || n.includes('art-') || n.includes('-art'); };
-const isCanonDoctor = (c) => { const n = normalizeName(c); return n === 'nombre-dr' || n.includes('nombre-dr') || n.includes('doctor') || n.includes('dr') || n.includes('medico') || n.includes('cirujano'); };
-const isCanonLocalidad = (c) => normalizeName(c) === 'localidad';
-const isCanonProvincia = (c) => normalizeName(c) === 'provincia';
-const isCanonNacimientoPaciente = (c) => { const n = normalizeName(c); return n === 'nacimiento-paciente' || n === 'nacmiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento'); };
-const isCanonDomicilioPaciente = (c) => { const n = normalizeName(c); return n === 'domicilio-paciente' || n.includes('domicilio'); };
-const isCanonHCPaciente = (c) => { const n = normalizeName(c); return n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica'); };
+const isCanonDia = (c) => {
+  const n = normalizeName(c);
+  return n === 'dia' || n === 'día';
+};
+
+const isCanonMes = (c) => {
+  const n = normalizeName(c);
+  return n === 'mes';
+};
+
+const isCanonAnio = (c) => {
+  const n = normalizeName(c);
+  return n === 'anio' || n === 'año' || n === 'ano';
+};
+
+const isCanonCX = (c) => {
+  const n = normalizeName(c);
+  return n === 'cx';
+};
+
+const isCanonApellido = (c) => {
+  const n = normalizeName(c);
+  return n === 'apellido-paciente' || n === 'apellido';
+};
+
+const isCanonNombre = (c) => {
+  const n = normalizeName(c);
+  return n === 'nombre-paciente' || n === 'nombre';
+};
+
+const isCanonNombresPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'nombres-paciente';
+};
+
+const isCanonServicio = (c) => {
+  const n = normalizeName(c);
+  return n === 'servicio';
+};
+
+const isCanonEdad = (c) => {
+  const n = normalizeName(c);
+  return n === 'edad';
+};
+
+const isCanonEdadPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'edad-paciente';
+};
+
+const isCanonEdadPacienteUI = (c) => {
+  const n = normalizeName(c);
+  return n === 'edad-paciente' || n.includes('edad-paciente') || n.includes('edad_paciente');
+};
+
+const isCanonART = (c) => {
+  const n = normalizeName(c);
+  return n === 'art' || n.includes('art-') || n.includes('-art');
+};
+
+const isCanonDoctor = (c) => {
+  const n = normalizeName(c);
+  return n === 'nombre-dr' || n.includes('nombre-dr') || n.includes('doctor') || n.includes('dr') || n.includes('medico') || n.includes('cirujano');
+};
+
+const isCanonLocalidad = (c) => {
+  const n = normalizeName(c);
+  return n === 'localidad' || n === 'localidad-paciente';
+};
+
+const isCanonProvincia = (c) => {
+  const n = normalizeName(c);
+  return n === 'provincia' || n === 'provincia-paciente';
+};
+
+const isCanonNacimientoPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'nacimiento-paciente' || n === 'nacmiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento');
+};
+
+const isCanonDomicilioPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'domicilio-paciente' || n.includes('domicilio');
+};
+
+const isCanonHCPaciente = (c) => {
+  const n = normalizeName(c);
+  return n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica');
+};
+
+const isCanonDNI = (c) => {
+  const n = normalizeName(c);
+  return n === 'dni-paciente' || n === 'dni';
+};
+
+const isCanonSexo = (c) => {
+  const n = normalizeName(c);
+  return n === 'sexo' || n === 'sexo-paciente';
+};
+
+const isCanonTelefono = (c) => {
+  const n = normalizeName(c);
+  return n === 'telefono-paciente' || n.includes('telefono') || n.includes('teléfono');
+};
 
 function computeAgeYears(d, m, y) {
   const dd = Number(d), mm = Number(m), yy = Number(y);
@@ -90,7 +178,7 @@ function addSuggestion(sug, canonName, valueRaw) {
   return { ...sug, [canonName]: [val, ...without].slice(0, SUGGESTIONS_MAX) };
 }
 
-// ── Sub-componente: input con datalist ──────────────────────────────────────
+// ==================== COMPONENTES INTERNOS ====================
 function AutoInput({ canonName, value, onChange, onBlur, suggestions, placeholder, autoComplete, disabled, inputMode }) {
   return (
     <>
@@ -113,13 +201,81 @@ function AutoInput({ canonName, value, onChange, onBlur, suggestions, placeholde
   );
 }
 
+// Componente selector de pacientes
+function PacienteSelector({ onSelect, selectedPacienteId }) {
+  const [pacientes, setPacientes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const fetchPacientes = async () => {
+      try {
+        const res = await fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json");
+        const data = await res.json();
+        if (data) {
+          const list = Object.entries(data).map(([id, value]) => ({
+            id,
+            ...value,
+            nombreCompleto: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+            dni: value.trabajador?.dni || "",
+          }));
+          setPacientes(list);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPacientes();
+  }, []);
+
+  const filtered = pacientes.filter(p =>
+    p.nombreCompleto.toLowerCase().includes(search.toLowerCase()) ||
+    p.dni.includes(search)
+  );
+
+  if (loading) return <div className={styles.loadingSpinner}>Cargando pacientes...</div>;
+
+  return (
+    <div className={styles.pacienteSelector}>
+      <input
+        type="text"
+        placeholder="Buscar por nombre o DNI..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className={styles.input}
+      />
+      <div className={styles.pacienteList}>
+        {filtered.map(p => (
+          <div
+            key={p.id}
+            className={`${styles.pacienteItem} ${selectedPacienteId === p.id ? styles.selected : ''}`}
+            onClick={() => onSelect(p)}
+          >
+            <strong>{p.nombreCompleto}</strong> <span className={styles.pacienteDni}>(DNI: {p.dni || "—"})</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ==================== PÁGINA PRINCIPAL ====================
 export default function Page() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [mapping, setMapping] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState({});
   const [suggestions, setSuggestions] = useState({});
+  const [mode, setMode] = useState('manual'); // 'manual' o 'paciente'
+  const [selectedPaciente, setSelectedPaciente] = useState(null);
+  const [fechaEstimada, setFechaEstimada] = useState('');
+  const [saving, setSaving] = useState(false);
 
+  // Cargar mapping
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -139,6 +295,7 @@ export default function Page() {
     return () => { alive = false; };
   }, []);
 
+  // Construir canonical
   const canonical = useMemo(() => {
     if (!mapping) return null;
     const canonicalToInternal = {};
@@ -177,7 +334,12 @@ export default function Page() {
   const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
   const canonMes = useMemo(() => canonKeys.find(isCanonMes), [canonKeys]);
   const canonAnio = useMemo(() => canonKeys.find(isCanonAnio), [canonKeys]);
+  const canonDNI = useMemo(() => canonKeys.find(isCanonDNI), [canonKeys]);
+  const canonSexo = useMemo(() => canonKeys.find(isCanonSexo), [canonKeys]);
+  const canonTelefono = useMemo(() => canonKeys.find(isCanonTelefono), [canonKeys]);
 
+
+  // Inicializar formulario
   useEffect(() => {
     if (!canonical || !mapping) return;
     const initial = {};
@@ -188,6 +350,10 @@ export default function Page() {
     setForm(initial);
   }, [canonical, mapping]);
 
+  // Cargar sugerencias iniciales
+  // ... (todo el código anterior hasta el useEffect de sugerencias)
+
+  // Cargar sugerencias iniciales (sin médicos)
   useEffect(() => {
     if (!canonical) return;
     let seeded = loadSuggestions();
@@ -198,6 +364,7 @@ export default function Page() {
       seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CONCORDIA, ENTRE RIOS');
       seeded = addSuggestion(seeded, canonNacimientoPaciente, 'PARANÁ, ENTRE RIOS');
     }
+
     setSuggestions(seeded);
     saveSuggestions(seeded);
     setForm((prev) => {
@@ -206,8 +373,101 @@ export default function Page() {
       if (canonProvincia && !(out?.[canonProvincia] ?? '').toString().trim()) { out[canonProvincia] = 'ENTRE RIOS'; changed = true; }
       return changed ? out : prev;
     });
-  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]);
+  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]); // ← 4 dependencias fijas
 
+  // Cargar sugerencias de médicos (independiente)
+  useEffect(() => {
+    if (!canonDoctor) return;
+    let seeded = loadSuggestions();
+    const doctoresLista = [
+      "BRARDA AGUSTIN",
+      "CANAGLIA GUSTAVO",
+      "CIANCIOSI SEBASTIAN",
+      "DEL PUERTO RODRIGO",
+      "GIMENEZ MARTIN",
+      "PERTUS DIEGO"
+    ];
+    doctoresLista.forEach(dr => {
+      seeded = addSuggestion(seeded, canonDoctor, dr);
+    });
+    setSuggestions(seeded);
+    saveSuggestions(seeded);
+  }, [canonDoctor]); // ← dependencia fija de 1 elemento
+
+  // Precargar datos del paciente seleccionado
+  useEffect(() => {
+    if (mode === 'paciente' && selectedPaciente) {
+      console.log('Paciente seleccionado:', selectedPaciente);
+      const t = selectedPaciente.trabajador || {};
+      const art = selectedPaciente.ART || {};
+      const newForm = { ...form };
+
+      console.log('Datos del trabajador:', t);
+      console.log('ART:', art);
+
+      // Asignar valores
+      if (canonApellido) {
+        console.log(`Asignando canonApellido (${canonApellido}) = ${t.apellido}`);
+        newForm[canonApellido] = t.apellido || '';
+      }
+      if (canonNombre) {
+        console.log(`Asignando canonNombre (${canonNombre}) = ${t.nombre}`);
+        newForm[canonNombre] = t.nombre || '';
+      }
+      if (canonDNI) {
+        console.log(`Asignando canonDNI (${canonDNI}) = ${t.dni}`);
+        newForm[canonDNI] = t.dni || '';
+      }
+      if (canonEdad) {
+        const edad = t.edad ? `${t.edad} años` : '';
+        console.log(`Asignando canonEdad (${canonEdad}) = ${edad}`);
+        newForm[canonEdad] = edad;
+      }
+      if (canonEdadPaciente) {
+        const edad = t.edad ? `${t.edad} años` : '';
+        console.log(`Asignando canonEdadPaciente (${canonEdadPaciente}) = ${edad}`);
+        newForm[canonEdadPaciente] = edad;
+      }
+
+      // 🔹 Asignación del sexo (independiente de canonSexo)
+      if (t.sexo) {
+        console.log(`Asignando sexo = ${t.sexo}`);
+        newForm.sexo = t.sexo;
+      }
+
+      if (canonTelefono && t.telefono) {
+        console.log(`Asignando canonTelefono (${canonTelefono}) = ${t.telefono}`);
+        newForm[canonTelefono] = t.telefono;
+      }
+      if (canonDia && t.nacimiento) {
+        const [y, m, d] = t.nacimiento.split('-');
+        console.log(`Asignando canonDia (${canonDia}) = ${d}, canonMes = ${m}, canonAnio = ${y}`);
+        newForm[canonDia] = d || '';
+        newForm[canonMes] = m || '';
+        newForm[canonAnio] = y || '';
+      }
+      if (canonLocalidad && t.localidad) {
+        console.log(`Asignando canonLocalidad (${canonLocalidad}) = ${t.localidad}`);
+        newForm[canonLocalidad] = t.localidad;
+      }
+      if (canonProvincia && t.provincia) {
+        console.log(`Asignando canonProvincia (${canonProvincia}) = ${t.provincia}`);
+        newForm[canonProvincia] = t.provincia;
+      }
+      if (canonDomicilioPaciente) {
+        const calleNumero = `${t.calle || ''} ${t.numero || ''}`.trim();
+        console.log(`Asignando canonDomicilioPaciente (${canonDomicilioPaciente}) = ${calleNumero}`);
+        newForm[canonDomicilioPaciente] = calleNumero;
+      }
+      if (canonART && art.nombre) {
+        console.log(`Asignando canonART (${canonART}) = ${art.nombre}`);
+        newForm[canonART] = art.nombre;
+      }
+
+      console.log('Nuevo form antes de setForm:', newForm);
+      setForm(newForm);
+    }
+  }, [selectedPaciente, mode, canonical]);
   function setValue(name, value) { setForm((prev) => ({ ...prev, [name]: value })); }
 
   function commitSuggestion(canonName, value) {
@@ -244,10 +504,11 @@ export default function Page() {
       canonART, canonCX, canonDoctor, canonApellido, canonNombre,
       canonDia, canonMes, canonAnio,
       canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente, canonHCPaciente,
+      canonTelefono,
     ].filter(Boolean));
     for (const k of all) { if (isCanonEdadPacienteUI(k)) knownSet.add(k); }
     return all.filter((k) => !knownSet.has(k)).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [canonical, canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente, canonHCPaciente]);
+  }, [canonical, canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente, canonHCPaciente, canonTelefono]);
 
   function getCanonFieldType(canonName) {
     const internals = canonical?.canonicalToInternal?.[canonName] || [];
@@ -350,7 +611,56 @@ export default function Page() {
     }
   }
 
-  // ── Render: loading / error ────────────────────────────────────────────────
+  async function guardarCX() {
+    if (!fechaEstimada) {
+      alert("Por favor ingrese una fecha estimativa para la cirugía");
+      return;
+    }
+    const apellido = canonApellido ? form[canonApellido] : '';
+    const nombre = canonNombre ? form[canonNombre] : '';
+    if (!apellido || !nombre) {
+      alert("Por favor complete al menos apellido y nombre del paciente");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const data = {
+        pacienteId: mode === 'paciente' ? selectedPaciente?.id : null,
+        pacienteDatos: {
+          apellido,
+          nombre,
+          dni: form[canonDNI] || '',
+          fechaNacimiento: form[canonAnio] && form[canonMes] && form[canonDia] ? `${form[canonAnio]}-${form[canonMes]}-${form[canonDia]}` : '',
+          edad: edadCalculada,
+          sexo: form.sexo,
+          localidad: form[canonLocalidad] || '',
+          provincia: form[canonProvincia] || '',
+          domicilio: form[canonDomicilioPaciente] || '',
+          telefono: form[canonTelefono] || '',
+        },
+        fechaEstimada,
+        formulario: form,
+        realizada: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const res = await fetch("https://datos-clini-default-rtdb.firebaseio.com/cirugias.json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      alert("Cirugía guardada correctamente. Ahora aparece en 'Programadas'.");
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar la cirugía");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className={styles.page}>
@@ -380,16 +690,44 @@ export default function Page() {
   const hasSexo = form?.sexo !== undefined;
   const hasLocation = canonDomicilioPaciente || canonNacimientoPaciente || canonLocalidad || canonProvincia;
 
-  // ── Render principal ───────────────────────────────────────────────────────
   return (
     <main className={styles.page}>
       <div className={styles.layout}>
-
-        {/* ══ FORMULARIO ══════════════════════════════════════════════════════ */}
+        {/* COLUMNA FORMULARIO */}
         <div className={styles.formColumn}>
-
           {error && <div className={styles.bannerError}>{error}</div>}
 
+          {/* Selector de modo + botón a programadas */}
+          <div className={styles.headerRow}>
+            <div className={styles.modeSelector}>
+              <button className={`${styles.modeBtn} ${mode === 'manual' ? styles.active : ''}`} onClick={() => setMode('manual')}>
+                Cargar manualmente
+              </button>
+              <button className={`${styles.modeBtn} ${mode === 'paciente' ? styles.active : ''}`} onClick={() => setMode('paciente')}>
+                Desde paciente existente
+              </button>
+            </div>
+            <button
+              className={styles.programadasBtn}
+              onClick={() => router.push('/admin/cx/programada')}
+            >
+              📋 Ver Cirugías Programadas
+            </button>
+          </div>
+
+          {mode === 'paciente' && (
+            <div className={styles.pacienteSection}>
+              <h3>Seleccionar paciente</h3>
+              <PacienteSelector onSelect={setSelectedPaciente} selectedPacienteId={selectedPaciente?.id} />
+              {selectedPaciente && (
+                <div className={styles.selectedPacienteInfo}>
+                  <strong>Paciente seleccionado:</strong> {selectedPaciente.nombreCompleto} (DNI: {selectedPaciente.dni || "—"})
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========== FORMULARIO ========== */}
           {/* SECCIÓN 1 — Cirugía */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
@@ -397,7 +735,6 @@ export default function Page() {
               <h2 className={styles.sectionTitle}>Datos de la Cirugía</h2>
             </div>
             <div className={`${styles.sectionBody} ${styles.cols3}`}>
-
               {canonCX && (
                 <div className={`${styles.field} ${styles.fieldSpan2}`}>
                   <label className={styles.fieldLabel}>Cirugía a realizar</label>
@@ -407,7 +744,6 @@ export default function Page() {
                     suggestions={suggestions} placeholder="Describir la cirugía…" />
                 </div>
               )}
-
               {canonDoctor && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>Médico cirujano</label>
@@ -417,7 +753,6 @@ export default function Page() {
                     suggestions={suggestions} placeholder="Nombre del profesional…" />
                 </div>
               )}
-
               {canonART && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>ART / Obra Social</label>
@@ -427,7 +762,6 @@ export default function Page() {
                     suggestions={suggestions} placeholder="ART u obra social…" />
                 </div>
               )}
-
             </div>
           </section>
 
@@ -438,7 +772,6 @@ export default function Page() {
               <h2 className={styles.sectionTitle}>Identificación del Paciente</h2>
             </div>
             <div className={`${styles.sectionBody} ${styles.cols4}`}>
-
               {canonApellido && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>Apellido</label>
@@ -448,7 +781,6 @@ export default function Page() {
                     suggestions={suggestions} placeholder="Apellido…" autoComplete="family-name" />
                 </div>
               )}
-
               {canonNombre && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>Nombre</label>
@@ -458,7 +790,6 @@ export default function Page() {
                     suggestions={suggestions} placeholder="Nombre…" autoComplete="given-name" />
                 </div>
               )}
-
               {canonHCPaciente && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>N° Historia Clínica</label>
@@ -469,7 +800,6 @@ export default function Page() {
                     placeholder="Ej: 12.345.678" />
                 </div>
               )}
-
               {hasSexo && (
                 <div className={styles.field}>
                   <label className={styles.fieldLabel}>Sexo</label>
@@ -487,7 +817,6 @@ export default function Page() {
                   </div>
                 </div>
               )}
-
             </div>
           </section>
 
@@ -499,7 +828,6 @@ export default function Page() {
               <span className={styles.sectionHint}>La edad se calcula automáticamente</span>
             </div>
             <div className={`${styles.sectionBody} ${styles.cols4}`}>
-
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>Día</label>
                 <input className={styles.input} autoComplete="off" inputMode="numeric"
@@ -507,7 +835,6 @@ export default function Page() {
                   onChange={(e) => canonDia && setValue(canonDia, e.target.value)}
                   placeholder="DD" disabled={!canonDia} />
               </div>
-
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>Mes</label>
                 <input className={styles.input} autoComplete="off" inputMode="numeric"
@@ -515,7 +842,6 @@ export default function Page() {
                   onChange={(e) => canonMes && setValue(canonMes, e.target.value)}
                   placeholder="MM" disabled={!canonMes} />
               </div>
-
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>Año</label>
                 <input className={styles.input} autoComplete="off" inputMode="numeric"
@@ -523,7 +849,6 @@ export default function Page() {
                   onChange={(e) => canonAnio && setValue(canonAnio, e.target.value)}
                   placeholder="AAAA" disabled={!canonAnio} />
               </div>
-
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>
                   Edad <span className={styles.badge}>auto</span>
@@ -532,7 +857,6 @@ export default function Page() {
                   value={edadCalculada ? `${edadCalculada} años` : '—'}
                   readOnly disabled />
               </div>
-
             </div>
           </section>
 
@@ -544,7 +868,6 @@ export default function Page() {
                 <h2 className={styles.sectionTitle}>Domicilio y Procedencia</h2>
               </div>
               <div className={`${styles.sectionBody} ${styles.cols3}`}>
-
                 {canonDomicilioPaciente && (
                   <div className={`${styles.field} ${styles.fieldSpan2}`}>
                     <label className={styles.fieldLabel}>Domicilio</label>
@@ -554,7 +877,6 @@ export default function Page() {
                       suggestions={suggestions} placeholder="Dirección completa…" autoComplete="street-address" />
                   </div>
                 )}
-
                 {canonLocalidad && (
                   <div className={styles.field}>
                     <label className={styles.fieldLabel}>Localidad</label>
@@ -564,7 +886,6 @@ export default function Page() {
                       suggestions={suggestions} placeholder="Localidad…" autoComplete="address-level2" />
                   </div>
                 )}
-
                 {canonProvincia && (
                   <div className={styles.field}>
                     <label className={styles.fieldLabel}>Provincia</label>
@@ -574,7 +895,6 @@ export default function Page() {
                       suggestions={suggestions} placeholder="Provincia…" autoComplete="address-level1" />
                   </div>
                 )}
-
                 {canonNacimientoPaciente && (
                   <div className={styles.field}>
                     <label className={styles.fieldLabel}>Lugar de Nacimiento</label>
@@ -584,7 +904,6 @@ export default function Page() {
                       suggestions={suggestions} placeholder="Ciudad, Provincia…" />
                   </div>
                 )}
-
               </div>
             </section>
           )}
@@ -626,14 +945,21 @@ export default function Page() {
             </section>
           )}
 
+          {/* Campo de fecha estimativa y botón guardar */}
+          <div className={styles.fechaSection}>
+            <label className={styles.fieldLabel}>Fecha estimativa de Cirugía</label>
+            <input type="date" value={fechaEstimada} onChange={(e) => setFechaEstimada(e.target.value)} className={styles.input} />
+          </div>
+          <div className={styles.actions}>
+            <button className={styles.primaryBtn} onClick={guardarCX} disabled={saving}>
+              {saving ? 'Guardando...' : 'Guardar Cirugía'}
+            </button>
+          </div>
         </div>
-        {/* ══ FIN FORMULARIO ═════════════════════════════════════════════════ */}
 
-        {/* ══ SIDEBAR ═════════════════════════════════════════════════════════ */}
+        {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarCard}>
-
-            {/* Vista previa del paciente */}
             <div className={styles.patientPreview}>
               <div className={styles.patientAvatar}>
                 {form.sexo === 'F' ? '👩' : form.sexo === 'M' ? '👨' : '🧑'}
@@ -651,18 +977,14 @@ export default function Page() {
                 )}
               </div>
             </div>
-
             {canonCX && form?.[canonCX] && (
               <div className={styles.cxPreview}>
                 <span className={styles.cxLabel}>CX</span>
                 <span className={styles.cxValue}>{form[canonCX]}</span>
               </div>
             )}
-
             <div className={styles.sidebarDivider} />
-
             <p className={styles.downloadTitle}>Descargar PDF</p>
-
             <button className={styles.downloadBtn} type="button"
               onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'Frente')}>
               <span className={styles.downloadIcon}>↓</span>
@@ -671,7 +993,6 @@ export default function Page() {
                 <small>{generateFilename('Frente')}.pdf</small>
               </span>
             </button>
-
             <button className={styles.downloadBtn} type="button"
               onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'Dorso')}>
               <span className={styles.downloadIcon}>↓</span>
@@ -680,15 +1001,11 @@ export default function Page() {
                 <small>{generateFilename('Dorso')}.pdf</small>
               </span>
             </button>
-
             <p className={styles.sidebarNote}>
               Los PDFs se generan con los datos del formulario y se descargan listos para imprimir.
             </p>
-
           </div>
         </aside>
-        {/* ══ FIN SIDEBAR ════════════════════════════════════════════════════ */}
-
       </div>
     </main>
   );

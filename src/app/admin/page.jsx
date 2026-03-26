@@ -18,30 +18,41 @@ export default function AdminDashboard() {
     pacientes: 0,
     empleados: 0,
     facturas: 0,
-    medDesc: 0, // total monetario de medicamentos + descartables
+    medDesc: 0,
+    cxPendientes: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [pacientesRes, empleadosRes, facturasRes, medDescRes] = await Promise.all([
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/empleados.json"),
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/Facturacion.json"),
-          fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables.json"),
-        ]);
+        // Ajusta la URL según el nodo donde se guardan las cirugías.
+        // Por ejemplo, si es "cx.json" o "cirugias.json"
+        const CIRUGIAS_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias.json";
+
+        const [pacientesRes, empleadosRes, facturasRes, medDescRes, cirugiasRes] =
+          await Promise.all([
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/empleados.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/Facturacion.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables.json"),
+            fetch(CIRUGIAS_URL),
+          ]);
 
         const pacientes = await pacientesRes.json();
         const empleados = await empleadosRes.json();
         const facturasData = await facturasRes.json();
         const medDescData = await medDescRes.json();
+        const cirugiasData = await cirugiasRes.json();
+
+        // Depuración: ver estructura
+        console.log("Datos de cirugías (crudos):", cirugiasData);
 
         // Contar pacientes y empleados
         const pacientesCount = pacientes ? Object.keys(pacientes).length : 0;
         const empleadosCount = empleados ? Object.keys(empleados).length : 0;
 
-        // Contar facturas cerradas (estado === "cerrado")
+        // Contar facturas cerradas
         let facturadasCount = 0;
         if (facturasData) {
           const allItems = Object.values(facturasData);
@@ -49,27 +60,34 @@ export default function AdminDashboard() {
             (item) => item && typeof item === "object" && item.estado !== undefined
           );
           facturadasCount = facturasArray.filter((f) => f.estado === "cerrado").length;
-          console.log("Facturas cerradas encontradas:", facturadasCount);
         }
 
         // Sumar total de medicamentos y descartables
         let totalMedDesc = 0;
         if (medDescData) {
-          // Se espera que medDescData tenga dos arrays: "medicamentos" y "descartables"
           const medicamentos = medDescData.medicamentos || [];
           const descartables = medDescData.descartables || [];
-
-          // Función auxiliar para sumar totales (cada ítem tiene un campo "total")
           const sumarItems = (items) => {
             if (!Array.isArray(items)) return 0;
             return items.reduce((acc, item) => acc + (item.total || 0), 0);
           };
+          totalMedDesc = sumarItems(medicamentos) + sumarItems(descartables);
+        }
 
-          const totalMed = sumarItems(medicamentos);
-          const totalDesc = sumarItems(descartables);
-          totalMedDesc = totalMed + totalDesc;
+        // Contar cirugías pendientes: aquellas donde "realizada" NO es true
+        let pendientesCount = 0;
+        if (cirugiasData) {
+          const cirugiasArray = Array.isArray(cirugiasData)
+            ? cirugiasData
+            : Object.values(cirugiasData);
 
-          console.log("Total medicamentos + descartables:", totalMedDesc);
+          pendientesCount = cirugiasArray.filter((cirugia) => {
+            if (!cirugia || typeof cirugia !== "object") return false;
+            // Si "realizada" no existe o no es true, se considera pendiente
+            return cirugia.realizada !== true;
+          }).length;
+
+          console.log("Cirugías pendientes (realizada !== true):", pendientesCount);
         }
 
         setStats({
@@ -77,6 +95,7 @@ export default function AdminDashboard() {
           empleados: empleadosCount,
           facturas: facturadasCount,
           medDesc: totalMedDesc,
+          cxPendientes: pendientesCount,
         });
       } catch (error) {
         console.error("Error cargando estadísticas:", error);
@@ -125,10 +144,10 @@ export default function AdminDashboard() {
     },
     {
       title: "CX",
-      value: "—",
+      value: stats.cxPendientes,
       icon: FolderTree,
       color: "#b45309",
-      href: "/admin/cx",
+      href: "/admin/cx/programada",
     },
   ];
 
@@ -148,7 +167,10 @@ export default function AdminDashboard() {
           const Icon = card.icon;
           return (
             <Link key={card.title} href={card.href} className={styles.card}>
-              <div className={styles.cardIcon} style={{ backgroundColor: `${card.color}20`, color: card.color }}>
+              <div
+                className={styles.cardIcon}
+                style={{ backgroundColor: `${card.color}20`, color: card.color }}
+              >
                 <Icon size={28} />
               </div>
               <div className={styles.cardContent}>
