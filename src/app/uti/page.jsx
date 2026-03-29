@@ -31,24 +31,6 @@ const EVO_VACIA = { fechaDoc: new Date().toISOString().split("T")[0], medicoEvol
 const EXAMEN_VACIO = { tipo: "", fechaExamen: new Date().toISOString().split("T")[0], medico: "", informe: "", linkEstudio: "" };
 const PEND_VACIO = { descripcion: "", tipo: "examen" };
 
-/*
- * MODELO DE DATOS — UN NODO POR PACIENTE
- * /UTI/{id}
- *   paciente, dni, obraSocial         ← datos permanentes del paciente
- *   activo, cama, fechaIngreso        ← estado del ingreso actual
- *   medicoIngreso, motivoIngreso
- *   diagnosticoActual, antecedentes, tratamientoActual
- *   fechaAlta, medicoAlta, motivoAlta, tipoAlta
- *   evoluciones: []                   ← evoluciones del ingreso actual
- *   examenesList: []                  ← exámenes del ingreso actual
- *   pendientesList: []                ← pendientes del ingreso actual
- *   ingresos: [                       ← HISTORIAL ARCHIVADO de ingresos anteriores
- *     { fechaIngreso, fechaAlta, medicoAlta, motivoAlta, tipoAlta, cama,
- *       medicoIngreso, motivoIngreso, diagnosticoActual, antecedentes,
- *       tratamientoActual, evoluciones, examenesList, pendientesList }
- *   ]
- */
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function nowStr() {
   const d = new Date();
@@ -189,6 +171,9 @@ export default function UTIPage() {
   const [fontIdx, setFontIdx] = useState(1);
   const [copyToast, setCopyToast] = useState(false);
   const [statFiltro, setStatFiltro] = useState(null);
+
+  // 🔄 CAMBIO: Estado para el modal de cambio de cama
+  const [cambiarCamaModal, setCambiarCamaModal] = useState(null);
 
   const formPanelRef = useRef(null);
 
@@ -447,6 +432,24 @@ export default function UTIPage() {
     setReingresarLoading(false);
   };
 
+  // 🔄 CAMBIO: Función para cambiar de cama
+  const cambiarCama = async (pacienteId, nuevaCama) => {
+    try {
+      await update(ref(db, `UTI/${pacienteId}`), {
+        cama: nuevaCama,
+        ultimaActualizacion: new Date().toISOString()
+      });
+      // Actualizar estado local inmediato
+      setRegistros(prev =>
+        prev.map(r => (r.id === pacienteId ? { ...r, cama: nuevaCama } : r))
+      );
+      showToast(`✓ Paciente movido a cama ${nuevaCama}`);
+      setCambiarCamaModal(null);
+    } catch (error) {
+      showToast(`⚠ Error al cambiar cama: ${error.message}`);
+    }
+  };
+
   const handleStatClick = (tipo) => {
     if (tipo === "ocupadas") { setVista("camas"); setStatFiltro("ocupadas"); }
     else if (tipo === "libres") { setVista("camas"); setStatFiltro("libres"); }
@@ -527,8 +530,23 @@ export default function UTIPage() {
             </p>
           </div>
           <div className={s.expedienteTopbarActions}>
-
-
+            {/* 🔄 CAMBIO: Botón cambiar cama en expediente (solo activo) */}
+            {regExp.activo && (
+              <button
+                className={`${s.actionBtn} ${s.actionReingreso}`}
+                onClick={() => {
+                  setCambiarCamaModal({
+                    pacienteId: regExp.id,
+                    paciente: regExp.paciente,
+                    camaActual: regExp.cama,
+                    nuevaCamaSeleccionada: undefined
+                  });
+                }}
+              >
+                <Ic d="M16 3l5 5-5 5M8 21l-5-5 5-5M21 8H3M3 16h18" size={14} />
+                <span className={s.actionLabel}>Cambiar cama</span>
+              </button>
+            )}
             <button className={`${s.actionBtn} ${s.actionCopy}`} onClick={() => {
               navigator.clipboard.writeText(generarTexto(regExp));
               setCopyToast(true); setTimeout(() => setCopyToast(false), 2500);
@@ -1018,9 +1036,39 @@ export default function UTIPage() {
                       ) : (
                         <div className={s.bedBody}><p className={s.bedFreeLabel}>Disponible</p></div>
                       )}
+                      {/* 🔄 CAMBIO: Footer con dos botones cuando está ocupada */}
                       <div className={s.bedFooter}>
                         <span className={`${s.bedStatusBadge} ${ocu ? s.badgeRed : s.badgeGreen}`}>{ocu ? "Ocupada" : "Libre"}</span>
-                        {ocu && <button className={s.bedResumenBtn} onClick={e => { e.stopPropagation(); setVerExpId(reg.id); setExpTab("evoluciones"); }} title="Ver expediente"><Ic d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" size={14} /></button>}
+                        {ocu && (
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            <button
+                              className={s.bedResumenBtn}
+                              onClick={e => {
+                                e.stopPropagation();
+                                setCambiarCamaModal({
+                                  pacienteId: reg.id,
+                                  paciente: reg.paciente,
+                                  camaActual: reg.cama,
+                                  nuevaCamaSeleccionada: undefined
+                                });
+                              }}
+                              title="Cambiar cama"
+                            >
+                              <Ic d="M16 3l5 5-5 5M8 21l-5-5 5-5M21 8H3M3 16h18" size={14} />
+                            </button>
+                            <button
+                              className={s.bedResumenBtn}
+                              onClick={e => {
+                                e.stopPropagation();
+                                setVerExpId(reg.id);
+                                setExpTab("evoluciones");
+                              }}
+                              title="Ver expediente"
+                            >
+                              <Ic d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1049,31 +1097,90 @@ export default function UTIPage() {
           <div className={s.tableCount}>{registrosFiltrados.length} paciente{registrosFiltrados.length !== 1 ? "s" : ""}</div>
           <div className={s.tableWrap}>
             <table className={s.table}>
-              <thead><tr><th>Paciente / DNI</th><th>Cama</th><th>Ingreso</th><th>Días</th><th>Médico</th><th>OS</th><th>Estado</th><th>Evol.</th><th>Exám.</th><th>Pend.</th><th>Prev.</th><th></th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Paciente / DNI</th>
+                  <th>Cama</th>
+                  <th>Ingreso</th>
+                  <th>Días</th>
+                  <th>Médico</th>
+                  <th>OS</th>
+                  <th>Estado</th>
+                  <th>Evol.</th>
+                  <th>Exám.</th>
+                  <th>Pend.</th>
+                  <th>Prev.</th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody>
-                {registrosFiltrados.length === 0 && <tr><td colSpan={12} className={s.noData}>No se encontraron pacientes.</td></tr>}
+                {registrosFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className={s.noData}>No se encontraron pacientes.</td>
+                  </tr>
+                )}
                 {registrosFiltrados.map(r => {
                   const pA = (r.pendientesList || []).filter(p => !p.resuelto).length;
                   const prevs = (r.ingresos || []).length;
-                  return (<tr key={r.id}>
-                    <td><div className={s.tdPaciente}>{r.paciente}</div>{r.dni && <div className={s.tdDni}>DNI {r.dni}</div>}</td>
-                    <td><span style={{ fontWeight: 800, color: "var(--blue-600)" }}>{r.cama}</span></td>
-                    <td className={s.tdFecha}>{fmtCorta(r.fechaIngreso)}</td>
-                    <td>{diasDesde(r.fechaIngreso)}d</td>
-                    <td>{r.medicoIngreso || "—"}</td>
-                    <td>{r.obraSocial || "—"}</td>
-                    <td><span className={`${s.estadoBadge} ${r.activo ? s.estadoActivo : s.estadoAlta}`}>{r.activo ? "Activo" : r.tipoAlta === "traslado" ? "Traslado" : "Alta"}</span></td>
-                    <td className={s.tdEvos}>{r.evoluciones?.length || 0}</td>
-                    <td className={s.tdEvos} style={{ color: "var(--teal-600)" }}>{r.examenesList?.length || 0}</td>
-                    <td className={s.tdEvos} style={{ color: pA > 0 ? "var(--amber-600)" : "var(--slate-400)" }}>{pA}</td>
-                    <td className={s.tdEvos} style={{ color: prevs > 0 ? "var(--blue-600)" : "var(--slate-300)" }}>{prevs > 0 ? `↺${prevs}` : "—"}</td>
-                    <td><div className={s.rowActions}>
-                      {r.activo && <button className={s.rowBtn} onClick={() => { setVista("camas"); abrirEditar(r); }} title="Editar"><Ic d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={14} /></button>}
-                      {!r.activo && <button className={s.rowBtn} style={{ color: "var(--green-600)" }} onClick={() => setReingresarModal(r)} title="Reingresar"><Ic d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" size={14} /></button>}
-                      <button className={s.rowBtn} onClick={() => { setVerExpId(r.id); setExpTab("evoluciones"); }} title="Ver expediente"><Ic d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" size={14} /></button>
-                      <button className={s.rowBtn} style={{ color: "var(--slate-500)" }} onClick={() => imprimirHistoria(r)} title="Imprimir"><Ic d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" size={14} /></button>
-                    </div></td>
-                  </tr>);
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <div className={s.tdPaciente}>{r.paciente}</div>
+                        {r.dni && <div className={s.tdDni}>DNI {r.dni}</div>}
+                      </td>
+                      <td><span style={{ fontWeight: 800, color: "var(--blue-600)" }}>{r.cama}</span></td>
+                      <td className={s.tdFecha}>{fmtCorta(r.fechaIngreso)}</td>
+                      <td>{diasDesde(r.fechaIngreso)}d</td>
+                      <td>{r.medicoIngreso || "—"}</td>
+                      <td>{r.obraSocial || "—"}</td>
+                      <td><span className={`${s.estadoBadge} ${r.activo ? s.estadoActivo : s.estadoAlta}`}>{r.activo ? "Activo" : r.tipoAlta === "traslado" ? "Traslado" : "Alta"}</span></td>
+                      <td className={s.tdEvos}>{r.evoluciones?.length || 0}</td>
+                      <td className={s.tdEvos} style={{ color: "var(--teal-600)" }}>{r.examenesList?.length || 0}</td>
+                      <td className={s.tdEvos} style={{ color: pA > 0 ? "var(--amber-600)" : "var(--slate-400)" }}>{pA}</td>
+                      <td className={s.tdEvos} style={{ color: prevs > 0 ? "var(--blue-600)" : "var(--slate-300)" }}>{prevs > 0 ? `↺${prevs}` : "—"}</td>
+                      {/* 🔄 CAMBIO: Acciones con botón cambiar cama */}
+                      <td>
+                        <div className={s.rowActions}>
+                          {r.activo && (
+                            <>
+                              <button
+                                className={s.rowBtn}
+                                onClick={() => {
+                                  setCambiarCamaModal({
+                                    pacienteId: r.id,
+                                    paciente: r.paciente,
+                                    camaActual: r.cama,
+                                    nuevaCamaSeleccionada: undefined
+                                  });
+                                }}
+                                title="Cambiar cama"
+                              >
+                                <Ic d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" size={14} />
+                              </button>
+                              <button
+                                className={s.rowBtn}
+                                onClick={() => { setVista("camas"); abrirEditar(r); }}
+                                title="Editar"
+                              >
+                                <Ic d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={14} />
+                              </button>
+                            </>
+                          )}
+                          {!r.activo && (
+                            <button className={s.rowBtn} style={{ color: "var(--green-600)" }} onClick={() => setReingresarModal(r)} title="Reingresar">
+                              <Ic d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" size={14} />
+                            </button>
+                          )}
+                          <button className={s.rowBtn} onClick={() => { setVerExpId(r.id); setExpTab("evoluciones"); }} title="Ver expediente">
+                            <Ic d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" size={14} />
+                          </button>
+                          <button className={s.rowBtn} style={{ color: "var(--slate-500)" }} onClick={() => imprimirHistoria(r)} title="Imprimir">
+                            <Ic d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
@@ -1100,28 +1207,30 @@ export default function UTIPage() {
               (r.examenesList || []).forEach(ex => items.push({ tipo: "examen", fecha: ex.fechaExamen || "", fechaReal: ex.fechaCarga || "", paciente: r.paciente, dni: r.dni, cama: r.cama, medico: ex.medico, texto: ex.informe, tipoExamen: ex.tipo, link: ex.linkEstudio }));
             });
             items.sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-            return (<>
-              <div className={s.timelineCount}><Ic d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={14} />{items.length} registro{items.length !== 1 ? "s" : ""}</div>
-              <div className={s.timelineList}>
-                {items.length === 0 && <p className={s.noData}>Sin registros.</p>}
-                {items.map((it, i) => (
-                  <div key={i} className={s.tlItem}>
-                    <div className={`${s.tlDot} ${it.tipo === "examen" ? s.tlDotExamen : s.tlDotEvol}`} />
-                    <div className={s.tlContent}>
-                      <div className={s.tlMeta}><strong>{it.paciente}</strong>{it.dni ? ` — DNI ${it.dni}` : ""} · Cama {it.cama}</div>
-                      <div className={s.tlFechas}>
-                        <span className={s.tlFechaClinica}>{fmtCorta(it.fecha)}</span>
-                        {it.tipo === "examen" && <span className={s.examenTipoBadge} style={{ fontSize: ".68rem" }}>{TIPOS_EXAMEN.find(t => t.valor === it.tipoExamen)?.icono || "📋"} {it.tipoExamen}</span>}
-                        {it.fechaReal && <span className={s.tlFechaCarga}>{it.fechaReal}</span>}
+            return (
+              <>
+                <div className={s.timelineCount}><Ic d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={14} />{items.length} registro{items.length !== 1 ? "s" : ""}</div>
+                <div className={s.timelineList}>
+                  {items.length === 0 && <p className={s.noData}>Sin registros.</p>}
+                  {items.map((it, i) => (
+                    <div key={i} className={s.tlItem}>
+                      <div className={`${s.tlDot} ${it.tipo === "examen" ? s.tlDotExamen : s.tlDotEvol}`} />
+                      <div className={s.tlContent}>
+                        <div className={s.tlMeta}><strong>{it.paciente}</strong>{it.dni ? ` — DNI ${it.dni}` : ""} · Cama {it.cama}</div>
+                        <div className={s.tlFechas}>
+                          <span className={s.tlFechaClinica}>{fmtCorta(it.fecha)}</span>
+                          {it.tipo === "examen" && <span className={s.examenTipoBadge} style={{ fontSize: ".68rem" }}>{TIPOS_EXAMEN.find(t => t.valor === it.tipoExamen)?.icono || "📋"} {it.tipoExamen}</span>}
+                          {it.fechaReal && <span className={s.tlFechaCarga}>{it.fechaReal}</span>}
+                        </div>
+                        {it.medico && <div className={s.tlMeta}>Dr. {it.medico}</div>}
+                        <p className={s.tlTexto}>{it.texto}</p>
+                        {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer" className={s.examenHistLink} style={{ marginTop: ".3rem" }}><Ic d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" size={11} />Ver estudio</a>}
                       </div>
-                      {it.medico && <div className={s.tlMeta}>Dr. {it.medico}</div>}
-                      <p className={s.tlTexto}>{it.texto}</p>
-                      {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer" className={s.examenHistLink} style={{ marginTop: ".3rem" }}><Ic d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" size={11} />Ver estudio</a>}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </>);
+                  ))}
+                </div>
+              </>
+            );
           })()}
         </div>
       )}
@@ -1142,22 +1251,40 @@ export default function UTIPage() {
             </div>
           </div>
           <div className={s.timelineCount}><Ic d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" size={14} />{todosPendientes.length} pendiente{todosPendientes.length !== 1 ? "s" : ""} activo{todosPendientes.length !== 1 ? "s" : ""}</div>
-          {todosPendientes.length === 0 ? (<div className={s.pendientesEmpty}><div className={s.pendientesEmptyIcon}>✓</div><p className={s.pendientesEmptyTitle}>Sin pendientes activos</p><p className={s.pendientesEmptyDesc}>Todos los estudios y tareas están al día.</p></div>)
-            : (<div className={s.pendientesContainer}>{todosPendientes.map((p, i) => (
-              <div key={i} className={s.pendienteItem}>
-                <div className={s.pendienteCheckbox} style={{ cursor: "pointer" }} onClick={() => { const idx = p._regPends.findIndex(x => x.descripcion === p.descripcion && x.fechaCreacion === p.fechaCreacion); if (idx !== -1) togglePendiente(idx, p._regId, p._regPends); }} />
-                <div className={s.pendienteContent}>
-                  <div className={s.pendienteHeader}>
-                    <span className={s.pendientePaciente}>{p.nombrePaciente}</span>
-                    {p.dniPaciente && <span className={s.pendienteDni}>DNI {p.dniPaciente}</span>}
-                    <span className={`${s.pendienteTipoBadge} ${p.tipo === "examen" ? s.pendienteBadgeExamen : p.tipo === "evolucion" ? s.pendienteBadgeEvol : s.pendienteBadgeAlerta}`}>{p.tipo}</span>
-                    <span className={s.pendienteCama}>Cama {p.cama}</span>
+          {todosPendientes.length === 0 ? (
+            <div className={s.pendientesEmpty}>
+              <div className={s.pendientesEmptyIcon}>✓</div>
+              <p className={s.pendientesEmptyTitle}>Sin pendientes activos</p>
+              <p className={s.pendientesEmptyDesc}>Todos los estudios y tareas están al día.</p>
+            </div>
+          ) : (
+            <div className={s.pendientesContainer}>
+              {todosPendientes.map((p, i) => (
+                <div key={i} className={s.pendienteItem}>
+                  <div
+                    className={s.pendienteCheckbox}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      const idx = p._regPends.findIndex(x => x.descripcion === p.descripcion && x.fechaCreacion === p.fechaCreacion);
+                      if (idx !== -1) togglePendiente(idx, p._regId, p._regPends);
+                    }}
+                  />
+                  <div className={s.pendienteContent}>
+                    <div className={s.pendienteHeader}>
+                      <span className={s.pendientePaciente}>{p.nombrePaciente}</span>
+                      {p.dniPaciente && <span className={s.pendienteDni}>DNI {p.dniPaciente}</span>}
+                      <span className={`${s.pendienteTipoBadge} ${p.tipo === "examen" ? s.pendienteBadgeExamen : p.tipo === "evolucion" ? s.pendienteBadgeEvol : s.pendienteBadgeAlerta}`}>{p.tipo}</span>
+                      <span className={s.pendienteCama}>Cama {p.cama}</span>
+                    </div>
+                    <p className={s.pendienteDescripcion}>{p.descripcion}</p>
+                    <div className={s.pendienteMeta}>
+                      <span className={s.pendienteFecha}>{fmtTs(p.fechaCreacion)}</span>
+                    </div>
                   </div>
-                  <p className={s.pendienteDescripcion}>{p.descripcion}</p>
-                  <div className={s.pendienteMeta}><span className={s.pendienteFecha}>{fmtTs(p.fechaCreacion)}</span></div>
                 </div>
-              </div>
-            ))}</div>)}
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1166,10 +1293,19 @@ export default function UTIPage() {
         <div className={s.modalOverlay}>
           <div className={s.modalContainer}>
             <div className={`${s.modalHeader} ${altaModal.tipo === "alta" ? s.modalHeaderAlta : s.modalHeaderTraslado}`}>
-              <div className={s.modalHeaderLeft}><Ic d={altaModal.tipo === "alta" ? "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" : "M5 12h14m-7-7 7 7-7 7"} size={20} />{altaModal.tipo === "alta" ? "Dar Alta Médica" : "Registrar Traslado"}</div>
+              <div className={s.modalHeaderLeft}>
+                <Ic d={altaModal.tipo === "alta" ? "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" : "M5 12h14m-7-7 7 7-7 7"} size={20} />
+                {altaModal.tipo === "alta" ? "Dar Alta Médica" : "Registrar Traslado"}
+              </div>
             </div>
             <div className={s.modalBody}>
-              <div className={s.pacienteInfo}><div className={s.pacienteInfoIcon}><Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" size={20} /></div><div><p className={s.pacienteInfoNombre}>{altaModal.paciente}</p><p className={s.pacienteInfoSub}>{altaModal.tipo === "alta" ? "Se archivará el ingreso actual y el paciente quedará disponible para reingreso." : "Se registrará el traslado y se archivará el ingreso."}</p></div></div>
+              <div className={s.pacienteInfo}>
+                <div className={s.pacienteInfoIcon}><Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" size={20} /></div>
+                <div>
+                  <p className={s.pacienteInfoNombre}>{altaModal.paciente}</p>
+                  <p className={s.pacienteInfoSub}>{altaModal.tipo === "alta" ? "Se archivará el ingreso actual y el paciente quedará disponible para reingreso." : "Se registrará el traslado y se archivará el ingreso."}</p>
+                </div>
+              </div>
               {altaError && <div className={s.errorMessage}><Ic d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={16} />{altaError}</div>}
               <div className={s.fieldGroup}><label className={s.fieldLabel}>Médico *</label><input className={s.fieldInput} value={altaForm.medico} onChange={e => setAltaForm(f => ({ ...f, medico: e.target.value }))} placeholder="Dr. ..." /></div>
               <div className={s.fieldGroup}><label className={s.fieldLabel}>{altaModal.tipo === "alta" ? "Motivo del alta *" : "Destino del traslado *"}</label><textarea className={`${s.fieldInput} ${s.fieldTextarea}`} value={altaForm.motivo} onChange={e => setAltaForm(f => ({ ...f, motivo: e.target.value }))} placeholder={altaModal.tipo === "alta" ? "Alta médica / mejoría..." : "Hospital destino..."} /></div>
@@ -1187,7 +1323,10 @@ export default function UTIPage() {
         <div className={s.modalOverlay}>
           <div className={s.modalContainer} style={{ maxWidth: 560 }}>
             <div className={s.modalHeader} style={{ background: "var(--blue-800)" }}>
-              <div className={s.modalHeaderLeft}><Ic d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" size={20} />Reingresar paciente</div>
+              <div className={s.modalHeaderLeft}>
+                <Ic d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" size={20} />
+                Reingresar paciente
+              </div>
             </div>
             <div className={s.modalBody}>
               <div className={s.pacienteInfo}>
@@ -1205,11 +1344,25 @@ export default function UTIPage() {
                 <div className={s.camaSelector}>
                   {Array.from({ length: TOTAL_CAMAS }, (_, i) => i + 1).map(n => {
                     const ocupada = !!camas[n];
-                    return (<button key={n} type="button" className={`${s.camaBtn} ${reingresarCama === String(n) ? s.camaBtnActive : ""}`} disabled={ocupada} style={ocupada ? { opacity: .35, cursor: "not-allowed" } : {}} onClick={() => setReingresarCama(String(n))}>{n}{ocupada ? " 🔴" : ""}</button>);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`${s.camaBtn} ${reingresarCama === String(n) ? s.camaBtnActive : ""}`}
+                        disabled={ocupada}
+                        style={ocupada ? { opacity: .35, cursor: "not-allowed" } : {}}
+                        onClick={() => setReingresarCama(String(n))}
+                      >
+                        {n}{ocupada ? " 🔴" : ""}
+                      </button>
+                    );
                   })}
                 </div>
               </div>
-              <div className={s.fieldGroup}><label className={s.fieldLabel}>Médico de guardia</label><input className={s.fieldInput} value={reingresarMedico} onChange={e => setReingresarMedico(e.target.value)} placeholder="Dr. ..." /></div>
+              <div className={s.fieldGroup}>
+                <label className={s.fieldLabel}>Médico de guardia</label>
+                <input className={s.fieldInput} value={reingresarMedico} onChange={e => setReingresarMedico(e.target.value)} placeholder="Dr. ..." />
+              </div>
               <div className={s.alertNote}>
                 <Ic d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={14} />
                 Se reactiva el mismo nodo del paciente. La historia anterior queda archivada dentro del registro. Podrás editar todos los datos al confirmar.
@@ -1223,12 +1376,101 @@ export default function UTIPage() {
         </div>
       )}
 
+      {/* 🔄 CAMBIO: MODAL CAMBIAR CAMA */}
+      {cambiarCamaModal && (
+        <div
+          className={s.modalOverlay}
+          onClick={e => e.target === e.currentTarget && setCambiarCamaModal(null)}
+        >
+          <div className={s.modalContainer} style={{ maxWidth: 480 }}>
+            <div className={s.modalHeader} style={{ background: "var(--blue-800)" }}>
+              <div className={s.modalHeaderLeft}>
+                <Ic d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" size={20} />
+                Cambiar cama
+              </div>
+            </div>
+            <div className={s.modalBody}>
+              <div className={s.pacienteInfo}>
+                <div className={s.pacienteInfoIcon}>
+                  <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" size={20} />
+                </div>
+                <div>
+                  <p className={s.pacienteInfoNombre}>{cambiarCamaModal.paciente}</p>
+                  <p className={s.pacienteInfoSub}>Cama actual: {cambiarCamaModal.camaActual}</p>
+                </div>
+              </div>
+              <div className={s.fieldGroup}>
+                <label className={s.fieldLabel}>Seleccionar nueva cama</label>
+                <div className={s.camaSelector}>
+                  {Array.from({ length: TOTAL_CAMAS }, (_, i) => i + 1).map(n => {
+                    const ocupada = n !== cambiarCamaModal.camaActual && !!camas[n];
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`${s.camaBtn} ${n === cambiarCamaModal.nuevaCamaSeleccionada ? s.camaBtnActive : ""
+                          }`}
+                        disabled={ocupada}
+                        onClick={() =>
+                          setCambiarCamaModal({
+                            ...cambiarCamaModal,
+                            nuevaCamaSeleccionada: n
+                          })
+                        }
+                      >
+                        {n}
+                        {n === cambiarCamaModal.camaActual && " (actual)"}
+                        {ocupada && " 🔴"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "1rem 1.5rem",
+                borderTop: "1.5px solid var(--slate-200)",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: ".75rem"
+              }}
+            >
+              <button
+                className={s.btnSecondary}
+                onClick={() => setCambiarCamaModal(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className={s.btnPrimary}
+                onClick={() =>
+                  cambiarCama(
+                    cambiarCamaModal.pacienteId,
+                    cambiarCamaModal.nuevaCamaSeleccionada
+                  )
+                }
+                disabled={
+                  !cambiarCamaModal.nuevaCamaSeleccionada ||
+                  cambiarCamaModal.nuevaCamaSeleccionada === cambiarCamaModal.camaActual
+                }
+              >
+                Mover a cama {cambiarCamaModal.nuevaCamaSeleccionada}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ MODAL: BUSCAR ══ */}
       {buscarModal && (
         <div className={s.modalOverlay} onClick={e => { if (e.target === e.currentTarget) { setBuscarModal(false); setBuscarQuery(""); } }}>
           <div className={s.modalContainer} style={{ maxWidth: 540 }}>
             <div className={s.modalHeader} style={{ background: "var(--slate-800)" }}>
-              <div className={s.modalHeaderLeft}><Ic d="M21 21l-4.35-4.35m0 0A7 7 0 1 0 5.5 5.5a7 7 0 0 0 9.8 9.8z" size={20} />Buscar paciente</div>
+              <div className={s.modalHeaderLeft}>
+                <Ic d="M21 21l-4.35-4.35m0 0A7 7 0 1 0 5.5 5.5a7 7 0 0 0 9.8 9.8z" size={20} />
+                Buscar paciente
+              </div>
             </div>
             <div className={s.modalBody} style={{ gap: ".75rem" }}>
               <div className={s.searchBox} style={{ borderColor: "var(--blue-300)", boxShadow: "0 0 0 3px var(--blue-100)" }}>
