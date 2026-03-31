@@ -1,3 +1,4 @@
+
 /* ==================== BASE ==================== */
 .page {
     min-height: 100vh;
@@ -623,7 +624,7 @@
     cursor: not-allowed;
 }
 
-/* ==================== CABECERA CON BOTÓN PROGRAMADAS ==================== */
+/* ==================== CABECERA CON BOTONES ==================== */
 .headerRow {
     display: flex;
     justify-content: space-between;
@@ -631,6 +632,27 @@
     gap: 1rem;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
+}
+
+.headerButtons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.backBtn {
+    background: #334155;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.backBtn:hover {
+    background: #475569;
 }
 
 .programadasBtn {
