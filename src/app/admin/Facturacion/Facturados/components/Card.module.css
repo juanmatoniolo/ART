@@ -235,3 +235,15 @@
 .btnArt:hover {
     background: rgba(20, 184, 166, 0.2);
 }
+
+/* Agregar al final de Card.module.css */
+
+.btnMedDesc {
+    background: rgba(139, 92, 246, 0.12);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.btnMedDesc:hover {
+    background: rgba(139, 92, 246, 0.22);
+}

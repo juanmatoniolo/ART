@@ -3,8 +3,24 @@ import Link from 'next/link';
 import styles from './Card.module.css';
 import { money, fmtDate, prettyLabel } from '../../utils/calculos';
 
-export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART }) {
+export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART, onPrintMedDescLab }) {
   const isClosed = item.estado === 'cerrado';
+
+  // Muestra el botón ART solo si hay contenido facturable
+  const tieneContenido =
+    (item.practicas?.length > 0) ||
+    (item.cirugias?.length > 0) ||
+    (item.laboratorios?.length > 0) ||
+    (item.medicamentos?.length > 0) ||
+    (item.descartables?.length > 0) ||
+    (item.totales?.total > 0) ||
+    (item.total > 0);
+
+  // Muestra el botón Med+Desc+Lab solo si hay al menos uno de esos tres
+  const tieneMedDescLab =
+    (item.medicamentos?.length > 0) ||
+    (item.descartables?.length > 0) ||
+    (item.laboratorios?.length > 0);
 
   return (
     <article className={`${styles.card} ${isSelected ? styles.selected : ''}`}>
@@ -18,12 +34,7 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART 
           onChange={() => onToggleSelect(item.id)}
         />
 
-        {/*       <span className={`${styles.badge} ${isClosed ? styles.badgeOk : styles.badgeDraft}`}>
-          {isClosed ? 'Cerrado' : 'Borrador'}
-        </span> */}
-
         <div className={styles.dateChip}>
-
           {fmtDate(item.fecha)}
         </div>
 
@@ -109,16 +120,33 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART 
             Editar
           </Link>
 
-          <button className={`${styles.actBtn} ${styles.btnArt}`}
-            onClick={() => onPrintART(item.id)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 6 2 18 2 18 9" />
-              <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
-              <rect x="6" y="14" width="12" height="8" />
-            </svg>
-            ART
-          </button>
+          {/* Botón ART — solo si hay contenido facturable */}
+          {tieneContenido && (
+            <button className={`${styles.actBtn} ${styles.btnArt}`}
+              onClick={() => onPrintART(item.id)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              ART
+            </button>
+          )}
+
+          {/* Botón Med+Desc+Lab — solo si hay medicamentos, descartables o laboratorios */}
+          {tieneMedDescLab && (
+            <button className={`${styles.actBtn} ${styles.btnMedDesc}`}
+              onClick={() => onPrintMedDescLab(item)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="2" />
+                <path d="M9 12h6M9 16h4" />
+              </svg>
+              Med+Lab
+            </button>
+          )}
         </div>
       </div>
     </article>

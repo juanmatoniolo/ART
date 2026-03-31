@@ -1,7 +1,8 @@
+// src/app/layout.jsx
 import 'bootstrap/dist/css/bootstrap.min.css';
-import BootstrapClient from '@/components/BootstrapClient.jsx';
+import BootstrapClient from '@/components/BootstrapClient'; // importación directa, sin dynamic
 
-// ✅ Usamos variable de entorno para la URL base (o la definimos manualmente)
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://art-xi-six.vercel.app';
 
 export const metadata = {
@@ -34,7 +35,7 @@ export const metadata = {
     siteName: "Clínica de la Unión S.A.",
     images: [
       {
-        url: "/logo.jpg",          // Se resolverá como baseUrl/logo.jpg
+        url: "/logo.jpg",
         width: 1200,
         height: 630,
         alt: "Clínica de la Unión S.A. - Logo institucional",
@@ -49,7 +50,7 @@ export const metadata = {
     title: "Clínica de la Unión S.A.",
     description:
       "Plataforma administrativa interna para la gestión médica y administrativa de la Clínica de la Unión S.A.",
-    images: ["/logo.jpg"],         
+    images: ["/logo.jpg"],
     creator: "@clinicaunion",
   },
 
