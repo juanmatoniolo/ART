@@ -35,10 +35,10 @@ export const metadata = {
     siteName: "Clínica de la Unión S.A.",
     images: [
       {
-        url: "/logo.jpg",
+        url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "Clínica de la Unión S.A. - Logo institucional",
+        alt: "Clínica de la Unión S.A. - Logotitucional",
       },
     ],
     locale: "es_AR",
@@ -50,14 +50,14 @@ export const metadata = {
     title: "Clínica de la Unión S.A.",
     description:
       "Plataforma administrativa interna para la gestión médica y administrativa de la Clínica de la Unión S.A.",
-    images: ["/logo.jpg"],
+    images: ["/logo.png"],
     creator: "@clinicaunion",
   },
 
   icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 
   manifest: "/manifest.json",

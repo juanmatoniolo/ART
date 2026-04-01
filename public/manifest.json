@@ -9,17 +9,17 @@
 	"orientation": "portrait",
 	"icons": [
 		{
-			"src": "/logo.jpg",
+			"src": "/logo.gng",
 			"sizes": "192x192",
 			"type": "image/png"
 		},
 		{
-			"src": "/logo.jpg",
+			"src": "/logo.gng",
 			"sizes": "512x512",
 			"type": "image/png"
 		},
 		{
-			"src": "/logo.jpg",
+			"src": "/logo.gng",
 			"sizes": "1024x1024",
 			"type": "image/png"
 		}

@@ -1,1035 +1,311 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
-import { PDFDocument } from 'pdf-lib';
-import Header from '@/components/Header/Header';
+import { useState } from "react";
+import styles from "./page.module.css";
 
-const MAPPING_URL = '/mappings/cd-campos_fields_rects.json';
+const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 
-// ✅ AHORA: PDFs INTERACTIVOS (AcroForm) a completar
-const TEMPLATE_FRENTE_URL = '/templates/FRENTE-CX.pdf';
-const TEMPLATE_DORSO_URL = '/templates/DORSO-CX.pdf';
+export default function FormularioCirugia() {
+  // Estados del formulario
+  const [form, setForm] = useState({
+    apellido: "",
+    nombre: "",
+    sexo: "",
+    dni: "",
+    nacimiento: "",
+    lugarNacimiento: "",
+    domicilio: "",
+    localidad: "",
+    provincia: "",
+    telefono: "",
+  });
 
-// Si tenés duplicados con nombres distintos, agrupálos acá (opcional)
-const CANONICAL_ALIASES = {};
+  const [edad, setEdad] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
-// ===== Autocomplete (historial) =====
-const SUGGESTIONS_MAX = 20;
-const LS_KEY = 'cx_form_suggestions_v1';
-
-function normalizeName(name) {
-  return (name || '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[()]/g, '')
-    .replace(/__\d+$/g, '')
-    .replace(/-\d+$/g, '');
-}
-
-function humanizeKey(k) {
-  const s = (k || '').replace(/[-_]+/g, ' ').trim();
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function isLikelyCheckbox(fieldType) {
-  return fieldType === '/Btn';
-}
-
-function isLikelyText(fieldType) {
-  return fieldType === '/Tx' || !fieldType;
-}
-
-// ===== Canon helpers (por nombre canónico normalizado) =====
-const isCanonDia = (c) => normalizeName(c) === 'dia';
-const isCanonMes = (c) => normalizeName(c) === 'mes';
-const isCanonAnio = (c) => {
-  const n = normalizeName(c);
-  return n === 'anio' || n === 'año' || n === 'ano';
-};
-
-const isCanonCX = (c) => normalizeName(c) === 'cx';
-
-const isCanonApellido = (c) => normalizeName(c) === 'apellido-paciente' || normalizeName(c) === 'apellido';
-const isCanonNombre = (c) => normalizeName(c) === 'nombre-paciente' || normalizeName(c) === 'nombre';
-
-const isCanonNombresPaciente = (c) => normalizeName(c) === 'nombres-paciente';
-const isCanonServicio = (c) => normalizeName(c) === 'servicio';
-
-const isCanonEdad = (c) => normalizeName(c) === 'edad';
-const isCanonEdadPaciente = (c) => normalizeName(c) === 'edad-paciente';
-
-const isCanonEdadPacienteUI = (c) => {
-  const n = normalizeName(c);
-  return n === 'edad-paciente' || n.includes('edad-paciente') || n.includes('edad_paciente');
-};
-
-const isCanonART = (c) => {
-  const n = normalizeName(c);
-  return n === 'art' || n.includes('art-') || n.includes('-art');
-};
-
-const isCanonDoctor = (c) => {
-  const n = normalizeName(c);
-  return (
-    n === 'nombre-dr' ||
-    n.includes('nombre-dr') ||
-    n.includes('doctor') ||
-    n.includes('dr') ||
-    n.includes('medico') ||
-    n.includes('cirujano')
-  );
-};
-
-// ✅ para defaults/autocomplete fuerte
-const isCanonLocalidad = (c) => normalizeName(c) === 'localidad';
-const isCanonProvincia = (c) => normalizeName(c) === 'provincia';
-
-// ✅ NUEVOS CAMPOS (detectores específicos)
-const isCanonNacimientoPaciente = (c) => {
-  const n = normalizeName(c);
-  return n === 'nacimiento-paciente' || n === 'nacmiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento');
-};
-
-const isCanonDomicilioPaciente = (c) => {
-  const n = normalizeName(c);
-  return n === 'domicilio-paciente' || n.includes('domicilio');
-};
-
-const isCanonHCPaciente = (c) => {
-  const n = normalizeName(c);
-  return n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica');
-};
-
-function computeAgeYears(d, m, y) {
-  const dd = Number(d);
-  const mm = Number(m);
-  const yy = Number(y);
-
-  if (!Number.isFinite(dd) || !Number.isFinite(mm) || !Number.isFinite(yy)) return '';
-
-  if (yy < 1900 || yy > 2100) return '';
-  if (mm < 1 || mm > 12) return '';
-  if (dd < 1 || dd > 31) return '';
-
-  const today = new Date();
-  const birth = new Date(yy, mm - 1, dd);
-  if (Number.isNaN(birth.getTime())) return '';
-
-  let age = today.getFullYear() - birth.getFullYear();
-
-  const hadBirthday =
-    today.getMonth() > birth.getMonth() ||
-    (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
-
-  if (!hadBirthday) age -= 1;
-  if (age < 0) return '';
-
-  return String(age);
-}
-
-function safeUpper(v) {
-  if (v === null || v === undefined) return '';
-  return String(v).toUpperCase();
-}
-
-// ✅ Función para formatear número con separador de miles
-function formatNumberWithThousands(value) {
-  if (!value) return '';
-
-  // Remover cualquier separador existente y caracteres no numéricos
-  const numericValue = String(value).replace(/[^\d]/g, '');
-
-  if (!numericValue) return '';
-
-  // Formatear con separador de miles
-  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-// ✅ Función para parsear número con separador de miles
-function parseFormattedNumber(formattedValue) {
-  if (!formattedValue) return '';
-  return String(formattedValue).replace(/\./g, '');
-}
-
-// ✅ Función para generar nombre de archivo seguro
-function generateSafeFilename(baseName) {
-  if (!baseName || baseName.trim() === '') return 'Paciente';
-
-  // Limpiar caracteres especiales y espacios
-  return baseName
-    .normalize('NFD') // Separar acentos
-    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-    .replace(/[^a-zA-Z0-9\s-]/g, '') // Remover caracteres especiales
-    .replace(/\s+/g, '-') // Reemplazar espacios con guiones
-    .replace(/-+/g, '-') // Eliminar guiones múltiples
-    .trim()
-    .toUpperCase();
-}
-
-function loadSuggestions() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    const data = raw ? JSON.parse(raw) : {};
-    return typeof data === 'object' && data ? data : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveSuggestions(next) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-  } catch {
-    // ignore
-  }
-}
-
-function addSuggestion(sug, canonName, valueRaw) {
-  const v = (valueRaw ?? '').toString().trim();
-  if (!v) return sug;
-
-  const val = v.toUpperCase(); // guardamos en MAYUS para evitar duplicados
-  const prev = Array.isArray(sug?.[canonName]) ? sug[canonName] : [];
-  const without = prev.filter((x) => (x ?? '').toString().toUpperCase() !== val);
-  const nextArr = [val, ...without].slice(0, SUGGESTIONS_MAX);
-  return { ...sug, [canonName]: nextArr };
-}
-
-export default function Page() {
-  const [loading, setLoading] = useState(true);
-  const [mapping, setMapping] = useState(null);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({});
-
-  // ✅ historial de sugerencias
-  const [suggestions, setSuggestions] = useState({});
-
-  // Cargar mapping
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        const res = await fetch(MAPPING_URL, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`No pude cargar mapping (${res.status})`);
-        const json = await res.json();
-
-        if (!alive) return;
-        setMapping(json);
-      } catch (e) {
-        setError(e?.message || 'Error cargando mapping');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  // Capa canónica: oculta repetidos y replica internamente
-  const canonical = useMemo(() => {
-    if (!mapping) return null;
-
-    const canonicalToInternal = {};
-    const internalToCanonical = {};
-
-    // 1) Aliases manuales
-    for (const [canon, internals] of Object.entries(CANONICAL_ALIASES)) {
-      canonicalToInternal[canon] = Array.from(new Set(internals));
-      for (const internal of internals) internalToCanonical[internal] = canon;
+  // Función para calcular edad
+  const calcularEdad = (fecha) => {
+    if (!fecha) return "";
+    const [year, month, day] = fecha.split("-");
+    const hoy = new Date();
+    const nacimiento = new Date(year, month - 1, day);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const diffMeses = hoy.getMonth() - nacimiento.getMonth();
+    if (diffMeses < 0 || (diffMeses === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
     }
+    return edad >= 0 ? edad : "";
+  };
 
-    // 2) Resto por normalización
-    for (const internalName of Object.keys(mapping)) {
-      if (internalToCanonical[internalName]) continue;
-      const canon = normalizeName(internalName);
-      internalToCanonical[internalName] = canon;
-      if (!canonicalToInternal[canon]) canonicalToInternal[canon] = [];
-      canonicalToInternal[canon].push(internalName);
-    }
-
-    for (const k of Object.keys(canonicalToInternal)) {
-      canonicalToInternal[k] = Array.from(new Set(canonicalToInternal[k])).sort();
-    }
-
-    return { canonicalToInternal, internalToCanonical };
-  }, [mapping]);
-
-  // keys canónicos presentes
-  const canonKeys = useMemo(() => {
-    if (!canonical) return [];
-    return Object.keys(canonical.canonicalToInternal);
-  }, [canonical]);
-
-  // canónicos detectados
-  const canonART = useMemo(() => canonKeys.find(isCanonART), [canonKeys]);
-  const canonCX = useMemo(() => canonKeys.find(isCanonCX), [canonKeys]);
-  const canonDoctor = useMemo(() => canonKeys.find(isCanonDoctor), [canonKeys]);
-
-  const canonApellido = useMemo(() => canonKeys.find(isCanonApellido), [canonKeys]);
-  const canonNombre = useMemo(() => canonKeys.find(isCanonNombre), [canonKeys]);
-
-  const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
-  const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
-
-  // ✅ NUEVOS CAMPOS - detectarlos si existen
-  const canonNacimientoPaciente = useMemo(() => canonKeys.find(isCanonNacimientoPaciente), [canonKeys]);
-  const canonDomicilioPaciente = useMemo(() => canonKeys.find(isCanonDomicilioPaciente), [canonKeys]);
-  const canonHCPaciente = useMemo(() => canonKeys.find(isCanonHCPaciente), [canonKeys]);
-
-  // NO visibles
-  const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
-  const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
-  const canonEdad = useMemo(() => canonKeys.find(isCanonEdad), [canonKeys]);
-  const canonEdadPaciente = useMemo(() => canonKeys.find(isCanonEdadPaciente), [canonKeys]);
-
-  // fecha nac
-  const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
-  const canonMes = useMemo(() => canonKeys.find(isCanonMes), [canonKeys]);
-  const canonAnio = useMemo(() => canonKeys.find(isCanonAnio), [canonKeys]);
-
-  // Inicializar form con canónicos
-  useEffect(() => {
-    if (!canonical || !mapping) return;
-
-    const initial = {};
-    const keys = Object.keys(canonical.canonicalToInternal).sort((a, b) => a.localeCompare(b, 'es'));
-    for (const k of keys) initial[k] = '';
-
-    // Sexo especial
-    const internals = Object.keys(mapping || {});
-    const hasM = internals.includes('masculino-paciente');
-    const hasF = internals.includes('femenino-paciente');
-    if (hasM || hasF) initial['sexo'] = '';
-
-    // Servicio fijo interno (NO visible)
-    if (keys.some((k) => isCanonServicio(k))) {
-      initial['servicio'] = 'PISO';
-    }
-
-    setForm(initial);
-  }, [canonical, mapping]);
-
-  // ✅ cargar historial + sembrar defaults (Chajarí / Entre Rios)
-  useEffect(() => {
-    if (!canonical) return;
-
-    const loaded = loadSuggestions();
-
-    let seeded = loaded;
-
-    if (canonLocalidad) {
-      seeded = addSuggestion(seeded, canonLocalidad, 'CHAJARÍ');
-    }
-    if (canonProvincia) {
-      seeded = addSuggestion(seeded, canonProvincia, 'ENTRE RIOS');
-    }
-
-    // ✅ Sembrar sugerencias para nacimiento-paciente
-    if (canonNacimientoPaciente) {
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CHAJARÍ, ENTRE RIOS');
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CONCORDIA, ENTRE RIOS');
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, 'PARANÁ, ENTRE RIOS');
-    }
-
-    setSuggestions(seeded);
-    saveSuggestions(seeded);
-
-    // opcional: si están vacíos, pre-rellenar (solo localidad/provincia)
-    setForm((prev) => {
-      const out = { ...prev };
-      let changed = false;
-
-      if (canonLocalidad && !(out?.[canonLocalidad] ?? '').toString().trim()) {
-        out[canonLocalidad] = 'CHAJARÍ';
-        changed = true;
-      }
-      if (canonProvincia && !(out?.[canonProvincia] ?? '').toString().trim()) {
-        out[canonProvincia] = 'ENTRE RIOS';
-        changed = true;
-      }
-
-      return changed ? out : prev;
-    });
-  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]);
-
-  function setValue(name, value) {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-  }
 
-  // ✅ Manejo especial para hc-paciente (con separador de miles)
-  function handleHCChange(value) {
-    // Formatear con separador de miles para mostrar
-    const formattedValue = formatNumberWithThousands(value);
-    setValue(canonHCPaciente, formattedValue);
-  }
+    if (name === "nacimiento") {
+      const nuevaEdad = calcularEdad(value);
+      setEdad(nuevaEdad);
+    }
+  };
 
-  // ✅ Obtener valor formateado para hc-paciente
-  function getHCFormattedValue() {
-    if (!canonHCPaciente) return '';
-    const rawValue = form?.[canonHCPaciente] || '';
-    return formatNumberWithThousands(rawValue);
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMensaje({ texto: "", tipo: "" });
 
-  function commitSuggestion(canonName, value) {
-    const nextSug = addSuggestion(suggestions, canonName, value);
-    if (nextSug === suggestions) return;
-    setSuggestions(nextSug);
-    saveSuggestions(nextSug);
-  }
+    // Validaciones
+    const camposObligatorios = [
+      "apellido",
+      "nombre",
+      "sexo",
+      "dni",
+      "nacimiento",
+      "lugarNacimiento",
+      "domicilio",
+      "localidad",
+      "provincia",
+      "telefono",
+    ];
 
-  // edad calculada
-  const edadCalculada = useMemo(() => {
-    const d = canonDia ? form?.[canonDia] : '';
-    const m = canonMes ? form?.[canonMes] : '';
-    const y = canonAnio ? form?.[canonAnio] : '';
-    return computeAgeYears(d, m, y);
-  }, [form, canonDia, canonMes, canonAnio]);
-
-  // ✅ Auto-set de edad: guarda en "edad" y en "edad-paciente" (si existen)
-  useEffect(() => {
-    const next = edadCalculada ? `${edadCalculada} años` : '';
-    if (!canonEdad && !canonEdadPaciente) return;
-
-    setForm((prev) => {
-      let changed = false;
-      const out = { ...prev };
-
-      if (canonEdad && (out?.[canonEdad] ?? '') !== next) {
-        out[canonEdad] = next;
-        changed = true;
+    for (const campo of camposObligatorios) {
+      if (!form[campo]?.trim()) {
+        setMensaje({ texto: `El campo ${campo} es obligatorio`, tipo: "error" });
+        return;
       }
-
-      if (canonEdadPaciente && (out?.[canonEdadPaciente] ?? '') !== next) {
-        out[canonEdadPaciente] = next;
-        changed = true;
-      }
-
-      return changed ? out : prev;
-    });
-  }, [edadCalculada, canonEdad, canonEdadPaciente]);
-
-  // ✅ Función para obtener etiqueta amigable para los nuevos campos
-  function getFriendlyLabel(canonName) {
-    const n = normalizeName(canonName);
-
-    if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
-      return 'Lugar de Nacimiento';
-    }
-    if (n === 'domicilio-paciente' || n.includes('domicilio')) {
-      return 'Domicilio';
-    }
-    if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
-      return 'N° Historia Clínica';
     }
 
-    return humanizeKey(canonName);
-  }
-
-  // ✅ Función para obtener placeholder amigable
-  function getFriendlyPlaceholder(canonName) {
-    const n = normalizeName(canonName);
-
-    if (n === 'nacimiento-paciente' || n.includes('nacimiento') || n.includes('nacmiento')) {
-      return 'Ej: CHAJARÍ, ENTRE RIOS...';
-    }
-    if (n === 'domicilio-paciente' || n.includes('domicilio')) {
-      return 'Dirección completa...';
-    }
-    if (n === 'hc-paciente' || n.includes('hc') || n.includes('historia-clinica')) {
-      return 'Ej: 12.345.678';
+    // Formatear DNI a xx-xxxxxxxx-x (opcional)
+    const dniLimpio = form.dni.replace(/\D/g, "");
+    if (dniLimpio.length < 7 || dniLimpio.length > 11) {
+      setMensaje({ texto: "DNI/CUIL inválido", tipo: "error" });
+      return;
     }
 
-    return 'Completar...';
-  }
-
-  // Resto de campos (no top, no ocultos)
-  const orderedResto = useMemo(() => {
-    if (!canonical) return [];
-
-    const all = Object.keys(canonical.canonicalToInternal);
-    const hidden = new Set(['masculino-paciente', 'femenino-paciente', 'sexo']);
-
-    // ✅ NO ocultar los nuevos campos - van con el resto
-    if (canonNombres) hidden.add(canonNombres);
-    if (canonServicio) hidden.add(canonServicio);
-    if (canonEdad) hidden.add(canonEdad);
-    if (canonEdadPaciente) hidden.add(canonEdadPaciente);
-
-    // Ocultar campos edad-paciente* del resto
-    for (const k of all) {
-      if (isCanonEdadPacienteUI(k)) hidden.add(k);
-    }
-
-    const top = new Set(
-      [canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio].filter(Boolean)
-    );
-
-    // ✅ Orden especial: los nuevos campos primero
-    return all
-      .filter((k) => !hidden.has(k) && !top.has(k))
-      .sort((a, b) => {
-        // ✅ Ordenar: primero los nuevos campos especiales, luego el resto alfabéticamente
-        const isNewFieldA = isCanonNacimientoPaciente(a) || isCanonDomicilioPaciente(a) || isCanonHCPaciente(a);
-        const isNewFieldB = isCanonNacimientoPaciente(b) || isCanonDomicilioPaciente(b) || isCanonHCPaciente(b);
-
-        if (isNewFieldA && !isNewFieldB) return -1;
-        if (!isNewFieldA && isNewFieldB) return 1;
-
-        // Dentro de los nuevos campos, orden específico
-        if (isNewFieldA && isNewFieldB) {
-          const order = ['nacimiento-paciente', 'domicilio-paciente', 'hc-paciente'];
-          const normA = normalizeName(a);
-          const normB = normalizeName(b);
-          const indexA = order.findIndex(o => normA.includes(o.replace('-', '')));
-          const indexB = order.findIndex(o => normB.includes(o.replace('-', '')));
-          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        }
-
-        return a.localeCompare(b, 'es');
-      });
-  }, [
-    canonical,
-    canonNombres,
-    canonServicio,
-    canonEdad,
-    canonEdadPaciente,
-    canonART,
-    canonCX,
-    canonDoctor,
-    canonApellido,
-    canonNombre,
-    canonDia,
-    canonMes,
-    canonAnio,
-    canonNacimientoPaciente,
-    canonDomicilioPaciente,
-    canonHCPaciente,
-  ]);
-
-  function getCanonFieldType(canonName) {
-    const internals = canonical?.canonicalToInternal?.[canonName] || [];
-    const sample = mapping?.[internals?.[0]]?.[0];
-    return sample?.field_type;
-  }
-
-  function getAutoCompleteAttr(canonName) {
-    const n = normalizeName(canonName);
-    if (n === 'provincia') return 'address-level1';
-    if (n === 'localidad') return 'address-level2';
-    if (n.includes('domicilio') || n.includes('direccion')) return 'street-address';
-    if (n.includes('telefono') || n.includes('celular')) return 'tel';
-    if (n.includes('dni')) return 'off';
-    if (n.includes('hc') || n.includes('historia-clinica')) return 'off';
-    if (n.includes('nacimiento') || n.includes('nacmiento')) return 'address-level2';
-    return 'on';
-  }
-
-  // ==========================================================
-  // ✅ NUEVO: PDF generation (rellenar PDF interactivo, sin coordenadas)
-  // - Sirve para FRENTE y DORSO
-  // - Deja el PDF listo para imprimir (flatten)
-  // ==========================================================
-  async function buildFilledPdfBytes(templateUrl) {
-    if (!mapping || !canonical) throw new Error('Mapping no cargado');
-
-    const templateBytes = await fetch(templateUrl, { cache: 'no-store' }).then((r) => {
-      if (!r.ok) throw new Error(`No pude cargar template PDF (${r.status})`);
-      return r.arrayBuffer();
-    });
-
-    const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
-    const pdfForm = pdfDoc.getForm();
-
-    // Helpers tolerantes (si no existe el campo, no rompe)
-    const trySetText = (fieldName, value) => {
-      const v = safeUpper((value ?? '').toString()).trim();
-      if (!v) return;
-      try {
-        pdfForm.getTextField(fieldName).setText(v);
-      } catch {
-        // ignore
-      }
-    };
-
-    const tryCheck = (fieldName, shouldCheck) => {
-      if (!shouldCheck) return;
-      try {
-        pdfForm.getCheckBox(fieldName).check();
-      } catch {
-        // ignore
-      }
-    };
-
-    // ===== Valores derivados =====
-    const apellido = canonApellido ? (form?.[canonApellido] ?? '').toString().trim() : '';
-    const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
-    const nombresPaciente = [apellido, nombre].filter(Boolean).join(' ').trim(); // ✅ CONCAT
-
-    const edadValuePrint = edadCalculada ? `${edadCalculada} años` : '';
-
-    const doctorRaw = canonDoctor ? (form?.[canonDoctor] ?? '').toString().trim() : '';
-    const doctorPrint = doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
-
-    // ===== Reglas explícitas que pediste =====
-    // Paciente (campos exactos del PDF)
-    trySetText('apellido-paciente', apellido);
-    trySetText('nombre-paciente', nombre);
-    trySetText('nombres-paciente', nombresPaciente);
-
-    // Edad (si existe)
-    trySetText('edad', edadValuePrint);
-    trySetText('edad-paciente', edadValuePrint);
-
-    // Servicio fijo (si existe)
-    trySetText('servicio', 'PISO');
-
-    // Sexo (checkbox internos)
-    const sexValue = form?.sexo; // 'M' | 'F' | ''
-    tryCheck('masculino-paciente', sexValue === 'M');
-    tryCheck('femenino-paciente', sexValue === 'F');
-
-    // ===== Replicar el resto de campos (por internos y por canónico) =====
-    for (const canonName of Object.keys(canonical.canonicalToInternal)) {
-      if (canonName === 'sexo') continue;
-
-      let canonValue = form?.[canonName];
-
-      // ✅ Para hc-paciente, quitar los separadores de miles antes de guardar
-      if (canonName === canonHCPaciente && canonValue) {
-        canonValue = parseFormattedNumber(canonValue);
-      }
-
-      // overrides
-      if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
-      if (canonEdad && canonName === canonEdad) canonValue = edadValuePrint;
-      if (canonEdadPaciente && canonName === canonEdadPaciente) canonValue = edadValuePrint;
-      if (canonNombres && canonName === canonNombres) canonValue = nombresPaciente;
-      if (canonServicio && canonName === canonServicio) canonValue = 'PISO';
-
-      const fieldType = getCanonFieldType(canonName);
-      const isBtn = isLikelyCheckbox(fieldType);
-
-      const internalNames = canonical.canonicalToInternal[canonName] || [];
-
-      // 1) intentar por internal name
-      for (const internal of internalNames) {
-        if (isBtn) tryCheck(internal, !!canonValue);
-        else trySetText(internal, canonValue);
-      }
-
-      // 2) intentar por canon name
-      if (isBtn) tryCheck(canonName, !!canonValue);
-      else trySetText(canonName, canonValue);
-    }
-
-    // ✅ Para imprimir: "aplana" los campos (queda no editable, pero visible e imprimible)
-    pdfForm.flatten();
-
-    return await pdfDoc.save();
-  }
-
-  // ✅ Función para generar nombre de archivo basado en nombres del paciente
-  function generateFilename(type) {
-    const apellido = canonApellido ? (form?.[canonApellido] ?? '').toString().trim() : '';
-    const nombre = canonNombre ? (form?.[canonNombre] ?? '').toString().trim() : '';
-
-    let baseName = '';
-
-    if (apellido && nombre) {
-      baseName = `${apellido} ${nombre}`;
-    } else if (apellido) {
-      baseName = apellido;
-    } else if (nombre) {
-      baseName = nombre;
-    } else {
-      baseName = 'Paciente';
-    }
-
-    // Limpiar el nombre para usarlo en nombre de archivo
-    const safeName = generateSafeFilename(baseName);
-
-    // Agregar timestamp si el nombre está vacío
-    if (!safeName || safeName.trim() === '') {
-      return `Paciente-${type}-${Date.now()}`;
-    }
-
-    return `${safeName}-${type}`;
-  }
-
-  async function downloadPdf(templateUrl, type) {
+    // Guardar en Firebase
+    setEnviando(true);
     try {
-      setError('');
-      const bytes = await buildFilledPdfBytes(templateUrl);
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      const data = {
+        ...form,
+        edad: edad,
+        fechaSolicitud: Date.now(),
+        estado: "pendiente", // o "recibido"
+        createdAt: new Date().toISOString(),
+      };
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${generateFilename(type)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const res = await fetch(`${FIREBASE_URL}/solicitudes-cirugia.json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-      setTimeout(() => URL.revokeObjectURL(url), 1200);
-    } catch (e) {
-      setError(e?.message || 'Error al generar descarga');
+      if (!res.ok) throw new Error("Error al enviar");
+
+      setMensaje({ texto: "Solicitud enviada con éxito. Pronto nos contactaremos.", tipo: "exito" });
+      // Limpiar formulario (opcional)
+      setForm({
+        apellido: "",
+        nombre: "",
+        sexo: "",
+        dni: "",
+        nacimiento: "",
+        lugarNacimiento: "",
+        domicilio: "",
+        localidad: "",
+        provincia: "",
+        telefono: "",
+      });
+      setEdad("");
+    } catch (error) {
+      console.error(error);
+      setMensaje({ texto: "Hubo un error. Intente nuevamente más tarde.", tipo: "error" });
+    } finally {
+      setEnviando(false);
     }
-  }
-
-  // ===== Render =====
-  if (loading) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.shell}>
-          <div className={styles.heroLeft}>
-            <h1 className={styles.h1}>Formulario · Impresión</h1>
-            <p className={styles.lead}>Cargando campos…</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (!mapping || !canonical) {
-    return (
-      <main className={styles.page}>
-        <div className={styles.shell}>
-          <div className={styles.heroLeft}>
-            <h1 className={styles.h1}>Formulario · Impresión</h1>
-            <p className={styles.lead}>No se pudo cargar el mapping.</p>
-          </div>
-
-          <div className={styles.bannerError}>
-            {error || 'Error desconocido'}
-            <div className={styles.small}>
-              Verificá:
-              <div>
-                <code className={styles.code}>public/mappings/cd-campos_fields_rects.json</code>
-              </div>
-              <div>
-                <code className={styles.code}>public/templates/FRENTE-CX.pdf</code>
-              </div>
-              <div>
-                <code className={styles.code}>public/templates/DORSO-CX.pdf</code>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const hasSexo = form?.sexo !== undefined;
-
-  // ✅ Verificar si existen los nuevos campos
-  const hasNewFields = canonNacimientoPaciente || canonDomicilioPaciente || canonHCPaciente;
+  };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        {error ? <div className={styles.bannerError}>{error}</div> : null}
-        <Header />
-        <div className={styles.card}>
-          <div className={styles.grid}>
-            {canonART ? (
-              <div className={`${styles.field} ${styles.fieldWide}`} key={canonART}>
-                <div className={styles.labelRow}>
-                  <label className={styles.fieldLabel}>ART</label>
-                </div>
-                <input
-                  className={styles.input}
-                  name={canonART}
-                  autoComplete="on"
-                  value={form?.[canonART] ?? ''}
-                  onChange={(e) => setValue(canonART, e.target.value)}
-                  onBlur={(e) => commitSuggestion(canonART, e.target.value)}
-                  placeholder="ART…"
-                />
-                <datalist id={`dl-${canonART}`}>
-                  {(suggestions?.[canonART] || []).map((opt) => (
-                    <option value={opt} key={opt} />
-                  ))}
-                </datalist>
-              </div>
-            ) : null}
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Solicitud de Cirugía</h1>
+        <p className={styles.subtitle}>Complete todos los campos para solicitar su cirugía</p>
 
-            {canonCX ? (
-              <div className={`${styles.field} ${styles.fieldWide}`} key={canonCX}>
-                <div className={styles.labelRow}>
-                  <label className={styles.fieldLabel}>CX a realizar</label>
-                </div>
-                <input
-                  className={styles.input}
-                  name={canonCX}
-                  autoComplete="on"
-                  value={form?.[canonCX] ?? ''}
-                  onChange={(e) => setValue(canonCX, e.target.value)}
-                  onBlur={(e) => commitSuggestion(canonCX, e.target.value)}
-                  placeholder="Cirugía a realizar…"
-                  list={`dl-${canonCX}`}
-                />
-                <datalist id={`dl-${canonCX}`}>
-                  {(suggestions?.[canonCX] || []).map((opt) => (
-                    <option value={opt} key={opt} />
-                  ))}
-                </datalist>
-              </div>
-            ) : null}
-
-            {canonDoctor ? (
-              <div className={`${styles.field} ${styles.fieldWide}`} key={canonDoctor}>
-                <div className={styles.labelRow}>
-                  <label className={styles.fieldLabel}>Dr que realiza la CX</label>
-                </div>
-                <input
-                  className={styles.input}
-                  name={canonDoctor}
-                  autoComplete="on"
-                  value={form?.[canonDoctor] ?? ''}
-                  onChange={(e) => setValue(canonDoctor, e.target.value)}
-                  onBlur={(e) => commitSuggestion(canonDoctor, e.target.value)}
-                  placeholder="Nombre del profesional…"
-                  list={`dl-${canonDoctor}`}
-                />
-                <datalist id={`dl-${canonDoctor}`}>
-                  {(suggestions?.[canonDoctor] || []).map((opt) => (
-                    <option value={opt} key={opt} />
-                  ))}
-                </datalist>
-              </div>
-            ) : null}
+        {mensaje.texto && (
+          <div className={`${styles.mensaje} ${styles[mensaje.tipo]}`}>
+            {mensaje.texto}
           </div>
+        )}
 
-          <div className={styles.divider} />
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {/* DATOS DEL PACIENTE */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Datos del paciente</h2>
 
-          <div className={styles.grid}>
-            <div className={`${styles.field} ${styles.fieldWide}`}>
-              <div className={styles.labelRow}>
-                <label className={styles.fieldLabel}>Paciente</label>
-                <span className={styles.badge}>arma nombres-paciente</span>
-              </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="apellido">Apellido *</label>
+              <input
+                type="text"
+                id="apellido"
+                name="apellido"
+                value={form.apellido}
+                onChange={handleChange}
+                placeholder="Ej: Pérez"
+                className={styles.input}
+                required
+              />
+            </div>
 
-              <div className={styles.row2}>
-                <div>
-                  <div className={styles.subLabel}>Apellido</div>
-                  <input
-                    className={styles.input}
-                    name={canonApellido || 'apellido'}
-                    autoComplete="family-name"
-                    value={canonApellido ? (form?.[canonApellido] ?? '') : ''}
-                    onChange={(e) => canonApellido && setValue(canonApellido, e.target.value)}
-                    onBlur={(e) => canonApellido && commitSuggestion(canonApellido, e.target.value)}
-                    placeholder="Apellido…"
-                    disabled={!canonApellido}
-                    list={canonApellido ? `dl-${canonApellido}` : undefined}
-                  />
-                  {canonApellido ? (
-                    <datalist id={`dl-${canonApellido}`}>
-                      {(suggestions?.[canonApellido] || []).map((opt) => (
-                        <option value={opt} key={opt} />
-                      ))}
-                    </datalist>
-                  ) : null}
-                </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="nombre">Nombre *</label>
+              <input
+                type="text"
+                id="nombre"
+                name="nombre"
+                value={form.nombre}
+                onChange={handleChange}
+                placeholder="Ej: Juan"
+                className={styles.input}
+                required
+              />
+            </div>
 
-                <div>
-                  <div className={styles.subLabel}>Nombre</div>
-                  <input
-                    className={styles.input}
-                    name={canonNombre || 'nombre'}
-                    autoComplete="given-name"
-                    value={canonNombre ? (form?.[canonNombre] ?? '') : ''}
-                    onChange={(e) => canonNombre && setValue(canonNombre, e.target.value)}
-                    onBlur={(e) => canonNombre && commitSuggestion(canonNombre, e.target.value)}
-                    placeholder="Nombre…"
-                    disabled={!canonNombre}
-                    list={canonNombre ? `dl-${canonNombre}` : undefined}
-                  />
-                  {canonNombre ? (
-                    <datalist id={`dl-${canonNombre}`}>
-                      {(suggestions?.[canonNombre] || []).map((opt) => (
-                        <option value={opt} key={opt} />
-                      ))}
-                    </datalist>
-                  ) : null}
-                </div>
+            <div className={styles.formGroup}>
+              <label>Sexo *</label>
+              <div className={styles.sexoGroup}>
+                <button
+                  type="button"
+                  className={`${styles.sexoBtn} ${form.sexo === "M" ? styles.active : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, sexo: "M" }))}
+                >
+                  Masculino
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.sexoBtn} ${form.sexo === "F" ? styles.active : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, sexo: "F" }))}
+                >
+                  Femenino
+                </button>
               </div>
             </div>
 
-            {hasSexo ? (
-              <div className={styles.field}>
-                <div className={styles.labelRow}>
-                  <label className={styles.fieldLabel}>Sexo</label>
-                </div>
-                <div className={styles.sexRowInline}>
-                  <button
-                    type="button"
-                    className={`${styles.chip} ${form.sexo === 'M' ? styles.chipActive : ''}`}
-                    onClick={() => setValue('sexo', form.sexo === 'M' ? '' : 'M')}
-                  >
-                    Masculino
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.chip} ${form.sexo === 'F' ? styles.chipActive : ''}`}
-                    onClick={() => setValue('sexo', form.sexo === 'F' ? '' : 'F')}
-                  >
-                    Femenino
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className={styles.grid}>
-            <div className={`${styles.field} ${styles.fieldWide}`}>
-              <div className={styles.labelRow}>
-                <label className={styles.fieldLabel}>Fecha de nacimiento</label>
-                <span className={styles.badge}>día / mes / año</span>
-              </div>
-
-              <div className={styles.row3}>
-                <div>
-                  <div className={styles.subLabel}>Día</div>
-                  <input
-                    className={styles.input}
-                    name={canonDia || 'dia'}
-                    autoComplete="off"
-                    value={canonDia ? (form?.[canonDia] ?? '') : ''}
-                    onChange={(e) => canonDia && setValue(canonDia, e.target.value)}
-                    placeholder="DD"
-                    inputMode="numeric"
-                    disabled={!canonDia}
-                  />
-                </div>
-                <div>
-                  <div className={styles.subLabel}>Mes</div>
-                  <input
-                    className={styles.input}
-                    name={canonMes || 'mes'}
-                    autoComplete="off"
-                    value={canonMes ? (form?.[canonMes] ?? '') : ''}
-                    onChange={(e) => canonMes && setValue(canonMes, e.target.value)}
-                    placeholder="MM"
-                    inputMode="numeric"
-                    disabled={!canonMes}
-                  />
-                </div>
-                <div>
-                  <div className={styles.subLabel}>Año</div>
-                  <input
-                    className={styles.input}
-                    name={canonAnio || 'anio'}
-                    autoComplete="off"
-                    value={canonAnio ? (form?.[canonAnio] ?? '') : ''}
-                    onChange={(e) => canonAnio && setValue(canonAnio, e.target.value)}
-                    placeholder="AAAA"
-                    inputMode="numeric"
-                    disabled={!canonAnio}
-                  />
-                </div>
-              </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="dni">DNI / CUIL *</label>
+              <input
+                type="text"
+                id="dni"
+                name="dni"
+                value={form.dni}
+                onChange={handleChange}
+                placeholder="Ej: 20-12345678-9 o 12345678"
+                className={styles.input}
+                required
+              />
             </div>
 
-            <div className={styles.field}>
-              <div className={styles.labelRow}>
-                <label className={styles.fieldLabel}>Edad</label>
-                <span className={styles.badge}>auto</span>
-              </div>
-              <input className={styles.input} value={edadCalculada ? `${edadCalculada} años` : ''} placeholder="—" readOnly disabled />
+            <div className={styles.formGroup}>
+              <label htmlFor="nacimiento">Fecha de nacimiento *</label>
+              <input
+                type="date"
+                id="nacimiento"
+                name="nacimiento"
+                value={form.nacimiento}
+                onChange={handleChange}
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Edad</label>
+              <input
+                type="text"
+                value={edad ? `${edad} años` : ""}
+                className={`${styles.input} ${styles.readonly}`}
+                readOnly
+                disabled
+              />
             </div>
           </div>
 
+          {/* DATOS COMPLEMENTARIOS */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Datos complementarios</h2>
 
-
-
-          {orderedResto.length > 0 && (
-            <div className={styles.grid}>
-              {orderedResto.map((canonName) => {
-                const internals = canonical.canonicalToInternal[canonName] || [];
-                const fieldType = getCanonFieldType(canonName);
-                const isBtn = isLikelyCheckbox(fieldType);
-
-                return (
-                  <div className={styles.field} key={canonName}>
-                    <div className={styles.labelRow}>
-                      <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
-                    </div>
-
-                    {isBtn ? (
-                      <label className={styles.checkboxRow}>
-                        <input type="checkbox" checked={!!form[canonName]} onChange={(e) => setValue(canonName, e.target.checked)} />
-                        <span>Marcar</span>
-                      </label>
-                    ) : (
-                      <>
-                        <input
-                          className={styles.input}
-                          name={canonName}
-                          autoComplete={getAutoCompleteAttr(canonName)}
-                          value={form?.[canonName] ?? ''}
-                          onChange={(e) => setValue(canonName, e.target.value)}
-                          onBlur={(e) => commitSuggestion(canonName, e.target.value)}
-                          placeholder="Completar…"
-                          list={`dl-${canonName}`}
-                        />
-                        <datalist id={`dl-${canonName}`}>
-                          {(suggestions?.[canonName] || []).map((opt) => (
-                            <option value={opt} key={opt} />
-                          ))}
-                        </datalist>
-                      </>
-                    )}
-
-                    <div className={styles.hint}>
-                      Internos:{' '}
-                      <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
-                      {internals.length > 2 ? <span> +{internals.length - 2}</span> : null}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className={styles.formGroup}>
+              <label htmlFor="lugarNacimiento">Lugar de nacimiento *</label>
+              <input
+                type="text"
+                id="lugarNacimiento"
+                name="lugarNacimiento"
+                value={form.lugarNacimiento}
+                onChange={handleChange}
+                placeholder="Ciudad, Provincia, País"
+                className={styles.input}
+                required
+              />
             </div>
-          )}
 
-          <br />
-        </div>
-
-        <div className={`${styles.heroRight} ${styles.stickyActions} mt-3`}>
-          <div className={styles.actionCard}>
-            <div className={styles.actionTitle}>Acciones</div>
-            <div className={styles.actionButtons}>
-              {/* ✅ Descargables imprimibles */}
-              <button
-                className={styles.ghostBtn}
-                onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'Frente')}
-                type="button"
-              >
-                Descargar {canonApellido || canonNombre ? generateFilename('Frente') : 'FRENTE'}
-              </button>
-
-              <button
-                className={styles.ghostBtn}
-                onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'Dorso')}
-                type="button"
-              >
-                Descargar {canonApellido || canonNombre ? generateFilename('Dorso') : 'DORSO'}
-              </button>
+            <div className={styles.formGroup}>
+              <label htmlFor="domicilio">Domicilio actual *</label>
+              <input
+                type="text"
+                id="domicilio"
+                name="domicilio"
+                value={form.domicilio}
+                onChange={handleChange}
+                placeholder="Calle, número, depto"
+                className={styles.input}
+                required
+              />
             </div>
-            <div className={styles.note}>
-              Se descargará como: <strong>{canonApellido || canonNombre ? generateFilename('Frente') : 'Paciente-Frente'}.pdf</strong>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="localidad">Localidad actual *</label>
+              <input
+                type="text"
+                id="localidad"
+                name="localidad"
+                value={form.localidad}
+                onChange={handleChange}
+                placeholder="Ej: Chajarí"
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="provincia">Provincia del domicilio *</label>
+              <input
+                type="text"
+                id="provincia"
+                name="provincia"
+                value={form.provincia}
+                onChange={handleChange}
+                placeholder="Ej: Entre Ríos"
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="telefono">Teléfono de contacto *</label>
+              <input
+                type="tel"
+                id="telefono"
+                name="telefono"
+                value={form.telefono}
+                onChange={handleChange}
+                placeholder="Ej: 3456-123456"
+                className={styles.input}
+                required
+              />
             </div>
           </div>
-        </div>
+
+          <button type="submit" className={styles.submitBtn} disabled={enviando}>
+            {enviando ? "Enviando..." : "Enviar solicitud"}
+          </button>
+        </form>
       </div>
-    </main>
+    </div>
   );
 }

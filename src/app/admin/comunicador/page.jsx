@@ -1,10 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 
+const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+
 export default function WhatsAppSender() {
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
+  const searchParams = useSearchParams();
+
+  // Parámetros de URL
+  const initialPhone = searchParams.get("phone") || "";
+  const initialName = searchParams.get("name") || "";
+  const pacienteId = searchParams.get("pacienteId") || null;
+
+  // Estados del formulario
+  const [phone, setPhone] = useState(initialPhone);
+  const [name, setName] = useState(initialName);
   const [dia, setDia] = useState("");
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
@@ -12,13 +23,51 @@ export default function WhatsAppSender() {
   const [cardiologo, setCardiologo] = useState("percara");
   const [preview, setPreview] = useState("");
 
+  // Estados para búsqueda de pacientes
+  const [pacientes, setPacientes] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
+  // Cargar lista de pacientes al montar
   useEffect(() => {
-    setPreview(buildMessage());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+    const fetchPacientes = async () => {
+      try {
+        const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
+        if (!res.ok) throw new Error("Error al cargar pacientes");
+        const data = await res.json();
+        if (data) {
+          const arr = Object.entries(data).map(([id, value]) => ({
+            id,
+            ...value,
+            fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+            phone: value.trabajador?.telefono || "",
+          }));
+          setPacientes(arr);
+        }
+      } catch (error) {
+        console.error("Error cargando pacientes:", error);
+      }
+    };
+    fetchPacientes();
+  }, []);
 
+  // Filtrar pacientes según término de búsqueda
+  const filteredPacientes = pacientes.filter((p) =>
+    p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.trabajador?.dni || "").includes(searchTerm)
+  );
+
+  // Manejar selección de paciente
+  const handleSelectPaciente = (paciente) => {
+    setName(paciente.fullName);
+    setPhone(paciente.phone);
+    setSearchTerm(paciente.fullName);
+    setShowSuggestions(false);
+  };
+
+  // Construcción de mensaje
   const buildMessage = () => {
     if (mensaje === "1") {
       return `Buen día, *${name}*.
@@ -144,7 +193,6 @@ Quedamos a la espera de su información para avanzar.
 
 Muchas gracias.`;
     }
-    // Mensaje 8: Ortopedia (versión resumida y clara)
     if (mensaje === "8") {
       return `Buen día, *${name}*.
 
@@ -164,6 +212,11 @@ Le informamos los pasos para retirar su ortopedia:
     return "";
   };
 
+  useEffect(() => {
+    setPreview(buildMessage());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+
   const createWaLink = () => {
     if (!phone) return "";
     return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
@@ -177,6 +230,41 @@ Le informamos los pasos para retirar su ortopedia:
         <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
         <div className={styles.formGrid}>
+          {/* Búsqueda de pacientes */}
+          <div className={styles.field} style={{ gridColumn: "span 2" }}>
+            <label className={styles.label}>
+              Buscar paciente (opcional)
+            </label>
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Escribe nombre o DNI..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+              {showSuggestions && searchTerm && filteredPacientes.length > 0 && (
+                <div className={styles.suggestions}>
+                  {filteredPacientes.slice(0, 8).map((p) => (
+                    <div
+                      key={p.id}
+                      className={styles.suggestionItem}
+                      onClick={() => handleSelectPaciente(p)}
+                    >
+                      <span className={styles.suggestionName}>{p.fullName}</span>
+                      <span className={styles.suggestionPhone}>{p.phone || "Sin teléfono"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Teléfono */}
           <div className={styles.field}>
             <label htmlFor="phone" className={styles.label}>

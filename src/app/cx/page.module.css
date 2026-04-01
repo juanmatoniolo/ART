@@ -1,369 +1,196 @@
-.page {
-    min-height: 100vh;
-    background: linear-gradient(180deg, #f6f8fb 0%, #ffffff 60%);
-}
-
-.shell {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 18px 16px 44px;
-}
-
-.hero {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 14px;
-    align-items: start;
-    margin-bottom: 14px;
-}
-
-@media (max-width: 980px) {
-    .hero {
-        grid-template-columns: 1fr;
-    }
-}
-
-.heroLeft {
-    background: radial-gradient(1100px 420px at 25% 0%, rgba(111, 161, 123, 0.22) 0%, rgba(255, 255, 255, 0) 55%),
-        radial-gradient(900px 380px at 70% 20%, rgba(68, 121, 77, 0.15) 0%, rgba(255, 255, 255, 0) 55%);
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    border-radius: 18px;
-    padding: 16px;
-    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.06);
-}
-
-.heroRight {
-    display: block;
-}
-
-.stickyActions {
-    position: sticky;
-    top: 14px;
-    z-index: 20;
-}
-
-@media (max-width: 980px) {
-    .stickyActions {
-        position: static;
-    }
-}
-
-.h1 {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 0.2px;
-    margin-bottom: 6px;
-    color: #0f172a;
-}
-
-.lead {
-    color: rgba(15, 23, 42, 0.75);
-    line-height: 1.5;
-}
-
-.miniNote {
-    display: inline-block;
-    margin-top: 6px;
-    font-size: 12px;
-    color: rgba(15, 23, 42, 0.62);
+.container {
+  min-height: 100vh;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  font-family: system-ui, 'Segoe UI', sans-serif;
 }
 
 .card {
-    background: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 16px;
-    padding: 14px;
-    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.06);
+  max-width: 680px;
+  width: 100%;
+  background: white;
+  border-radius: 2rem;
+  box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+  padding: 2rem 1.5rem;
 }
 
-.actionCard {
-    background: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 16px;
-    padding: 14px;
-    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.06);
+.title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem;
+  color: #111827;
+  text-align: center;
 }
 
-.actionTitle {
-    font-weight: 900;
-    color: rgba(15, 23, 42, 0.8);
-    margin-bottom: 10px;
-    font-size: 12px;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
+.subtitle {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 1.8rem;
+  font-size: 0.9rem;
 }
 
-.actionButtons {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
+/* Mensajes */
+.mensaje {
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
-.note {
-    margin-top: 10px;
-    font-size: 12px;
-    color: rgba(15, 23, 42, 0.62);
-    line-height: 1.4;
+.exito {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
-.primaryBtn,
-.secondaryBtn,
-.ghostBtn {
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    font-weight: 900;
-    transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
-.primaryBtn {
-    background: var(--color-primary);
-    color: #000000bd;
-    box-shadow: 0 10px 20px rgba(68, 121, 77, 0.18);
+/* Secciones */
+.section {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
 }
 
-.primaryBtn:hover {
-    transform: translateY(-1px);
-    opacity: 0.96;
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.secondaryBtn {
-    background: rgba(15, 23, 42, 0.04);
-    color: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(15, 23, 42, 0.10);
+.sectionTitle::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1.2rem;
+  background: #44794d;
+  border-radius: 2px;
 }
 
-.secondaryBtn:hover {
-    transform: translateY(-1px);
-    opacity: 0.95;
+/* Grupos de formulario */
+.formGroup {
+  margin-bottom: 1.2rem;
 }
 
-.ghostBtn {
-    background: transparent;
-    color: rgba(15, 23, 42, 0.92);
-    border: 1px dashed rgba(15, 23, 42, 0.22);
-}
-
-.ghostBtn:hover {
-    border-color: rgba(68, 121, 77, 0.55);
-    transform: translateY(-1px);
-}
-
-.bannerError {
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    background: rgba(239, 68, 68, 0.10);
-    color: rgba(127, 29, 29, 0.95);
-    border-radius: 14px;
-    padding: 10px 12px;
-    font-size: 13px;
-    line-height: 1.4;
-    margin-bottom: 12px;
-}
-
-.small {
-    font-size: 12px;
-    color: rgba(15, 23, 42, 0.65);
-    line-height: 1.4;
-}
-
-.formHeaderRow {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 8px 0 12px;
-    flex-wrap: wrap;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-}
-
-@media (max-width: 1040px) {
-    .grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 620px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.fieldWide {
-    grid-column: 1 / -1;
-}
-
-.field {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: rgba(15, 23, 42, 0.02);
-    border-radius: 16px;
-    padding: 12px;
-    transition: box-shadow 120ms ease, transform 120ms ease;
-}
-
-.field:hover {
-    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.06);
-    transform: translateY(-1px);
-}
-
-.labelRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.fieldLabel {
-    font-size: 13px;
-    font-weight: 900;
-    color: rgba(15, 23, 42, 0.88);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.badge {
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, 0.10);
-    background: rgba(255, 255, 255, 0.70);
-    color: rgba(15, 23, 42, 0.72);
-    font-weight: 900;
-}
-
-.newBadge {
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: rgba(59, 130, 246, 0.15);
-    color: rgb(29, 78, 216);
-    font-weight: 900;
+.formGroup label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #374151;
+  margin-bottom: 0.3rem;
 }
 
 .input {
-    width: 100%;
-    background: #ffffff;
-    color: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(15, 23, 42, 0.14);
-    border-radius: 12px;
-    padding: 10px 12px;
-    outline: none;
-    font-size: 14px;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .input:focus {
-    border-color: rgba(68, 121, 77, 0.55);
-    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.22);
+  outline: none;
+  border-color: #44794d;
+  box-shadow: 0 0 0 3px rgba(68, 121, 77, 0.15);
+  background: white;
 }
 
-.hint {
-    font-size: 12px;
-    color: rgba(15, 23, 42, 0.60);
-    margin-top: 8px;
-    line-height: 1.4;
+.readonly {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: default;
 }
 
-.code {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 10px;
-    border: 1px solid rgba(15, 23, 42, 0.10);
-    background: #ffffff;
-    color: rgba(15, 23, 42, 0.85);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-        "Courier New", monospace;
-    font-size: 12px;
+/* Grupo de sexo */
+.sexoGroup {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
 }
 
-.checkboxRow {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border: 1px solid rgba(15, 23, 42, 0.10);
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-weight: 800;
-    color: rgba(15, 23, 42, 0.78);
+.sexoBtn {
+  flex: 1;
+  padding: 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #374151;
 }
 
-.divider {
-    height: 1px;
-    background: rgba(15, 23, 42, 0.08);
-    margin: 14px 0;
+.sexoBtn.active {
+  background: #44794d;
+  border-color: #44794d;
+  color: white;
 }
 
-/* rows */
-.row2 {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+.sexoBtn:hover:not(.active) {
+  background: #e5e7eb;
 }
 
-@media (max-width: 620px) {
-    .row2 {
-        grid-template-columns: 1fr;
-    }
+/* Botón enviar */
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  background: #44794d;
+  border: none;
+  border-radius: 0.9rem;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 1rem;
 }
 
-.row3 {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+.submitBtn:hover:not(:disabled) {
+  background: #356040;
 }
 
-@media (max-width: 620px) {
-    .row3 {
-        grid-template-columns: 1fr;
-    }
+.submitBtn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-.subLabel {
-    font-size: 11px;
-    font-weight: 900;
-    color: rgba(15, 23, 42, 0.60);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+.submitBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
-/* sexo chips */
-.sexRowInline {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+/* Ajustes móviles */
+@media (max-width: 480px) {
+  .card {
+    padding: 1.5rem;
+  }
 
-.chip {
-    border: 1px solid rgba(15, 23, 42, 0.16);
-    background: #ffffff;
-    color: rgba(15, 23, 42, 0.85);
-    border-radius: 999px;
-    padding: 8px 12px;
-    font-weight: 900;
-    font-size: 12px;
-    transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
-}
+  .title {
+    font-size: 1.5rem;
+  }
 
-.chip:hover {
-    transform: translateY(-1px);
-    border-color: rgba(68, 121, 77, 0.45);
-}
+  .input {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+  }
 
-.chipActive {
-    border-color: rgba(68, 121, 77, 0.55);
-    background: rgba(111, 161, 123, 0.18);
-}
-
-.cardTitle {
-    font-weight: 900;
-    font-size: 15px;
-    color: rgba(15, 23, 42, 0.92);
-    margin-bottom: 4px;
+  .sexoBtn {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+  }
 }
