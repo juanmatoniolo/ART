@@ -683,7 +683,7 @@ export default function Page() {
             </div>
           </div>
         </div>
-
+        
       </main>
     );
   }
@@ -714,12 +714,6 @@ export default function Page() {
             >
               📋 Ver Cirugías Programadas
             </button>
-                    <button
-  className={styles.verSolicitudesBtn}
-  onClick={() => router.push('/admin/cx/solicitudes')}
->
-  📋 Ver solicitudes de pacientes
-</button>
           </div>
 
           {mode === 'paciente' && (

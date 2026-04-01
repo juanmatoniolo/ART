@@ -1,4 +1,3 @@
-
 /* ==================== BASE ==================== */
 .page {
     min-height: 100vh;
@@ -669,4 +668,360 @@
 
 .programadasBtn:hover {
     background: #1d4ed8;
+}
+
+/* ==================== NUEVOS ESTILOS PARA PESTAÑAS, TABLAS, MODALES, ETC. ==================== */
+
+/* --- Barra de pestañas principal --- */
+.tabBar {
+    display: flex;
+    gap: 8px;
+    background: #0b1220;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 0 24px;
+    margin-bottom: 20px;
+}
+
+.tabButton {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tabButton:hover {
+    color: #cbd5e1;
+}
+
+.tabButton.active {
+    color: #6fa17b;
+    border-bottom-color: #6fa17b;
+}
+
+/* --- Grupo de pestañas internas (filtros) --- */
+.tabGroup {
+    display: flex;
+    gap: 8px;
+    background: #1a2335;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tab:hover {
+    color: #cbd5e1;
+}
+
+.tabActive {
+    background: #2d3a4f;
+    color: #f1f5f9;
+}
+
+.tabCount {
+    margin-left: 6px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 20px;
+}
+
+/* --- Tablas para listado de solicitudes --- */
+.tableWrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: #111827;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    vertical-align: middle;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.rowAtendida {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.2);
+}
+
+.cellName strong {
+    display: block;
+    font-weight: 700;
+}
+
+.subText {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* --- Estados y badges --- */
+.estadoBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.estadoPendiente {
+    background: #f59e0b20;
+    color: #fbbf24;
+    border: 1px solid #f59e0b40;
+}
+
+.estadoAtendida {
+    background: #10b98120;
+    color: #34d399;
+    border: 1px solid #10b98140;
+}
+
+/* --- Botones de acción en tabla --- */
+.actionsCell {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.iconBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #e2e8f0;
+}
+
+.iconBtn:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: #6fa17b;
+}
+
+.iconBtnSuccess {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b98140;
+    color: #34d399;
+}
+
+.iconBtnSuccess:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+}
+
+.iconBtnWarning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b40;
+    color: #fbbf24;
+}
+
+.iconBtnWarning:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+}
+
+/* --- Estado vacío --- */
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+    background: #111827;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.emptyIcon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* --- Modales --- */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.modalHeader h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #9ca3af;
+    transition: color 0.15s;
+}
+
+.closeBtn:hover {
+    color: #f1f5f9;
+}
+
+.modalBody {
+    padding: 20px;
+}
+
+.detailRow {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 14px;
+}
+
+.detailRow strong {
+    display: inline-block;
+    min-width: 130px;
+    color: #94a3b8;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.actionsModal {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.saveBtn {
+    background: #44794d;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background: #5b9a63;
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Ajustes responsivos adicionales --- */
+@media (max-width: 640px) {
+    .modal {
+        max-width: 95%;
+        margin: 0 10px;
+    }
+    .detailRow strong {
+        min-width: 100px;
+    }
+    .tabButton {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    .tabBar {
+        padding: 0 12px;
+    }
 }
