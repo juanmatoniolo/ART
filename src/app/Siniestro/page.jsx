@@ -6,7 +6,7 @@ import { push, ref, set } from "firebase/database";
 import styles from "./SiniestroPage.module.css";
 import Header from "@/components/Header/Header";
 
-const STORAGE_KEY = "siniestro_form_v2"; // nuevo key para incluir fechas
+const STORAGE_KEY = "siniestro_form_v2";
 
 const PRESTADOR_CONST = {
     nombre: "CLINICA DE LA UNION S.A",
@@ -22,8 +22,6 @@ const PRESTADOR_CONST = {
     mail: "clinicadelaunionart@gmail.com",
 };
 
-
-// Definir las opciones de ART ordenadas alfabéticamente
 const ART_OPTIONS = [
     "Asociart",
     "COMFYE",
@@ -36,7 +34,7 @@ const ART_OPTIONS = [
     "Medicar work",
     "Victoria seguros"
 ];
-// Valores por defecto para las fechas (hoy)
+
 const today = new Date();
 const defaultDay = String(today.getDate()).padStart(2, "0");
 const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
@@ -52,7 +50,7 @@ const initialForm = {
     trabajadorApellido: "",
     trabajadorNombre: "",
     trabajadorDni: "",
-    trabajadorNacimiento: "",      // formato YYYY-MM-DD
+    trabajadorNacimiento: "",
     trabajadorSexo: "",
 
     trabajadorCalle: "",
@@ -67,7 +65,6 @@ const initialForm = {
 
     consultaTipo: "",
 
-    // NUEVOS CAMPOS DE FECHAS
     diaIngreso: defaultDay,
     mesIngreso: defaultMonth,
     anioIngreso: defaultYear,
@@ -75,20 +72,35 @@ const initialForm = {
     mesDenuncia: defaultMonth,
     anioDenuncia: defaultYear,
 
-    trabajadorEdad: "",   // calculada automáticamente
+    trabajadorEdad: "",
 };
 
 function onlyDigits(s) {
     return (s ?? "").toString().replace(/\D/g, "");
 }
 
-function formatCuitIf11(value) {
-    const d = onlyDigits(value);
-    if (d.length !== 11) return value;
-    return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`;
+// Formato CUIL/CUIT: xx-xx.xxx.xxx-x  (exactamente 11 dígitos)
+function formatCuil(digits) {
+    if (digits.length !== 11) return digits;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 4)}.${digits.slice(4, 7)}.${digits.slice(7, 10)}-${digits.slice(10)}`;
 }
 
-// Cálculo de edad exacta en años
+// Formato DNI: xx.xxx.xxx  (7 u 8 dígitos → separadores de miles con punto)
+function formatDni(digits) {
+    if (!digits) return "";
+    // Insertar puntos cada 3 desde la derecha
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Decide formato según cantidad de dígitos puros
+function formatIdField(value) {
+    const d = onlyDigits(value);
+    if (!d) return value;
+    if (d.length === 11) return formatCuil(d);
+    // 7 u 8 dígitos → DNI con puntos
+    return formatDni(d);
+}
+
 function calcularEdad(nacimiento) {
     if (!nacimiento) return "";
     const [y, m, d] = nacimiento.split("-").map(Number);
@@ -121,7 +133,6 @@ function validate(f) {
         e.trabajadorTelefono = "Teléfono inválido";
     }
 
-    // Validar fechas
     const validarFecha = (dia, mes, anio, prefix) => {
         const d = Number(dia), m = Number(mes), a = Number(anio);
         if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
@@ -152,7 +163,6 @@ function Section({ title, subtitle, children }) {
     );
 }
 
-// Componente para inputs de día/mes/año
 function DatePartInput({ label, value, onChange, placeholder, maxLength, error, className }) {
     return (
         <div className={cx(styles.datePartField, className)}>
@@ -181,7 +191,6 @@ export default function SiniestroPage() {
 
     const submittingRef = useRef(false);
 
-    // Cargar borrador
     useEffect(() => {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -189,7 +198,6 @@ export default function SiniestroPage() {
         } catch { }
     }, []);
 
-    // Guardar borrador con debounce
     useEffect(() => {
         const t = setTimeout(() => {
             try {
@@ -199,14 +207,12 @@ export default function SiniestroPage() {
         return () => clearTimeout(t);
     }, [form]);
 
-    // Revocar URL del PDF al desmontar
     useEffect(() => {
         return () => {
             if (pdfUrl) URL.revokeObjectURL(pdfUrl);
         };
     }, [pdfUrl]);
 
-    // Recalcular edad cuando cambia la fecha de nacimiento
     useEffect(() => {
         setForm((prev) => ({
             ...prev,
@@ -218,8 +224,14 @@ export default function SiniestroPage() {
 
     const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
+    // Al perder foco: formatear empleador (CUIL o DNI con miles)
     const onBlurCuitDni = () => {
-        setForm((p) => ({ ...p, empleadorCuitDni: formatCuitIf11(p.empleadorCuitDni) }));
+        setForm((p) => ({ ...p, empleadorCuitDni: formatIdField(p.empleadorCuitDni) }));
+    };
+
+    // Al perder foco: formatear DNI trabajador (DNI con puntos o CUIL con guiones)
+    const onBlurTrabajadorDni = () => {
+        setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
     };
 
     function openPdf() {
@@ -256,6 +268,10 @@ export default function SiniestroPage() {
 
         setSaving(true);
         try {
+            // Para Firebase y PDF: guardar con formato ya aplicado
+            const empleadorCuitFormatted = formatIdField(form.empleadorCuitDni);
+            const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
+
             const payload = {
                 ART: {
                     nombre: form.ART.trim() || "",
@@ -263,12 +279,12 @@ export default function SiniestroPage() {
                 },
                 empleador: {
                     nombre: form.empleadorNombre.trim() || "",
-                    cuit: onlyDigits(form.empleadorCuitDni) || "",
+                    cuit: empleadorCuitFormatted || "",
                 },
                 trabajador: {
                     apellido: form.trabajadorApellido.trim() || "",
                     nombre: form.trabajadorNombre.trim() || "",
-                    dni: onlyDigits(form.trabajadorDni) || "",
+                    dni: trabajadorDniFormatted || "",
                     nacimiento: form.trabajadorNacimiento || "",
                     edad: form.trabajadorEdad,
                     sexo: form.trabajadorSexo || "",
@@ -303,7 +319,7 @@ export default function SiniestroPage() {
             await set(newRef, payload);
             setCreatedId(newRef.key);
 
-            const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${payload.trabajador.dni || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
+            const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
 
             const res = await fetch("/api/pdf", {
                 method: "POST",
@@ -427,10 +443,9 @@ export default function SiniestroPage() {
                                 </div>
                             </Section>
 
-                            {/* NUEVA SECCIÓN: FECHAS */}
+                            {/* Fechas */}
                             <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
                                 <div className={styles.fechasWrapper}>
-                                    {/* Fecha ingreso */}
                                     <div className={styles.fechaGroup}>
                                         <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
                                         <div className={styles.fechaRow}>
@@ -462,7 +477,6 @@ export default function SiniestroPage() {
                                         </div>
                                     </div>
 
-                                    {/* Fecha denuncia */}
                                     <div className={styles.fechaGroup}>
                                         <div className={styles.fechaGroupLabel}>Fecha de denuncia</div>
                                         <div className={styles.fechaRow}>
@@ -550,13 +564,13 @@ export default function SiniestroPage() {
                                             className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
                                             value={form.trabajadorDni}
                                             onChange={onChange("trabajadorDni")}
+                                            onBlur={onBlurTrabajadorDni}
                                             inputMode="numeric"
                                             placeholder="DNI"
                                         />
                                         {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
                                     </div>
 
-                                    {/* Nacimiento + Edad */}
                                     <div className={styles.field}>
                                         <label className={styles.label}>Fecha de nacimiento</label>
                                         <input

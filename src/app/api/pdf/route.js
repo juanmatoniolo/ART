@@ -11,10 +11,12 @@ function templatePath() {
 	return path.join(process.cwd(), "src", "templates", "ART-COMPLETOS.pdf");
 }
 
+// Solo dígitos (para limpieza interna, pero no se usa en campos con formato)
 function onlyDigits(s) {
 	return (s ?? "").toString().replace(/\D/g, "");
 }
 
+// Limpia texto: recorta, mayúsculas, evita valores vacíos o "-"
 function cleanText(s) {
 	const v = (s ?? "").toString().trim();
 	if (!v) return "";
@@ -41,40 +43,15 @@ function formatDate({ dia, mes, anio }) {
 	return `${pad2(dia)}-${pad2(mes)}-${anio}`;
 }
 
-function getPrestadorFromEnv() {
-	const nombre = cleanText(process.env.PRESTADOR_NOMBRE);
-	const cuit = onlyDigits(process.env.PRESTADOR_CUIT);
-
-	const calle = cleanText(process.env.PRESTADOR_CALLE);
-	const nro = cleanText(process.env.PRESTADOR_NUMERO);
-	const piso = cleanText(process.env.PRESTADOR_PISO);
-	const depto = cleanText(process.env.PRESTADOR_DEPTO);
-
-	const localidad = cleanText(process.env.PRESTADOR_LOCALIDAD);
-	const provincia = cleanText(process.env.PRESTADOR_PROVINCIA);
-	const cp = onlyDigits(process.env.PRESTADOR_CP);
-
-	const ddn = onlyDigits(process.env.PRESTADOR_TEL_DDN);
-	const tel = onlyDigits(process.env.PRESTADOR_TEL);
-	const celular = onlyDigits(`${ddn}${tel}`);
-
-	const mail = cleanText(process.env.PRESTADOR_MAIL);
-
-	return {
-		nombre,
-		cuit,
-		calle,
-		nro,
-		piso,
-		depto,
-		localidad,
-		provincia,
-		cp,
-		celular,
-		mail,
-	};
+// Función auxiliar para formatear CUIT (11 dígitos) con guiones y puntos
+// Se usa solo si se necesita aplicar formato, pero en general el frontend ya lo envía formateado.
+function formatCuil(digits) {
+	const d = onlyDigits(digits);
+	if (d.length !== 11) return digits;
+	return `${d.slice(0, 2)}-${d.slice(2, 4)}.${d.slice(4, 7)}.${d.slice(7, 10)}-${d.slice(10)}`;
 }
 
+// Construye los campos a rellenar en el PDF a partir del payload recibido.
 function buildPdfFields(payload) {
 	const t = payload.trabajador || {};
 	const emp = payload.empleador || {};
@@ -83,12 +60,12 @@ function buildPdfFields(payload) {
 	const fechaIngreso = payload.fechaIngreso || {};
 	const fechaDenuncia = payload.fechaDenuncia || {};
 
-	const p = getPrestadorFromEnv();
+	// ✅ TOMAR PRESTADOR DEL PAYLOAD (enviado desde el frontend)
+	const p = payload.prestador || {};
 
+	// Cálculos de fechas y nombre completo
 	const nac = splitDateISO(t.nacimiento);
-	const nombreEmpleado =
-		`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
-
+	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
 	const edad = t.edad ? `${t.edad} AÑOS` : "";
 
 	const fechaIngresoObj = {
@@ -107,51 +84,35 @@ function buildPdfFields(payload) {
 	const fechaIngresoStr = formatDate(fechaIngresoObj);
 	const fechaDenunciaStr = formatDate(fechaDenunciaObj);
 
+	// Retornamos los valores que se escribirán en los campos del PDF
 	return {
 		// ART
 		art: cleanText(art.nombre),
 		"num-siniestro": cleanText(art.nroSiniestro),
 
-		// EMPLEADO
+		// TRABAJADOR
 		"empleado-nombre": nombreEmpleado,
-		"empleado-dni": onlyDigits(t.dni),
-
+		"empleado-dni": cleanText(t.dni),        // conserva puntos y guiones
 		"empleado-dia": nac.dia,
 		"empleado-mes": nac.mes,
 		"empleado-anio": nac.anio,
 		"fecha-nacimiento": fechaNacimientoStr,
-
-		// Edad
 		"empleado-edad": edad,
-
-		// Fecha actual (ingreso) separada + completa
-		dia: fechaIngresoObj.dia,
-		mes: fechaIngresoObj.mes,
-		anio: fechaIngresoObj.anio,
-		"fecha-ingreso": fechaIngresoStr,
-
-		// Fecha de denuncia separada + completa
-		"dia-denuncia": fechaDenunciaObj.dia,
-		"mes-denuncia": fechaDenunciaObj.mes,
-		"anio-denuncia": fechaDenunciaObj.anio,
-		"fecha-denuncia": fechaDenunciaStr,
-
-		"Sexo M": t.sexo === "M",
-		F: t.sexo === "F",
-
 		"empleado-calle": cleanText(t.calle),
 		"empleado-nro": cleanText(t.numero),
 		"empleado-piso": cleanText(t.piso),
 		"empleado-depto": cleanText(t.depto),
 		"empleado-localidad": cleanText(t.localidad),
 		"empleado-provincia": cleanText(t.provincia),
-		"empleado-cp": onlyDigits(t.cp),
-		"empleado-celular": onlyDigits(t.telefono),
+		"empleado-cp": cleanText(t.cp),          // mantiene formato si lo tiene
+		"empleado-celular": cleanText(t.telefono),
+		"Sexo M": t.sexo === "M",
+		F: t.sexo === "F",
 
 		// EMPLEADOR
 		"empleador-nombre": cleanText(emp.nombre),
-		"empleador-cuit": onlyDigits(emp.cuit),
-		"empleador-cuil": onlyDigits(emp.cuit),
+		"empleador-cuit": cleanText(emp.cuit),   // conserva guiones y puntos
+		"empleador-cuil": cleanText(emp.cuit),
 
 		// MOTIVO
 		"motivo-trabajo": c.tipo === "AT",
@@ -159,27 +120,35 @@ function buildPdfFields(payload) {
 		"motivo-enfermedad-profesional": c.tipo === "EP",
 		"motivo-intercurrencia": c.tipo === "INT",
 
-		// CONST
+		// FECHAS (ingreso y denuncia)
+		dia: fechaIngresoObj.dia,
+		mes: fechaIngresoObj.mes,
+		anio: fechaIngresoObj.anio,
+		"fecha-ingreso": fechaIngresoStr,
+		"dia-denuncia": fechaDenunciaObj.dia,
+		"mes-denuncia": fechaDenunciaObj.mes,
+		"anio-denuncia": fechaDenunciaObj.anio,
+		"fecha-denuncia": fechaDenunciaStr,
+
+		// LUGAR Y FECHA CONSTANTE
 		"lugar-fecha": LUGAR_FECHA_CONST,
 
-		// PRESTADOR (desde ENV)
-		"prestador-nombre": p.nombre,
-		"prestador-cuit": p.cuit,
-
-		"prestador-calle": p.calle,
-		"prestador-nro": p.nro,
-		"prestador-piso": p.piso,
-		"prestador-depto": p.depto,
-
-		"prestador-localidad": p.localidad,
-		"prestador-provincia": p.provincia,
-		"prestador-cp": p.cp,
-
-		"prestador-celular": p.celular,
-		"prestador-mail": p.mail,
+		// ✅ PRESTADOR (desde payload, respetando el formato original)
+		"prestador-nombre": cleanText(p.nombre),
+		"prestador-cuit": cleanText(p.cuit),       // ej: "30-70754530-0"
+		"prestador-calle": cleanText(p.calle),
+		"prestador-nro": cleanText(p.nro),
+		"prestador-piso": cleanText(p.piso),
+		"prestador-depto": cleanText(p.depto),
+		"prestador-localidad": cleanText(p.localidad),
+		"prestador-provincia": cleanText(p.provincia),
+		"prestador-cp": cleanText(p.cp),
+		"prestador-celular": cleanText(p.celular),
+		"prestador-mail": cleanText(p.mail),
 	};
 }
 
+// Rellena los campos del formulario del PDF
 function fillFormFields(form, fields) {
 	const missing = [];
 
@@ -207,7 +176,7 @@ function fillFormFields(form, fields) {
 	if (missing.length) console.log("[PDF] missing fields:", missing);
 }
 
-// GET debug
+// Endpoint GET de diagnóstico (no requiere variables de entorno)
 export async function GET(req) {
 	try {
 		const url = new URL(req.url);
@@ -227,15 +196,14 @@ export async function GET(req) {
 		const form = pdfDoc.getForm();
 		const fieldNames = form.getFields().map((f) => f.getName());
 
-		const prestador = getPrestadorFromEnv();
-
 		return NextResponse.json({
 			ok: true,
 			runtime: "nodejs",
 			template: pdfFile,
 			fieldsCount: fieldNames.length,
 			fieldNames,
-			prestadorFromEnv: prestador,
+			// Ya no dependemos de ENV, pero se puede mostrar un mensaje
+			message: "Los datos del prestador se toman del payload enviado por el frontend",
 		});
 	} catch (e) {
 		return NextResponse.json(
@@ -249,6 +217,7 @@ export async function GET(req) {
 	}
 }
 
+// Endpoint POST: genera el PDF con los datos recibidos
 export async function POST(req) {
 	try {
 		const { payload, fileName } = await req.json();
