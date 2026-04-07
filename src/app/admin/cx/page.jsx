@@ -201,7 +201,6 @@ function AutoInput({ canonName, value, onChange, onBlur, suggestions, placeholde
   );
 }
 
-// Componente selector de pacientes
 function PacienteSelector({ onSelect, selectedPacienteId }) {
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -274,6 +273,9 @@ export default function Page() {
   const [selectedPaciente, setSelectedPaciente] = useState(null);
   const [fechaEstimada, setFechaEstimada] = useState('');
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('form'); // 'form' o 'solicitudes'
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
 
   // Cargar mapping
   useEffect(() => {
@@ -338,7 +340,6 @@ export default function Page() {
   const canonSexo = useMemo(() => canonKeys.find(isCanonSexo), [canonKeys]);
   const canonTelefono = useMemo(() => canonKeys.find(isCanonTelefono), [canonKeys]);
 
-
   // Inicializar formulario
   useEffect(() => {
     if (!canonical || !mapping) return;
@@ -349,9 +350,6 @@ export default function Page() {
     if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio)) initial['servicio'] = 'PISO';
     setForm(initial);
   }, [canonical, mapping]);
-
-  // Cargar sugerencias iniciales
-  // ... (todo el código anterior hasta el useEffect de sugerencias)
 
   // Cargar sugerencias iniciales (sin médicos)
   useEffect(() => {
@@ -373,9 +371,9 @@ export default function Page() {
       if (canonProvincia && !(out?.[canonProvincia] ?? '').toString().trim()) { out[canonProvincia] = 'ENTRE RIOS'; changed = true; }
       return changed ? out : prev;
     });
-  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]); // ← 4 dependencias fijas
+  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]);
 
-  // Cargar sugerencias de médicos (independiente)
+  // Cargar sugerencias de médicos
   useEffect(() => {
     if (!canonDoctor) return;
     let seeded = loadSuggestions();
@@ -392,82 +390,40 @@ export default function Page() {
     });
     setSuggestions(seeded);
     saveSuggestions(seeded);
-  }, [canonDoctor]); // ← dependencia fija de 1 elemento
+  }, [canonDoctor]);
 
-  // Precargar datos del paciente seleccionado
+  // Precargar datos del paciente seleccionado (modo paciente existente)
   useEffect(() => {
     if (mode === 'paciente' && selectedPaciente) {
-      console.log('Paciente seleccionado:', selectedPaciente);
       const t = selectedPaciente.trabajador || {};
       const art = selectedPaciente.ART || {};
       const newForm = { ...form };
 
-      console.log('Datos del trabajador:', t);
-      console.log('ART:', art);
-
-      // Asignar valores
-      if (canonApellido) {
-        console.log(`Asignando canonApellido (${canonApellido}) = ${t.apellido}`);
-        newForm[canonApellido] = t.apellido || '';
-      }
-      if (canonNombre) {
-        console.log(`Asignando canonNombre (${canonNombre}) = ${t.nombre}`);
-        newForm[canonNombre] = t.nombre || '';
-      }
-      if (canonDNI) {
-        console.log(`Asignando canonDNI (${canonDNI}) = ${t.dni}`);
-        newForm[canonDNI] = t.dni || '';
-      }
-      if (canonEdad) {
-        const edad = t.edad ? `${t.edad} años` : '';
-        console.log(`Asignando canonEdad (${canonEdad}) = ${edad}`);
-        newForm[canonEdad] = edad;
-      }
-      if (canonEdadPaciente) {
-        const edad = t.edad ? `${t.edad} años` : '';
-        console.log(`Asignando canonEdadPaciente (${canonEdadPaciente}) = ${edad}`);
-        newForm[canonEdadPaciente] = edad;
-      }
-
-      // 🔹 Asignación del sexo (independiente de canonSexo)
-      if (t.sexo) {
-        console.log(`Asignando sexo = ${t.sexo}`);
-        newForm.sexo = t.sexo;
-      }
-
-      if (canonTelefono && t.telefono) {
-        console.log(`Asignando canonTelefono (${canonTelefono}) = ${t.telefono}`);
-        newForm[canonTelefono] = t.telefono;
-      }
+      if (canonApellido) newForm[canonApellido] = t.apellido || '';
+      if (canonNombre) newForm[canonNombre] = t.nombre || '';
+      if (canonDNI) newForm[canonDNI] = t.dni || '';
+      if (canonEdad) newForm[canonEdad] = t.edad ? `${t.edad} años` : '';
+      if (canonEdadPaciente) newForm[canonEdadPaciente] = t.edad ? `${t.edad} años` : '';
+      if (t.sexo) newForm.sexo = t.sexo;
+      if (canonTelefono && t.telefono) newForm[canonTelefono] = t.telefono;
       if (canonDia && t.nacimiento) {
         const [y, m, d] = t.nacimiento.split('-');
-        console.log(`Asignando canonDia (${canonDia}) = ${d}, canonMes = ${m}, canonAnio = ${y}`);
         newForm[canonDia] = d || '';
         newForm[canonMes] = m || '';
         newForm[canonAnio] = y || '';
       }
-      if (canonLocalidad && t.localidad) {
-        console.log(`Asignando canonLocalidad (${canonLocalidad}) = ${t.localidad}`);
-        newForm[canonLocalidad] = t.localidad;
-      }
-      if (canonProvincia && t.provincia) {
-        console.log(`Asignando canonProvincia (${canonProvincia}) = ${t.provincia}`);
-        newForm[canonProvincia] = t.provincia;
-      }
+      if (canonLocalidad && t.localidad) newForm[canonLocalidad] = t.localidad;
+      if (canonProvincia && t.provincia) newForm[canonProvincia] = t.provincia;
       if (canonDomicilioPaciente) {
         const calleNumero = `${t.calle || ''} ${t.numero || ''}`.trim();
-        console.log(`Asignando canonDomicilioPaciente (${canonDomicilioPaciente}) = ${calleNumero}`);
         newForm[canonDomicilioPaciente] = calleNumero;
       }
-      if (canonART && art.nombre) {
-        console.log(`Asignando canonART (${canonART}) = ${art.nombre}`);
-        newForm[canonART] = art.nombre;
-      }
+      if (canonART && art.nombre) newForm[canonART] = art.nombre;
 
-      console.log('Nuevo form antes de setForm:', newForm);
       setForm(newForm);
     }
   }, [selectedPaciente, mode, canonical]);
+
   function setValue(name, value) { setForm((prev) => ({ ...prev, [name]: value })); }
 
   function commitSuggestion(canonName, value) {
@@ -611,36 +567,46 @@ export default function Page() {
     }
   }
 
-  async function guardarCX() {
-    if (!fechaEstimada) {
-      alert("Por favor ingrese una fecha estimativa para la cirugía");
-      return;
+  async function guardarCX(optionalData = null) {
+    let fecha = fechaEstimada;
+    let formData = form;
+    let pacienteId = mode === 'paciente' ? selectedPaciente?.id : null;
+
+    if (optionalData) {
+      fecha = optionalData.fechaEstimada || fecha;
+      formData = optionalData.formulario || formData;
+      pacienteId = optionalData.pacienteId || pacienteId;
     }
-    const apellido = canonApellido ? form[canonApellido] : '';
-    const nombre = canonNombre ? form[canonNombre] : '';
+
+    if (!fecha) {
+      alert("Por favor ingrese una fecha estimativa para la cirugía");
+      return false;
+    }
+    const apellido = canonApellido ? formData[canonApellido] : '';
+    const nombre = canonNombre ? formData[canonNombre] : '';
     if (!apellido || !nombre) {
       alert("Por favor complete al menos apellido y nombre del paciente");
-      return;
+      return false;
     }
 
     setSaving(true);
     try {
       const data = {
-        pacienteId: mode === 'paciente' ? selectedPaciente?.id : null,
+        pacienteId,
         pacienteDatos: {
           apellido,
           nombre,
-          dni: form[canonDNI] || '',
-          fechaNacimiento: form[canonAnio] && form[canonMes] && form[canonDia] ? `${form[canonAnio]}-${form[canonMes]}-${form[canonDia]}` : '',
+          dni: formData[canonDNI] || '',
+          fechaNacimiento: formData[canonAnio] && formData[canonMes] && formData[canonDia] ? `${formData[canonAnio]}-${formData[canonMes]}-${formData[canonDia]}` : '',
           edad: edadCalculada,
-          sexo: form.sexo,
-          localidad: form[canonLocalidad] || '',
-          provincia: form[canonProvincia] || '',
-          domicilio: form[canonDomicilioPaciente] || '',
-          telefono: form[canonTelefono] || '',
+          sexo: formData.sexo,
+          localidad: formData[canonLocalidad] || '',
+          provincia: formData[canonProvincia] || '',
+          domicilio: formData[canonDomicilioPaciente] || '',
+          telefono: formData[canonTelefono] || '',
         },
-        fechaEstimada,
-        formulario: form,
+        fechaEstimada: fecha,
+        formulario: formData,
         realizada: false,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -653,14 +619,122 @@ export default function Page() {
       });
       if (!res.ok) throw new Error("Error al guardar");
       alert("Cirugía guardada correctamente. Ahora aparece en 'Programadas'.");
+      return true;
     } catch (err) {
       console.error(err);
       alert("Error al guardar la cirugía");
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
+  // ==================== FUNCIONES PARA SOLICITUDES (desde formulario público) ====================
+  const cargarSolicitudes = async () => {
+    setLoadingSolicitudes(true);
+    try {
+      // Leer de la colección que usa el formulario público
+      const res = await fetch("https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia.json");
+      const data = await res.json();
+      if (data) {
+        const lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        setSolicitudes(lista);
+      } else {
+        setSolicitudes([]);
+      }
+    } catch (err) {
+      console.error("Error cargando solicitudes", err);
+      setError("No se pudieron cargar las solicitudes");
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'solicitudes') {
+      cargarSolicitudes();
+    }
+  }, [activeTab]);
+
+  // Cargar una solicitud en el formulario principal (rellena los datos del paciente)
+  const cargarSolicitudEnFormulario = (solicitud) => {
+    // La solicitud tiene exactamente los campos del formulario público:
+    // apellido, nombre, sexo, dni, nacimiento, lugarNacimiento, domicilio, localidad, provincia, telefono, edad (calculada)
+    const nuevoForm = { ...form };
+
+    // Mapear campos simples
+    if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || '';
+    if (canonNombre) nuevoForm[canonNombre] = solicitud.nombre || '';
+    if (canonDNI) nuevoForm[canonDNI] = solicitud.dni || '';
+    if (canonTelefono) nuevoForm[canonTelefono] = solicitud.telefono || '';
+    if (canonLocalidad) nuevoForm[canonLocalidad] = solicitud.localidad || '';
+    if (canonProvincia) nuevoForm[canonProvincia] = solicitud.provincia || '';
+    if (canonDomicilioPaciente) nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || '';
+    // Lugar de nacimiento se puede mapear a canonNacimientoPaciente
+    if (canonNacimientoPaciente && solicitud.lugarNacimiento) nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento;
+
+    // Sexo
+    if (solicitud.sexo) nuevoForm.sexo = solicitud.sexo === 'M' ? 'M' : 'F';
+
+    // Fecha de nacimiento: campo 'nacimiento' (YYYY-MM-DD)
+    if (solicitud.nacimiento) {
+      const [y, m, d] = solicitud.nacimiento.split('-');
+      if (canonDia) nuevoForm[canonDia] = d || '';
+      if (canonMes) nuevoForm[canonMes] = m || '';
+      if (canonAnio) nuevoForm[canonAnio] = y || '';
+    }
+
+    // Edad ya viene calculada en solicitud.edad, pero la recalcularemos automáticamente con los campos día/mes/año
+    // No es necesario asignar manualmente edad, se recalculará sola.
+
+    setForm(nuevoForm);
+    // Cambiar a pestaña formulario
+    setActiveTab('form');
+    // Cambiar modo a manual (porque no es un paciente existente necesariamente)
+    setMode('manual');
+    setSelectedPaciente(null);
+    alert("Solicitud cargada en el formulario. Complete los datos de cirugía (CX, médico, ART, fecha estimativa) y luego guarde o genere PDF.");
+  };
+
+  const aceptarSolicitud = async (solicitud) => {
+    // Primero cargar la solicitud en el formulario (para tener los datos actualizados)
+    cargarSolicitudEnFormulario(solicitud);
+    // Esperar un momento para que se actualice el estado (podríamos usar un setTimeout, pero mejor es hacerlo después de que el usuario complete datos faltantes)
+    // En lugar de guardar automáticamente, dejamos que el usuario complete los campos de cirugía y luego guarde manualmente.
+    // Pero también podemos ofrecer un flujo alternativo: al hacer clic en "Aceptar", se carga y luego se abre el formulario para que el usuario complete y guarde.
+    // Para simplificar, simplemente cargamos y cambiamos a la pestaña de formulario.
+    // El usuario luego completará y hará clic en "Guardar Cirugía".
+    // No eliminamos la solicitud hasta que realmente se guarde la cirugía? Podría ser confuso.
+    // Mejor: permitir que el usuario cargue, edite y luego guarde. La solicitud se eliminará solo cuando se guarde exitosamente.
+    // Para eso, necesitaríamos pasar el ID de la solicitud al guardar. Lo haremos así:
+
+    // Guardamos el ID de la solicitud en una variable global temporal (estado) para eliminarla después de guardar.
+    setPendingSolicitudId(solicitud.id);
+    alert("Solicitud cargada en el formulario. Complete los datos faltantes y luego haga clic en 'Guardar Cirugía'. La solicitud se eliminará automáticamente después de guardar.");
+  };
+
+  // Estado para manejar eliminación automática al guardar
+  const [pendingSolicitudId, setPendingSolicitudId] = useState(null);
+
+  // Modificar la función guardarCX para que después de guardar, elimine la solicitud pendiente
+  const guardarCXYEliminarSolicitud = async () => {
+    const success = await guardarCX();
+    if (success && pendingSolicitudId) {
+      try {
+        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia/${pendingSolicitudId}.json`, {
+          method: 'DELETE',
+        });
+        alert("Solicitud eliminada de la lista.");
+        setPendingSolicitudId(null);
+        // Refrescar lista de solicitudes si la pestaña está activa
+        if (activeTab === 'solicitudes') cargarSolicitudes();
+      } catch (err) {
+        console.error("Error eliminando solicitud", err);
+      }
+    }
+  };
+
+  // ==================== RENDERIZADO ====================
   if (loading) {
     return (
       <main className={styles.page}>
@@ -683,7 +757,6 @@ export default function Page() {
             </div>
           </div>
         </div>
-        
       </main>
     );
   }
@@ -694,271 +767,321 @@ export default function Page() {
   return (
     <main className={styles.page}>
       <div className={styles.layout}>
-        {/* COLUMNA FORMULARIO */}
+        {/* COLUMNA PRINCIPAL */}
         <div className={styles.formColumn}>
           {error && <div className={styles.bannerError}>{error}</div>}
 
-          {/* Selector de modo + botón a programadas */}
-          <div className={styles.headerRow}>
-            <div className={styles.modeSelector}>
-              <button className={`${styles.modeBtn} ${mode === 'manual' ? styles.active : ''}`} onClick={() => setMode('manual')}>
-                Cargar manualmente
-              </button>
-              <button className={`${styles.modeBtn} ${mode === 'paciente' ? styles.active : ''}`} onClick={() => setMode('paciente')}>
-                Desde paciente existente
-              </button>
-            </div>
+          {/* PESTAÑAS */}
+          <div className={styles.tabsContainer}>
             <button
-              className={styles.programadasBtn}
+              className={`${styles.tabButton} ${activeTab === 'form' ? styles.activeTab : ''}`}
+              onClick={() => setActiveTab('form')}
+            >
+              📋 Formulario
+            </button>
+            <button
+              className={`${styles.tabButton} ${activeTab === 'solicitudes' ? styles.activeTab : ''}`}
+              onClick={() => setActiveTab('solicitudes')}
+            >
+              📝 Solicitudes de pacientes
+            </button>
+            <button
+              className={styles.tabButton}
               onClick={() => router.push('/admin/cx/programada')}
             >
-              📋 Ver Cirugías Programadas
+              📋 Ver Programadas
             </button>
           </div>
 
-          {mode === 'paciente' && (
-            <div className={styles.pacienteSection}>
-              <h3>Seleccionar paciente</h3>
-              <PacienteSelector onSelect={setSelectedPaciente} selectedPacienteId={selectedPaciente?.id} />
-              {selectedPaciente && (
-                <div className={styles.selectedPacienteInfo}>
-                  <strong>Paciente seleccionado:</strong> {selectedPaciente.nombreCompleto} (DNI: {selectedPaciente.dni || "—"})
-                </div>
-              )}
-            </div>
-          )}
+          {/* CONTENIDO DE LA PESTAÑA ACTIVA */}
+          {activeTab === 'form' && (
+            <>
+              <div className={styles.modeSelector}>
+                <button className={`${styles.modeBtn} ${mode === 'manual' ? styles.active : ''}`} onClick={() => setMode('manual')}>
+                  Cargar manualmente
+                </button>
+                <button className={`${styles.modeBtn} ${mode === 'paciente' ? styles.active : ''}`} onClick={() => setMode('paciente')}>
+                  Desde paciente existente
+                </button>
+              </div>
 
-          {/* ========== FORMULARIO ========== */}
-          {/* SECCIÓN 1 — Cirugía */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>🏥</span>
-              <h2 className={styles.sectionTitle}>Datos de la Cirugía</h2>
-            </div>
-            <div className={`${styles.sectionBody} ${styles.cols3}`}>
-              {canonCX && (
-                <div className={`${styles.field} ${styles.fieldSpan2}`}>
-                  <label className={styles.fieldLabel}>Cirugía a realizar</label>
-                  <AutoInput canonName={canonCX} value={form?.[canonCX]}
-                    onChange={(e) => setValue(canonCX, e.target.value)}
-                    onBlur={(e) => commitSuggestion(canonCX, e.target.value)}
-                    suggestions={suggestions} placeholder="Describir la cirugía…" />
+              {mode === 'paciente' && (
+                <div className={styles.pacienteSection}>
+                  <h3>Seleccionar paciente</h3>
+                  <PacienteSelector onSelect={setSelectedPaciente} selectedPacienteId={selectedPaciente?.id} />
+                  {selectedPaciente && (
+                    <div className={styles.selectedPacienteInfo}>
+                      <strong>Paciente seleccionado:</strong> {selectedPaciente.nombreCompleto} (DNI: {selectedPaciente.dni || "—"})
+                    </div>
+                  )}
                 </div>
               )}
-              {canonDoctor && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Médico cirujano</label>
-                  <AutoInput canonName={canonDoctor} value={form?.[canonDoctor]}
-                    onChange={(e) => setValue(canonDoctor, e.target.value)}
-                    onBlur={(e) => commitSuggestion(canonDoctor, e.target.value)}
-                    suggestions={suggestions} placeholder="Nombre del profesional…" />
-                </div>
-              )}
-              {canonART && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>ART / Obra Social</label>
-                  <AutoInput canonName={canonART} value={form?.[canonART]}
-                    onChange={(e) => setValue(canonART, e.target.value)}
-                    onBlur={(e) => commitSuggestion(canonART, e.target.value)}
-                    suggestions={suggestions} placeholder="ART u obra social…" />
-                </div>
-              )}
-            </div>
-          </section>
 
-          {/* SECCIÓN 2 — Paciente */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>👤</span>
-              <h2 className={styles.sectionTitle}>Identificación del Paciente</h2>
-            </div>
-            <div className={`${styles.sectionBody} ${styles.cols4}`}>
-              {canonApellido && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Apellido</label>
-                  <AutoInput canonName={canonApellido} value={form?.[canonApellido]}
-                    onChange={(e) => setValue(canonApellido, e.target.value)}
-                    onBlur={(e) => commitSuggestion(canonApellido, e.target.value)}
-                    suggestions={suggestions} placeholder="Apellido…" autoComplete="family-name" />
+              {/* ========== FORMULARIO COMPLETO ========== */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionIcon}>🏥</span>
+                  <h2 className={styles.sectionTitle}>Datos de la Cirugía</h2>
                 </div>
-              )}
-              {canonNombre && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Nombre</label>
-                  <AutoInput canonName={canonNombre} value={form?.[canonNombre]}
-                    onChange={(e) => setValue(canonNombre, e.target.value)}
-                    onBlur={(e) => commitSuggestion(canonNombre, e.target.value)}
-                    suggestions={suggestions} placeholder="Nombre…" autoComplete="given-name" />
+                <div className={`${styles.sectionBody} ${styles.cols3}`}>
+                  {canonCX && (
+                    <div className={`${styles.field} ${styles.fieldSpan2}`}>
+                      <label className={styles.fieldLabel}>Cirugía a realizar</label>
+                      <AutoInput canonName={canonCX} value={form?.[canonCX]}
+                        onChange={(e) => setValue(canonCX, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonCX, e.target.value)}
+                        suggestions={suggestions} placeholder="Describir la cirugía…" />
+                    </div>
+                  )}
+                  {canonDoctor && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Médico cirujano</label>
+                      <AutoInput canonName={canonDoctor} value={form?.[canonDoctor]}
+                        onChange={(e) => setValue(canonDoctor, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonDoctor, e.target.value)}
+                        suggestions={suggestions} placeholder="Nombre del profesional…" />
+                    </div>
+                  )}
+                  {canonART && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>ART / Obra Social</label>
+                      <AutoInput canonName={canonART} value={form?.[canonART]}
+                        onChange={(e) => setValue(canonART, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonART, e.target.value)}
+                        suggestions={suggestions} placeholder="ART u obra social…" />
+                    </div>
+                  )}
                 </div>
-              )}
-              {canonHCPaciente && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>N° Historia Clínica</label>
-                  <input className={styles.input} name={canonHCPaciente} autoComplete="off" inputMode="numeric"
-                    value={formatNumberWithThousands(form?.[canonHCPaciente] ?? '')}
-                    onChange={(e) => setValue(canonHCPaciente, parseFormattedNumber(e.target.value))}
-                    onBlur={(e) => commitSuggestion(canonHCPaciente, e.target.value)}
-                    placeholder="Ej: 12.345.678" />
-                </div>
-              )}
-              {hasSexo && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Sexo</label>
-                  <div className={styles.sexRowInline}>
-                    <button type="button"
-                      className={`${styles.chip} ${form.sexo === 'M' ? styles.chipActive : ''}`}
-                      onClick={() => setValue('sexo', form.sexo === 'M' ? '' : 'M')}>
-                      Masculino
-                    </button>
-                    <button type="button"
-                      className={`${styles.chip} ${form.sexo === 'F' ? styles.chipActive : ''}`}
-                      onClick={() => setValue('sexo', form.sexo === 'F' ? '' : 'F')}>
-                      Femenino
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
+              </section>
 
-          {/* SECCIÓN 3 — Fecha nacimiento + Edad */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>🎂</span>
-              <h2 className={styles.sectionTitle}>Fecha de Nacimiento</h2>
-              <span className={styles.sectionHint}>La edad se calcula automáticamente</span>
-            </div>
-            <div className={`${styles.sectionBody} ${styles.cols4}`}>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Día</label>
-                <input className={styles.input} autoComplete="off" inputMode="numeric"
-                  value={canonDia ? (form?.[canonDia] ?? '') : ''}
-                  onChange={(e) => canonDia && setValue(canonDia, e.target.value)}
-                  placeholder="DD" disabled={!canonDia} />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Mes</label>
-                <input className={styles.input} autoComplete="off" inputMode="numeric"
-                  value={canonMes ? (form?.[canonMes] ?? '') : ''}
-                  onChange={(e) => canonMes && setValue(canonMes, e.target.value)}
-                  placeholder="MM" disabled={!canonMes} />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Año</label>
-                <input className={styles.input} autoComplete="off" inputMode="numeric"
-                  value={canonAnio ? (form?.[canonAnio] ?? '') : ''}
-                  onChange={(e) => canonAnio && setValue(canonAnio, e.target.value)}
-                  placeholder="AAAA" disabled={!canonAnio} />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>
-                  Edad <span className={styles.badge}>auto</span>
-                </label>
-                <input className={`${styles.input} ${styles.inputReadonly}`}
-                  value={edadCalculada ? `${edadCalculada} años` : '—'}
-                  readOnly disabled />
-              </div>
-            </div>
-          </section>
-
-          {/* SECCIÓN 4 — Domicilio */}
-          {hasLocation && (
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.sectionIcon}>📍</span>
-                <h2 className={styles.sectionTitle}>Domicilio y Procedencia</h2>
-              </div>
-              <div className={`${styles.sectionBody} ${styles.cols3}`}>
-                {canonDomicilioPaciente && (
-                  <div className={`${styles.field} ${styles.fieldSpan2}`}>
-                    <label className={styles.fieldLabel}>Domicilio</label>
-                    <AutoInput canonName={canonDomicilioPaciente} value={form?.[canonDomicilioPaciente]}
-                      onChange={(e) => setValue(canonDomicilioPaciente, e.target.value)}
-                      onBlur={(e) => commitSuggestion(canonDomicilioPaciente, e.target.value)}
-                      suggestions={suggestions} placeholder="Dirección completa…" autoComplete="street-address" />
-                  </div>
-                )}
-                {canonLocalidad && (
-                  <div className={styles.field}>
-                    <label className={styles.fieldLabel}>Localidad</label>
-                    <AutoInput canonName={canonLocalidad} value={form?.[canonLocalidad]}
-                      onChange={(e) => setValue(canonLocalidad, e.target.value)}
-                      onBlur={(e) => commitSuggestion(canonLocalidad, e.target.value)}
-                      suggestions={suggestions} placeholder="Localidad…" autoComplete="address-level2" />
-                  </div>
-                )}
-                {canonProvincia && (
-                  <div className={styles.field}>
-                    <label className={styles.fieldLabel}>Provincia</label>
-                    <AutoInput canonName={canonProvincia} value={form?.[canonProvincia]}
-                      onChange={(e) => setValue(canonProvincia, e.target.value)}
-                      onBlur={(e) => commitSuggestion(canonProvincia, e.target.value)}
-                      suggestions={suggestions} placeholder="Provincia…" autoComplete="address-level1" />
-                  </div>
-                )}
-                {canonNacimientoPaciente && (
-                  <div className={styles.field}>
-                    <label className={styles.fieldLabel}>Lugar de Nacimiento</label>
-                    <AutoInput canonName={canonNacimientoPaciente} value={form?.[canonNacimientoPaciente]}
-                      onChange={(e) => setValue(canonNacimientoPaciente, e.target.value)}
-                      onBlur={(e) => commitSuggestion(canonNacimientoPaciente, e.target.value)}
-                      suggestions={suggestions} placeholder="Ciudad, Provincia…" />
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* SECCIÓN 5 — Datos adicionales */}
-          {orderedResto.length > 0 && (
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.sectionIcon}>📋</span>
-                <h2 className={styles.sectionTitle}>Datos Adicionales</h2>
-              </div>
-              <div className={`${styles.sectionBody} ${styles.cols3}`}>
-                {orderedResto.map((canonName) => {
-                  const internals = canonical.canonicalToInternal[canonName] || [];
-                  const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
-                  return (
-                    <div className={styles.field} key={canonName}>
-                      <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
-                      {isBtn ? (
-                        <label className={styles.checkboxRow}>
-                          <input type="checkbox" checked={!!form[canonName]}
-                            onChange={(e) => setValue(canonName, e.target.checked)} />
-                          <span>Marcar</span>
-                        </label>
-                      ) : (
-                        <AutoInput canonName={canonName} value={form?.[canonName]}
-                          onChange={(e) => setValue(canonName, e.target.value)}
-                          onBlur={(e) => commitSuggestion(canonName, e.target.value)}
-                          suggestions={suggestions} autoComplete={getAutoCompleteAttr(canonName)} />
-                      )}
-                      <div className={styles.hint}>
-                        <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
-                        {internals.length > 2 && <span>+{internals.length - 2}</span>}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionIcon}>👤</span>
+                  <h2 className={styles.sectionTitle}>Identificación del Paciente</h2>
+                </div>
+                <div className={`${styles.sectionBody} ${styles.cols4}`}>
+                  {canonApellido && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Apellido</label>
+                      <AutoInput canonName={canonApellido} value={form?.[canonApellido]}
+                        onChange={(e) => setValue(canonApellido, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonApellido, e.target.value)}
+                        suggestions={suggestions} placeholder="Apellido…" autoComplete="family-name" />
+                    </div>
+                  )}
+                  {canonNombre && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Nombre</label>
+                      <AutoInput canonName={canonNombre} value={form?.[canonNombre]}
+                        onChange={(e) => setValue(canonNombre, e.target.value)}
+                        onBlur={(e) => commitSuggestion(canonNombre, e.target.value)}
+                        suggestions={suggestions} placeholder="Nombre…" autoComplete="given-name" />
+                    </div>
+                  )}
+                  {canonHCPaciente && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>N° Historia Clínica</label>
+                      <input className={styles.input} name={canonHCPaciente} autoComplete="off" inputMode="numeric"
+                        value={formatNumberWithThousands(form?.[canonHCPaciente] ?? '')}
+                        onChange={(e) => setValue(canonHCPaciente, parseFormattedNumber(e.target.value))}
+                        onBlur={(e) => commitSuggestion(canonHCPaciente, e.target.value)}
+                        placeholder="Ej: 12.345.678" />
+                    </div>
+                  )}
+                  {hasSexo && (
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Sexo</label>
+                      <div className={styles.sexRowInline}>
+                        <button type="button"
+                          className={`${styles.chip} ${form.sexo === 'M' ? styles.chipActive : ''}`}
+                          onClick={() => setValue('sexo', form.sexo === 'M' ? '' : 'M')}>
+                          Masculino
+                        </button>
+                        <button type="button"
+                          className={`${styles.chip} ${form.sexo === 'F' ? styles.chipActive : ''}`}
+                          onClick={() => setValue('sexo', form.sexo === 'F' ? '' : 'F')}>
+                          Femenino
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              </section>
+
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionIcon}>🎂</span>
+                  <h2 className={styles.sectionTitle}>Fecha de Nacimiento</h2>
+                  <span className={styles.sectionHint}>La edad se calcula automáticamente</span>
+                </div>
+                <div className={`${styles.sectionBody} ${styles.cols4}`}>
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>Día</label>
+                    <input className={styles.input} autoComplete="off" inputMode="numeric"
+                      value={canonDia ? (form?.[canonDia] ?? '') : ''}
+                      onChange={(e) => canonDia && setValue(canonDia, e.target.value)}
+                      placeholder="DD" disabled={!canonDia} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>Mes</label>
+                    <input className={styles.input} autoComplete="off" inputMode="numeric"
+                      value={canonMes ? (form?.[canonMes] ?? '') : ''}
+                      onChange={(e) => canonMes && setValue(canonMes, e.target.value)}
+                      placeholder="MM" disabled={!canonMes} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>Año</label>
+                    <input className={styles.input} autoComplete="off" inputMode="numeric"
+                      value={canonAnio ? (form?.[canonAnio] ?? '') : ''}
+                      onChange={(e) => canonAnio && setValue(canonAnio, e.target.value)}
+                      placeholder="AAAA" disabled={!canonAnio} />
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>
+                      Edad <span className={styles.badge}>auto</span>
+                    </label>
+                    <input className={`${styles.input} ${styles.inputReadonly}`}
+                      value={edadCalculada ? `${edadCalculada} años` : '—'}
+                      readOnly disabled />
+                  </div>
+                </div>
+              </section>
+
+              {hasLocation && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionIcon}>📍</span>
+                    <h2 className={styles.sectionTitle}>Domicilio y Procedencia</h2>
+                  </div>
+                  <div className={`${styles.sectionBody} ${styles.cols3}`}>
+                    {canonDomicilioPaciente && (
+                      <div className={`${styles.field} ${styles.fieldSpan2}`}>
+                        <label className={styles.fieldLabel}>Domicilio</label>
+                        <AutoInput canonName={canonDomicilioPaciente} value={form?.[canonDomicilioPaciente]}
+                          onChange={(e) => setValue(canonDomicilioPaciente, e.target.value)}
+                          onBlur={(e) => commitSuggestion(canonDomicilioPaciente, e.target.value)}
+                          suggestions={suggestions} placeholder="Dirección completa…" autoComplete="street-address" />
+                      </div>
+                    )}
+                    {canonLocalidad && (
+                      <div className={styles.field}>
+                        <label className={styles.fieldLabel}>Localidad</label>
+                        <AutoInput canonName={canonLocalidad} value={form?.[canonLocalidad]}
+                          onChange={(e) => setValue(canonLocalidad, e.target.value)}
+                          onBlur={(e) => commitSuggestion(canonLocalidad, e.target.value)}
+                          suggestions={suggestions} placeholder="Localidad…" autoComplete="address-level2" />
+                      </div>
+                    )}
+                    {canonProvincia && (
+                      <div className={styles.field}>
+                        <label className={styles.fieldLabel}>Provincia</label>
+                        <AutoInput canonName={canonProvincia} value={form?.[canonProvincia]}
+                          onChange={(e) => setValue(canonProvincia, e.target.value)}
+                          onBlur={(e) => commitSuggestion(canonProvincia, e.target.value)}
+                          suggestions={suggestions} placeholder="Provincia…" autoComplete="address-level1" />
+                      </div>
+                    )}
+                    {canonNacimientoPaciente && (
+                      <div className={styles.field}>
+                        <label className={styles.fieldLabel}>Lugar de Nacimiento</label>
+                        <AutoInput canonName={canonNacimientoPaciente} value={form?.[canonNacimientoPaciente]}
+                          onChange={(e) => setValue(canonNacimientoPaciente, e.target.value)}
+                          onBlur={(e) => commitSuggestion(canonNacimientoPaciente, e.target.value)}
+                          suggestions={suggestions} placeholder="Ciudad, Provincia…" />
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {orderedResto.length > 0 && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionIcon}>📋</span>
+                    <h2 className={styles.sectionTitle}>Datos Adicionales</h2>
+                  </div>
+                  <div className={`${styles.sectionBody} ${styles.cols3}`}>
+                    {orderedResto.map((canonName) => {
+                      const internals = canonical.canonicalToInternal[canonName] || [];
+                      const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
+                      return (
+                        <div className={styles.field} key={canonName}>
+                          <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
+                          {isBtn ? (
+                            <label className={styles.checkboxRow}>
+                              <input type="checkbox" checked={!!form[canonName]}
+                                onChange={(e) => setValue(canonName, e.target.checked)} />
+                              <span>Marcar</span>
+                            </label>
+                          ) : (
+                            <AutoInput canonName={canonName} value={form?.[canonName]}
+                              onChange={(e) => setValue(canonName, e.target.value)}
+                              onBlur={(e) => commitSuggestion(canonName, e.target.value)}
+                              suggestions={suggestions} autoComplete={getAutoCompleteAttr(canonName)} />
+                          )}
+                          <div className={styles.hint}>
+                            <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
+                            {internals.length > 2 && <span>+{internals.length - 2}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              <div className={styles.fechaSection}>
+                <label className={styles.fieldLabel}>Fecha estimativa de Cirugía</label>
+                <input type="date" value={fechaEstimada} onChange={(e) => setFechaEstimada(e.target.value)} className={styles.input} />
               </div>
-            </section>
+              <div className={styles.actions}>
+                <button className={styles.primaryBtn} onClick={guardarCXYEliminarSolicitud} disabled={saving}>
+                  {saving ? 'Guardando...' : 'Guardar Cirugía'}
+                </button>
+              </div>
+            </>
           )}
 
-          {/* Campo de fecha estimativa y botón guardar */}
-          <div className={styles.fechaSection}>
-            <label className={styles.fieldLabel}>Fecha estimativa de Cirugía</label>
-            <input type="date" value={fechaEstimada} onChange={(e) => setFechaEstimada(e.target.value)} className={styles.input} />
-          </div>
-          <div className={styles.actions}>
-            <button className={styles.primaryBtn} onClick={guardarCX} disabled={saving}>
-              {saving ? 'Guardando...' : 'Guardar Cirugía'}
-            </button>
-          </div>
+          {activeTab === 'solicitudes' && (
+            <div className={styles.solicitudesContainer}>
+              <h3>Solicitudes de pacientes (desde el formulario público)</h3>
+              {loadingSolicitudes ? (
+                <div className={styles.loadingSpinner} />
+              ) : solicitudes.length === 0 ? (
+                <p className={styles.emptyState}>No hay solicitudes pendientes.</p>
+              ) : (
+                <div className={styles.solicitudesList}>
+                  {solicitudes.map((sol) => (
+                    <div key={sol.id} className={styles.solicitudCard}>
+                      <div className={styles.solicitudHeader}>
+                        <strong>{sol.apellido} {sol.nombre}</strong>
+                        <span className={styles.solicitudFecha}>
+                          {sol.fechaSolicitud ? new Date(sol.fechaSolicitud).toLocaleDateString() : 'Sin fecha'}
+                        </span>
+                      </div>
+                      <div className={styles.solicitudBody}>
+                        <p><strong>DNI:</strong> {sol.dni}</p>
+                        <p><strong>Teléfono:</strong> {sol.telefono}</p>
+                        <p><strong>Localidad:</strong> {sol.localidad}, {sol.provincia}</p>
+                        <p><strong>Nacimiento:</strong> {sol.nacimiento} (Edad: {sol.edad} años)</p>
+                      </div>
+                      <div className={styles.solicitudActions}>
+                        <button className={styles.secondaryBtn} onClick={() => cargarSolicitudEnFormulario(sol)}>
+                          📋 Cargar en formulario
+                        </button>
+                        <button className={styles.primaryBtn} onClick={() => aceptarSolicitud(sol)}>
+                          ✅ Aceptar (cargar y editar)
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR (común a ambas pestañas) */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarCard}>
             <div className={styles.patientPreview}>

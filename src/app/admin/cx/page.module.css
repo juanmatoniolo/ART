@@ -1025,3 +1025,40 @@
         padding: 0 12px;
     }
 }
+
+.pageHeader {
+  margin-bottom: 1.5rem;
+}
+
+.tabsContainer {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+  padding-bottom: 0.5rem;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.tabButton:hover {
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.activeTab {
+  background: var(--primary, #3b82f6);
+  color: white;
+}
+
+.activeTab:hover {
+  background: var(--primary-dark, #2563eb);
+}

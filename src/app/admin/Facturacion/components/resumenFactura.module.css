@@ -1,6 +1,5 @@
 /* =========================
    RESUMEN FACTURA (UI/UX)
-   Agregar a facturacion.module.css
 ========================= */
 
 .tabContent {
@@ -201,7 +200,6 @@
     background: rgba(0, 0, 0, 0.10);
 }
 
-/* 👇 evita “scroll lateral feo” por fuentes monospace con tracking raro */
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -284,8 +282,6 @@
     color: #bfdbfe;
 }
 
-
-/* ✅ Descripción siempre completa */
 .descPrincipal {
     color: var(--color-text-primary);
     font-weight: 700;
@@ -295,7 +291,6 @@
     word-break: break-word;
 }
 
-/* Meta (Dr / Clínica + nombre) */
 .subMeta {
     margin-top: 6px;
     display: flex;
@@ -365,6 +360,10 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.20);
 }
 
+.inputCantidadDecimal {
+    width: 78px;
+}
+
 /* Unidad */
 .columnaUnidad {
     font-size: 0.86rem;
@@ -395,15 +394,18 @@
 
 .valorNumber {
     font-size: 1.03rem;
-    /* ✅ numeros más grandes */
     font-weight: 900;
     color: var(--color-text-primary);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
-    /* ✅ evita scroll */
 }
 
-/* Formula */
+.valorLineTotal {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.10);
+}
+
 .formulaPequeña {
     font-size: 0.78rem;
     color: var(--color-text-tertiary);
@@ -542,7 +544,6 @@
     background: rgba(239, 68, 68, 0.18);
 }
 
-/* Reusa tus .btnAtras si ya lo tenés; si no, fallback: */
 .btnAtras {
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--color-border);
@@ -557,6 +558,22 @@
 .btnAtras:hover {
     transform: translateY(-1px);
     border-color: rgba(59, 130, 246, 0.35);
+}
+
+.btnDescargar {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #bbf7d0;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.btnDescargar:hover {
+    transform: translateY(-1px);
+    background: rgba(34, 197, 94, 0.18);
 }
 
 /* Responsive */
@@ -585,10 +602,7 @@
     }
 }
 
-
-/* =========================
-   NUEVO: Dr que realiza
-========================= */
+/* ===== Dr que realiza ===== */
 .doctorRow {
     margin-top: 10px;
     display: flex;
@@ -620,230 +634,12 @@
     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
 }
 
-/* =========================
-   NUEVO: cantidad decimal (med/desc)
-   - un pelín más ancho
-========================= */
-.inputCantidadDecimal {
-    width: 78px;
-    /* antes 64px */
-}
-
-/* =========================
-   NUEVO: Total destacado en valorStack
-========================= */
-.valorLineTotal {
-    margin-top: 4px;
-    padding-top: 6px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.10);
-}
-
 /* ===== Inputs prestador (Dr / Bioquímico) ===== */
-.doctorRow {
-    margin-top: 10px;
-    display: flex;
-}
-
-.inputDoctor {
-    width: 100%;
-    min-height: 40px;
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-weight: 800;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(0, 0, 0, 0.20);
-    outline: none;
-}
-
-.inputDoctor::placeholder {
-    font-weight: 700;
-}
-
-.inputDoctor:focus {
-    border-color: rgba(59, 130, 246, 0.55);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
-}
-
-/* ===== Labs: barra superior (bioquímico global) ===== */
-.labsTopBar {
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 12px;
-    margin-bottom: 12px;
-}
-
-.labsTopTitle {
-    font-weight: 900;
-    margin-bottom: 10px;
-    color: var(--color-text-primary);
-}
-
-.labsTopControls {
-    display: grid;
-    gap: 10px;
-}
-
-.selectPrestador {
-    width: 100%;
-    min-height: 40px;
-    border-radius: 12px;
-    padding: 8px 12px;
-    font-weight: 800;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(0, 0, 0, 0.20);
-    color: var(--color-text-primary);
-    outline: none;
-}
-
-.selectPrestador:focus {
-    border-color: rgba(59, 130, 246, 0.55);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
-}
-
-.labsHint {
-    font-size: 0.85rem;
-    color: var(--color-text-tertiary);
-    font-weight: 700;
-}
-
-/* ========================================
-   ESTILOS PARA IMPRESIÓN (escala de grises)
-   ======================================== */
-.printView {
-    display: none;
-}
-
-@media print {
-
-    /* Ocultar elementos interactivos y de pantalla */
-    .screenView {
-        display: none;
-    }
-
-    .printView {
-        display: block;
-        font-family: Arial, Helvetica, sans-serif;
-        color: black;
-        background: white;
-        padding: 0.5in;
-        max-width: 100%;
-    }
-
-    /* Encabezado */
-    .printHeader h1 {
-        font-size: 18pt;
-        margin-bottom: 16pt;
-        border-bottom: 2px solid #000;
-        padding-bottom: 8pt;
-    }
-
-    .printPaciente p {
-        margin: 4pt 0;
-        font-size: 11pt;
-    }
-
-    /* Secciones */
-    .printHonorarios,
-    .printGastos {
-        margin-top: 20pt;
-    }
-
-    .printHonorarios h3,
-    .printGastos h3 {
-        font-size: 14pt;
-        margin: 12pt 0 8pt;
-        border-bottom: 1px solid #333;
-        padding-bottom: 4pt;
-    }
-
-    .printSection h4 {
-        font-size: 12pt;
-        margin: 10pt 0 5pt;
-        font-weight: bold;
-    }
-
-    /* Tablas */
-    .printTable {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 15pt;
-        font-size: 10pt;
-    }
-
-    .printTable th {
-        background: #eee;
-        font-weight: bold;
-        text-align: left;
-        padding: 6pt 4pt;
-        border: 1px solid #aaa;
-    }
-
-    .printTable td {
-        padding: 4pt;
-        border: 1px solid #aaa;
-        vertical-align: top;
-    }
-
-    .printNumber {
-        text-align: right;
-        font-family: 'Courier New', monospace;
-    }
-
-    /* Totales */
-    .printTotales {
-        margin-top: 20pt;
-        border-top: 2px solid #000;
-        padding-top: 10pt;
-    }
-
-    .printTotalLine {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12pt;
-        margin: 4pt 0;
-    }
-
-    .printTotalFinal {
-        font-weight: bold;
-        font-size: 14pt;
-        margin-top: 8pt;
-        border-top: 1px solid #333;
-        padding-top: 6pt;
-    }
-}
-
-.printSubtotal {
-    text-align: right;
-    font-weight: 600;
-    margin-top: 4px;
-    margin-bottom: 8px;
-    padding-right: 8px;
-    border-top: 1px dashed #ccc;
-}
-
 .doctorSelectContainer {
     width: 100%;
-}
-
-.doctorSelect {
-    width: 100%;
-    padding: 0.4rem;
-    background-color: #1e1e2f;
-    color: #f0f0f0;
-    border: 1px solid #4a4a6a;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.doctorSelect option {
-    background-color: #2a2a3c;
-}
-
-.doctorSelectContainer {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    width: 100%;
 }
 
 .doctorInput {
@@ -879,6 +675,23 @@
     transform: scale(1.1);
 }
 
+.selectPrestador {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.20);
+    color: var(--color-text-primary);
+    outline: none;
+}
+
+.selectPrestador:focus {
+    border-color: rgba(59, 130, 246, 0.55);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
 .rolesBlock {
     display: flex;
     flex-direction: column;
@@ -910,220 +723,353 @@
     border: 1px solid rgba(123, 97, 255, 0.35);
 }
 
-.autocompleteDropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 999;
-    background: #fff;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    margin: 2px 0 0 0;
-    padding: 4px 0;
-    list-style: none;
-    max-height: 220px;
-    overflow-y: auto;
-}
-
-.autocompleteItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 7px 12px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    color: #1e293b;
-    gap: 8px;
-}
-
-.autocompleteItem:hover,
-.autocompleteItemHighlighted {
-    background: #f1f5f9;
-}
-
-.autocompleteNombre {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.autocompleteNumero {
-    font-size: 0.75rem;
-    color: #94a3b8;
-    flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   AGREGAR ESTOS ESTILOS al final de resumenFactura.module.css
-   ───────────────────────────────────────────────────────────────── */
-
-/* ── Sección manual: info banner ────────────────────────────────── */
+/* ===== Sección manual: info banner ===== */
 .manualInfo {
-  font-size: 0.82rem;
-  color: var(--color-text-muted, #6b7280);
-  background: var(--color-bg-note, #fef9c3);
-  border-left: 3px solid var(--color-warning, #f59e0b);
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 0.75rem;
+    font-size: 0.82rem;
+    color: var(--color-text-muted, #6b7280);
+    background: var(--color-bg-note, #fef9c3);
+    border-left: 3px solid var(--color-warning, #f59e0b);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
 }
 
-/* ── Fila manual ─────────────────────────────────────────────────── */
-.manualRow td {
-  padding: 0.35rem 0.4rem;
-  vertical-align: middle;
-}
-
-.manualCellDesc {
-  width: 34%;
-}
-
-.manualCellMedico {
-  width: 26%;
-}
-
-.manualCellNum {
-  width: 12%;
-}
-
-.manualCellTotal {
-  width: 10%;
-  text-align: right;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--color-text-primary, #111827);
-}
-
-.manualCellAction {
-  width: 6%;
-  text-align: center;
-}
-
-/* ── Input manual ────────────────────────────────────────────────── */
+/* Inputs manuales (heredan estilo de la tabla) */
 .manualInput {
-  width: 100%;
-  padding: 0.3rem 0.45rem;
-  border: 1px solid var(--color-border, #d1d5db);
-  border-radius: 5px;
-  font-size: 0.83rem;
-  background: var(--color-bg-input, #fff);
-  color: var(--color-text-primary, #111827);
-  transition: border-color 0.15s;
-  box-sizing: border-box;
+    width: 100%;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: 5px;
+    font-size: 0.83rem;
+    background: var(--color-bg-input, #fff);
+    color: var(--color-text-primary, #111827);
+    transition: border-color 0.15s;
+    box-sizing: border-box;
 }
 
 .manualInput:focus {
-  outline: none;
-  border-color: var(--color-primary, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    outline: none;
+    border-color: var(--color-primary, #6366f1);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .manualInputNum {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
-/* ── Total de fila manual ────────────────────────────────────────── */
 .manualTotal {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-primary, #6366f1);
-  white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary, #6366f1);
+    white-space: nowrap;
 }
 
-/* ── Footer de totales de manuales ──────────────────────────────── */
 .manualFooterRow td {
-  padding: 0.45rem 0.4rem;
-  background: var(--color-bg-subtle, #f3f4f6);
-  border-top: 2px solid var(--color-border, #d1d5db);
-  font-size: 0.84rem;
+    padding: 0.45rem 0.4rem;
+    background: var(--color-bg-subtle, #f3f4f6);
+    border-top: 2px solid var(--color-border, #d1d5db);
+    font-size: 0.84rem;
 }
 
 .manualFooterLabel {
-  font-weight: 600;
-  color: var(--color-text-secondary, #374151);
+    font-weight: 600;
+    color: var(--color-text-secondary, #374151);
 }
 
 .manualFooterNum {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-text-primary, #111827);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--color-text-primary, #111827);
 }
 
-/* ── Botón agregar ítem manual ───────────────────────────────────── */
 .manualAddRow {
-  display: flex;
-  justify-content: flex-start;
-  padding: 0.6rem 0 0.2rem;
+    display: flex;
+    justify-content: flex-start;
+    padding: 0.6rem 0 0.2rem;
 }
 
 .btnAgregarManual {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.9rem;
-  background: var(--color-primary, #6366f1);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    background: var(--color-primary, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
 }
 
 .btnAgregarManual:hover {
-  background: var(--color-primary-dark, #4f46e5);
-  transform: translateY(-1px);
+    background: var(--color-primary-dark, #4f46e5);
+    transform: translateY(-1px);
 }
 
 .btnAgregarManual:active {
-  transform: translateY(0);
+    transform: translateY(0);
 }
 
-/* ── Columna médico en tabla manual ─────────────────────────────── */
 .thDescMed {
-  width: 22%;
-  text-align: left;
+    width: 22%;
+    text-align: left;
 }
 
-/* ── Print: sección ítems manuales ──────────────────────────────── */
-.printManuales {
-  margin-top: 1.2rem;
+/* ========================================
+   ESTILOS PARA IMPRESIÓN (escala de grises)
+   ======================================== */
+.printView {
+    display: none;
 }
 
-.printManuales h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-  color: #1f2937;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0.2rem;
+@media print {
+
+    .screenView {
+        display: none;
+    }
+
+    .printView {
+        display: block;
+        font-family: Arial, Helvetica, sans-serif;
+        color: black;
+        background: white;
+        padding: 0.5in;
+        max-width: 100%;
+    }
+
+    .printHeader h1 {
+        font-size: 18pt;
+        margin-bottom: 16pt;
+        border-bottom: 2px solid #000;
+        padding-bottom: 8pt;
+    }
+
+    .printPaciente p {
+        margin: 4pt 0;
+        font-size: 11pt;
+    }
+
+    .printHonorarios,
+    .printGastos {
+        margin-top: 20pt;
+    }
+
+    .printHonorarios h3,
+    .printGastos h3 {
+        font-size: 14pt;
+        margin: 12pt 0 8pt;
+        border-bottom: 1px solid #333;
+        padding-bottom: 4pt;
+    }
+
+    .printSection h4 {
+        font-size: 12pt;
+        margin: 10pt 0 5pt;
+        font-weight: bold;
+    }
+
+    .printTable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15pt;
+        font-size: 10pt;
+    }
+
+    .printTable th {
+        background: #eee;
+        font-weight: bold;
+        text-align: left;
+        padding: 6pt 4pt;
+        border: 1px solid #aaa;
+    }
+
+    .printTable td {
+        padding: 4pt;
+        border: 1px solid #aaa;
+        vertical-align: top;
+    }
+
+    .printNumber {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .printTotales {
+        margin-top: 20pt;
+        border-top: 2px solid #000;
+        padding-top: 10pt;
+    }
+
+    .printTotalLine {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12pt;
+        margin: 4pt 0;
+    }
+
+    .printTotalFinal {
+        font-weight: bold;
+        font-size: 14pt;
+        margin-top: 8pt;
+        border-top: 1px solid #333;
+        padding-top: 6pt;
+    }
+
+    .printSubtotal {
+        text-align: right;
+        font-weight: 600;
+        margin-top: 4px;
+        margin-bottom: 8px;
+        padding-right: 8px;
+        border-top: 1px dashed #ccc;
+    }
+
+    .printManuales {
+        margin-top: 1.2rem;
+    }
+
+    .printManuales h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 0.2rem;
+    }
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   AGREGAR ESTOS ESTILOS al final de practicas.module.css
-   ───────────────────────────────────────────────────────────────── */
+/* ===== MEJORAS PARA LA SECCIÓN MANUAL / ESPECIALES ===== */
+/* Garantiza legibilidad de textos, inputs y etiquetas */
 
-/* ── Badge informativo de ecografías cap. 18 ─────────────────────── */
-.ecoBadge {
-  font-size: 0.75rem;
-  color: var(--color-info-text, #1d4ed8);
-  background: var(--color-info-bg, #eff6ff);
-  border: 1px solid var(--color-info-border, #bfdbfe);
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  margin: 0.3rem 0;
+.manualInfo {
+    font-size: 0.85rem;
+    color: #334155; /* color oscuro legible sobre fondo claro */
+    background: #fef9c3;
+    border-left: 4px solid #eab308;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 500;
 }
 
-/* ── Nota inline en tabla de ecografías ─────────────────────────── */
-.ecoNote {
-  font-size: 0.72rem;
-  color: var(--color-info-text, #1d4ed8);
-  margin-top: 0.2rem;
-  font-style: italic;
+/* Tabla manual: forzar colores de texto oscuros en modo claro */
+.table tbody td .manualInput,
+.table tbody td .manualInputNum {
+    background-color: #ffffff;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+    font-weight: 500;
 }
+
+.table tbody td .manualInput::placeholder,
+.table tbody td .manualInputNum::placeholder {
+    color: #64748b;
+    font-weight: normal;
+}
+
+/* Select de tipo (Honorario/Gasto) dentro de tabla manual */
+.table tbody td .selectPrestador {
+    background-color: #ffffff;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
+
+/* Total de fila manual */
+.manualTotal {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #2563eb;
+    background: transparent;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+}
+
+/* Footer de totales manuales */
+.manualFooterRow td {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 600;
+    border-top: 2px solid #cbd5e1;
+}
+
+.manualFooterLabel {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.manualFooterNum {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+/* Botón agregar ítem manual */
+.btnAgregarManual {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btnAgregarManual:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Ajuste de ancho de columnas en tabla manual para que no se aprieten */
+.thDescMed {
+    width: 25%;
+}
+
+/* Para modo oscuro general (si el tema es oscuro, se adapta) */
+@media (prefers-color-scheme: dark) {
+    .manualInfo {
+        background: #2d2a1e;
+        color: #fde047;
+        border-left-color: #facc15;
+    }
+    
+    .table tbody td .manualInput,
+    .table tbody td .manualInputNum,
+    .table tbody td .selectPrestador {
+        background-color: #1e293b;
+        color: #f1f5f9;
+        border-color: #475569;
+    }
+    
+    .table tbody td .manualInput::placeholder {
+        color: #94a3b8;
+    }
+    
+    .manualTotal {
+        color: #60a5fa;
+    }
+    
+    .manualFooterRow td {
+        background: #1e293b;
+        color: #e2e8f0;
+    }
+    
+    .manualFooterLabel,
+    .manualFooterNum {
+        color: #f1f5f9;
+    }
+}
+
+/* Mejora adicional: texto de cabecera de tabla manual */
+.table thead th {
+    color: #f8fafc; /* para modo oscuro, si tu fondo es oscuro */
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* En modo claro, las cabeceras se ven bien con el color por defecto */

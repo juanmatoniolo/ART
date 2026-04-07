@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";  // ← Importar useRouter
 import { PDFDocument } from "pdf-lib";
 import styles from "./page.module.css";
 
@@ -40,7 +41,6 @@ function parseFormattedNumber(v) {
 
 function fmtDate(iso) {
     if (!iso) return "—";
-    // Si es YYYY-MM-DD, parsear como fecha local para evitar desfase horario
     const parts = iso.split('-');
     if (parts.length === 3) {
         const [year, month, day] = parts;
@@ -115,7 +115,6 @@ async function buildPdfFromCX(cx, templateUrl, mapping, canonical) {
         try { pdfForm.getCheckBox(fieldName).check(); } catch { }
     };
 
-    // Datos del paciente desde pacienteDatos
     const ap = cx.pacienteDatos?.apellido || '';
     const nom = cx.pacienteDatos?.nombre || '';
     const nombresPaciente = [ap, nom].filter(Boolean).join(' ').trim();
@@ -123,7 +122,6 @@ async function buildPdfFromCX(cx, templateUrl, mapping, canonical) {
     const doctorRaw = getDoctor(cx);
     const doctorPrint = doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
 
-    // Asignar campos comunes (los que están en el template)
     trySetText('apellido-paciente', ap);
     trySetText('nombre-paciente', nom);
     trySetText('nombres-paciente', nombresPaciente);
@@ -134,17 +132,14 @@ async function buildPdfFromCX(cx, templateUrl, mapping, canonical) {
     tryCheck('masculino-paciente', cx.pacienteDatos?.sexo === 'M');
     tryCheck('femenino-paciente', cx.pacienteDatos?.sexo === 'F');
 
-    // Usar el mapping para los datos del formulario
     const form = cx.formulario || {};
     for (const [canonName, value] of Object.entries(form)) {
         const internals = canonical.canonicalToInternal[canonName] || [];
-        // Determinar si es checkbox según el primer campo interno
         const isBtn = mapping[internals[0]]?.[0]?.field_type === '/Btn';
         for (const internal of internals) {
             if (isBtn) tryCheck(internal, !!value);
             else trySetText(internal, value);
         }
-        // También intentar con el nombre canónico por si el PDF tiene un campo con ese nombre
         if (isBtn) tryCheck(canonName, !!value);
         else trySetText(canonName, value);
     }
@@ -178,16 +173,14 @@ async function downloadCxPdf(cx, type, mapping, canonical) {
 }
 
 // ─────────────────────────────────────────────
-//  MODAL PARA ASIGNAR PROFESIONAL Y FECHA (ECG o LAB)
+//  MODALES (sin cambios)
 // ─────────────────────────────────────────────
 function ModalEstudio({ cx, estudio, onSave, onCancel }) {
     const [profesional, setProfesional] = useState(estudio === 'ecg' ? cx.ecgProfesional || "" : cx.labProfesional || "");
     const [fecha, setFecha] = useState(estudio === 'ecg' ? (cx.ecgFecha || "") : (cx.labFecha || ""));
-    
     const opciones = estudio === 'ecg'
         ? ["Percara Gonzalo", "Capovila Braulio"]
         : ["Marmol Carlos", "Confalonieri Maria"];
-
     const titulo = estudio === 'ecg' ? "ECG Preoperatorio" : "Laboratorio";
     const emoji = estudio === 'ecg' ? "🫀" : "🧪";
 
@@ -228,9 +221,6 @@ function ModalEstudio({ cx, estudio, onSave, onCancel }) {
     );
 }
 
-// ─────────────────────────────────────────────
-//  MODAL DE REALIZACIÓN
-// ─────────────────────────────────────────────
 function ModalRealizacion({ cx, onConfirm, onCancel }) {
     const hoy = new Date().toISOString().slice(0, 16);
     const [fechaRealizacion, setFechaRealizacion] = useState(hoy);
@@ -268,9 +258,6 @@ function ModalRealizacion({ cx, onConfirm, onCancel }) {
     );
 }
 
-// ─────────────────────────────────────────────
-//  MODAL DE EDICIÓN
-// ─────────────────────────────────────────────
 function ModalEdicion({ cx, onSave, onCancel }) {
     const [form, setForm] = useState({
         fechaEstimada:  cx.fechaEstimada  || "",
@@ -366,9 +353,6 @@ function ModalEdicion({ cx, onSave, onCancel }) {
     );
 }
 
-// ─────────────────────────────────────────────
-//  MODAL FICHA INDIVIDUAL (sin botón imprimir)
-// ─────────────────────────────────────────────
 function ModalFicha({ cx, mapping, canonical, onClose }) {
     const dr     = getDoctor(cx);
     const preop  = preopStatus(cx);
@@ -475,9 +459,6 @@ function ModalFicha({ cx, mapping, canonical, onClose }) {
     );
 }
 
-// ─────────────────────────────────────────────
-//  MODAL LISTA DEL DÍA (para imprimir)
-// ─────────────────────────────────────────────
 function ModalListaDia({ cirugias, onClose }) {
     const hoy = new Date().toISOString().slice(0, 10);
     const [fecha, setFecha] = useState(hoy);
@@ -547,9 +528,6 @@ function ModalListaDia({ cirugias, onClose }) {
     );
 }
 
-// ─────────────────────────────────────────────
-//  TARJETA DE CIRUGÍA (con click en ECG/Lab y botón PDF)
-// ─────────────────────────────────────────────
 function CirugiaCard({ cx, onRealizar, onEditar, onEliminar, onVerFicha, onEstudioClick, onDownloadFrente, mapping, canonical }) {
     const dr    = getDoctor(cx);
     const preop = preopStatus(cx);
@@ -634,9 +612,6 @@ function CirugiaCard({ cx, onRealizar, onEditar, onEliminar, onVerFicha, onEstud
     );
 }
 
-// ─────────────────────────────────────────────
-//  STATS HEADER
-// ─────────────────────────────────────────────
 function StatsBar({ cirugias }) {
     const pendientes = cirugias.filter(c => !c.realizada);
     const hoy        = new Date().toISOString().slice(0, 10);
@@ -670,6 +645,7 @@ function StatsBar({ cirugias }) {
 //  PÁGINA PRINCIPAL
 // ─────────────────────────────────────────────
 export default function CirugiasProgramadasPage() {
+    const router = useRouter();  // ← hook para navegación
     const [tab, setTab]         = useState("programadas");
     const [cirugias, setCirugias] = useState([]);
     const [loading, setLoading]   = useState(true);
@@ -680,13 +656,12 @@ export default function CirugiasProgramadasPage() {
     const [filterDoctor, setFilterDoctor]         = useState("");
     const [filterSoloIncompleto, setFilterSoloIncompleto] = useState(false);
 
-    const [modalRealizar, setModalRealizar] = useState(null); // cx
-    const [modalEditar,   setModalEditar]   = useState(null); // cx
-    const [modalFicha,    setModalFicha]    = useState(null); // cx
+    const [modalRealizar, setModalRealizar] = useState(null);
+    const [modalEditar,   setModalEditar]   = useState(null);
+    const [modalFicha,    setModalFicha]    = useState(null);
     const [modalListaDia, setModalListaDia] = useState(false);
-    const [modalEstudio,  setModalEstudio]  = useState(null); // { cx, tipo }
+    const [modalEstudio,  setModalEstudio]  = useState(null);
 
-    // Estados para mapping
     const [mapping, setMapping] = useState(null);
     const [canonical, setCanonical] = useState(null);
 
@@ -699,7 +674,6 @@ export default function CirugiasProgramadasPage() {
             })
             .then(data => {
                 setMapping(data);
-                // Construir canonical similar a la página de carga
                 const canonicalToInternal = {};
                 const internalToCanonical = {};
                 for (const internalName of Object.keys(data)) {
@@ -824,7 +798,6 @@ export default function CirugiasProgramadasPage() {
         let list = cirugias.filter(cx => !cx.realizada);
         list = list.filter(cx => {
             if (!cx.fechaEstimada) return false;
-            // Comparación con fecha local usando string (YYYY-MM-DD)
             if (filterFechaDesde && cx.fechaEstimada < filterFechaDesde) return false;
             if (filterFechaHasta && cx.fechaEstimada > filterFechaHasta) return false;
             return true;
@@ -838,7 +811,6 @@ export default function CirugiasProgramadasPage() {
         let list = cirugias.filter(cx => cx.realizada);
         list = list.filter(cx => {
             if (!cx.fechaRealizacion) return false;
-            // Usar solo la parte de fecha para comparar
             const fecha = cx.fechaRealizacion.slice(0,10);
             if (filterFechaDesde && fecha < filterFechaDesde) return false;
             if (filterFechaHasta && fecha > filterFechaHasta) return false;
@@ -854,7 +826,6 @@ export default function CirugiasProgramadasPage() {
         setFilterDoctor(""); setFilterSoloIncompleto(false);
     };
 
-    // ── Render ─────────────────────────────────────
     if (loading) return (
         <div className={styles.page}>
             <div className={styles.loadingCenter}>
@@ -866,6 +837,29 @@ export default function CirugiasProgramadasPage() {
 
     return (
         <div className={styles.page}>
+            {/* ========== BARRA DE NAVEGACIÓN (igual a la de solicitudes) ========== */}
+            <div className={styles.pageHeader}>
+                <div className={styles.tabsContainer}>
+                    <button
+                        className={styles.tabButton}
+                        onClick={() => router.push("/admin/cx")}
+                    >
+                        📋 Formulario
+                    </button>
+                    <button
+                        className={styles.tabButton}
+                        onClick={() => router.push("/admin/cx/solicitudes")}
+                    >
+                        📝 Solicitudes
+                    </button>
+                    <button
+                        className={`${styles.tabButton} ${styles.activeTab}`}
+                    >
+                        📅 Programadas
+                    </button>
+                </div>
+            </div>
+
             {/* Modales */}
             {modalRealizar && (
                 <ModalRealizacion
@@ -902,7 +896,7 @@ export default function CirugiasProgramadasPage() {
             )}
 
             <div className={styles.container}>
-                {/* Header */}
+                {/* Header original (título y botón lista del día) */}
                 <div className={styles.pageHeader}>
                     <div>
                         <h1 className={styles.pageTitle}>Gestión Quirúrgica</h1>
@@ -917,10 +911,9 @@ export default function CirugiasProgramadasPage() {
 
                 {error && <div className={styles.errorBanner}>{error}</div>}
 
-                {/* Stats */}
                 <StatsBar cirugias={cirugias} />
 
-                {/* Tabs */}
+                {/* Tabs internas (Programadas / Historial) */}
                 <div className={styles.tabs}>
                     <button className={`${styles.tab} ${tab === "programadas" ? styles.tabActive : ""}`}
                         onClick={() => setTab("programadas")}>

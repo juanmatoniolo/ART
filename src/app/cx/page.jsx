@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import styles from "./page.module.css";
 
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 
 export default function FormularioCirugia() {
-  // Estados del formulario
+  const formRef = useRef(null);
   const [form, setForm] = useState({
     apellido: "",
     nombre: "",
@@ -48,6 +48,30 @@ export default function FormularioCirugia() {
     }
   };
 
+  const limpiarFormulario = () => {
+    setForm({
+      apellido: "",
+      nombre: "",
+      sexo: "",
+      dni: "",
+      nacimiento: "",
+      lugarNacimiento: "",
+      domicilio: "",
+      localidad: "",
+      provincia: "",
+      telefono: "",
+    });
+    setEdad("");
+  };
+
+  const mostrarMensaje = (texto, tipo) => {
+    setMensaje({ texto, tipo });
+    // Auto-ocultar después de 5 segundos
+    setTimeout(() => {
+      setMensaje({ texto: "", tipo: "" });
+    }, 5000);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMensaje({ texto: "", tipo: "" });
@@ -68,26 +92,36 @@ export default function FormularioCirugia() {
 
     for (const campo of camposObligatorios) {
       if (!form[campo]?.trim()) {
-        setMensaje({ texto: `El campo ${campo} es obligatorio`, tipo: "error" });
+        mostrarMensaje(`El campo ${campo} es obligatorio`, "error");
+        // Scroll al primer error
+        document.querySelector(`[name="${campo}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
     }
 
-    // Formatear DNI a xx-xxxxxxxx-x (opcional)
+    // Validar DNI/CUIL
     const dniLimpio = form.dni.replace(/\D/g, "");
     if (dniLimpio.length < 7 || dniLimpio.length > 11) {
-      setMensaje({ texto: "DNI/CUIL inválido", tipo: "error" });
+      mostrarMensaje("DNI/CUIL inválido (debe tener entre 7 y 11 dígitos)", "error");
       return;
     }
 
-    // Guardar en Firebase
+    // Validar fecha de nacimiento coherente
+    if (form.nacimiento) {
+      const edadCalculada = calcularEdad(form.nacimiento);
+      if (edadCalculada === "" || edadCalculada < 0 || edadCalculada > 120) {
+        mostrarMensaje("Fecha de nacimiento inválida", "error");
+        return;
+      }
+    }
+
     setEnviando(true);
     try {
       const data = {
         ...form,
         edad: edad,
         fechaSolicitud: Date.now(),
-        estado: "pendiente", // o "recibido"
+        atendida: false,        // para que aparezca como pendiente
         createdAt: new Date().toISOString(),
       };
 
@@ -99,24 +133,14 @@ export default function FormularioCirugia() {
 
       if (!res.ok) throw new Error("Error al enviar");
 
-      setMensaje({ texto: "Solicitud enviada con éxito. Pronto nos contactaremos.", tipo: "exito" });
-      // Limpiar formulario (opcional)
-      setForm({
-        apellido: "",
-        nombre: "",
-        sexo: "",
-        dni: "",
-        nacimiento: "",
-        lugarNacimiento: "",
-        domicilio: "",
-        localidad: "",
-        provincia: "",
-        telefono: "",
-      });
-      setEdad("");
+      mostrarMensaje("✅ Solicitud enviada con éxito. Pronto nos contactaremos.", "exito");
+      limpiarFormulario();
+
+      // Desplazar suavemente hacia arriba para que el usuario vea el mensaje
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error(error);
-      setMensaje({ texto: "Hubo un error. Intente nuevamente más tarde.", tipo: "error" });
+      mostrarMensaje("❌ Hubo un error. Intente nuevamente más tarde.", "error");
     } finally {
       setEnviando(false);
     }
@@ -134,7 +158,7 @@ export default function FormularioCirugia() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
+        <form ref={formRef} onSubmit={handleSubmit} className={styles.form} noValidate>
           {/* DATOS DEL PACIENTE */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Datos del paciente</h2>
@@ -149,6 +173,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: Pérez"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -163,6 +188,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: Juan"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -173,14 +199,16 @@ export default function FormularioCirugia() {
                 <button
                   type="button"
                   className={`${styles.sexoBtn} ${form.sexo === "M" ? styles.active : ""}`}
-                  onClick={() => setForm((prev) => ({ ...prev, sexo: "M" }))}
+                  onClick={() => !enviando && setForm((prev) => ({ ...prev, sexo: "M" }))}
+                  disabled={enviando}
                 >
                   Masculino
                 </button>
                 <button
                   type="button"
                   className={`${styles.sexoBtn} ${form.sexo === "F" ? styles.active : ""}`}
-                  onClick={() => setForm((prev) => ({ ...prev, sexo: "F" }))}
+                  onClick={() => !enviando && setForm((prev) => ({ ...prev, sexo: "F" }))}
+                  disabled={enviando}
                 >
                   Femenino
                 </button>
@@ -197,6 +225,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: 20-12345678-9 o 12345678"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -210,6 +239,7 @@ export default function FormularioCirugia() {
                 value={form.nacimiento}
                 onChange={handleChange}
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -240,6 +270,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ciudad, Provincia, País"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -254,6 +285,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Calle, número, depto"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -268,6 +300,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: Chajarí"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -282,6 +315,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: Entre Ríos"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
@@ -296,13 +330,14 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: 3456-123456"
                 className={styles.input}
+                disabled={enviando}
                 required
               />
             </div>
           </div>
 
           <button type="submit" className={styles.submitBtn} disabled={enviando}>
-            {enviando ? "Enviando..." : "Enviar solicitud"}
+            {enviando ? "Enviando solicitud..." : "Enviar solicitud"}
           </button>
         </form>
       </div>
