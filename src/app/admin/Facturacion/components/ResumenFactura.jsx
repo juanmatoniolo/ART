@@ -34,9 +34,15 @@ const getRolLabel = (item) => {
   return item?.prestadorRol || 'Profesional';
 };
 
+// ─── parseMoneyInput ─────────────────────────────────────────────────────────
+// Permite ingresar valores con coma o punto como decimal
+const parseMoneyInput = (v) => {
+  const str = String(v ?? '').replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+};
+
 // ─── DoctorSelect ────────────────────────────────────────────────────────────
-// tabIndex: controla el orden de tabulación entre inputs de doctor
-// data-doctorinput: marca para que Enter pueda saltar al siguiente por tabIndex
 const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => {
   const { doctors } = useDoctors();
 
@@ -49,7 +55,6 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     setInputValue(value || '');
   }, [value]);
 
-  // Busca por índice numérico (1-based) o por texto parcial
   const resolveDoctor = (text) => {
     const trimmed = text.trim();
     if (!trimmed) return null;
@@ -66,7 +71,6 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     );
   };
 
-  // Resuelve el nombre y notifica al padre
   const commitValue = (currentText) => {
     const matched = resolveDoctor(currentText);
     const finalValue = matched
@@ -77,20 +81,17 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     return finalValue;
   };
 
-  // Click afuera también resuelve el nombre
   const handleBlur = () => commitValue(inputValue);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       commitValue(inputValue);
-      // Saltar manualmente al siguiente DoctorSelect en orden
       const next = document.querySelector(
         `[data-doctorinput][tabindex="${(tabIndex ?? 0) + 1}"]`
       );
       if (next) next.focus();
     }
-    // Tab nativo funciona solo gracias al tabIndex en el <input>
   };
 
   const formatDoctorName = (doc, index) => {
@@ -182,6 +183,90 @@ function CantidadInputResumen({ itemId, initialValue, onChange }) {
   );
 }
 
+// ─── NUEVA FILA MANUAL ────────────────────────────────────────────────────────
+const emptyManualItem = () => ({
+  id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  descripcion: '',
+  medico: '',
+  honorario: '',
+  gasto: '',
+});
+
+function FilaManual({ item, onChange, onRemove }) {
+  const [desc, setDesc] = useState(item.descripcion);
+  const [medico, setMedico] = useState(item.medico);
+  const [honorario, setHonorario] = useState(item.honorario);
+  const [gasto, setGasto] = useState(item.gasto);
+
+  const commit = (field, value) => {
+    const next = { ...item, descripcion: desc, medico, honorario, gasto, [field]: value };
+    onChange(next);
+  };
+
+  return (
+    <tr className={styles.manualRow}>
+      <td className={styles.manualCellDesc}>
+        <input
+          className={styles.manualInput}
+          type="text"
+          placeholder="Estudio / práctica / concepto…"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          onBlur={() => commit('descripcion', desc)}
+        />
+      </td>
+      <td className={styles.manualCellMedico}>
+        <input
+          className={styles.manualInput}
+          type="text"
+          placeholder="Médico / prestador…"
+          value={medico}
+          onChange={(e) => setMedico(e.target.value)}
+          onBlur={() => commit('medico', medico)}
+        />
+      </td>
+      <td className={styles.manualCellNum}>
+        <input
+          className={`${styles.manualInput} ${styles.manualInputNum}`}
+          type="text"
+          inputMode="decimal"
+          placeholder="0"
+          value={honorario}
+          onChange={(e) => setHonorario(e.target.value)}
+          onBlur={() => commit('honorario', honorario)}
+        />
+      </td>
+      <td className={styles.manualCellNum}>
+        <input
+          className={`${styles.manualInput} ${styles.manualInputNum}`}
+          type="text"
+          inputMode="decimal"
+          placeholder="0"
+          value={gasto}
+          onChange={(e) => setGasto(e.target.value)}
+          onBlur={() => commit('gasto', gasto)}
+        />
+      </td>
+      <td className={styles.manualCellTotal}>
+        <span className={styles.manualTotal}>
+          $ {money(parseMoneyInput(honorario) + parseMoneyInput(gasto))}
+        </span>
+      </td>
+      <td className={styles.manualCellAction}>
+        <button
+          type="button"
+          tabIndex={-1}
+          className={styles.btnEliminar}
+          onClick={() => onRemove(item.id)}
+          title="Eliminar"
+        >
+          🗑️
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 // ─── ResumenFactura ───────────────────────────────────────────────────────────
 export default function ResumenFactura({
   paciente,
@@ -205,8 +290,36 @@ export default function ResumenFactura({
     medDesc: true,
     med: true,
     desc: true,
+    manuales: true,   // nueva sección
   });
 
+  // ─── Ítems manuales ───────────────────────────────────────────────────────
+  const [itemsManuales, setItemsManuales] = useState([]);
+
+  const agregarItemManual = () => {
+    setItemsManuales((prev) => [...prev, emptyManualItem()]);
+  };
+
+  const actualizarItemManual = (next) => {
+    setItemsManuales((prev) => prev.map((it) => (it.id === next.id ? next : it)));
+  };
+
+  const eliminarItemManual = (id) => {
+    setItemsManuales((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const totalesManuales = useMemo(() => {
+    return itemsManuales.reduce(
+      (acc, it) => {
+        const h = parseMoneyInput(it.honorario);
+        const g = parseMoneyInput(it.gasto);
+        return { honor: acc.honor + h, gasto: acc.gasto + g };
+      },
+      { honor: 0, gasto: 0 }
+    );
+  }, [itemsManuales]);
+
+  // ─── Totales generales ─────────────────────────────────────────────────────
   const totalSeccion = (items) =>
     items.reduce((acc, it) => acc + (parseNumber(it?.total) || 0), 0);
 
@@ -218,10 +331,10 @@ export default function ResumenFactura({
       ...medicamentos,
       ...descartables,
     ];
-    const honor = all.reduce((acc, it) => acc + (parseNumber(it?.honorarioMedico) || 0), 0);
-    const gasto = all.reduce((acc, it) => acc + (parseNumber(it?.gastoSanatorial) || 0), 0);
+    const honor = all.reduce((acc, it) => acc + (parseNumber(it?.honorarioMedico) || 0), 0) + totalesManuales.honor;
+    const gasto = all.reduce((acc, it) => acc + (parseNumber(it?.gastoSanatorial) || 0), 0) + totalesManuales.gasto;
     return { honor, gasto, total: honor + gasto };
-  }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
+  }, [practicas, cirugias, laboratorios, medicamentos, descartables, totalesManuales]);
 
   const practicasHonorarios = useMemo(
     () => practicas.filter((p) => String(p?.prestadorTipo) === 'Dr'),
@@ -240,10 +353,6 @@ export default function ResumenFactura({
   const totalMedicamentos = useMemo(() => totalSeccion(medicamentos), [medicamentos]);
   const totalDescartables = useMemo(() => totalSeccion(descartables), [descartables]);
 
-  // tabIndex global para todos los DoctorSelect, en orden de aparición en pantalla
-  // Prácticas honorarios: 1..N
-  // Cirugías: N+1..M
-  // Laboratorios: M+1..K
   const tabOffsetCirugias = practicasHonorarios.length + 1;
   const tabOffsetLabs = tabOffsetCirugias + cirugias.length;
 
@@ -255,7 +364,7 @@ export default function ResumenFactura({
     fecha: paciente?.fechaAtencion || '—',
   };
 
-  // ─── Excel export ────────────────────────────────────────────────────────────
+  // ─── Excel export ─────────────────────────────────────────────────────────
   const exportarDetalle = () => {
     const rows = [];
 
@@ -292,6 +401,20 @@ export default function ResumenFactura({
     agregarItems(medicamentos, 'Medicación', 'Gasto');
     agregarItems(descartables, 'Descartables', 'Gasto');
 
+    // Ítems manuales en el Excel
+    if (itemsManuales.length > 0) {
+      itemsManuales.forEach((it) => {
+        const h = parseMoneyInput(it.honorario);
+        const g = parseMoneyInput(it.gasto);
+        rows.push([
+          'Manual / Especial', '—', '—', '—',
+          it.descripcion || '(sin descripción)',
+          1, h + g, h, g, h + g,
+          it.medico || '—',
+        ]);
+      });
+    }
+
     rows.push([]);
     rows.push(['SUBTOTALES POR CATEGORÍA']);
 
@@ -307,6 +430,12 @@ export default function ResumenFactura({
       const totalCat = cat.items.reduce((acc, it) => acc + (parseNumber(it.total) || 0), 0);
       if (totalCat > 0) rows.push([cat.nombre, '', '', '', '', '', '', '', '', money(totalCat)]);
     });
+
+    if (totalesManuales.honor + totalesManuales.gasto > 0) {
+      rows.push(['Ítems manuales / especiales', '', '', '', '', '', '',
+        money(totalesManuales.honor), money(totalesManuales.gasto),
+        money(totalesManuales.honor + totalesManuales.gasto)]);
+    }
 
     rows.push([]);
     rows.push(['TOTALES GENERALES']);
@@ -324,7 +453,7 @@ export default function ResumenFactura({
     XLSX.writeFile(wb, `factura_${pacienteData.nombre}_${pacienteData.dni}.xlsx`);
   };
 
-  // ─── Print helpers ────────────────────────────────────────────────────────────
+  // ─── Print helpers ────────────────────────────────────────────────────────
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -431,7 +560,7 @@ export default function ResumenFactura({
     );
   };
 
-  // ─── Cantidad stepper ─────────────────────────────────────────────────────────
+  // ─── Cantidad stepper ─────────────────────────────────────────────────────
   const renderCantidad = (item) => {
     const cur = clampDecimalQty(item?.cantidad);
     const step = cur < 1 ? 0.1 : 1;
@@ -470,7 +599,7 @@ export default function ResumenFactura({
     );
   };
 
-  // ─── Valor stack ──────────────────────────────────────────────────────────────
+  // ─── Valor stack ──────────────────────────────────────────────────────────
   const renderValorStack = (item) => (
     <div className={styles.valorStack}>
       <div className={styles.valorLine}>
@@ -494,7 +623,7 @@ export default function ResumenFactura({
     </div>
   );
 
-  // ─── Acordeon — tabIndex={-1} para que Tab no pare en el botón header ────────
+  // ─── Acordeon ─────────────────────────────────────────────────────────────
   const Acordeon = ({ k, title, count, amount, children }) => (
     <section className={styles.acSection}>
       <button
@@ -533,7 +662,7 @@ export default function ResumenFactura({
     </div>
   );
 
-  // ─── TablaPracticas — startTabIndex para numerar DoctorSelect en orden ────────
+  // ─── TablaPracticas ───────────────────────────────────────────────────────
   const TablaPracticas = ({ items, mostrarInputDoctor, startTabIndex = 1 }) => (
     <div className={styles.tableContainer}>
       <table className={styles.table}>
@@ -593,7 +722,7 @@ export default function ResumenFactura({
     </div>
   );
 
-  // ─── JSX ──────────────────────────────────────────────────────────────────────
+  // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
     <div className={styles.tabContent}>
       <h2>📋 Resumen</h2>
@@ -617,7 +746,7 @@ export default function ResumenFactura({
           </div>
         </div>
 
-        {/* ── Prácticas ──────────────────────────────────────────────────────── */}
+        {/* ── Prácticas ────────────────────────────────────────────────── */}
         <Acordeon k="practicas" title="🏥 Prácticas" count={practicas.length} amount={totalSeccion(practicas)}>
           {practicas.length === 0 ? (
             <div className={styles.emptyBlock}>Sin prácticas.</div>
@@ -632,7 +761,6 @@ export default function ResumenFactura({
                 {practicasHonorarios.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay honorarios cargados.</div>
                 ) : (
-                  // tabIndex 1..practicasHonorarios.length
                   <TablaPracticas
                     items={practicasHonorarios}
                     mostrarInputDoctor={true}
@@ -650,7 +778,6 @@ export default function ResumenFactura({
                 {practicasGastos.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay gastos cargados.</div>
                 ) : (
-                  // Gastos no tienen input de doctor → startTabIndex no importa
                   <TablaPracticas
                     items={practicasGastos}
                     mostrarInputDoctor={false}
@@ -661,7 +788,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Cirugías ───────────────────────────────────────────────────────── */}
+        {/* ── Cirugías ─────────────────────────────────────────────────── */}
         <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)}>
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
@@ -723,7 +850,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Laboratorios ───────────────────────────────────────────────────── */}
+        {/* ── Laboratorios ─────────────────────────────────────────────── */}
         <Acordeon k="labs" title="🧪 Laboratorios" count={laboratorios.length} amount={totalSeccion(laboratorios)}>
           {laboratorios.length === 0 ? (
             <div className={styles.emptyBlock}>Sin laboratorios.</div>
@@ -792,7 +919,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Medicación + Descartables ───────────────────────────────────────── */}
+        {/* ── Medicación + Descartables ─────────────────────────────────── */}
         <Acordeon
           k="medDesc"
           title="💊 Medicación + 🧷 Descartables"
@@ -902,7 +1029,70 @@ export default function ResumenFactura({
           </SubAcordeon>
         </Acordeon>
 
-        {/* ── Botones ─────────────────────────────────────────────────────────── */}
+        {/* ── ✏️ Ítems Manuales / Especiales ──────────────────────────── */}
+        <Acordeon
+          k="manuales"
+          title="✏️ Ítems manuales / especiales"
+          count={itemsManuales.length}
+          amount={totalesManuales.honor + totalesManuales.gasto}
+        >
+          <div className={styles.manualInfo}>
+            Usá esta sección para estudios, médicos o valores que no están contemplados en el sistema
+            (cambios de convenio, valores especiales, conceptos extra, etc.).
+          </div>
+
+          {itemsManuales.length === 0 ? (
+            <div className={styles.emptyBlock}>No hay ítems manuales.</div>
+          ) : (
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th className={styles.thDesc}>Descripción / Estudio</th>
+                    <th className={styles.thDescMed}>Médico / Prestador</th>
+                    <th className={styles.thNum}>Honorario $</th>
+                    <th className={styles.thNum}>Gasto $</th>
+                    <th className={styles.thNum}>Total</th>
+                    <th className={styles.thAction}>Acc.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemsManuales.map((it) => (
+                    <FilaManual
+                      key={it.id}
+                      item={it}
+                      onChange={actualizarItemManual}
+                      onRemove={eliminarItemManual}
+                    />
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className={styles.manualFooterRow}>
+                    <td colSpan={2} className={styles.manualFooterLabel}>Subtotales manuales</td>
+                    <td className={styles.manualFooterNum}>$ {money(totalesManuales.honor)}</td>
+                    <td className={styles.manualFooterNum}>$ {money(totalesManuales.gasto)}</td>
+                    <td className={styles.manualFooterNum}>
+                      <strong>$ {money(totalesManuales.honor + totalesManuales.gasto)}</strong>
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          <div className={styles.manualAddRow}>
+            <button
+              type="button"
+              className={styles.btnAgregarManual}
+              onClick={agregarItemManual}
+            >
+              ➕ Agregar ítem manual
+            </button>
+          </div>
+        </Acordeon>
+
+        {/* ── Botones ──────────────────────────────────────────────────── */}
         <div className={styles.botonesResumen}>
           <div className={styles.botonesIzquierda}>
             <button type="button" className={styles.btnAtras} onClick={onAtras}>
@@ -920,7 +1110,7 @@ export default function ResumenFactura({
         </div>
       </div>
 
-      {/* ── Vista de impresión ──────────────────────────────────────────────── */}
+      {/* ── Vista de impresión ────────────────────────────────────────── */}
       <div className={styles.printView}>
         <div className={styles.printHeader}>
           <h1>Resumen de Facturación</h1>
@@ -962,6 +1152,42 @@ export default function ResumenFactura({
             <div className={styles.printSubtotal}>Subtotal Descartables: $ {money(totalDescartables)}</div>
           )}
         </div>
+
+        {/* Ítems manuales en impresión */}
+        {itemsManuales.length > 0 && (
+          <div className={styles.printManuales}>
+            <h3>Ítems especiales / manuales</h3>
+            <table className={styles.printTable}>
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th>Médico / Prestador</th>
+                  <th>Honorario</th>
+                  <th>Gasto</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itemsManuales.map((it) => {
+                  const h = parseMoneyInput(it.honorario);
+                  const g = parseMoneyInput(it.gasto);
+                  return (
+                    <tr key={it.id}>
+                      <td>{it.descripcion || '—'}</td>
+                      <td>{it.medico || '—'}</td>
+                      <td className={styles.printNumber}>$ {money(h)}</td>
+                      <td className={styles.printNumber}>$ {money(g)}</td>
+                      <td className={styles.printNumber}>$ {money(h + g)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className={styles.printSubtotal}>
+              Subtotal especiales: $ {money(totalesManuales.honor + totalesManuales.gasto)}
+            </div>
+          </div>
+        )}
 
         <div className={styles.printTotales}>
           <div className={styles.printTotalLine}>

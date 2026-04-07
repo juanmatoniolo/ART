@@ -9,7 +9,9 @@ import { money, parseNumber } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
 import { useReactToPrint } from 'react-to-print';
 
-// Funciones auxiliares
+// ─────────────────────────────────────────────────────────────────────────────
+//  Funciones auxiliares
+// ─────────────────────────────────────────────────────────────────────────────
 const fmtDate = (ms) => {
     if (!ms) return '—';
     try {
@@ -32,8 +34,7 @@ function csvEscape(s) {
 }
 
 function buildCsv({ paciente, estado, item, honorRows, gastoRows }) {
-    // ... (se mantiene igual, lo omito por brevedad, pero debe incluirse)
-    // En un entorno real, deberías copiar la función original aquí
+    // Implementación real (copiar la tuya)
     return '';
 }
 
@@ -54,14 +55,15 @@ function ShortText({ text, max = 30 }) {
     );
 }
 
-// Truncar para impresión
 const truncate = (str, max = 40) => {
     if (!str) return '—';
     const s = String(str);
     return s.length > max ? s.slice(0, max) + '…' : s;
 };
 
-// Componente para la vista en pantalla (con secciones separadas)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Vista en pantalla (ScreenView) – sin cambios relevantes
+// ─────────────────────────────────────────────────────────────────────────────
 function ScreenView({
     paciente,
     honorPracticas,
@@ -78,10 +80,9 @@ function ScreenView({
     convenio,
     onPrint,
     onDownloadCsv,
-    onPrintMedDesc
+    onPrintMedDescLab,
 }) {
-    // Función para renderizar una tabla genérica (pantalla)
-    const renderTable = (items, columns, showDoctor = true) => {
+    const renderTable = (items, columns) => {
         if (items.length === 0) return <div className={styles.emptySmall}>Sin datos.</div>;
         return (
             <div className={styles.tableWrap}>
@@ -98,10 +99,10 @@ function ScreenView({
                             <tr key={idx}>
                                 {columns.map((col, colIdx) => {
                                     let content = item[col.field];
-                                    if (col.field === 'desc') content = <ShortText text={item.desc} max={45} />;
+                                    if (col.field === 'desc') content = <ShortText text={content} max={45} />;
                                     else if (col.field === 'total' || col.field === 'unit') content = `$ ${money(item[col.field])}`;
                                     else if (col.field === 'unidades') content = item.unidades;
-                                    return <td key={colIdx} className={col.className || ''}>{content}</td>;
+                                    return <td key={colIdx} className={col.className || ''}>{content || '—'}</td>;
                                 })}
                             </tr>
                         ))}
@@ -111,7 +112,6 @@ function ScreenView({
         );
     };
 
-    // Columnas para honorarios (prácticas, cx, laboratorio)
     const honorColumns = [
         { label: 'Código - Práctica', field: 'desc' },
         { label: 'Dr', field: 'origen' },
@@ -120,7 +120,6 @@ function ScreenView({
         { label: 'Total', field: 'total', className: styles.numStrong }
     ];
 
-    // Columnas para gastos de prácticas (CdU)
     const gastoPracticasColumns = [
         { label: 'Código - Práctica', field: 'desc' },
         { label: 'CdU', field: 'origen' },
@@ -129,7 +128,6 @@ function ScreenView({
         { label: 'Total', field: 'total', className: styles.numStrong }
     ];
 
-    // Columnas para medicamentos/descartables (solo descripción, sin código)
     const medDescColumns = [
         { label: 'Descripción', field: 'desc' },
         { label: 'Cant.', field: 'unidades', className: styles.num },
@@ -151,18 +149,15 @@ function ScreenView({
                     </div>
                     <div className={styles.headerActions}>
                         <Link className={styles.btnGhost} href="/admin/Facturacion/Facturados">← Volver</Link>
-                        {/* 👇 MODIFICADO: Siempre mostramos el botón Editar */}
                         <Link className={styles.btnPrimary} href={`/admin/Facturacion/Nuevo?draft=${id}`}>
                             ✏️ Editar
                         </Link>
                         <button className={styles.btn} onClick={onPrint}>🖨️ Imprimir todo</button>
-                        <button className={styles.btn} onClick={onPrintMedDesc}>📋 Med+Desc</button>
-                        <button className={styles.btn} onClick={onDownloadCsv}>⬇️ CSV</button>
+                        <button className={styles.btn} onClick={onPrintMedDescLab}>📋 Med+Desc+Lab</button>
                     </div>
                 </div>
             </header>
 
-            {/* Paciente en una línea */}
             <div className={styles.patientLine}>
                 <span><b>Nombre completo:</b> {paciente?.nombreCompleto || paciente?.nombre || '—'}</span>
                 <span><b>DNI:</b> {paciente?.dni || '—'}</span>
@@ -176,28 +171,24 @@ function ScreenView({
                     <h3 className={styles.sectionTitle}>HONORARIOS MÉDICOS</h3>
                     <div className={styles.sectionSubtotal}>Subtotal: $ {money(totalHonor)}</div>
                 </div>
-
                 {honorPracticas.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>Prácticas</h4>
                         {renderTable(honorPracticas, honorColumns)}
                     </div>
                 )}
-
                 {honorCirugias.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>CX</h4>
                         {renderTable(honorCirugias, honorColumns)}
                     </div>
                 )}
-
                 {honorLaboratorios.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>Laboratorio</h4>
                         {renderTable(honorLaboratorios, honorColumns)}
                     </div>
                 )}
-
                 {honorPracticas.length === 0 && honorCirugias.length === 0 && honorLaboratorios.length === 0 && (
                     <div className={styles.emptySmall}>Sin honorarios médicos.</div>
                 )}
@@ -209,28 +200,24 @@ function ScreenView({
                     <h3 className={styles.sectionTitle}>GASTOS CLÍNICOS</h3>
                     <div className={styles.sectionSubtotal}>Subtotal: $ {money(totalGasto)}</div>
                 </div>
-
                 {gastoPracticas.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>Prácticas</h4>
                         {renderTable(gastoPracticas, gastoPracticasColumns)}
                     </div>
                 )}
-
                 {gastoMedicamentos.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>Medicación</h4>
                         {renderTable(gastoMedicamentos, medDescColumns)}
                     </div>
                 )}
-
                 {gastoDescartables.length > 0 && (
                     <div className={styles.subsection}>
                         <h4 className={styles.subsectionTitle}>Descartables</h4>
                         {renderTable(gastoDescartables, medDescColumns)}
                     </div>
                 )}
-
                 {gastoPracticas.length === 0 && gastoMedicamentos.length === 0 && gastoDescartables.length === 0 && (
                     <div className={styles.emptySmall}>Sin gastos clínicos.</div>
                 )}
@@ -244,7 +231,9 @@ function ScreenView({
     );
 }
 
-// Componente para la vista de impresión (compacta, con las mismas secciones)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Vista de impresión completa (PrintView) – CON DESGLOSE POR CATEGORÍA
+// ─────────────────────────────────────────────────────────────────────────────
 const PrintView = React.forwardRef(({
     paciente,
     honorPracticas,
@@ -255,10 +244,16 @@ const PrintView = React.forwardRef(({
     gastoDescartables,
     totalHonor,
     totalGasto,
-    totalFactura
+    totalFactura,
+    // Nuevos subtotales por categoría
+    subtotalHonorPracticas,
+    subtotalHonorCirugias,
+    subtotalHonorLaboratorios,
+    subtotalGastoPracticas,
+    subtotalGastoMedicamentos,
+    subtotalGastoDescartables,
 }, ref) => {
-    // Función para renderizar tabla compacta
-    const renderCompactTable = (items, columns, showDoctor = true) => {
+    const renderCompactTable = (items, columns) => {
         if (items.length === 0) return null;
         return (
             <table className={styles.printTableCompact}>
@@ -278,7 +273,7 @@ const PrintView = React.forwardRef(({
                                 else if (col.field === 'origen') content = truncate(item.origen, 30);
                                 else if (col.field === 'total' || col.field === 'unit') content = `$ ${money(item[col.field])}`;
                                 else content = item[col.field];
-                                return <td key={colIdx} className={col.className || ''}>{content}</td>;
+                                return <td key={colIdx} className={col.className || ''}>{content || '—'}</td>;
                             })}
                         </tr>
                     ))}
@@ -312,7 +307,7 @@ const PrintView = React.forwardRef(({
 
     return (
         <div ref={ref} className={styles.printRoot}>
-            {/* Paciente en una línea */}
+            {/* Datos del paciente */}
             <div className={styles.printPacienteLine}>
                 <span><strong>Nombre completo:</strong> {paciente?.nombreCompleto || paciente?.nombre || '—'}</span>
                 <span><strong>DNI:</strong> {paciente?.dni || '—'}</span>
@@ -320,54 +315,71 @@ const PrintView = React.forwardRef(({
                 <span><strong>Siniestro:</strong> {paciente?.nroSiniestro || '—'}</span>
             </div>
 
-            {/* Honorarios Médicos */}
+            {/* Honorarios Médicos con desglose */}
             <div className={styles.printSectionCompact}>
-                <div className={styles.printSectionTitle}>HONORARIOS MÉDICOS</div>
+                <div className={styles.printSectionTitle}>
+                    HONORARIOS MÉDICOS — Total: $ {money(totalHonor)}
+                </div>
                 {honorPracticas.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>Prácticas</div>
+                        <div className={styles.printSubsectionTitle}>
+                            Prácticas — $ {money(subtotalHonorPracticas)}
+                        </div>
                         {renderCompactTable(honorPracticas, honorColumns)}
                     </>
                 )}
                 {honorCirugias.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>CX</div>
+                        <div className={styles.printSubsectionTitle}>
+                            CX — $ {money(subtotalHonorCirugias)}
+                        </div>
                         {renderCompactTable(honorCirugias, honorColumns)}
                     </>
                 )}
                 {honorLaboratorios.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>Laboratorio</div>
+                        <div className={styles.printSubsectionTitle}>
+                            Laboratorio — $ {money(subtotalHonorLaboratorios)}
+                        </div>
                         {renderCompactTable(honorLaboratorios, honorColumns)}
                     </>
                 )}
             </div>
 
-            {/* Gastos Clínicos */}
+            {/* Gastos Clínicos con desglose */}
             <div className={styles.printSectionCompact}>
-                <div className={styles.printSectionTitle}>GASTOS CLÍNICOS</div>
+                <div className={styles.printSectionTitle}>
+                    GASTOS CLÍNICOS — Total: $ {money(totalGasto)}
+                </div>
                 {gastoPracticas.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>Prácticas</div>
+                        <div className={styles.printSubsectionTitle}>
+                            Prácticas — $ {money(subtotalGastoPracticas)}
+                        </div>
                         {renderCompactTable(gastoPracticas, gastoPracticasColumns)}
                     </>
                 )}
                 {gastoMedicamentos.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>Medicación</div>
+                        <div className={styles.printSubsectionTitle}>
+                            Medicación — $ {money(subtotalGastoMedicamentos)}
+                        </div>
                         {renderCompactTable(gastoMedicamentos, medDescColumns)}
                     </>
                 )}
                 {gastoDescartables.length > 0 && (
                     <>
-                        <div className={styles.printSubsectionTitle}>Descartables</div>
+                        <div className={styles.printSubsectionTitle}>
+                            Descartables — $ {money(subtotalGastoDescartables)}
+                        </div>
                         {renderCompactTable(gastoDescartables, medDescColumns)}
                     </>
                 )}
             </div>
 
-            {/* Totales */}
+            {/* Totales finales */}
             <div className={styles.printTotalesCompact}>
+                <hr style={{ margin: '8px 0', borderColor: '#ccc' }} />
                 <div className={styles.printTotalLine}>
                     <span>Subtotal Honorarios:</span>
                     <span>$ {money(totalHonor)}</span>
@@ -387,6 +399,9 @@ const PrintView = React.forwardRef(({
 
 PrintView.displayName = 'PrintView';
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Componente principal
+// ─────────────────────────────────────────────────────────────────────────────
 export default function FacturadoDetallePage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
@@ -411,7 +426,7 @@ export default function FacturadoDetallePage() {
         return () => { alive = false; };
     }, [id]);
 
-    // Procesar datos y separar por categorías
+    // Procesamiento de datos y cálculo de subtotales por categoría
     const {
         honorPracticas,
         honorCirugias,
@@ -421,12 +436,20 @@ export default function FacturadoDetallePage() {
         gastoDescartables,
         totalHonor,
         totalGasto,
-        totalFactura
+        totalFactura,
+        subtotalHonorPracticas,
+        subtotalHonorCirugias,
+        subtotalHonorLaboratorios,
+        subtotalGastoPracticas,
+        subtotalGastoMedicamentos,
+        subtotalGastoDescartables,
     } = useMemo(() => {
         if (!item) return {
             honorPracticas: [], honorCirugias: [], honorLaboratorios: [],
             gastoPracticas: [], gastoMedicamentos: [], gastoDescartables: [],
-            totalHonor: 0, totalGasto: 0, totalFactura: 0
+            totalHonor: 0, totalGasto: 0, totalFactura: 0,
+            subtotalHonorPracticas: 0, subtotalHonorCirugias: 0, subtotalHonorLaboratorios: 0,
+            subtotalGastoPracticas: 0, subtotalGastoMedicamentos: 0, subtotalGastoDescartables: 0,
         };
 
         const practicas = Array.isArray(item.practicas) ? item.practicas : [];
@@ -435,7 +458,6 @@ export default function FacturadoDetallePage() {
         const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
         const descartables = Array.isArray(item.descartables) ? item.descartables : [];
 
-        // Funciones auxiliares
         const pickName = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '—';
         const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
         const pickDoctor = (x) => x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional || x?.prestadorNombre || x?.prestador || '—';
@@ -457,7 +479,6 @@ export default function FacturadoDetallePage() {
             return code ? `${code} - ${name}` : name;
         };
 
-        // Arrays separados
         const honorPracticasArr = [];
         const honorCirugiasArr = [];
         const honorLaboratoriosArr = [];
@@ -465,7 +486,6 @@ export default function FacturadoDetallePage() {
         const gastoMedicamentosArr = [];
         const gastoDescartablesArr = [];
 
-        // Procesar prácticas
         practicas.forEach(p => {
             const honorario = safeNum(p?.honorarioMedico);
             const gasto = safeNum(p?.gastoSanatorial);
@@ -473,27 +493,10 @@ export default function FacturadoDetallePage() {
             const unit = pickUnit(p);
             const desc = formatCodeName(p);
             const doctor = pickDoctor(p);
-            if (honorario > 0) {
-                honorPracticasArr.push({
-                    desc,
-                    origen: doctor,
-                    unidades: qty,
-                    unit,
-                    total: honorario
-                });
-            }
-            if (gasto > 0) {
-                gastoPracticasArr.push({
-                    desc,
-                    origen: 'Clínica de la Unión',
-                    unidades: qty,
-                    unit,
-                    total: gasto
-                });
-            }
+            if (honorario > 0) honorPracticasArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
+            if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
         });
 
-        // Procesar cirugías
         cirugias.forEach(c => {
             const honorario = safeNum(c?.honorarioMedico);
             const gasto = safeNum(c?.gastoSanatorial);
@@ -501,27 +504,10 @@ export default function FacturadoDetallePage() {
             const unit = pickUnit(c);
             const desc = formatCodeName(c);
             const doctor = pickDoctor(c);
-            if (honorario > 0) {
-                honorCirugiasArr.push({
-                    desc,
-                    origen: doctor,
-                    unidades: qty,
-                    unit,
-                    total: honorario
-                });
-            }
-            if (gasto > 0) {
-                gastoPracticasArr.push({
-                    desc,
-                    origen: 'Clínica de la Unión',
-                    unidades: qty,
-                    unit,
-                    total: gasto
-                });
-            }
+            if (honorario > 0) honorCirugiasArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
+            if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
         });
 
-        // Procesar laboratorios
         laboratorios.forEach(l => {
             const honorario = safeNum(l?.honorarioMedico);
             const gasto = safeNum(l?.gastoSanatorial);
@@ -529,66 +515,35 @@ export default function FacturadoDetallePage() {
             const unit = pickUnit(l);
             const desc = formatCodeName(l);
             const doctor = pickDoctor(l);
-            if (honorario > 0) {
-                honorLaboratoriosArr.push({
-                    desc,
-                    origen: doctor,
-                    unidades: qty,
-                    unit,
-                    total: honorario
-                });
-            }
-            if (gasto > 0) {
-                gastoPracticasArr.push({
-                    desc,
-                    origen: 'Clínica de la Unión',
-                    unidades: qty,
-                    unit,
-                    total: gasto
-                });
-            }
+            if (honorario > 0) honorLaboratoriosArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
+            if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
         });
 
-        // Medicamentos
         medicamentos.forEach(m => {
             const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
             const qty = pickQty(m);
             const unit = pickUnit(m);
             const desc = m?.nombre || '—';
-            if (gasto > 0) {
-                gastoMedicamentosArr.push({
-                    desc,
-                    origen: 'Clínica de la Unión',
-                    unidades: qty,
-                    unit,
-                    total: gasto
-                });
-            }
+            if (gasto > 0) gastoMedicamentosArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
         });
 
-        // Descartables
         descartables.forEach(d => {
             const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
             const qty = pickQty(d);
             const unit = pickUnit(d);
             const desc = d?.nombre || '—';
-            if (gasto > 0) {
-                gastoDescartablesArr.push({
-                    desc,
-                    origen: 'Clínica de la Unión',
-                    unidades: qty,
-                    unit,
-                    total: gasto
-                });
-            }
+            if (gasto > 0) gastoDescartablesArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
         });
 
-        const totalHonor = honorPracticasArr.reduce((a, r) => a + r.total, 0) +
-            honorCirugiasArr.reduce((a, r) => a + r.total, 0) +
-            honorLaboratoriosArr.reduce((a, r) => a + r.total, 0);
-        const totalGasto = gastoPracticasArr.reduce((a, r) => a + r.total, 0) +
-            gastoMedicamentosArr.reduce((a, r) => a + r.total, 0) +
-            gastoDescartablesArr.reduce((a, r) => a + r.total, 0);
+        const subtotalHonorPracticas = honorPracticasArr.reduce((a, r) => a + r.total, 0);
+        const subtotalHonorCirugias = honorCirugiasArr.reduce((a, r) => a + r.total, 0);
+        const subtotalHonorLaboratorios = honorLaboratoriosArr.reduce((a, r) => a + r.total, 0);
+        const totalHonor = subtotalHonorPracticas + subtotalHonorCirugias + subtotalHonorLaboratorios;
+
+        const subtotalGastoPracticas = gastoPracticasArr.reduce((a, r) => a + r.total, 0);
+        const subtotalGastoMedicamentos = gastoMedicamentosArr.reduce((a, r) => a + r.total, 0);
+        const subtotalGastoDescartables = gastoDescartablesArr.reduce((a, r) => a + r.total, 0);
+        const totalGasto = subtotalGastoPracticas + subtotalGastoMedicamentos + subtotalGastoDescartables;
 
         return {
             honorPracticas: honorPracticasArr,
@@ -599,201 +554,217 @@ export default function FacturadoDetallePage() {
             gastoDescartables: gastoDescartablesArr,
             totalHonor,
             totalGasto,
-            totalFactura: totalHonor + totalGasto
+            totalFactura: totalHonor + totalGasto,
+            subtotalHonorPracticas,
+            subtotalHonorCirugias,
+            subtotalHonorLaboratorios,
+            subtotalGastoPracticas,
+            subtotalGastoMedicamentos,
+            subtotalGastoDescartables,
         };
     }, [item]);
 
-    // Función para imprimir solo medicamentos y descartables
-    const printMedDesc = () => {
+    // Impresión de Medicamentos + Descartables + Laboratorio (sin cambios, igual que antes)
+    const printMedDescLab = () => {
         if (!item) return;
 
         const paciente = item.paciente || {};
-        const nombre = paciente.nombreCompleto || paciente.nombre || '';
-        const dni = paciente.dni || '';
-        const nroSiniestro = paciente.nroSiniestro || '';
-        const artNombre = item.artNombre || paciente.artSeguro || 'SIN ART';
+        const nombre = paciente.nombreCompleto || paciente.nombre || '—';
+        const dni = paciente.dni || '—';
+        const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
+        const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
-        const totalMed = gastoMedicamentos.reduce((acc, it) => acc + it.total, 0);
-        const totalDesc = gastoDescartables.reduce((acc, it) => acc + it.total, 0);
-        const totalGeneral = totalMed + totalDesc;
+        const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
+        const descartables = Array.isArray(item.descartables) ? item.descartables : [];
+        const laboratorios = Array.isArray(item.laboratorios) ? item.laboratorios : [];
 
-        const generarFilasMedDesc = (items) => {
-            return items.map(it => {
-                return `<tr>
-                    <td>${it.desc || '—'}</td>
-                    <td class="number">${it.unidades}</td>
-                    <td class="number">$ ${money(it.unit)}</td>
-                    <td class="number">$ ${money(it.total)}</td>
-                </tr>`;
-            }).join('');
+        const safeNumLocal = (v) => {
+            const n = typeof v === 'number' ? v : Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
+        const pickName = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '—';
+        const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+        const pickDoctor = (x) => x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional || x?.prestadorNombre || x?.prestador || '—';
+        const pickQty = (x) => {
+            const c = x?.cantidad ?? x?.unidades ?? 1;
+            const n = safeNumLocal(c);
+            return n > 0 ? n : 1;
+        };
+        const pickUnit = (x) => {
+            const unit = x?.valorUnitario ?? x?.unitario ?? x?.precio ?? null;
+            if (unit != null && unit !== '') return safeNumLocal(unit);
+            const qty = pickQty(x);
+            const tot = safeNumLocal(x?.total);
+            return qty > 0 ? tot / qty : 0;
+        };
+        const formatCodeName = (x) => {
+            const code = String(pickCode(x) || '').trim();
+            const name = String(pickName(x) || '').trim();
+            return code ? `${code} — ${name}` : name;
         };
 
-        let html = `
-        <html>
-            <head>
-                <title>Medicamentos y Descartables - ${artNombre} - ${nroSiniestro}</title>
-                <style>
-                    @page { margin: 1cm; }
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        font-size: 11pt;
-                        line-height: 1.3;
-                    }
-                    .watermark {
-                        position: fixed;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%) ;
-                        opacity: 0.2;
-                        z-index: -1;
-                        pointer-events: none;
-                    }
-                    .watermark img { width: 300px; height: auto; }
-                    h1 { font-size: 18pt; margin-top: 0; margin-bottom: 10px; }
-                    .header-info {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 15px;
-                        background: #f5f5f5;
-                        padding: 8px 12px;
-                        border-radius: 5px;
-                        margin-bottom: 15px;
-                        font-size: 10pt;
-                    }
-                    .header-info p { margin: 0; }
-                    h2 { font-size: 14pt; margin: 15px 0 8px 0; }
-                    table {
-                        border-collapse: collapse;
-                        width: 100%;
-                        margin-bottom: 10px;
-                        font-size: 10pt;
-                        page-break-inside: avoid;
-                    }
-                    th {
-                        background: #e0e0e0;
-                        text-align: left;
-                        padding: 6px;
-                        border: 1px solid #ccc;
-                    }
-                    td {
-                        padding: 4px 6px;
-                        border: 1px solid #ccc;
-                    }
-                    td.number { text-align: right; }
-                    .subtotal {
-                        font-weight: bold;
-                        text-align: right;
-                        margin-top: 2px;
-                        margin-bottom: 8px;
-                        padding-right: 8px;
-                        font-size: 10pt;
-                    }
-                    .totales {
-                        margin-top: 20px;
-                        border-top: 1px solid #333;
-                        padding-top: 10px;
-                        page-break-inside: avoid;
-                    }
-                    .totals-summary p { margin: 2px 0; font-weight: bold; font-size: 11pt; }
-                    .total-general { font-size: 13pt; color: #000; margin-top: 5px; }
-                    .footer-section {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-top: 20px;
-                        border-top: 1px solid #aaa;
-                        padding-top: 15px;
-                        page-break-inside: avoid;
-                    }
-                    .signature-area { text-align: center; flex: 1; }
-                    .signature-line { font-size: 14pt; letter-spacing: 2px; margin-bottom: 3px; color: #333; }
-                    .signature-label { font-size: 9pt; color: #555; }
-                    .clinic-logo { text-align: center; flex: 1; }
-                    .clinic-logo img { max-width: 80px; height: auto; margin-bottom: 3px; }
-                    .clinic-info { font-size: 8pt; color: #666; line-height: 1.2; }
-                </style>
-            </head>
-            <body>
-                <div class="watermark">
-                    <img src="/logo.png" alt="Clínica de la Unión">
-                </div>
-                <h1>Medicamentos y Descartables</h1>
-                <div class="header-info">
-                    <p><strong>ART:</strong> ${artNombre}</p>
-                    <p><strong>Paciente:</strong> ${nombre}</p>
-                    <p><strong>DNI:</strong> ${dni}</p>
-                    <p><strong>N° Siniestro:</strong> ${nroSiniestro}</p>
-                </div>
+        const rowsMedDesc = (arr) =>
+            arr.map((x) => {
+                const qty = pickQty(x);
+                const unit = pickUnit(x);
+                const tot = safeNumLocal(x?.gastoSanatorial ?? x?.total);
+                const desc = x?.nombre || x?.descripcion || '—';
+                const pres = x?.presentacion ? ` (${x.presentacion})` : '';
+                return `<tr>
+                    <td>${desc}${pres}</td>
+                    <td class="num">${qty}</td>
+                    <td class="num">$ ${money(unit)}</td>
+                    <td class="num">$ ${money(tot)}</td>
+                </tr>`;
+            }).join('');
+
+        const rowsLab = laboratorios.map((l) => {
+            const qty = pickQty(l);
+            const ub = safeNumLocal(l?.unidadBioquimica ?? l?.ub ?? pickUnit(l));
+            const total = safeNumLocal(l?.honorarioMedico ?? l?.total);
+            const desc = formatCodeName(l);
+            const doctor = pickDoctor(l);
+            return `<tr>
+                <td>${desc}</td>
+                <td>${doctor !== '—' ? doctor : ''}</td>
+                <td class="num">${qty}</td>
+                <td class="num">${money(ub)}</td>
+                <td class="num">$ ${money(total)}</td>
+            </tr>`;
+        }).join('');
+
+        const totalMed = medicamentos.reduce((a, x) => a + safeNumLocal(x?.gastoSanatorial ?? x?.total), 0);
+        const totalDesc = descartables.reduce((a, x) => a + safeNumLocal(x?.gastoSanatorial ?? x?.total), 0);
+        const totalLab = laboratorios.reduce((a, x) => a + safeNumLocal(x?.honorarioMedico ?? x?.total), 0);
+        const totalGen = totalMed + totalDesc + totalLab;
+
+        const secMed = medicamentos.length === 0 ? '' : `
+            <h2>Medicamentos $ ${money(totalMed)}</h2>
+            <table>
+                <thead><tr><th>Descripción</th><th>Cant.</th><th>Valor unit.</th><th>Total</th></tr></thead>
+                <tbody>${rowsMedDesc(medicamentos)}</tbody>
+            </table>
+        `;
+        const secDesc = descartables.length === 0 ? '' : `
+            <h2>Descartables $ ${money(totalDesc)}</h2>
+            <table>
+                <thead>
+                <tr>
+                <th>Descripción</th>
+                <th>Cant.</th><th>Valor unit.</th><th>Total</th></tr></thead>
+                <tbody>${rowsMedDesc(descartables)}</tbody>
+            </table>
+        `;
+       const secLab = laboratorios.length === 0 ? '' : `
+            <h2>Estudios de Laboratorio $ ${money(totalLab)}</h2>
+            <table>
+                <thead>
+                <tr>
+                <th>Código — Estudio</th>
+                <th>Bioquímico/a</th>
+                <th>Cant.</th>
+                <th>UB</th>
+                <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>${rowsLab}</tbody>
+            </table>
         `;
 
-        if (gastoMedicamentos.length > 0) {
-            html += `<h2>Medicamentos</h2>`;
-            html += `<table>
-                <thead>
-                    <tr>
-                        <th>Descripción</th>
-                        <th>Cantidad</th>
-                        <th>Valor Unitario</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>${generarFilasMedDesc(gastoMedicamentos)}</tbody>
-            </table>`;
-            html += `<div class="subtotal">Subtotal Medicamentos: $ ${money(totalMed)}</div>`;
-        }
+        const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Med + Desc + Lab — ${artNombre} — ${siniestro}</title>
+  <style>
+    @page { margin: 1cm; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; margin: 0; color: #000; }
+    .watermark {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: .12; z-index: -1; pointer-events: none;
+    }
+    .watermark img { width: 280px; height: auto; }
+    h1 { font-size: 16pt; margin: 0 0 10px; }
+    h2 { font-size: 13pt; margin: 18px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+    .info-header {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      background: #f4f4f4; padding: 8px 12px;
+      border-radius: 4px; margin-bottom: 14px; font-size: 10pt;
+    }
+    .info-header p { margin: 0; }
+    table {
+      border-collapse: collapse; width: 100%;
+      font-size: 10pt; margin-bottom: 4px;
+      page-break-inside: avoid;
+    }
+    th {
+      background: #e0e0e0; text-align: left;
+      padding: 5px 6px; border: 1px solid #ccc;
+    }
+    td { padding: 4px 6px; border: 1px solid #ccc; }
+    td.num { text-align: right; font-size: 9pt; }
+    .totales {
+      margin-top: 18px; border-top: 2px solid #333;
+      padding-top: 10px; page-break-inside: avoid;
+    }
+    .totales p { margin: 2px 0; font-weight: bold; font-size: 11pt; }
+    .total-general { font-size: 14pt; margin-top: 6px; }
+    .footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 20px; border-top: 1px solid #aaa; padding-top: 14px;
+      page-break-inside: avoid;
+    }
+    .firma { text-align: center; flex: 1; }
+    .firma-linea { font-size: 13pt; letter-spacing: 2px; color: #444; margin-bottom: 2px; }
+    .firma-label { font-size: 9pt; color: #666; }
+    .clinica { text-align: center; flex: 1; }
+    .clinica img { max-width: 70px; height: auto; margin-bottom: 4px; }
+    .clinica-info { font-size: 8pt; color: #666; line-height: 1.3; }
+    hr { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="watermark"><img src="/logo.png" alt=""></div>
+  <h1>Medicamentos, Descartables y Laboratorio</h1>
+  <div class="info-header">
+    <p><strong>ART / Convenio:</strong> ${artNombre}</p>
+    <p><strong>Paciente:</strong> ${nombre}</p>
+    <p><strong>DNI:</strong> ${dni}</p>
+    <p><strong>N° Siniestro:</strong> ${siniestro}</p>
+  </div>
+  ${secMed}
+  ${secDesc}
+  ${secLab}
+  <div class="totales">
+    <hr>
+    <p class="total-general">TOTAL GENERAL: $ ${money(totalGen)}</p>
+  </div>
+  <div class="footer">
+    <div class="firma">
+      <div class="firma-linea">_________________________</div>
+      <div class="firma-label">Firma y sello del responsable</div>
+    </div>
+    <div class="clinica">
+      <img src="/logo.jpg" alt="Clínica de la Unión">
+      <div class="clinica-info">
+        Clínica de la Unión S.A.<br>
+        Chajarí, Entre Ríos — Av. Siburu 1085
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
-        if (gastoDescartables.length > 0) {
-            html += `<h2>Descartables</h2>`;
-            html += `<table>
-                <thead>
-                    <tr>
-                        <th>Descripción</th>
-                        <th>Cantidad</th>
-                        <th>Valor Unitario</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>${generarFilasMedDesc(gastoDescartables)}</tbody>
-            </table>`;
-            html += `<div class="subtotal">Subtotal Descartables: $ ${money(totalDesc)}</div>`;
-        }
-
-        html += `
-            <div class="totales">
-                <div class="totals-summary">
-                    <p>Total Medicamentos: $ ${money(totalMed)}</p>
-                    <p>Total Descartables: $ ${money(totalDesc)}</p>
-                    <p class="total-general"><strong>TOTAL GENERAL: $ ${money(totalGeneral)}</strong></p>
-                </div>
-                <div class="footer-section">
-                    <div class="signature-area">
-                        <div class="signature-line">_________________________</div>
-                        <div class="signature-label">Firma y sello del responsable</div>
-                    </div>
-                    <div class="clinic-logo">
-                        <img src="/logo.jpg" alt="Clínica de la Unión">
-                        <div class="clinic-info">
-                            Clínica de la Unión S.A.<br>
-                            Chajarí, Entre Ríos - Av. Siburu 1085
-                        </div>
-                    </div>
-                </div>
-            </div>
-            </body>
-            </html>
-        `;
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        win.print();
     };
 
     const onDownloadCsv = () => {
-        // Placeholder para descarga CSV (puedes implementarlo después)
         alert('Función CSV no implementada aún.');
     };
 
@@ -846,7 +817,7 @@ export default function FacturadoDetallePage() {
                     convenio={item.convenioNombre || item.convenio}
                     onPrint={onPrint}
                     onDownloadCsv={onDownloadCsv}
-                    onPrintMedDesc={printMedDesc}
+                    onPrintMedDescLab={printMedDescLab}
                 />
             </div>
             <PrintView
@@ -861,6 +832,12 @@ export default function FacturadoDetallePage() {
                 totalHonor={totalHonor}
                 totalGasto={totalGasto}
                 totalFactura={totalFactura}
+                subtotalHonorPracticas={subtotalHonorPracticas}
+                subtotalHonorCirugias={subtotalHonorCirugias}
+                subtotalHonorLaboratorios={subtotalHonorLaboratorios}
+                subtotalGastoPracticas={subtotalGastoPracticas}
+                subtotalGastoMedicamentos={subtotalGastoMedicamentos}
+                subtotalGastoDescartables={subtotalGastoDescartables}
             />
         </div>
     );

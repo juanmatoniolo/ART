@@ -29,6 +29,12 @@ const DEFAULT_CODES = [
 
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
 
+// Detecta si una práctica es ecografía (capítulo 18), EXCEPTO las que tienen meta especial
+const isEcografia = (practica) => {
+  if (practica?.meta?.kind === 'especial') return false; // ecografías con valor propio no entran aquí
+  return String(practica?.capitulo ?? '') === '18';
+};
+
 export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
   const { valoresConvenio } = useConvenio();
 
@@ -157,8 +163,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         gastoSanatorial: gasto,
         soloHonorario: false,
         soloGasto: false,
-        unificarEnClinica: true, // indica que al agregar se debe unificar todo en un ítem de clínica
-        // Guardamos los valores originales para mostrarlos en la UI
+        unificarEnClinica: true,
         galOriginal: gal,
         gtoOriginal: gto,
       };
@@ -188,7 +193,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     }
 
     // --- Radiografías (Capítulo 34) ---
-    // --- Radiografías (Capítulo 34) ---
     if (practica.capitulo === '34' || (practica.capituloNombre && practica.capituloNombre.toLowerCase().includes('radiolog'))) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
       const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
@@ -203,7 +207,24 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         soloGasto: false,
       };
     }
-    // Prácticas con meta especial (ECG, Ecografía, etc.)
+
+    // --- Ecografías (Capítulo 18) sin meta especial ---
+    // Todo va al médico: galeno_rx × q_gal + gasto_rx × gto (honorario completo, sin gasto sanatorial)
+    if (isEcografia(practica)) {
+      const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
+      const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
+
+      const totalMedico = (galenoRx * (practica.q_gal || 0)) + (gastoRx * (practica.gto || 0));
+
+      return {
+        honorarioMedico: totalMedico,
+        gastoSanatorial: 0,
+        soloHonorario: true,
+        soloGasto: false,
+      };
+    }
+
+    // Prácticas con meta especial (Ecografía partes blandas, etc.)
     if (practica.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
       return {
@@ -217,6 +238,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     // Resto: usar calcularPractica de utils
     return calcularPractica(practica, valoresConvenio);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
+
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
@@ -239,12 +261,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     // Si es un caso especial que debe unificarse en clínica (ej. 400101)
     if (calculo.unificarEnClinica) {
       const total = (calculo.honorarioMedico || 0) + (calculo.gastoSanatorial || 0);
-      // Personalizamos la descripción para que sea más clara
       const descripcionPersonalizada = `Día de pensión UTI (Hon + Gastos)`;
       agregados.push({
         id: `${baseId}-clin-unificado`,
         ...baseCommon,
-        descripcion: descripcionPersonalizada, // reemplazamos la descripción original
+        descripcion: descripcionPersonalizada,
         prestadorTipo: 'Clinica',
         prestadorNombre: 'Clínica de la Unión',
         honorarioMedico: 0,
@@ -293,7 +314,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
 
-    // 1. Items del nomenclador según DEFAULT_CODES
     const wanted = DEFAULT_CODES.map(normCode);
     const picked = [];
 
@@ -303,9 +323,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       picked.push(...vincularSubsiguientes(found, data));
     }
 
-    // 2. Items personalizados
     if (valoresConvenio) {
-      // ECG (sin meta, se maneja por código)
       if (valoresConvenio['ECG_Y_EX_EN_CV']) {
         picked.push({
           codigo: '17.01.01',
@@ -314,11 +332,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           capituloNombre: 'Cardiología',
           q_gal: 0,
           gto: 0,
-          // meta eliminado para que no sea tratado como "especial"
           __key: 'custom-ecg'
         });
       }
-      // Ecografía partes blandas
       if (valoresConvenio['Ecografia_partes_blandas_no_moduladas']) {
         picked.push({
           codigo: '18.06.01',
@@ -331,7 +347,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-eco'
         });
       }
-      // Artroscopia
       if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] || valoresConvenio['Artroscopia_Hombro']) {
         picked.push({
           codigo: '120902',
@@ -343,7 +358,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-artroscopia'
         });
       }
-      // Oxígeno en terapia (código 431107) – siempre visible
       picked.push({
         codigo: '431107',
         descripcion: 'Oxígeno en terapia',
@@ -355,7 +369,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       });
     }
 
-    // Eliminar duplicados por __key
     const seen = new Map();
     picked.forEach((it) => {
       const key = it.__key || `${it.capitulo}|${it.codigo}`;
@@ -407,6 +420,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const esArtroscopia = item.codigo === '120902';
     const esECG = item.codigo === '17.01.01';
     const es400101 = item.codigo === '400101';
+    const esEco18 = isEcografia(item); // ecografía cap 18 sin meta especial
 
     const calculo = getCalculo(item);
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
@@ -424,6 +438,12 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           </div>
 
           <div className={styles.desc}>{highlight(item.descripcion, q)}</div>
+
+          {esEco18 && (
+            <div className={styles.ecoBadge}>
+              🩺 Honorario completo al médico (Galeno Rx × UVR + Gasto Rx × Gto)
+            </div>
+          )}
 
           {esArtroscopia && (
             <div className={styles.artroscopiaSelector}>
@@ -479,13 +499,14 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
               {es400101 && <div className={styles.baseLine}>Gal: {money(item.q_gal || 0)}</div>}
+              {esEco18 && <div className={styles.baseLine}>UVR: {item.q_gal || 0} / Gto: {item.gto || 0}</div>}
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
 
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
               {es400101 && <div className={styles.baseLine}>Gto: {money(item.gto || 0)}</div>}
-              <span className={styles.costValue}>{money(calculo.gastoSanatorial)}</span>
+              <span className={styles.costValue}>{esEco18 ? '—' : money(calculo.gastoSanatorial)}</span>
             </div>
           </div>
 
@@ -506,6 +527,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         <td className={styles.codeCell}>{highlight(item.codigo, q)}</td>
         <td className={styles.descCell}>
           {highlight(item.descripcion, q)}
+          {esEco18 && (
+            <div className={styles.ecoNote}>
+              🩺 Todo al médico: Galeno Rx × {item.q_gal || 0} UVR + Gasto Rx × {item.gto || 0}
+            </div>
+          )}
           {esArtroscopia && (
             <div className={styles.tableArtroscopiaSelector}>
               <label className={styles.radioLabelInline}>
@@ -557,16 +583,22 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
-            {es400101 && <span className={styles.miniLabel}>Gal:</span>} {es400101 ? money(item.q_gal || 0) : `Gal: ${money(item.q_gal || 0)}`}
+            {es400101
+              ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
+              : `Gal: ${money(item.q_gal || 0)}`
+            }
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
         </td>
 
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
-            {es400101 && <span className={styles.miniLabel}>Gto:</span>} {es400101 ? money(item.gto || 0) : money(item.gto || 0)}
+            {es400101
+              ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
+              : money(item.gto || 0)
+            }
           </div>
-          <div className={styles.valueBig}>{money(calculo.gastoSanatorial)}</div>
+          <div className={styles.valueBig}>{esEco18 ? '—' : money(calculo.gastoSanatorial)}</div>
         </td>
 
         <td className={styles.actionCell}>
