@@ -1,9 +1,25 @@
-/* Pestañas */
+/* ============================================
+   SOLICITUDES DE CIRUGÍA - ESTILOS OSCUROS
+   ============================================ */
+
+
+/* Contenedor principal */
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  background: #080c14;
+  min-height: 100vh;
+  color: #e8edf5;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ========== BARRA DE PESTAÑAS (navegación entre módulos) ========== */
 .tabsContainer {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.07);
   padding-bottom: 0.5rem;
 }
 
@@ -13,31 +29,183 @@
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-secondary, #4b5563);
+  color: #6b7a96;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .tabButton:hover {
-  background: var(--color-bg-hover, #f1f5f9);
-  color: var(--color-text-primary, #0f172a);
+  background: #151e2e;
+  color: #e8edf5;
 }
 
 .activeTab {
-  background: var(--color-primary, #3b82f6);
+  background: #3b82f6;
   color: white;
 }
 
 .activeTab:hover {
-  background: var(--color-primary-dark, #2563eb);
+  background: #2563eb;
 }
 
-/* Contenedor de solicitudes */
-.solicitudesContainer {
+/* ========== FILTROS INTERNOS (todas / pendientes / atendidas) ========== */
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin-bottom: 1rem;
+  letter-spacing: -0.5px;
+}
+
+.tabGroup {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 0.5rem;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7a96;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: #e8edf5;
+  background: #151e2e;
+}
+
+.tab.active {
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+}
+
+/* ========== TABLA DE SOLICITUDES ========== */
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: 14px;
+  background: #0f1623;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   margin-top: 1rem;
 }
 
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  background: #151e2e;
+  color: #94a3b8;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  vertical-align: top;
+  color: #94a3b8;
+}
+
+.table td strong {
+  color: #e8edf5;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: #151e2e;
+}
+
+.rowAtendida {
+  opacity: 0.7;
+}
+
+.cellName {
+  font-weight: 600;
+}
+
+.subText {
+  font-size: 0.7rem;
+  color: #6b7a96;
+  margin-top: 0.15rem;
+}
+
+.estadoBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.estadoPendiente {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.estadoAtendida {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.iconBtn {
+  background: #151e2e;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #94a3b8;
+}
+
+.iconBtn:hover {
+  background: #1a2640;
+  color: #e8edf5;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.iconBtnSuccess:hover {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.iconBtnWarning:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+/* ========== TARJETAS (para móviles, si se prefiere) ========== */
 .solicitudesList {
   display: flex;
   flex-direction: column;
@@ -46,16 +214,16 @@
 }
 
 .solicitudCard {
-  background: var(--color-bg-card, #ffffff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
+  background: #0f1623;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
   padding: 1rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, border-color 0.15s;
 }
 
 .solicitudCard:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .solicitudHeader {
@@ -65,19 +233,19 @@
   margin-bottom: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text-primary, #0f172a);
+  color: #e8edf5;
 }
 
 .solicitudFecha {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: normal;
-  color: var(--color-text-tertiary, #6b7280);
+  color: #6b7a96;
 }
 
 .solicitudBody {
   margin-bottom: 1rem;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary, #374151);
+  font-size: 0.85rem;
+  color: #94a3b8;
 }
 
 .solicitudBody p {
@@ -91,21 +259,291 @@
 }
 
 .secondaryBtn {
-  background: var(--color-bg-secondary, #f3f4f6);
-  border: 1px solid var(--color-border, #d1d5db);
+  background: #151e2e;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
+  color: #94a3b8;
 }
 
 .secondaryBtn:hover {
-  background: var(--color-bg-hover, #e5e7eb);
+  background: #1a2640;
+  color: #e8edf5;
 }
 
+/* ========== MODALES (detalle y carga de cirugía) ========== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: #0f1623;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e8edf5;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #6b7a96;
+  transition: color 0.15s;
+}
+
+.closeBtn:hover {
+  color: #e8edf5;
+}
+
+.modalBody {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detailRow {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detailRow strong {
+  color: #e8edf5;
+  width: 140px;
+  display: inline-block;
+}
+
+/* Formulario dentro del modal */
+.formGroup {
+  margin-bottom: 1rem;
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7a96;
+  margin-bottom: 0.3rem;
+}
+
+.input {
+  width: 100%;
+  background: #151e2e;
+  border: 1.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  color: #e8edf5;
+  padding: 0.6rem 0.875rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.actionsModal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.cancelBtn,
+.saveBtn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cancelBtn {
+  background: #151e2e;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #94a3b8;
+}
+
+.cancelBtn:hover {
+  background: #1a2640;
+  color: #e8edf5;
+}
+
+.saveBtn {
+  background: #3b82f6;
+  color: white;
+}
+
+.saveBtn:hover {
+  background: #2563eb;
+}
+
+.saveBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== ESTADOS VACÍOS Y LOADING ========== */
 .emptyState {
   text-align: center;
-  color: var(--color-text-tertiary, #6b7280);
-  padding: 2rem;
+  padding: 3rem;
+  color: #6b7a96;
+  font-size: 0.9rem;
+  background: #0f1623;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-top: 1rem;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.loadingScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: #6b7a96;
+  background: #080c14;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #1a2640;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorScreen {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  margin: 2rem;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+  .actionsCell {
+    flex-direction: column;
+  }
+  .iconBtn {
+    width: 100%;
+    text-align: center;
+  }
+  .modal {
+    max-width: 95%;
+  }
+  .detailRow strong {
+    width: 100%;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+}
+
+/* ========== PRINT ========== */
+@media print {
+  .container {
+    background: white;
+    color: black;
+    padding: 0;
+  }
+  .tabsContainer,
+  .tabGroup,
+  .modalOverlay,
+  .actionsCell,
+  .iconBtn,
+  .closeBtn,
+  .solicitudActions {
+    display: none;
+  }
+  .table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .table th,
+  .table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+  }
 }
