@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import styles from "./page.module.css";
 
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const WHATSAPP_NUMBER = "5493456441580"; // Ajusta según formato correcto
 
 export default function FormularioCirugia() {
   const formRef = useRef(null);
@@ -66,10 +67,54 @@ export default function FormularioCirugia() {
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
-    // Auto-ocultar después de 5 segundos
     setTimeout(() => {
       setMensaje({ texto: "", tipo: "" });
     }, 5000);
+  };
+
+  // Generar texto para WhatsApp
+  const generarMensajeWhatsApp = () => {
+    return `
+*SOLICITUD DE CIRUGÍA*
+--------------------------------
+*DATOS DEL PACIENTE*
+- Apellido: ${form.apellido}
+- Nombre: ${form.nombre}
+- Sexo: ${form.sexo === "M" ? "Masculino" : "Femenino"}
+- DNI/CUIL: ${form.dni}
+- Fecha de nacimiento: ${form.nacimiento}
+- Edad: ${edad} años
+--------------------------------
+*DATOS COMPLEMENTARIOS*
+- Lugar de nacimiento: ${form.lugarNacimiento}
+- Domicilio actual: ${form.domicilio}
+- Localidad: ${form.localidad}
+- Provincia: ${form.provincia}
+- Teléfono de contacto: ${form.telefono}
+--------------------------------
+*Enviado desde el sistema de Clínica de la Unión*
+    `.trim();
+  };
+
+  const enviarWhatsApp = () => {
+    const mensaje = generarMensajeWhatsApp();
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`;
+    const nuevaVentana = window.open(url, "_blank");
+    
+    // Si el navegador bloqueó la ventana emergente, mostrar enlace manual
+    if (!nuevaVentana || nuevaVentana.closed || typeof nuevaVentana.closed === "undefined") {
+      mostrarMensaje(
+        <span>
+          ✅ Solicitud guardada.{" "}
+          <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "white", fontWeight: "bold", textDecoration: "underline" }}>
+            Haz clic aquí para enviar por WhatsApp
+          </a>
+        </span>,
+        "exito"
+      );
+    } else {
+      mostrarMensaje("✅ Solicitud enviada. Se abrió WhatsApp para notificar.", "exito");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -93,7 +138,6 @@ export default function FormularioCirugia() {
     for (const campo of camposObligatorios) {
       if (!form[campo]?.trim()) {
         mostrarMensaje(`El campo ${campo} es obligatorio`, "error");
-        // Scroll al primer error
         document.querySelector(`[name="${campo}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
@@ -121,7 +165,7 @@ export default function FormularioCirugia() {
         ...form,
         edad: edad,
         fechaSolicitud: Date.now(),
-        atendida: false,        // para que aparezca como pendiente
+        atendida: false,
         createdAt: new Date().toISOString(),
       };
 
@@ -133,10 +177,10 @@ export default function FormularioCirugia() {
 
       if (!res.ok) throw new Error("Error al enviar");
 
-      mostrarMensaje("✅ Solicitud enviada con éxito. Pronto nos contactaremos.", "exito");
+      // Éxito: limpiar formulario y enviar WhatsApp
       limpiarFormulario();
+      enviarWhatsApp();
 
-      // Desplazar suavemente hacia arriba para que el usuario vea el mensaje
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error(error);

@@ -194,3 +194,9 @@
     font-size: 0.9rem;
   }
 }
+
+.mensaje.exito a {
+  color: white;
+  text-decoration: underline;
+  font-weight: bold;
+}
