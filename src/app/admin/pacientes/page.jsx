@@ -13,6 +13,7 @@ export default function PacientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState("activo");
+  const [printingId, setPrintingId] = useState(null);
 
   const fetchPacientes = async () => {
     setLoading(true);
@@ -58,29 +59,80 @@ export default function PacientesPage() {
     }
   };
 
+  const handlePrint = async (paciente) => {
+    setPrintingId(paciente.id);
+    try {
+      // Asegurar que la estructura coincida con la esperada por /api/pdf
+      const payload = {
+        ...paciente,
+        // Si falta el prestador, usamos el mismo que en SiniestroPage
+        prestador: paciente.prestador || {
+          nombre: "CLINICA DE LA UNION S.A",
+          cuit: "30-70754530-0",
+          calle: "Av. Siburu",
+          nro: "1085",
+          piso: "-",
+          depto: "-",
+          localidad: "Chajari",
+          provincia: "Entre Rios",
+          cp: "3228",
+          celular: "3456-441580",
+          mail: "clinicadelaunionart@gmail.com",
+        },
+      };
+
+      const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
+      const dni = payload.trabajador?.dni?.replace(/\D/g, "") || "SIN_DNI";
+      const nroSiniestro = payload.ART?.nroSiniestro || "SINIESTRO";
+      const fileName = `ART_${apellido}_${dni}_${nroSiniestro}.pdf`;
+
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, fileName }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Error al generar PDF: ${res.status} ${errorText}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo generar el PDF. Revisá consola.");
+    } finally {
+      setPrintingId(null);
+    }
+  };
+
   const activosCount = pacientes.filter((p) => (p.estado || "activo") === "activo").length;
   const totalCount = pacientes.length;
 
   if (loading) return <div className={styles.loadingScreen}><div className={styles.spinner} /><span>Cargando pacientes...</span></div>;
   if (error) return <div className={styles.errorScreen}>{error}</div>;
 
-  // Función para navegar a comunicador con los datos del paciente
   const handleWhatsAppClick = (paciente) => {
     const t = paciente.trabajador || {};
     const fullName = `${t.apellido || ""} ${t.nombre || ""}`.trim();
     const phone = t.telefono || "";
-    // Codificamos los parámetros para la URL
     const params = new URLSearchParams();
     if (phone) params.set("phone", phone);
     if (fullName) params.set("name", fullName);
-    // También podemos pasar el ID si el comunicador lo necesita
     if (paciente.id) params.set("pacienteId", paciente.id);
     router.push(`/admin/comunicador?${params.toString()}`);
   };
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <div className={styles.pageHeader}>
         <div className={styles.titleBlock}>
           <h1 className={styles.pageTitle}>Pacientes</h1>
@@ -94,7 +146,6 @@ export default function PacientesPage() {
         </button>
       </div>
 
-      {/* Filtros */}
       <div className={styles.filterBar}>
         <div className={styles.tabGroup}>
           {["activo", "cerrado", "todos"].map((estado) => (
@@ -116,7 +167,6 @@ export default function PacientesPage() {
         />
       </div>
 
-      {/* Tabla */}
       {filteredPacientes.length === 0 ? (
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>🔍</div>
@@ -130,11 +180,9 @@ export default function PacientesPage() {
                 <th>Paciente</th>
                 <th>DNI</th>
                 <th>Edad</th>
-                <th>Teléfono</th>
                 <th>ART</th>
                 <th>N° Siniestro</th>
                 <th>Ingreso</th>
-                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -148,17 +196,10 @@ export default function PacientesPage() {
                 return (
                   <tr key={paciente.id} className={estado === "cerrado" ? styles.rowCerrado : ""}>
                     <td className={styles.cellName}>
-                      <span className={styles.avatar}>
-                        {(t.apellido?.[0] || "?").toUpperCase()}
-                      </span>
-                      <div>
-                        <div className={styles.fullName}>{t.apellido} {t.nombre}</div>
-                        <div className={styles.subText}>{paciente.consulta?.tipo || "—"}</div>
-                      </div>
+                     {t.apellido} {t.nombre}
                     </td>
                     <td>{t.dni || "—"}</td>
-                    <td>{t.edad ? `${t.edad} a.` : "—"}</td>
-                    <td>{t.telefono || "—"}</td>
+                    <td>{t.edad ? `${t.edad}` : "—"}</td>
                     <td><span className={styles.artTag}>{art.nombre || "—"}</span></td>
                     <td className={styles.mono}>{art.nroSiniestro || "—"}</td>
                     <td className={styles.mono}>
@@ -166,11 +207,7 @@ export default function PacientesPage() {
                         ? `${fi.dia}/${fi.mes}/${fi.anio}`
                         : "—"}
                     </td>
-                    <td>
-                      <span className={`${styles.estadoBadge} ${styles[`estado_${estado}`]}`}>
-                        {estado}
-                      </span>
-                    </td>
+
                     <td className={styles.actionsCell}>
                       <button
                         className={styles.iconBtn}
@@ -189,6 +226,14 @@ export default function PacientesPage() {
                           onClick={() => handleWhatsAppClick(paciente)}
                         >📱</button>
                       )}
+                      <button
+                        className={`${styles.iconBtn} ${styles.iconBtnPrint}`}
+                        title="Imprimir formulario de siniestro"
+                        onClick={() => handlePrint(paciente)}
+                        disabled={printingId === paciente.id}
+                      >
+                        {printingId === paciente.id ? "⏳" : "🖨️"}
+                      </button>
                     </td>
                   </tr>
                 );
