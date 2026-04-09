@@ -109,14 +109,18 @@ function validate(f) {
   if (empId && empId.length < 8 && empId.length > 0) {
     e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
   }
-const dni = onlyDigits(f.trabajadorDni);
-if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
-  e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
-}
+
+  // Validación que acepta DNI (7-9) o CUIL (11)
+  const dni = onlyDigits(f.trabajadorDni);
+  if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
+    e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
+  }
+
   const tel = onlyDigits(f.trabajadorTelefono);
   if (tel && tel.length < 8) {
     e.trabajadorTelefono = "Teléfono inválido";
   }
+
   const validarFecha = (dia, mes, anio, prefix) => {
     const d = Number(dia), m = Number(mes), a = Number(anio);
     if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
@@ -166,7 +170,7 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error, 
 
 // --- Componente principal ---
 export default function SiniestroPage() {
-  const [activeTab, setActiveTab] = useState("nuevo"); // "nuevo" o "buscar"
+  const [activeTab, setActiveTab] = useState("nuevo");
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -175,12 +179,12 @@ export default function SiniestroPage() {
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfError, setPdfError] = useState(null);
   const [theme, setTheme] = useState("dark");
+  const [shouldFocusError, setShouldFocusError] = useState(false); // <-- Nuevo estado
 
-  // Para la pestaña "Buscar"
   const [pacientes, setPacientes] = useState([]);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [editingId, setEditingId] = useState(null); // ID del paciente en edición
+  const [editingId, setEditingId] = useState(null);
 
   const submittingRef = useRef(false);
 
@@ -228,7 +232,21 @@ export default function SiniestroPage() {
     }));
   }, [form.trabajadorNacimiento]);
 
-  // Cargar todos los pacientes al montar (para la pestaña buscar)
+  // --- Auto-foco en el primer error ---
+  useEffect(() => {
+    if (shouldFocusError && Object.keys(errors).length > 0) {
+      const timer = setTimeout(() => {
+        const errorField = document.querySelector(`.${styles.inputError}`);
+        if (errorField) {
+          errorField.focus();
+          errorField.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        setShouldFocusError(false);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldFocusError, errors]);
+
   useEffect(() => {
     if (activeTab === "buscar") {
       fetchAllPacientes();
@@ -242,7 +260,6 @@ export default function SiniestroPage() {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
-        // Ordenar por fecha de creación descendente
         arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         setPacientes(arr);
       } else {
@@ -267,7 +284,6 @@ export default function SiniestroPage() {
     setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
   };
 
-  // Cargar datos de un paciente en el formulario para editar
   const handleEditPaciente = (paciente) => {
     const t = paciente.trabajador || {};
     const emp = paciente.empleador || {};
@@ -304,15 +320,13 @@ export default function SiniestroPage() {
       trabajadorEdad: t.edad || "",
     });
     setEditingId(paciente.id);
-    setActiveTab("nuevo"); // Cambiar a la pestaña de formulario
-    // Limpiar mensajes previos
+    setActiveTab("nuevo");
     setCreatedId(null);
     setPdfError(null);
     setPdfUrl(null);
     setPdfFileName(null);
   };
 
-  // Imprimir PDF directamente desde la lista (sin cargar en formulario)
   const handlePrintPaciente = async (paciente) => {
     try {
       const payload = {
@@ -350,7 +364,6 @@ export default function SiniestroPage() {
     }
   };
 
-  // --- Funciones PDF (para el formulario) ---
   function openPdf() {
     if (pdfUrl) window.open(pdfUrl, "_blank", "noopener,noreferrer");
   }
@@ -365,7 +378,6 @@ export default function SiniestroPage() {
     a.remove();
   }
 
-  // --- Submit (guardar o actualizar) ---
   async function onSubmit(e) {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -380,6 +392,7 @@ export default function SiniestroPage() {
     const v = validate(form);
     setErrors(v);
     if (Object.keys(v).length) {
+      setShouldFocusError(true); // <-- Activa el scroll al error
       submittingRef.current = false;
       return;
     }
@@ -433,11 +446,9 @@ export default function SiniestroPage() {
 
       let savedId;
       if (editingId) {
-        // Actualizar existente
         await update(ref(db, `pacientes/${editingId}`), payload);
         savedId = editingId;
       } else {
-        // Nuevo
         payload.createdAt = Date.now();
         const newRef = push(ref(db, "pacientes"));
         await set(newRef, payload);
@@ -445,7 +456,6 @@ export default function SiniestroPage() {
       }
       setCreatedId(savedId);
 
-      // Generar PDF
       const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
 
       const res = await fetch("/api/pdf", {
@@ -469,9 +479,7 @@ export default function SiniestroPage() {
       setPdfUrl(url);
       setPdfFileName(fileName);
 
-      // Si estábamos editando, volver al modo "nuevo" después de guardar
       setEditingId(null);
-      // Refrescar lista si está en la pestaña buscar
       if (activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
@@ -482,7 +490,6 @@ export default function SiniestroPage() {
     }
   }
 
-  // Filtrado de pacientes en la pestaña buscar
   const filteredPacientes = pacientes.filter((p) => {
     const t = p.trabajador || {};
     const fullName = `${t.apellido || ""} ${t.nombre || ""}`.toLowerCase();
@@ -539,7 +546,6 @@ export default function SiniestroPage() {
             </div>
           </div>
 
-          {/* Pestañas */}
           <div className={styles.tabsContainer}>
             <button
               className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
@@ -564,7 +570,6 @@ export default function SiniestroPage() {
 
               <form onSubmit={onSubmit} autoComplete="on">
                 <div className={styles.card}>
-                  {/* ART + Motivo */}
                   <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales">
                     <div className={styles.grid}>
                       <div className={styles.field}>
@@ -621,7 +626,6 @@ export default function SiniestroPage() {
                     </div>
                   </Section>
 
-                  {/* Fechas */}
                   <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
                     <div className={styles.fechasWrapper}>
                       <div className={styles.fechaGroup}>
@@ -688,7 +692,6 @@ export default function SiniestroPage() {
                     </div>
                   </Section>
 
-                  {/* Empleador */}
                   <Section title="3) Empleador" subtitle="Todos los campos son opcionales">
                     <div className={styles.grid}>
                       <div className={styles.field}>
@@ -715,7 +718,6 @@ export default function SiniestroPage() {
                     </div>
                   </Section>
 
-                  {/* Trabajador */}
                   <Section title="4) Trabajador" subtitle="Todos los campos son opcionales">
                     <div className={styles.grid}>
                       <div className={styles.field}>
@@ -737,14 +739,14 @@ export default function SiniestroPage() {
                         />
                       </div>
                       <div className={styles.field}>
-                        <label className={styles.label}>DNI</label>
+                        <label className={styles.label}>DNI / CUIL</label>
                         <input
                           className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
                           value={form.trabajadorDni}
                           onChange={onChange("trabajadorDni")}
                           onBlur={onBlurTrabajadorDni}
                           inputMode="numeric"
-                          placeholder="DNI"
+                          placeholder="DNI o CUIL"
                         />
                         {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
                       </div>
@@ -907,7 +909,6 @@ export default function SiniestroPage() {
               </form>
             </>
           ) : (
-            /* Pestaña Buscar */
             <div className={styles.searchTab}>
               <div className={styles.searchHeader}>
                 <input
