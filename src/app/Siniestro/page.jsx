@@ -109,10 +109,10 @@ function validate(f) {
   if (empId && empId.length < 8 && empId.length > 0) {
     e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
   }
-  const dni = onlyDigits(f.trabajadorDni);
-  if (dni && (dni.length < 7 || dni.length > 9)) {
-    e.trabajadorDni = "DNI inválido (7 a 9 dígitos)";
-  }
+const dni = onlyDigits(f.trabajadorDni);
+if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
+  e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
+}
   const tel = onlyDigits(f.trabajadorTelefono);
   if (tel && tel.length < 8) {
     e.trabajadorTelefono = "Teléfono inválido";
