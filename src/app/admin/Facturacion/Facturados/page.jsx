@@ -304,8 +304,8 @@ async function printFacturaCompleta(id) {
   <style>
     @page { margin: 1.2cm; }
     body { font-family: Arial, sans-serif; font-size: 11pt; margin: 0; color: #000; }
-    h1 { font-size: 16pt; margin: 0 0 10px; }
-    h2 { font-size: 14pt; margin: 20px 0 8px; border-bottom: 1px solid #aaa; padding-bottom: 4px; }
+    h1 { font-size: 14pt; margin: 0 0 10px; }
+    h2 { font-size: 12pt; margin: 20px 0 8px; border-bottom: 1px solid #aaa; padding-bottom: 4px; }
     .info-header {
       display: flex; flex-wrap: wrap; gap: 16px;
       background: #f4f4f4; padding: 8px 12px;
@@ -313,15 +313,13 @@ async function printFacturaCompleta(id) {
     }
     .info-header p { margin: 0; }
     .totales { margin-top: 20px; border-top: 2px solid #333; padding-top: 12px; }
-    .total-general { font-size: 14pt; font-weight: bold; margin-top: 8px; }
+    .total-general { font-size: 12pt; font-weight: bold; margin-top: 8px; }
     .footer {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: 28px; border-top: 1px solid #aaa; padding-top: 16px;
       page-break-inside: avoid;
     }
-    .firma { text-align: center; flex: 1; }
-    .firma-linea { font-size: 13pt; letter-spacing: 2px; color: #444; margin-bottom: 4px; }
-    .firma-label { font-size: 9pt; color: #666; }
+    
     .clinica { text-align: center; flex: 1; }
     .clinica img { max-width: 70px; height: auto; margin-bottom: 4px; }
     .clinica-info { font-size: 8pt; color: #666; line-height: 1.3; }
