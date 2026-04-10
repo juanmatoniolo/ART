@@ -2,10 +2,18 @@
 import Link from 'next/link';
 import styles from './header.module.css';
 
-export default function Header({ selectedCount, onExport, onDelete, deleting }) {
+export default function Header({
+  selectedCount,
+  onExport,
+  onDelete,
+  deleting,
+  // Nuevas props para la funcionalidad de mover a facturados
+  onMoveToFacturados,
+  moving,
+  showMoveButton,
+}) {
   return (
     <div className={styles.header}>
-
       {/* ── Top: brand + acciones ── */}
       <div className={styles.top}>
         <div className={styles.brand}>
@@ -54,6 +62,21 @@ export default function Header({ selectedCount, onExport, onDelete, deleting }) 
             Exportar Excel
           </button>
 
+          {/* Botón para mover borradores a facturados (condicional) */}
+          {showMoveButton && (
+            <button
+              className={styles.btnExports} // Podés definir esta clase en el CSS
+              onClick={onMoveToFacturados}
+              disabled={selectedCount === 0 || moving}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+              {moving ? 'Moviendo…' : 'Mover a Facturados'}
+            </button>
+          )}
+
           <button
             className={styles.btnDanger}
             onClick={onDelete}
@@ -68,9 +91,6 @@ export default function Header({ selectedCount, onExport, onDelete, deleting }) 
           </button>
         </div>
       </div>
-
-
-
     </div>
   );
 }

@@ -260,270 +260,285 @@ export default function useFacturados() {
     }
   };
 
-  // Exportar Excel completo
-  const exportCompleto = () => {
-    const selected = Array.from(selectedIds);
-    if (selected.length === 0) {
-      alert('Seleccione al menos un siniestro.');
-      return;
+// Exportar Excel completo
+const exportCompleto = () => {
+  const selected = Array.from(selectedIds);
+  if (selected.length === 0) {
+    alert('Seleccione al menos un siniestro.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // --- HOJA 1: CARÁTULA (resumen) ---
+  const caratulaHeaders = ['PRESTADOR', 'PACIENTE', 'DNI', 'STRO', 'GASTOS', 'HONORARIOS', 'TOTAL'];
+  const caratulaRows = [caratulaHeaders];
+
+  selected.forEach(id => {
+    const item = raw[id];
+    if (!item) return;
+
+    const paciente = item.paciente || {};
+    const nombre = paciente.nombreCompleto || paciente.nombre || '';
+    const dni = paciente.dni || '';
+    const nroSiniestro = paciente.nroSiniestro || '';
+
+    // Calcular gastos y honorarios
+    const sumItems = (arr, field) => {
+      if (!arr) return 0;
+      return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
+    };
+
+    let gastos = 0;
+    let honorarios = 0;
+
+    gastos += sumItems(item.practicas, 'gastoSanatorial');
+    honorarios += sumItems(item.practicas, 'honorarioMedico');
+    gastos += sumItems(item.cirugias, 'gastoSanatorial');
+    honorarios += sumItems(item.cirugias, 'honorarioMedico');
+    gastos += sumItems(item.laboratorios, 'gastoSanatorial');
+    honorarios += sumItems(item.laboratorios, 'honorarioMedico');
+
+    if (item.medicamentos) {
+      item.medicamentos.forEach(m => {
+        gastos += safeNum(m.gastoSanatorial || m.total);
+      });
+    }
+    if (item.descartables) {
+      item.descartables.forEach(d => {
+        gastos += safeNum(d.gastoSanatorial || d.total);
+      });
     }
 
-    const wb = XLSX.utils.book_new();
+    const total = gastos + honorarios;
 
-    // --- HOJA 1: CARÁTULA (resumen) ---
-    const caratulaHeaders = ['PRESTADOR', 'PACIENTE', 'DNI', 'STRO', 'GASTOS', 'HONORARIOS', 'TOTAL'];
-    const caratulaRows = [caratulaHeaders];
+    caratulaRows.push([
+      'Clínica de la Unión',
+      nombre,
+      dni,
+      nroSiniestro || '—',
+      gastos,
+      honorarios,
+      total
+    ]);
+  });
 
-    selected.forEach(id => {
-      const item = raw[id];
-      if (!item) return;
+  const lastDataRow = caratulaRows.length;
+  const totalRow = [
+    'TOTALES',
+    '',
+    '',
+    '',
+    { t: 'n', f: `=SUM(E3:E${lastDataRow})` },
+    { t: 'n', f: `=SUM(F3:F${lastDataRow})` },
+    { t: 'n', f: `=SUM(G3:G${lastDataRow})` }
+  ];
+  caratulaRows.push(totalRow);
 
-      const paciente = item.paciente || {};
-      const nombre = paciente.nombreCompleto || paciente.nombre || '';
-      const dni = paciente.dni || '';
-      const nroSiniestro = paciente.nroSiniestro || '';
+  const wsCaratula = XLSX.utils.aoa_to_sheet(caratulaRows);
+  wsCaratula['!cols'] = [
+    { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
+    { wch: 12 }, { wch: 12 }, { wch: 12 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsCaratula, 'Carátula');
 
-      // Calcular gastos y honorarios
-      const sumItems = (arr, field) => {
-        if (!arr) return 0;
-        return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
-      };
+  // --- HOJA 2: DETALLE ---
+  const detalleHeaders = [
+    'CdU', 'Nombre completo', 'DNI', 'N° Stro', 'TOTAL STRO',
+    'Tipo', 'Categoría', 'Código', 'Descripción',
+    'Cant.', 'Val. U', 'Total', 'Origen',
+    'Subtotal Honorarios', 'Subtotal Gastos', 'Total Siniestro'
+  ];
+  const detalleRows = [detalleHeaders];
+  let globalCdU = 1;
 
-      let gastos = 0;
-      let honorarios = 0;
+  selected.forEach((id, index) => {
+    const item = raw[id];
+    if (!item) return;
 
-      gastos += sumItems(item.practicas, 'gastoSanatorial');
-      honorarios += sumItems(item.practicas, 'honorarioMedico');
-      gastos += sumItems(item.cirugias, 'gastoSanatorial');
-      honorarios += sumItems(item.cirugias, 'honorarioMedico');
-      gastos += sumItems(item.laboratorios, 'gastoSanatorial');
-      honorarios += sumItems(item.laboratorios, 'honorarioMedico');
+    const paciente = item.paciente || {};
+    const nombre = paciente.nombreCompleto || paciente.nombre || '';
+    const dni = paciente.dni || '';
+    const nroSiniestro = paciente.nroSiniestro || '';
+    const estadoItem = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
 
-      if (item.medicamentos) {
-        item.medicamentos.forEach(m => {
-          gastos += safeNum(m.gastoSanatorial || m.total);
+    // --- NUEVA ESTRUCTURA: separamos honorarios y gastos para ordenarlos ---
+    const honorariosRows = [];
+    const gastosRows = [];
+
+    // Función auxiliar para extraer datos de un ítem
+    const extractRow = (x, categoria, tipoForzado = null) => {
+      const honorario = safeNum(x?.honorarioMedico);
+      const gasto = safeNum(x?.gastoSanatorial);
+      const cantidad = safeNum(x?.cantidad ?? x?.unidades ?? 1) || 1;
+      const totalItem = safeNum(x?.total);
+      const unit = cantidad > 0 ? totalItem / cantidad : 0;
+
+      const desc = x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+      const codigo = x?.codigo || x?.code || x?.cod || '';
+      const origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
+
+      // Honorario (si existe y no está forzado a gasto)
+      if (honorario > 0 && tipoForzado !== 'GASTO') {
+        honorariosRows.push({
+          tipo: 'HONORARIO',
+          categoria,
+          codigo,
+          desc,
+          cantidad,
+          unit,
+          total: honorario,
+          origen: origen || ''
         });
       }
-      if (item.descartables) {
-        item.descartables.forEach(d => {
-          gastos += safeNum(d.gastoSanatorial || d.total);
+
+      // Gasto (si existe y no está forzado a honorario)
+      if (gasto > 0 && tipoForzado !== 'HONORARIO') {
+        gastosRows.push({
+          tipo: 'GASTO',
+          categoria,
+          codigo,
+          desc,
+          cantidad,
+          unit,
+          total: gasto,
+          origen: 'Clínica de la Unión'
         });
       }
+    };
 
-      const total = gastos + honorarios;
+    // Procesar prácticas, cirugías y laboratorios (pueden tener honorario y gasto)
+    (item.practicas || []).forEach(p => extractRow(p, 'Práctica'));
+    (item.cirugias || []).forEach(c => extractRow(c, 'Cirugía'));
+    (item.laboratorios || []).forEach(l => extractRow(l, 'Laboratorio'));
 
-      caratulaRows.push([
-        'Clínica de la Unión',
-        nombre,
-        dni,
-        nroSiniestro || '—',
-        gastos,
-        honorarios,
-        total
-      ]);
-    });
-
-    const lastDataRow = caratulaRows.length;
-    const totalRow = [
-      'TOTALES',
-      '',
-      '',
-      '',
-      { t: 'n', f: `=SUM(E3:E${lastDataRow})` },
-      { t: 'n', f: `=SUM(F3:F${lastDataRow})` },
-      { t: 'n', f: `=SUM(G3:G${lastDataRow})` }
-    ];
-    caratulaRows.push(totalRow);
-
-    const wsCaratula = XLSX.utils.aoa_to_sheet(caratulaRows);
-    wsCaratula['!cols'] = [
-      { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
-      { wch: 12 }, { wch: 12 }, { wch: 12 }
-    ];
-    XLSX.utils.book_append_sheet(wb, wsCaratula, 'Carátula');
-
-    // --- HOJA 2: DETALLE ---
-    const detalleHeaders = [
-      'CdU', 'Nombre completo', 'DNI', 'N° Stro', 'TOTAL STRO',
-      'Tipo', 'Categoría', 'Código', 'Descripción',
-      'Cant.', 'Val. U', 'Total', 'Origen',
-      'Subtotal Honorarios', 'Subtotal Gastos', 'Total Siniestro'
-    ];
-    const detalleRows = [detalleHeaders];
-    let globalCdU = 1;
-
-    selected.forEach((id, index) => {
-      const item = raw[id];
-      if (!item) return;
-
-      const paciente = item.paciente || {};
-      const nombre = paciente.nombreCompleto || paciente.nombre || '';
-      const dni = paciente.dni || '';
-      const nroSiniestro = paciente.nroSiniestro || '';
-      const estadoItem = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
-
-      const lineRows = [];
-
-      const processItem = (x, categoria, tipoBase) => {
-        const honorario = safeNum(x?.honorarioMedico);
-        const gasto = safeNum(x?.gastoSanatorial);
-        const cantidad = safeNum(x?.cantidad ?? x?.unidades ?? 1) || 1;
-        const totalItem = safeNum(x?.total);
-        const unit = cantidad > 0 ? totalItem / cantidad : 0;
-
-        const desc = x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
-        const codigo = x?.codigo || x?.code || x?.cod || '';
-        let origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
-
-        if (honorario > 0) {
-          lineRows.push({
-            tipo: 'HONORARIO',
-            categoria,
-            codigo,
-            desc,
-            cantidad,
-            unit,
-            total: honorario,
-            origen: origen || ''
-          });
-        }
+    // Medicamentos y descartables solo tienen gasto
+    if (item.medicamentos) {
+      item.medicamentos.forEach(m => {
+        const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
         if (gasto > 0) {
-          lineRows.push({
+          const cantidad = safeNum(m?.cantidad ?? m?.unidades ?? 1) || 1;
+          const unit = cantidad > 0 ? gasto / cantidad : 0;
+          gastosRows.push({
             tipo: 'GASTO',
-            categoria,
-            codigo,
-            desc,
+            categoria: 'Medicación',
+            codigo: '',
+            desc: m?.nombre || '',
             cantidad,
             unit,
             total: gasto,
             origen: 'Clínica de la Unión'
           });
         }
-      };
-
-      (item.practicas || []).forEach(p => processItem(p, 'Práctica', ''));
-      (item.cirugias || []).forEach(c => processItem(c, 'Cirugía', ''));
-      (item.laboratorios || []).forEach(l => processItem(l, 'Laboratorio', ''));
-      if (item.medicamentos) {
-        item.medicamentos.forEach(m => {
-          const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
-          if (gasto > 0) {
-            const cantidad = safeNum(m?.cantidad ?? m?.unidades ?? 1) || 1;
-            const unit = cantidad > 0 ? gasto / cantidad : 0;
-            lineRows.push({
-              tipo: 'GASTO',
-              categoria: 'Medicación',
-              codigo: '',
-              desc: m?.nombre || '',
-              cantidad,
-              unit,
-              total: gasto,
-              origen: 'Clínica de la Unión'
-            });
-          }
-        });
-      }
-      if (item.descartables) {
-        item.descartables.forEach(d => {
-          const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
-          if (gasto > 0) {
-            const cantidad = safeNum(d?.cantidad ?? d?.unidades ?? 1) || 1;
-            const unit = cantidad > 0 ? gasto / cantidad : 0;
-            lineRows.push({
-              tipo: 'GASTO',
-              categoria: 'Descartable',
-              codigo: '',
-              desc: d?.nombre || '',
-              cantidad,
-              unit,
-              total: gasto,
-              origen: 'Clínica de la Unión'
-            });
-          }
-        });
-      }
-
-      const totalHonor = lineRows.filter(r => r.tipo === 'HONORARIO').reduce((acc, r) => acc + r.total, 0);
-      const totalGasto = lineRows.filter(r => r.tipo === 'GASTO').reduce((acc, r) => acc + r.total, 0);
-      const totalSiniestro = totalHonor + totalGasto;
-
-      if (lineRows.length === 0) return;
-
-      const startRow = detalleRows.length + 1;
-
-      const headerRow = [
-        globalCdU,
-        nombre,
-        dni,
-        nroSiniestro,
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        totalHonor,
-        totalGasto,
-        { t: 'n', f: `=N${startRow}+O${startRow}` }
-      ];
-      detalleRows.push(headerRow);
-      globalCdU++;
-
-      lineRows.forEach(row => {
-        const detailRow = [
-          globalCdU,
-          '',
-          '',
-          '',
-          '',
-          row.tipo,
-          row.categoria,
-          row.codigo,
-          row.desc,
-          row.cantidad,
-          row.unit,
-          row.total,
-          row.origen,
-          '',
-          '',
-          ''
-        ];
-        detalleRows.push(detailRow);
-        globalCdU++;
       });
+    }
 
-      if (index < selected.length - 1) {
-        const blankRow = Array(detalleHeaders.length).fill('');
-        detalleRows.push(blankRow);
-      }
+    if (item.descartables) {
+      item.descartables.forEach(d => {
+        const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
+        if (gasto > 0) {
+          const cantidad = safeNum(d?.cantidad ?? d?.unidades ?? 1) || 1;
+          const unit = cantidad > 0 ? gasto / cantidad : 0;
+          gastosRows.push({
+            tipo: 'GASTO',
+            categoria: 'Descartable',
+            codigo: '',
+            desc: d?.nombre || '',
+            cantidad,
+            unit,
+            total: gasto,
+            origen: 'Clínica de la Unión'
+          });
+        }
+      });
+    }
+
+    // Unir: primero honorarios, luego gastos
+    const lineRows = [...honorariosRows, ...gastosRows];
+
+    const totalHonor = honorariosRows.reduce((acc, r) => acc + r.total, 0);
+    const totalGasto = gastosRows.reduce((acc, r) => acc + r.total, 0);
+    const totalSiniestro = totalHonor + totalGasto;
+
+    if (lineRows.length === 0) return;
+
+    const startRow = detalleRows.length + 1;
+
+    // Fila de cabecera del siniestro
+    const headerRow = [
+      globalCdU,
+      nombre,
+      dni,
+      nroSiniestro,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      totalHonor,
+      totalGasto,
+      { t: 'n', f: `=N${startRow}+O${startRow}` }
+    ];
+    detalleRows.push(headerRow);
+    globalCdU++;
+
+    // Filas de detalle (ya ordenadas: honorarios primero, luego gastos)
+    lineRows.forEach(row => {
+      const detailRow = [
+        globalCdU,
+        '',
+        '',
+        '',
+        '',
+        row.tipo,
+        row.categoria,
+        row.codigo,
+        row.desc,
+        row.cantidad,
+        row.unit,
+        row.total,
+        row.origen,
+        '',
+        '',
+        ''
+      ];
+      detalleRows.push(detailRow);
+      globalCdU++;
     });
 
-    const lastRow = detalleRows.length;
-    const totalDetalleRow = [
-      '',
-      'TOTALES GENERALES',
-      '', '', '', '', '', '', '', '', '', '', '',
-      { t: 'n', f: `=SUM(N2:N${lastRow})` },
-      { t: 'n', f: `=SUM(O2:O${lastRow})` },
-      { t: 'n', f: `=SUM(P2:P${lastRow})` }
-    ];
-    detalleRows.push(totalDetalleRow);
+    // Línea en blanco entre siniestros
+    if (index < selected.length - 1) {
+      const blankRow = Array(detalleHeaders.length).fill('');
+      detalleRows.push(blankRow);
+    }
+  });
 
-    const wsDetalle = XLSX.utils.aoa_to_sheet(detalleRows);
-    wsDetalle['!cols'] = [
-      { wch: 6 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 12 },
-      { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 50 }, { wch: 8 },
-      { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
-      { wch: 15 }
-    ];
-    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+  const lastRow = detalleRows.length;
+  const totalDetalleRow = [
+    '',
+    'TOTALES GENERALES',
+    '', '', '', '', '', '', '', '', '', '', '',
+    { t: 'n', f: `=SUM(N2:N${lastRow})` },
+    { t: 'n', f: `=SUM(O2:O${lastRow})` },
+    { t: 'n', f: `=SUM(P2:P${lastRow})` }
+  ];
+  detalleRows.push(totalDetalleRow);
 
-    XLSX.writeFile(wb, `siniestros_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  };
+  const wsDetalle = XLSX.utils.aoa_to_sheet(detalleRows);
+  wsDetalle['!cols'] = [
+    { wch: 6 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 12 },
+    { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 50 }, { wch: 8 },
+    { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+    { wch: 15 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
 
+  XLSX.writeFile(wb, `siniestros_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
   // Imprimir reporte ART
   const printART = (id) => {
     const item = raw[id];

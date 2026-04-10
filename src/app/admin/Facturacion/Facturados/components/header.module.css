@@ -87,6 +87,8 @@
 .btnGhost,
 .btnPrimary,
 .btnExport,
+.btnExports,
+.actions,
 .btnDanger {
     display: inline-flex;
     align-items: center;
@@ -106,6 +108,7 @@
 .btnGhost svg,
 .btnPrimary svg,
 .btnExport svg,
+.btnExports svg,
 .btnDanger svg {
     width: 12px;
     height: 12px;
@@ -137,6 +140,22 @@
     background: rgba(20, 184, 166, 0.12);
     color: #5eead4;
     border: 1px solid rgba(20, 184, 166, 0.22);
+}
+
+
+.btnExports {
+    background: rgba(99, 102, 241, 0.12);   /* violeta suave */
+    color: #a5b4fc;                         /* texto */
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.btnExports:hover {
+    background: rgba(99, 102, 241, 0.22);
+    color: #c7d2fe;
+}
+.btnExports:disabled {
+    opacity: 0.38;
+    pointer-events: none;
 }
 
 .btnExport:hover {
@@ -258,3 +277,4 @@
         display: none;
     }
 }
+
