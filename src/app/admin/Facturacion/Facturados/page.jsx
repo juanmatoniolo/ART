@@ -151,79 +151,92 @@ async function fetchFullItem(id) {
 
 // ── Impresión: Factura ART completa ──────────────────────────────────────────
 
+// ── Impresión: Factura ART completa (sin watermark, con TH/TD correctos) ──
+
 async function printFacturaCompleta(id) {
   const item = await fetchFullItem(id);
-  if (!item) { alert('No se encontraron datos para este siniestro.'); return; }
+  if (!item) {
+    alert('No se encontraron datos para este siniestro.');
+    return;
+  }
 
-  const paciente   = item.paciente || {};
-  const nombre     = paciente.nombreCompleto || paciente.nombre || '—';
-  const dni        = paciente.dni || '—';
-  const siniestro  = paciente.nroSiniestro || item.nroSiniestro || '—';
-  const artNombre  = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
+  const paciente = item.paciente || {};
+  const nombre = paciente.nombreCompleto || paciente.nombre || '—';
+  const dni = paciente.dni || '—';
+  const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
+  const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
-  const practicas    = Array.isArray(item.practicas)    ? item.practicas    : [];
-  const cirugias     = Array.isArray(item.cirugias)     ? item.cirugias     : [];
+  const practicas = Array.isArray(item.practicas) ? item.practicas : [];
+  const cirugias = Array.isArray(item.cirugias) ? item.cirugias : [];
   const laboratorios = Array.isArray(item.laboratorios) ? item.laboratorios : [];
   const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
   const descartables = Array.isArray(item.descartables) ? item.descartables : [];
 
-  const honorPracticasArr   = [];
-  const honorCirugiasArr    = [];
+  const honorPracticasArr = [];
+  const honorCirugiasArr = [];
   const honorLaboratoriosArr = [];
-  const gastoPracticasArr   = [];
+  const gastoPracticasArr = [];
   const gastoMedicamentosArr = [];
   const gastoDescartablesArr = [];
 
   practicas.forEach(p => {
     const honorario = safeNum(p?.honorarioMedico);
-    const gasto     = safeNum(p?.gastoSanatorial);
-    const qty  = pickQty(p); const unit = pickUnit(p);
-    const desc = formatCodeName(p); const doctor = pickDoctor(p);
+    const gasto = safeNum(p?.gastoSanatorial);
+    const qty = pickQty(p);
+    const unit = pickUnit(p);
+    const desc = formatCodeName(p);
+    const doctor = pickDoctor(p);
     if (honorario > 0) honorPracticasArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
-    if (gasto > 0)     gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
+    if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
   });
 
   cirugias.forEach(c => {
     const honorario = safeNum(c?.honorarioMedico);
-    const gasto     = safeNum(c?.gastoSanatorial);
-    const qty  = pickQty(c); const unit = pickUnit(c);
-    const desc = formatCodeName(c); const doctor = pickDoctor(c);
+    const gasto = safeNum(c?.gastoSanatorial);
+    const qty = pickQty(c);
+    const unit = pickUnit(c);
+    const desc = formatCodeName(c);
+    const doctor = pickDoctor(c);
     if (honorario > 0) honorCirugiasArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
-    if (gasto > 0)     gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
+    if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
   });
 
   laboratorios.forEach(l => {
     const honorario = safeNum(l?.honorarioMedico);
-    const gasto     = safeNum(l?.gastoSanatorial);
-    const qty  = pickQty(l); const unit = pickUnit(l);
-    const desc = formatCodeName(l); const doctor = pickDoctor(l);
+    const gasto = safeNum(l?.gastoSanatorial);
+    const qty = pickQty(l);
+    const unit = pickUnit(l);
+    const desc = formatCodeName(l);
+    const doctor = pickDoctor(l);
     if (honorario > 0) honorLaboratoriosArr.push({ desc, origen: doctor, unidades: qty, unit, total: honorario });
-    if (gasto > 0)     gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
+    if (gasto > 0) gastoPracticasArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
   });
 
   medicamentos.forEach(m => {
     const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
-    const qty   = pickQty(m); const unit = pickUnit(m);
-    const desc  = m?.nombre || '—';
+    const qty = pickQty(m);
+    const unit = pickUnit(m);
+    const desc = m?.nombre || '—';
     if (gasto > 0) gastoMedicamentosArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
   });
 
   descartables.forEach(d => {
     const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
-    const qty   = pickQty(d); const unit = pickUnit(d);
-    const desc  = d?.nombre || '—';
+    const qty = pickQty(d);
+    const unit = pickUnit(d);
+    const desc = d?.nombre || '—';
     if (gasto > 0) gastoDescartablesArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
   });
 
-  const subtotalHonorPracticas    = honorPracticasArr.reduce((a, r) => a + r.total, 0);
-  const subtotalHonorCirugias     = honorCirugiasArr.reduce((a, r) => a + r.total, 0);
+  const subtotalHonorPracticas = honorPracticasArr.reduce((a, r) => a + r.total, 0);
+  const subtotalHonorCirugias = honorCirugiasArr.reduce((a, r) => a + r.total, 0);
   const subtotalHonorLaboratorios = honorLaboratoriosArr.reduce((a, r) => a + r.total, 0);
   const totalHonor = subtotalHonorPracticas + subtotalHonorCirugias + subtotalHonorLaboratorios;
 
-  const subtotalGastoPracticas    = gastoPracticasArr.reduce((a, r) => a + r.total, 0);
+  const subtotalGastoPracticas = gastoPracticasArr.reduce((a, r) => a + r.total, 0);
   const subtotalGastoMedicamentos = gastoMedicamentosArr.reduce((a, r) => a + r.total, 0);
   const subtotalGastoDescartables = gastoDescartablesArr.reduce((a, r) => a + r.total, 0);
-  const totalGasto   = subtotalGastoPracticas + subtotalGastoMedicamentos + subtotalGastoDescartables;
+  const totalGasto = subtotalGastoPracticas + subtotalGastoMedicamentos + subtotalGastoDescartables;
   const totalFactura = totalHonor + totalGasto;
 
   const truncate = (str, max = 40) => {
@@ -235,53 +248,53 @@ async function printFacturaCompleta(id) {
   const renderCompactTable = (items, columns) => {
     if (items.length === 0) return '';
     return `
-      <table style="border-collapse:collapse;width:100%;font-size:10pt;margin-bottom:4px;">
+      <table style="border-collapse:collapse;width:100%;font-size:10pt;margin-bottom:12px;">
         <thead>
-          <tr>${columns.map(col =>
-            `<th style="background:#e0e0e0;text-align:left;padding:5px 6px;border:1px solid #ccc;">${col.label}</th>`
-          ).join('')}</tr>
+          <tr>${columns.map(col => `<th style="background:#e0e0e0;text-align:left;padding:6px 8px;border:1px solid #999;">${col.label}</th>`).join('')}</tr>
         </thead>
         <tbody>
           ${items.map(item => `
             <tr>${columns.map(col => {
               let content = item[col.field];
-              if      (col.field === 'desc')              content = truncate(item.desc, 40);
-              else if (col.field === 'origen')            content = truncate(item.origen, 30);
+              if (col.field === 'desc') content = truncate(item.desc, 40);
+              else if (col.field === 'origen') content = truncate(item.origen, 30);
               else if (col.field === 'total' || col.field === 'unit') content = `$ ${money(item[col.field])}`;
-              return `<td style="padding:4px 6px;border:1px solid #ccc;${col.className === 'num' ? 'text-align:right;font-size:9pt;' : ''}">${content || '—'}</td>`;
+              const isNum = col.className === 'num';
+              return `<td style="padding:5px 8px;border:1px solid #999;${isNum ? 'text-align:right;' : ''}">${content || '—'}</td>`;
             }).join('')}</tr>
           `).join('')}
         </tbody>
-      </table>`;
+      </table>
+    `;
   };
 
   const honorColumns = [
     { label: 'Código - Práctica', field: 'desc' },
-    { label: 'Dr',                field: 'origen' },
-    { label: 'Cant.',             field: 'unidades', className: 'num' },
-    { label: 'Valor unit.',       field: 'unit',     className: 'num' },
-    { label: 'Total',             field: 'total',    className: 'num' },
+    { label: 'Dr', field: 'origen' },
+    { label: 'Cant.', field: 'unidades', className: 'num' },
+    { label: 'Valor unit.', field: 'unit', className: 'num' },
+    { label: 'Total', field: 'total', className: 'num' },
   ];
   const gastoPracticasColumns = [
     { label: 'Código - Práctica', field: 'desc' },
-    { label: 'CdU',               field: 'origen' },
-    { label: 'Cant.',             field: 'unidades', className: 'num' },
-    { label: 'Valor unit.',       field: 'unit',     className: 'num' },
-    { label: 'Total',             field: 'total',    className: 'num' },
+    { label: 'CdU', field: 'origen' },
+    { label: 'Cant.', field: 'unidades', className: 'num' },
+    { label: 'Valor unit.', field: 'unit', className: 'num' },
+    { label: 'Total', field: 'total', className: 'num' },
   ];
   const medDescColumns = [
     { label: 'Descripción', field: 'desc' },
-    { label: 'Cant.',       field: 'unidades', className: 'num' },
-    { label: 'Valor unit.', field: 'unit',     className: 'num' },
-    { label: 'Total',       field: 'total',    className: 'num' },
+    { label: 'Cant.', field: 'unidades', className: 'num' },
+    { label: 'Valor unit.', field: 'unit', className: 'num' },
+    { label: 'Total', field: 'total', className: 'num' },
   ];
 
-  const secHonorPracticas    = honorPracticasArr.length    ? `<div style="font-weight:bold;margin:10px 0 5px 0;">Prácticas — $ ${money(subtotalHonorPracticas)}</div>${renderCompactTable(honorPracticasArr, honorColumns)}`         : '';
-  const secHonorCirugias     = honorCirugiasArr.length     ? `<div style="font-weight:bold;margin:10px 0 5px 0;">CX — $ ${money(subtotalHonorCirugias)}</div>${renderCompactTable(honorCirugiasArr, honorColumns)}`                   : '';
-  const secHonorLaboratorios = honorLaboratoriosArr.length ? `<div style="font-weight:bold;margin:10px 0 5px 0;">Laboratorio — $ ${money(subtotalHonorLaboratorios)}</div>${renderCompactTable(honorLaboratoriosArr, honorColumns)}` : '';
-  const secGastoPracticas    = gastoPracticasArr.length    ? `<div style="font-weight:bold;margin:10px 0 5px 0;">Prácticas — $ ${money(subtotalGastoPracticas)}</div>${renderCompactTable(gastoPracticasArr, gastoPracticasColumns)}` : '';
-  const secGastoMedicamentos = gastoMedicamentosArr.length ? `<div style="font-weight:bold;margin:10px 0 5px 0;">Medicación — $ ${money(subtotalGastoMedicamentos)}</div>${renderCompactTable(gastoMedicamentosArr, medDescColumns)}` : '';
-  const secGastoDescartables = gastoDescartablesArr.length ? `<div style="font-weight:bold;margin:10px 0 5px 0;">Descartables — $ ${money(subtotalGastoDescartables)}</div>${renderCompactTable(gastoDescartablesArr, medDescColumns)}` : '';
+  const secHonorPracticas = honorPracticasArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">Prácticas — $ ${money(subtotalHonorPracticas)}</div>${renderCompactTable(honorPracticasArr, honorColumns)}` : '';
+  const secHonorCirugias = honorCirugiasArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">CX — $ ${money(subtotalHonorCirugias)}</div>${renderCompactTable(honorCirugiasArr, honorColumns)}` : '';
+  const secHonorLaboratorios = honorLaboratoriosArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">Laboratorio — $ ${money(subtotalHonorLaboratorios)}</div>${renderCompactTable(honorLaboratoriosArr, honorColumns)}` : '';
+  const secGastoPracticas = gastoPracticasArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">Prácticas — $ ${money(subtotalGastoPracticas)}</div>${renderCompactTable(gastoPracticasArr, gastoPracticasColumns)}` : '';
+  const secGastoMedicamentos = gastoMedicamentosArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">Medicación — $ ${money(subtotalGastoMedicamentos)}</div>${renderCompactTable(gastoMedicamentosArr, medDescColumns)}` : '';
+  const secGastoDescartables = gastoDescartablesArr.length ? `<div style="font-weight:bold;margin:12px 0 5px 0;">Descartables — $ ${money(subtotalGastoDescartables)}</div>${renderCompactTable(gastoDescartablesArr, medDescColumns)}` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -289,28 +302,33 @@ async function printFacturaCompleta(id) {
   <meta charset="UTF-8">
   <title>Factura — ${artNombre} — ${siniestro}</title>
   <style>
-    @page { margin: 1cm; }
+    @page { margin: 1.2cm; }
     body { font-family: Arial, sans-serif; font-size: 11pt; margin: 0; color: #000; }
-    .watermark { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.12;z-index:-1;pointer-events:none; }
-    .watermark img { width:280px;height:auto; }
-    h1 { font-size:16pt;margin:0 0 10px; }
-    h2 { font-size:13pt;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px; }
-    .info-header { display:flex;flex-wrap:wrap;gap:12px;background:#f4f4f4;padding:8px 12px;border-radius:4px;margin-bottom:14px;font-size:10pt; }
-    .info-header p { margin:0; }
-    .totales { margin-top:18px;padding-top:10px;page-break-inside:avoid; }
-    .total-general { font-size:14pt;margin-top:6px;font-weight:bold; }
-    .footer { display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #aaa;padding-top:14px;page-break-inside:avoid; }
-    .firma { text-align:center;flex:1; }
-    .firma-linea { font-size:13pt;letter-spacing:2px;color:#444;margin-bottom:2px; }
-    .firma-label { font-size:9pt;color:#666; }
-    .clinica { text-align:center;flex:1; }
-    .clinica img { max-width:70px;height:auto;margin-bottom:4px; }
-    .clinica-info { font-size:8pt;color:#666;line-height:1.3; }
-    hr { margin:10px 0; }
+    h1 { font-size: 16pt; margin: 0 0 10px; }
+    h2 { font-size: 14pt; margin: 20px 0 8px; border-bottom: 1px solid #aaa; padding-bottom: 4px; }
+    .info-header {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      background: #f4f4f4; padding: 8px 12px;
+      border-radius: 4px; margin-bottom: 16px; font-size: 10pt;
+    }
+    .info-header p { margin: 0; }
+    .totales { margin-top: 20px; border-top: 2px solid #333; padding-top: 12px; }
+    .total-general { font-size: 14pt; font-weight: bold; margin-top: 8px; }
+    .footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 28px; border-top: 1px solid #aaa; padding-top: 16px;
+      page-break-inside: avoid;
+    }
+    .firma { text-align: center; flex: 1; }
+    .firma-linea { font-size: 13pt; letter-spacing: 2px; color: #444; margin-bottom: 4px; }
+    .firma-label { font-size: 9pt; color: #666; }
+    .clinica { text-align: center; flex: 1; }
+    .clinica img { max-width: 70px; height: auto; margin-bottom: 4px; }
+    .clinica-info { font-size: 8pt; color: #666; line-height: 1.3; }
+    hr { margin: 12px 0; }
   </style>
 </head>
 <body>
-  <div class="watermark"><img src="/logo.png" alt=""></div>
   <h1>Factura — ART / Convenio</h1>
   <div class="info-header">
     <p><strong>ART / Convenio:</strong> ${artNombre}</p>
@@ -318,14 +336,16 @@ async function printFacturaCompleta(id) {
     <p><strong>DNI:</strong> ${dni}</p>
     <p><strong>N° Siniestro:</strong> ${siniestro}</p>
   </div>
+
   <h2>HONORARIOS MÉDICOS — Total: $ ${money(totalHonor)}</h2>
   ${secHonorPracticas}${secHonorCirugias}${secHonorLaboratorios}
+
   <h2>GASTOS CLÍNICOS — Total: $ ${money(totalGasto)}</h2>
   ${secGastoPracticas}${secGastoMedicamentos}${secGastoDescartables}
+
   <div class="totales">
-    <hr>
-    <div style="margin:8px 0;"><strong>Subtotal Honorarios:</strong> $ ${money(totalHonor)}</div>
-    <div style="margin:8px 0;"><strong>Subtotal Gastos:</strong> $ ${money(totalGasto)}</div>
+    <div style="margin: 6px 0;"><strong>Subtotal Honorarios:</strong> $ ${money(totalHonor)}</div>
+    <div style="margin: 6px 0;"><strong>Subtotal Gastos:</strong> $ ${money(totalGasto)}</div>
     <div class="total-general">TOTAL: $ ${money(totalFactura)}</div>
   </div>
 </body>
