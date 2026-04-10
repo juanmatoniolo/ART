@@ -328,16 +328,6 @@ async function printFacturaCompleta(id) {
     <div style="margin:8px 0;"><strong>Subtotal Gastos:</strong> $ ${money(totalGasto)}</div>
     <div class="total-general">TOTAL: $ ${money(totalFactura)}</div>
   </div>
-  <div class="footer">
-    <div class="firma">
-      <div class="firma-linea">_________________________</div>
-      <div class="firma-label">Firma y sello del responsable</div>
-    </div>
-    <div class="clinica">
-      <img src="/logo.jpg" alt="Clínica de la Unión">
-      <div class="clinica-info">Clínica de la Unión S.A.<br>Chajarí, Entre Ríos — Av. Siburu 1085</div>
-    </div>
-  </div>
 </body>
 </html>`;
 
