@@ -1,21 +1,46 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { push, ref, set, get, child, update } from "firebase/database";
 import styles from "./PacienteForm.module.css";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const STORAGE_KEY = "paciente_form_v2";
+const THEME_KEY = "paciente_theme";
+
+const PRESTADOR_CONST = {
+  nombre: "CLINICA DE LA UNION S.A",
+  cuit: "30-70754530-0",
+  calle: "Av. Siburu",
+  nro: "1085",
+  piso: "-",
+  depto: "-",
+  localidad: "Chajari",
+  provincia: "Entre Rios",
+  cp: "3228",
+  celular: "3456-441580",
+  mail: "clinicadelaunionart@gmail.com",
+};
 
 const ART_OPTIONS = [
-  "Asociart", "COMFYE", "Federacion patronal AP", "Federacion patronal ART",
-  "IAPS AP", "IAPS ART", "La segunda ART", "La segunda personas",
-  "Medicar work", "Victoria seguros",
+  "Asociart",
+  "COMFYE",
+  "Federacion patronal AP",
+  "Federacion patronal ART",
+  "IAPS AP",
+  "IAPS ART",
+  "La segunda ART",
+  "La segunda personas",
+  "Medicar work",
+  "Victoria seguros",
 ];
 
+// Fechas por defecto: hoy
 const today = new Date();
-const defaultDay   = String(today.getDate()).padStart(2, "0");
+const defaultDay = String(today.getDate()).padStart(2, "0");
 const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
-const defaultYear  = String(today.getFullYear());
+const defaultYear = String(today.getFullYear());
 
 function calcularEdad(nacimiento) {
   if (!nacimiento) return "";
@@ -23,36 +48,99 @@ function calcularEdad(nacimiento) {
   if (!y || !m || !d) return "";
   const hoy = new Date();
   let edad = hoy.getFullYear() - y;
-  if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
+  const mesActual = hoy.getMonth() + 1;
+  const diaActual = hoy.getDate();
+  if (mesActual < m || (mesActual === m && diaActual < d)) edad--;
   return edad >= 0 ? String(edad) : "";
 }
 
-function onlyDigits(s) { return (s ?? "").toString().replace(/\D/g, ""); }
+function onlyDigits(s) {
+  return (s ?? "").toString().replace(/\D/g, "");
+}
 
-function formatCuitIf11(value) {
+function formatCuil(digits) {
+  if (digits.length !== 11) return digits;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}.${digits.slice(4, 7)}.${digits.slice(7, 10)}-${digits.slice(10)}`;
+}
+
+function formatDni(digits) {
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function formatIdField(value) {
   const d = onlyDigits(value);
-  if (d.length !== 11) return value;
-  return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`;
+  if (!d) return value;
+  if (d.length === 11) return formatCuil(d);
+  return formatDni(d);
 }
 
 export const emptyFormData = () => ({
-  ART:         { nombre: "", nroSiniestro: "" },
-  empleador:   { nombre: "", cuit: "" },
-  trabajador:  {
-    apellido: "", nombre: "", dni: "", nacimiento: "", edad: "",
-    sexo: "", calle: "", numero: "", piso: "", depto: "",
-    localidad: "", provincia: "", cp: "", telefono: "",
-  },
-  consulta:    { tipo: "" },
-  fechaIngreso:  { dia: defaultDay, mes: defaultMonth, anio: defaultYear, iso: "" },
-  fechaDenuncia: { dia: defaultDay, mes: defaultMonth, anio: defaultYear, iso: "" },
-  prestador:   {},
+  ART: "",
+  nroSiniestro: "",
+  empleadorNombre: "",
+  empleadorCuitDni: "",
+  trabajadorApellido: "",
+  trabajadorNombre: "",
+  trabajadorDni: "",
+  trabajadorNacimiento: "",
+  trabajadorSexo: "",
+  trabajadorCalle: "",
+  trabajadorNumero: "",
+  trabajadorPiso: "",
+  trabajadorDepto: "",
+  trabajadorLocalidad: "",
+  trabajadorProvincia: "",
+  trabajadorCP: "",
+  trabajadorTelefono: "",
+  consultaTipo: "",
+  diaIngreso: defaultDay,
+  mesIngreso: defaultMonth,
+  anioIngreso: defaultYear,
+  diaDenuncia: defaultDay,
+  mesDenuncia: defaultMonth,
+  anioDenuncia: defaultYear,
+  trabajadorEdad: "",
 });
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
+function validate(f) {
+  const e = {};
+  const empId = onlyDigits(f.empleadorCuitDni);
+  if (empId && empId.length < 8 && empId.length > 0) {
+    e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
+  }
+
+  const dni = onlyDigits(f.trabajadorDni);
+  if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
+    e.trabajadorDni = "Documento inválido (7-9 dígitos para DNI o 11 para CUIL)";
+  }
+
+  const tel = onlyDigits(f.trabajadorTelefono);
+  if (tel && tel.length < 8) {
+    e.trabajadorTelefono = "Teléfono inválido";
+  }
+
+  const validarFecha = (dia, mes, anio, prefix) => {
+    // Si los tres campos están vacíos, no se valida (sin error)
+    if (!dia && !mes && !anio) return;
+    const d = Number(dia), m = Number(mes), a = Number(anio);
+    if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
+    if (mes && (m < 1 || m > 12)) e[`${prefix}Mes`] = "Mes inválido";
+    if (anio && (a < 1900 || a > 2100)) e[`${prefix}Anio`] = "Año inválido";
+  };
+  validarFecha(f.diaIngreso, f.mesIngreso, f.anioIngreso, "ingreso");
+  validarFecha(f.diaDenuncia, f.mesDenuncia, f.anioDenuncia, "denuncia");
+  return e;
+}
+
+function cx(...cls) {
+  return cls.filter(Boolean).join(" ");
+}
+
+// --- Subcomponentes ---
 function Field({ label, children, error, full }) {
   return (
-    <div className={`${styles.field} ${full ? styles.fieldFull : ""}`}>
+    <div className={cx(styles.field, full && styles.fieldFull)}>
       <label className={styles.label}>{label}</label>
       {children}
       {error && <span className={styles.errorText}>{error}</span>}
@@ -72,12 +160,12 @@ function Section({ title, subtitle, children }) {
   );
 }
 
-function DatePartInput({ label, value, onChange, placeholder, maxLength, error }) {
+function DatePartInput({ label, value, onChange, placeholder, maxLength, error, className }) {
   return (
-    <div className={styles.datePart}>
+    <div className={cx(styles.datePart, className)}>
       <label className={styles.label}>{label}</label>
       <input
-        className={`${styles.input} ${error ? styles.inputError : ""}`}
+        className={cx(styles.input, error && styles.inputError)}
         value={value}
         onChange={onChange}
         inputMode="numeric"
@@ -89,326 +177,862 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error }
   );
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
-/**
- * Props:
- *  - mode: "nuevo" | "editar"
- *  - initialData: objeto paciente completo (solo en modo editar)
- *  - pacienteId: string (solo en modo editar)
- */
+// --- Componente principal ---
 export default function PacienteForm({ mode = "nuevo", initialData = null, pacienteId = null }) {
   const router = useRouter();
   const isEdit = mode === "editar";
 
-  const [formData, setFormData]   = useState(initialData || emptyFormData());
-  const [formErrors, setFormErrors] = useState({});
-  const [saving, setSaving]       = useState(false);
-  const submittingRef             = useRef(false);
+  const [activeTab, setActiveTab] = useState(isEdit ? "nuevo" : "nuevo");
+  const [form, setForm] = useState(() => {
+    if (isEdit && initialData) {
+      const t = initialData.trabajador || {};
+      const emp = initialData.empleador || {};
+      const art = initialData.ART || {};
+      const fi = initialData.fechaIngreso || {};
+      const fd = initialData.fechaDenuncia || {};
+      const consulta = initialData.consulta?.tipo || "";
+      return {
+        ART: art.nombre || "",
+        nroSiniestro: art.nroSiniestro || "",
+        empleadorNombre: emp.nombre || "",
+        empleadorCuitDni: emp.cuit || "",
+        trabajadorApellido: t.apellido || "",
+        trabajadorNombre: t.nombre || "",
+        trabajadorDni: t.dni || "",
+        trabajadorNacimiento: t.nacimiento || "",
+        trabajadorSexo: t.sexo || "",
+        trabajadorCalle: t.calle || "",
+        trabajadorNumero: t.numero || "",
+        trabajadorPiso: t.piso || "",
+        trabajadorDepto: t.depto || "",
+        trabajadorLocalidad: t.localidad || "",
+        trabajadorProvincia: t.provincia || "",
+        trabajadorCP: t.cp || "",
+        trabajadorTelefono: t.telefono || "",
+        consultaTipo: consulta,
+        diaIngreso: fi.dia || defaultDay,
+        mesIngreso: fi.mes || defaultMonth,
+        anioIngreso: fi.anio || defaultYear,
+        diaDenuncia: fd.dia || defaultDay,
+        mesDenuncia: fd.mes || defaultMonth,
+        anioDenuncia: fd.anio || defaultYear,
+        trabajadorEdad: t.edad || "",
+      };
+    }
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return { ...emptyFormData(), ...JSON.parse(raw) };
+    } catch {}
+    return emptyFormData();
+  });
 
-  // ── Handlers ──
-  const setField = (section, field, value) => {
-    setFormData((prev) =>
-      section
-        ? { ...prev, [section]: { ...prev[section], [field]: value } }
-        : { ...prev, [field]: value }
-    );
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [createdId, setCreatedId] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfFileName, setPdfFileName] = useState(null);
+  const [pdfError, setPdfError] = useState(null);
+  const [theme, setTheme] = useState("dark");
+  const [shouldFocusError, setShouldFocusError] = useState(false);
+
+  const [pacientes, setPacientes] = useState([]);
+  const [loadingPacientes, setLoadingPacientes] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState(isEdit ? pacienteId : null);
+
+  const submittingRef = useRef(false);
+
+  // --- Tema ---
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
+    setTheme(savedTheme);
+    document.body.classList.toggle("light-mode", savedTheme === "light");
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem(THEME_KEY, newTheme);
+    document.body.classList.toggle("light-mode", newTheme === "light");
   };
 
-  const handleTrabajador = (field, value) => {
-    setFormData((prev) => {
-      const t = { ...prev.trabajador, [field]: value };
-      if (field === "nacimiento") t.edad = calcularEdad(value);
-      return { ...prev, trabajador: t };
-    });
-  };
+  // --- Persistencia local ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+      } catch {}
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [form]);
 
-  // ── Validación ──
-  const validate = () => {
-    const e = {};
-    const dni = onlyDigits(formData.trabajador.dni);
-    if (dni && (dni.length < 7 || dni.length > 9)) e.trabajadorDni = "DNI inválido (7–9 dígitos)";
-    const tel = onlyDigits(formData.trabajador.telefono);
-    if (tel && tel.length < 8) e.trabajadorTelefono = "Teléfono inválido";
-    const vf = (dia, mes, anio, p) => {
-      const d = Number(dia), m = Number(mes), a = Number(anio);
-      if (dia && (d < 1 || d > 31)) e[`${p}Dia`] = "Día inválido";
-      if (mes && (m < 1 || m > 12)) e[`${p}Mes`] = "Mes inválido";
-      if (anio && (a < 1900 || a > 2100)) e[`${p}Anio`] = "Año inválido";
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
-    vf(formData.fechaIngreso.dia,  formData.fechaIngreso.mes,  formData.fechaIngreso.anio,  "ingreso");
-    vf(formData.fechaDenuncia.dia, formData.fechaDenuncia.mes, formData.fechaDenuncia.anio, "denuncia");
-    return e;
+  }, [pdfUrl]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      trabajadorEdad: calcularEdad(prev.trabajadorNacimiento),
+    }));
+  }, [form.trabajadorNacimiento]);
+
+  useEffect(() => {
+    if (shouldFocusError && Object.keys(errors).length > 0) {
+      const timer = setTimeout(() => {
+        const errorField = document.querySelector(`.${styles.inputError}`);
+        if (errorField) {
+          errorField.focus();
+          errorField.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        setShouldFocusError(false);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldFocusError, errors]);
+
+  useEffect(() => {
+    if (activeTab === "buscar") {
+      fetchAllPacientes();
+    }
+  }, [activeTab]);
+
+  const fetchAllPacientes = async () => {
+    setLoadingPacientes(true);
+    try {
+      const snapshot = await get(child(ref(db), "pacientes"));
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setPacientes(arr);
+      } else {
+        setPacientes([]);
+      }
+    } catch (error) {
+      console.error("Error cargando pacientes:", error);
+    } finally {
+      setLoadingPacientes(false);
+    }
   };
 
-  // ── Submit ──
-  const handleSave = async (e) => {
+  const canSubmit = useMemo(() => !saving, [saving]);
+
+  const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const onBlurCuitDni = () => {
+    setForm((p) => ({ ...p, empleadorCuitDni: formatIdField(p.empleadorCuitDni) }));
+  };
+
+  const onBlurTrabajadorDni = () => {
+    setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
+  };
+
+  const handleEditPaciente = (paciente) => {
+    const t = paciente.trabajador || {};
+    const emp = paciente.empleador || {};
+    const art = paciente.ART || {};
+    const fi = paciente.fechaIngreso || {};
+    const fd = paciente.fechaDenuncia || {};
+    const consulta = paciente.consulta?.tipo || "";
+
+    setForm({
+      ART: art.nombre || "",
+      nroSiniestro: art.nroSiniestro || "",
+      empleadorNombre: emp.nombre || "",
+      empleadorCuitDni: emp.cuit || "",
+      trabajadorApellido: t.apellido || "",
+      trabajadorNombre: t.nombre || "",
+      trabajadorDni: t.dni || "",
+      trabajadorNacimiento: t.nacimiento || "",
+      trabajadorSexo: t.sexo || "",
+      trabajadorCalle: t.calle || "",
+      trabajadorNumero: t.numero || "",
+      trabajadorPiso: t.piso || "",
+      trabajadorDepto: t.depto || "",
+      trabajadorLocalidad: t.localidad || "",
+      trabajadorProvincia: t.provincia || "",
+      trabajadorCP: t.cp || "",
+      trabajadorTelefono: t.telefono || "",
+      consultaTipo: consulta,
+      diaIngreso: fi.dia || defaultDay,
+      mesIngreso: fi.mes || defaultMonth,
+      anioIngreso: fi.anio || defaultYear,
+      diaDenuncia: fd.dia || defaultDay,
+      mesDenuncia: fd.mes || defaultMonth,
+      anioDenuncia: fd.anio || defaultYear,
+      trabajadorEdad: t.edad || "",
+    });
+    setEditingId(paciente.id);
+    setActiveTab("nuevo");
+    setCreatedId(null);
+    setPdfError(null);
+    setPdfUrl(null);
+    setPdfFileName(null);
+  };
+
+  const handlePrintPaciente = async (paciente) => {
+    try {
+      const payload = {
+        ...paciente,
+        prestador: paciente.prestador || PRESTADOR_CONST,
+      };
+      const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
+      const dni = onlyDigits(payload.trabajador?.dni) || "SIN_DNI";
+      const nroSiniestro = payload.ART?.nroSiniestro || "SINIESTRO";
+      const fileName = `ART_${apellido}_${dni}_${nroSiniestro}.pdf`;
+
+      const res = await fetch("/api/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, fileName }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Error al generar PDF: ${res.status} ${errorText}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo generar el PDF.");
+    }
+  };
+
+  function openPdf() {
+    if (pdfUrl) window.open(pdfUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function downloadPdf() {
+    if (!pdfUrl) return;
+    const a = document.createElement("a");
+    a.href = pdfUrl;
+    a.download = pdfFileName || "FORMULARIO_ART.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function onSubmit(e) {
     e.preventDefault();
     if (submittingRef.current) return;
     submittingRef.current = true;
-    setSaving(true);
 
-    const errors = validate();
-    if (Object.keys(errors).length) {
-      setFormErrors(errors);
+    setCreatedId(null);
+    setPdfError(null);
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setPdfUrl(null);
+    setPdfFileName(null);
+
+    const v = validate(form);
+    setErrors(v);
+    if (Object.keys(v).length) {
+      setShouldFocusError(true);
       submittingRef.current = false;
-      setSaving(false);
       return;
     }
 
+    setSaving(true);
     try {
-      const isoIngreso  = `${formData.fechaIngreso.anio}-${formData.fechaIngreso.mes.padStart(2,"0")}-${formData.fechaIngreso.dia.padStart(2,"0")}`;
-      const isoDenuncia = `${formData.fechaDenuncia.anio}-${formData.fechaDenuncia.mes.padStart(2,"0")}-${formData.fechaDenuncia.dia.padStart(2,"0")}`;
+      const empleadorCuitFormatted = formatIdField(form.empleadorCuitDni);
+      const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
 
-      const now = Date.now();
-
-      // En modo EDITAR: PUT al ID existente, preservando createdAt y estado original
-      // En modo NUEVO: POST para crear, con createdAt = now y estado = "activo"
       const payload = {
-        ...formData,
-        fechaIngreso:  { ...formData.fechaIngreso,  iso: isoIngreso  },
-        fechaDenuncia: { ...formData.fechaDenuncia, iso: isoDenuncia },
-        updatedAt: now,
-        ...(isEdit
-          ? {
-              // Preservar createdAt y estado del registro original
-              createdAt: initialData?.createdAt || now,
-              estado:    initialData?.estado    || "activo",
-            }
-          : {
-              createdAt: now,
-              estado: "activo",   // Todo siniestro nuevo arranca activo
-            }
-        ),
+        ART: {
+          nombre: form.ART.trim() || "",
+          nroSiniestro: form.nroSiniestro.trim() || "",
+        },
+        empleador: {
+          nombre: form.empleadorNombre.trim() || "",
+          cuit: empleadorCuitFormatted || "",
+        },
+        trabajador: {
+          apellido: form.trabajadorApellido.trim() || "",
+          nombre: form.trabajadorNombre.trim() || "",
+          dni: trabajadorDniFormatted || "",
+          nacimiento: form.trabajadorNacimiento || "",
+          edad: form.trabajadorEdad,
+          sexo: form.trabajadorSexo || "",
+          calle: form.trabajadorCalle.trim() || "",
+          numero: form.trabajadorNumero.trim() || "",
+          piso: form.trabajadorPiso.trim() || "",
+          depto: form.trabajadorDepto.trim() || "",
+          localidad: form.trabajadorLocalidad.trim() || "",
+          provincia: form.trabajadorProvincia.trim() || "",
+          cp: onlyDigits(form.trabajadorCP) || "",
+          telefono: onlyDigits(form.trabajadorTelefono) || "",
+        },
+        consulta: { tipo: form.consultaTipo || "" },
+        fechaIngreso: {
+          dia: form.diaIngreso,
+          mes: form.mesIngreso,
+          anio: form.anioIngreso,
+          iso: form.anioIngreso && form.mesIngreso && form.diaIngreso
+            ? `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`
+            : "",
+        },
+        fechaDenuncia: {
+          dia: form.diaDenuncia,
+          mes: form.mesDenuncia,
+          anio: form.anioDenuncia,
+          iso: form.anioDenuncia && form.mesDenuncia && form.diaDenuncia
+            ? `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`
+            : "",
+        },
+        prestador: PRESTADOR_CONST,
+        updatedAt: Date.now(),
       };
 
-      const url    = isEdit
-        ? `${FIREBASE_URL}/pacientes/${pacienteId}.json`
-        : `${FIREBASE_URL}/pacientes.json`;
-      const method = isEdit ? "PUT" : "POST";
+      let savedId;
+      if (editingId) {
+        await update(ref(db, `pacientes/${editingId}`), payload);
+        savedId = editingId;
+      } else {
+        payload.createdAt = Date.now();
+        const newRef = push(ref(db, "pacientes"));
+        await set(newRef, payload);
+        savedId = newRef.key;
+      }
+      setCreatedId(savedId);
 
-      const res = await fetch(url, {
-        method,
+      const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
+
+      const res = await fetch("/api/pdf", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ payload, fileName }),
       });
-      if (!res.ok) throw new Error("Error al guardar");
 
-      router.push("/admin/pacientes");
+      const ct = res.headers.get("content-type") || "";
+      if (!res.ok || !ct.includes("application/pdf")) {
+        const detail = ct.includes("application/json")
+          ? JSON.stringify(await res.json().catch(() => ({})), null, 2)
+          : await res.text().catch(() => "");
+        console.error("PDF FAIL:", { status: res.status, ct, detail });
+        setPdfError(`Falló la generación del PDF (${res.status}). Revisá consola.`);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      setPdfFileName(fileName);
+
+      setEditingId(null);
+      if (activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
-      alert("Error al guardar el paciente. Intentá de nuevo.");
+      setPdfError("Error guardando o generando PDF. Revisá consola.");
     } finally {
-      submittingRef.current = false;
       setSaving(false);
+      submittingRef.current = false;
     }
-  };
+  }
 
-  // ── Render ──
+  const filteredPacientes = pacientes.filter((p) => {
+    const t = p.trabajador || {};
+    const fullName = `${t.apellido || ""} ${t.nombre || ""}`.toLowerCase();
+    const dni = t.dni || "";
+    const term = searchTerm.toLowerCase();
+    return fullName.includes(term) || dni.includes(term);
+  });
+
+  // --- AQUÍ CONTINÚA EL JSX (RETURN) ---
+
   return (
-    <div className={styles.container}>
-      {/* Breadcrumb */}
-      <div className={styles.breadcrumb}>
-        <button className={styles.backLink} onClick={() => router.push("/admin/pacientes")}>
-          ← Pacientes
-        </button>
-        <span className={styles.breadcrumbSep}>/</span>
-        <span className={styles.breadcrumbCurrent}>
-          {isEdit ? "Editar Paciente" : "Nuevo Paciente"}
-        </span>
-      </div>
-
-      {/* Título */}
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>
-            {isEdit ? "Editar Paciente" : "Nuevo Paciente"}
-          </h1>
-          {isEdit && initialData?.trabajador && (
-            <p className={styles.pageSubtitle}>
-              {initialData.trabajador.apellido} {initialData.trabajador.nombre}
-              {initialData.createdAt && (
-                <span className={styles.ingresoChip}>
-                  Ingresado: {new Date(initialData.createdAt).toLocaleDateString("es-AR")}
-                </span>
-              )}
-              <span className={`${styles.estadoChip} ${styles[`estado_${initialData.estado || "activo"}`]}`}>
-                {initialData.estado || "activo"}
-              </span>
-            </p>
-          )}
+    <div className={cx(styles.page, theme === "light" && styles.lightMode)}>
+      <div className={styles.container}>
+        {/* Breadcrumb y header con pestañas */}
+        <div className={styles.breadcrumb}>
+          <button className={styles.backLink} onClick={() => router.push("/admin/pacientes")}>
+            ← Pacientes
+          </button>
+          <span className={styles.breadcrumbSep}>/</span>
+          <span className={styles.breadcrumbCurrent}>
+            {activeTab === "nuevo"
+              ? editingId
+                ? "Editar Paciente"
+                : "Nuevo Paciente"
+              : "Buscar Pacientes"}
+          </span>
         </div>
-      </div>
 
-      {/* Formulario */}
-      <form onSubmit={handleSave} className={styles.form} noValidate>
-
-        {/* ── ART + Motivo ── */}
-        <Section title="ART + Motivo" subtitle="Todos los campos son opcionales">
-          <div className={styles.grid}>
-            <Field label="ART">
-              <select
-                className={styles.input}
-                value={formData.ART.nombre}
-                onChange={(e) => setField("ART", "nombre", e.target.value)}
+        <div className={styles.pageHeader}>
+          <div>
+            <h1 className={styles.pageTitle}>
+              {activeTab === "nuevo"
+                ? editingId
+                  ? "Editar Paciente"
+                  : "Nuevo Paciente"
+                : "Buscar Pacientes"}
+            </h1>
+            {activeTab === "nuevo" && editingId && (
+              <p className={styles.pageSubtitle}>
+                {form.trabajadorApellido} {form.trabajadorNombre}
+              </p>
+            )}
+          </div>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            {activeTab === "nuevo" && (
+              <button
+                type="button"
+                className={styles.ghostBtn}
+                disabled={saving}
+                onClick={() => {
+                  setForm(emptyFormData());
+                  setErrors({});
+                  setCreatedId(null);
+                  setPdfError(null);
+                  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+                  setPdfUrl(null);
+                  setPdfFileName(null);
+                  setEditingId(null);
+                  localStorage.removeItem(STORAGE_KEY);
+                }}
               >
-                <option value="">Seleccione una ART</option>
-                {ART_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </Field>
+                Limpiar
+              </button>
+            )}
+          </div>
+        </div>
 
-            <Field label="N° Siniestro">
+        <div className={styles.tabsContainer}>
+          <button
+            className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
+            onClick={() => setActiveTab("nuevo")}
+          >
+            📝 Nuevo / Editar
+          </button>
+          <button
+            className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
+            onClick={() => {
+              setActiveTab("buscar");
+              fetchAllPacientes();
+            }}
+          >
+            🔍 Buscar Pacientes
+          </button>
+        </div>
+
+        {activeTab === "nuevo" ? (
+          <>
+            {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
+
+            <form onSubmit={onSubmit} className={styles.form} noValidate>
+              <Section title="ART + Motivo" subtitle="Todos los campos son opcionales">
+                <div className={styles.grid}>
+                  <Field label="ART">
+                    <select
+                      className={cx(styles.input, errors.ART && styles.inputError)}
+                      value={form.ART}
+                      onChange={onChange("ART")}
+                    >
+                      <option value="">Seleccione una ART</option>
+                      {ART_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    {errors.ART && <span className={styles.errorText}>{errors.ART}</span>}
+                  </Field>
+                  <Field label="N° Siniestro">
+                    <input
+                      className={styles.input}
+                      value={form.nroSiniestro}
+                      onChange={onChange("nroSiniestro")}
+                      inputMode="numeric"
+                      placeholder="Opcional"
+                    />
+                  </Field>
+                  <Field label="Motivo de consulta" full>
+                    <div className={styles.chips}>
+                      {[
+                        ["AT", "Accidente de trabajo"],
+                        ["AIT", "Acc. In Itinere"],
+                        ["EP", "Enf. Profesional"],
+                        ["INT", "Intercurrencia"],
+                      ].map(([val, label]) => (
+                        <label
+                          key={val}
+                          className={cx(styles.chip, form.consultaTipo === val && styles.chipActive)}
+                          htmlFor={`motivo_${val}`}
+                        >
+                          <input
+                            id={`motivo_${val}`}
+                            type="radio"
+                            name="motivo"
+                            value={val}
+                            checked={form.consultaTipo === val}
+                            onChange={onChange("consultaTipo")}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                </div>
+              </Section>
+
+              <Section title="Fechas" subtitle="Fecha de ingreso y fecha de denuncia (vacías para completar a mano)">
+                <div className={styles.fechasWrapper}>
+                  <div className={styles.fechaGroup}>
+                    <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
+                    <div className={styles.fechaRow}>
+                      <DatePartInput
+                        label="Día"
+                        value={form.diaIngreso}
+                        onChange={onChange("diaIngreso")}
+                        placeholder="DD"
+                        maxLength={2}
+                        error={errors.ingresoDia}
+                      />
+                      <DatePartInput
+                        label="Mes"
+                        value={form.mesIngreso}
+                        onChange={onChange("mesIngreso")}
+                        placeholder="MM"
+                        maxLength={2}
+                        error={errors.ingresoMes}
+                      />
+                      <DatePartInput
+                        label="Año"
+                        value={form.anioIngreso}
+                        onChange={onChange("anioIngreso")}
+                        placeholder="AAAA"
+                        maxLength={4}
+                        error={errors.ingresoAnio}
+                        className={styles.datePartWide}
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.fechaGroup}>
+                    <div className={styles.fechaGroupLabel}>Fecha de denuncia</div>
+                    <div className={styles.fechaRow}>
+                      <DatePartInput
+                        label="Día"
+                        value={form.diaDenuncia}
+                        onChange={onChange("diaDenuncia")}
+                        placeholder="DD"
+                        maxLength={2}
+                        error={errors.denunciaDia}
+                      />
+                      <DatePartInput
+                        label="Mes"
+                        value={form.mesDenuncia}
+                        onChange={onChange("mesDenuncia")}
+                        placeholder="MM"
+                        maxLength={2}
+                        error={errors.denunciaMes}
+                      />
+                      <DatePartInput
+                        label="Año"
+                        value={form.anioDenuncia}
+                        onChange={onChange("anioDenuncia")}
+                        placeholder="AAAA"
+                        maxLength={4}
+                        error={errors.denunciaAnio}
+                        className={styles.datePartWide}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Section>
+
+              <Section title="Empleador" subtitle="Todos los campos son opcionales">
+                <div className={styles.grid}>
+                  <Field label="Nombre empresa">
+                    <input
+                      className={cx(styles.input, errors.empleadorNombre && styles.inputError)}
+                      value={form.empleadorNombre}
+                      onChange={onChange("empleadorNombre")}
+                      placeholder="Razón social (opcional)"
+                    />
+                  </Field>
+                  <Field label="CUIT / DNI" error={errors.empleadorCuitDni}>
+                    <input
+                      className={cx(styles.input, errors.empleadorCuitDni && styles.inputError)}
+                      value={form.empleadorCuitDni}
+                      onChange={onChange("empleadorCuitDni")}
+                      onBlur={onBlurCuitDni}
+                      inputMode="numeric"
+                      placeholder="Opcional (solo números)"
+                    />
+                  </Field>
+                </div>
+              </Section>
+
+              <Section title="Trabajador" subtitle="Todos los campos son opcionales">
+                <div className={styles.grid}>
+                  <Field label="Apellido">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorApellido}
+                      onChange={onChange("trabajadorApellido")}
+                      placeholder="Apellido"
+                    />
+                  </Field>
+                  <Field label="Nombre">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorNombre}
+                      onChange={onChange("trabajadorNombre")}
+                      placeholder="Nombre"
+                    />
+                  </Field>
+                  <Field label="DNI / CUIL" error={errors.trabajadorDni}>
+                    <input
+                      className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
+                      value={form.trabajadorDni}
+                      onChange={onChange("trabajadorDni")}
+                      onBlur={onBlurTrabajadorDni}
+                      inputMode="numeric"
+                      placeholder="DNI o CUIL"
+                    />
+                  </Field>
+                  <Field label="Fecha de nacimiento">
+                    <input
+                      type="date"
+                      className={styles.input}
+                      value={form.trabajadorNacimiento}
+                      onChange={onChange("trabajadorNacimiento")}
+                    />
+                  </Field>
+                  <Field label="Edad (calculada)">
+                    <input
+                      className={cx(styles.input, styles.inputReadonly)}
+                      value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""}
+                      readOnly
+                      tabIndex={-1}
+                      placeholder="Se calcula automáticamente"
+                    />
+                  </Field>
+                  <Field label="Sexo">
+                    <div className={styles.chips}>
+                      {["M", "F"].map((val) => (
+                        <label
+                          key={val}
+                          className={cx(styles.chip, form.trabajadorSexo === val && styles.chipActive)}
+                        >
+                          <input
+                            type="radio"
+                            name="sexo"
+                            value={val}
+                            checked={form.trabajadorSexo === val}
+                            onChange={onChange("trabajadorSexo")}
+                          />
+                          {val === "M" ? "Masculino" : "Femenino"}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                  <Field label="Teléfono" error={errors.trabajadorTelefono}>
+                    <input
+                      className={cx(styles.input, errors.trabajadorTelefono && styles.inputError)}
+                      value={form.trabajadorTelefono}
+                      onChange={onChange("trabajadorTelefono")}
+                      inputMode="numeric"
+                      placeholder="Teléfono"
+                    />
+                  </Field>
+                  <Field label="Calle">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorCalle}
+                      onChange={onChange("trabajadorCalle")}
+                      placeholder="Calle"
+                    />
+                  </Field>
+                  <Field label="Número">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorNumero}
+                      onChange={onChange("trabajadorNumero")}
+                      inputMode="numeric"
+                      placeholder="N°"
+                    />
+                  </Field>
+                  <Field label="Piso">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorPiso}
+                      onChange={onChange("trabajadorPiso")}
+                      placeholder="Piso"
+                    />
+                  </Field>
+                  <Field label="Depto">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorDepto}
+                      onChange={onChange("trabajadorDepto")}
+                      placeholder="Depto"
+                    />
+                  </Field>
+                  <Field label="Localidad">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorLocalidad}
+                      onChange={onChange("trabajadorLocalidad")}
+                      placeholder="Localidad"
+                    />
+                  </Field>
+                  <Field label="Provincia">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorProvincia}
+                      onChange={onChange("trabajadorProvincia")}
+                      placeholder="Provincia"
+                    />
+                  </Field>
+                  <Field label="Código Postal">
+                    <input
+                      className={styles.input}
+                      value={form.trabajadorCP}
+                      onChange={onChange("trabajadorCP")}
+                      inputMode="numeric"
+                      placeholder="CP"
+                    />
+                  </Field>
+                </div>
+              </Section>
+
+              <div className={styles.formActions}>
+                <button type="button" className={styles.cancelBtn} onClick={() => router.push("/admin/pacientes")}>
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.saveBtn} disabled={!canSubmit}>
+                  {saving
+                    ? "Guardando y generando..."
+                    : editingId
+                    ? "Actualizar y generar PDF"
+                    : "Guardar y generar PDF"}
+                </button>
+              </div>
+
+              <div className={styles.pdfRow}>
+                {createdId && (
+                  <div className={styles.toastSuccess}>
+                    ✅ {editingId ? "Actualizado" : "Guardado"}. ID: <b>{createdId}</b>
+                  </div>
+                )}
+                {pdfError && <div className={styles.toastDanger}>❌ {pdfError}</div>}
+                {pdfUrl && (
+                  <div className={styles.toastSuccess}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                      <div>
+                        📄 PDF generado: <b style={{ wordBreak: "break-word" }}>{pdfFileName}</b>
+                      </div>
+                      <div className={styles.pdfActions}>
+                        <button type="button" className={styles.secondaryBtn} onClick={openPdf}>
+                          Abrir
+                        </button>
+                        <button type="button" className={styles.primaryBtn} style={{ height: 40, width: "auto" }} onClick={downloadPdf}>
+                          Descargar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </form>
+          </>
+        ) : (
+          <div className={styles.searchTab}>
+            <div className={styles.searchHeader}>
               <input
                 type="text"
                 className={styles.input}
-                value={formData.ART.nroSiniestro}
-                onChange={(e) => setField("ART", "nroSiniestro", e.target.value)}
-                placeholder="Opcional"
+                placeholder="Buscar por nombre, apellido o DNI..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </Field>
-
-            <Field label="Motivo de consulta" full>
-              <div className={styles.chips}>
-                {[["AT","Accidente de trabajo"],["AIT","Acc. In Itinere"],["EP","Enf. Profesional"],["INT","Intercurrencia"]].map(([val, label]) => (
-                  <label key={val} className={`${styles.chip} ${formData.consulta.tipo === val ? styles.chipActive : ""}`}>
-                    <input type="radio" name="motivo" value={val}
-                      checked={formData.consulta.tipo === val}
-                      onChange={(e) => setField("consulta", "tipo", e.target.value)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </Field>
-          </div>
-        </Section>
-
-        {/* ── Fechas ── */}
-        <Section title="Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
-          <div className={styles.fechasWrapper}>
-            <div className={styles.fechaGroup}>
-              <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
-              <div className={styles.fechaRow}>
-                <DatePartInput label="Día"  value={formData.fechaIngreso.dia}  onChange={(e) => setField("fechaIngreso","dia",e.target.value)}  placeholder="DD"   maxLength={2} error={formErrors.ingresoDia}  />
-                <DatePartInput label="Mes"  value={formData.fechaIngreso.mes}  onChange={(e) => setField("fechaIngreso","mes",e.target.value)}  placeholder="MM"   maxLength={2} error={formErrors.ingresoMes}  />
-                <DatePartInput label="Año"  value={formData.fechaIngreso.anio} onChange={(e) => setField("fechaIngreso","anio",e.target.value)} placeholder="AAAA" maxLength={4} error={formErrors.ingresoAnio} />
-              </div>
+              <button
+                className={styles.ghostBtn}
+                onClick={fetchAllPacientes}
+                disabled={loadingPacientes}
+              >
+                🔄 Actualizar
+              </button>
             </div>
-            <div className={styles.fechaGroup}>
-              <div className={styles.fechaGroupLabel}>Fecha de denuncia</div>
-              <div className={styles.fechaRow}>
-                <DatePartInput label="Día"  value={formData.fechaDenuncia.dia}  onChange={(e) => setField("fechaDenuncia","dia",e.target.value)}  placeholder="DD"   maxLength={2} error={formErrors.denunciaDia}  />
-                <DatePartInput label="Mes"  value={formData.fechaDenuncia.mes}  onChange={(e) => setField("fechaDenuncia","mes",e.target.value)}  placeholder="MM"   maxLength={2} error={formErrors.denunciaMes}  />
-                <DatePartInput label="Año"  value={formData.fechaDenuncia.anio} onChange={(e) => setField("fechaDenuncia","anio",e.target.value)} placeholder="AAAA" maxLength={4} error={formErrors.denunciaAnio} />
+
+            {loadingPacientes ? (
+              <div className={styles.loading}>Cargando pacientes...</div>
+            ) : filteredPacientes.length === 0 ? (
+              <div className={styles.empty}>No se encontraron pacientes.</div>
+            ) : (
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Paciente</th>
+                      <th>DNI</th>
+                      <th>ART</th>
+                      <th>N° Siniestro</th>
+                      <th>Fecha Ingreso</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPacientes.map((p) => {
+                      const t = p.trabajador || {};
+                      const art = p.ART || {};
+                      const fi = p.fechaIngreso || {};
+                      return (
+                        <tr key={p.id}>
+                          <td>
+                            {t.apellido} {t.nombre}
+                          </td>
+                          <td>{t.dni || "—"}</td>
+                          <td>{art.nombre || "—"}</td>
+                          <td>{art.nroSiniestro || "—"}</td>
+                          <td>
+                            {fi.dia && fi.mes && fi.anio
+                              ? `${fi.dia}/${fi.mes}/${fi.anio}`
+                              : "—"}
+                          </td>
+                          <td className={styles.actionsCell}>
+                            <button
+                              className={styles.iconBtn}
+                              title="Editar"
+                              onClick={() => handleEditPaciente(p)}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className={styles.iconBtn}
+                              title="Imprimir PDF"
+                              onClick={() => handlePrintPaciente(p)}
+                            >
+                              🖨️
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            )}
           </div>
-        </Section>
-
-        {/* ── Empleador ── */}
-        <Section title="Empleador" subtitle="Todos los campos son opcionales">
-          <div className={styles.grid}>
-            <Field label="Nombre empresa">
-              <input type="text" className={styles.input} value={formData.empleador.nombre}
-                onChange={(e) => setField("empleador","nombre",e.target.value)} placeholder="Razón social" />
-            </Field>
-            <Field label="CUIT / DNI">
-              <input type="text" className={styles.input} value={formData.empleador.cuit}
-                onChange={(e) => setField("empleador","cuit",e.target.value)}
-                onBlur={(e) => setField("empleador","cuit",formatCuitIf11(e.target.value))}
-                placeholder="Solo números" />
-            </Field>
-          </div>
-        </Section>
-
-        {/* ── Trabajador ── */}
-        <Section title="Trabajador" subtitle="Todos los campos son opcionales">
-          <div className={styles.grid}>
-            <Field label="Apellido">
-              <input type="text" className={styles.input} value={formData.trabajador.apellido}
-                onChange={(e) => handleTrabajador("apellido", e.target.value)} placeholder="Apellido" />
-            </Field>
-            <Field label="Nombre">
-              <input type="text" className={styles.input} value={formData.trabajador.nombre}
-                onChange={(e) => handleTrabajador("nombre", e.target.value)} placeholder="Nombre" />
-            </Field>
-            <Field label="DNI" error={formErrors.trabajadorDni}>
-              <input type="text"
-                className={`${styles.input} ${formErrors.trabajadorDni ? styles.inputError : ""}`}
-                value={formData.trabajador.dni}
-                onChange={(e) => handleTrabajador("dni", e.target.value)} placeholder="DNI" />
-            </Field>
-            <Field label="Fecha de nacimiento">
-              <input type="date" className={styles.input} value={formData.trabajador.nacimiento}
-                onChange={(e) => handleTrabajador("nacimiento", e.target.value)} />
-            </Field>
-            <Field label="Edad (calculada)">
-              <input type="text" className={`${styles.input} ${styles.inputReadonly}`}
-                value={formData.trabajador.edad ? `${formData.trabajador.edad} años` : ""}
-                readOnly placeholder="Se calcula automáticamente" />
-            </Field>
-            <Field label="Sexo">
-              <div className={styles.chips}>
-                {["M","F"].map((val) => (
-                  <label key={val} className={`${styles.chip} ${formData.trabajador.sexo === val ? styles.chipActive : ""}`}>
-                    <input type="radio" name="sexo" value={val}
-                      checked={formData.trabajador.sexo === val}
-                      onChange={(e) => handleTrabajador("sexo", e.target.value)} />
-                    {val === "M" ? "Masculino" : "Femenino"}
-                  </label>
-                ))}
-              </div>
-            </Field>
-            <Field label="Teléfono" error={formErrors.trabajadorTelefono}>
-              <input type="tel"
-                className={`${styles.input} ${formErrors.trabajadorTelefono ? styles.inputError : ""}`}
-                value={formData.trabajador.telefono}
-                onChange={(e) => handleTrabajador("telefono", e.target.value)} placeholder="Teléfono" />
-            </Field>
-            <Field label="Calle">
-              <input type="text" className={styles.input} value={formData.trabajador.calle}
-                onChange={(e) => handleTrabajador("calle", e.target.value)} placeholder="Calle" />
-            </Field>
-            <Field label="Número">
-              <input type="text" className={styles.input} value={formData.trabajador.numero}
-                onChange={(e) => handleTrabajador("numero", e.target.value)} placeholder="N°" />
-            </Field>
-            <Field label="Piso">
-              <input type="text" className={styles.input} value={formData.trabajador.piso}
-                onChange={(e) => handleTrabajador("piso", e.target.value)} placeholder="Piso" />
-            </Field>
-            <Field label="Depto">
-              <input type="text" className={styles.input} value={formData.trabajador.depto}
-                onChange={(e) => handleTrabajador("depto", e.target.value)} placeholder="Depto" />
-            </Field>
-            <Field label="Localidad">
-              <input type="text" className={styles.input} value={formData.trabajador.localidad}
-                onChange={(e) => handleTrabajador("localidad", e.target.value)} placeholder="Localidad" />
-            </Field>
-            <Field label="Provincia">
-              <input type="text" className={styles.input} value={formData.trabajador.provincia}
-                onChange={(e) => handleTrabajador("provincia", e.target.value)} placeholder="Provincia" />
-            </Field>
-            <Field label="Código Postal">
-              <input type="text" className={styles.input} value={formData.trabajador.cp}
-                onChange={(e) => handleTrabajador("cp", e.target.value)} placeholder="CP" />
-            </Field>
-          </div>
-        </Section>
-
-        {/* ── Acciones ── */}
-        <div className={styles.formActions}>
-          <button type="button" className={styles.cancelBtn} onClick={() => router.push("/admin/pacientes")}>
-            Cancelar
-          </button>
-          <button type="submit" className={styles.saveBtn} disabled={saving}>
-            {saving
-              ? (isEdit ? "Guardando cambios..." : "Guardando...")
-              : (isEdit ? "Guardar cambios" : "Crear paciente")
-            }
-          </button>
-        </div>
-
-      </form>
+        )}
+      </div>
     </div>
   );
 }
