@@ -69,8 +69,15 @@ export default function WhatsAppSender() {
 
   // Construcción de mensaje
   const buildMessage = () => {
-    if (mensaje === "1") {
-      return `Buen día, *${name}*.
+if (mensaje === "1") {
+  const msgDaniela = encodeURIComponent(
+    "Hola Daniela, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
+  );
+  const msgNatali = encodeURIComponent(
+    "Hola Natali, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
+  );
+
+  return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
 Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
@@ -78,13 +85,17 @@ Ingreso por *Roque Sáenz Peña*.
 También le dejamos las kinesiólogas que trabajan con ART:
 
 • *Daniela Rivas*
-  Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
+  📍 Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
+  📱 Tel: 3456440878
+  💬 Contactar por WhatsApp: wa.me/5493456440878?text=${msgDaniela}
 
 • *Avancini Natali*
-  Consultorio: Rivadavia 2665 (Chajarí – E.R.)
+  📍 Consultorio: Rivadavia 2665 (Chajarí – E.R.)
+  📱 Tel: 3456513866
+  💬 Contactar por WhatsApp: wa.me/5493456513866?text=${msgNatali}
 
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
-    }
+}
     if (mensaje === "2") {
       return `Buen día, *${name}*.
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
