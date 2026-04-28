@@ -135,7 +135,7 @@ function buildPdfFields(payload) {
 
 		// ✅ PRESTADOR (desde payload, respetando el formato original)
 		"prestador-nombre": cleanText(p.nombre),
-		"prestador-cuit": cleanText(p.cuit),       // ej: "30-70754530-0"
+		"prestador-cuit": cleanText(p.cuit),       // ej: "30-70754530-1"
 		"prestador-calle": cleanText(p.calle),
 		"prestador-nro": cleanText(p.nro),
 		"prestador-piso": cleanText(p.piso),

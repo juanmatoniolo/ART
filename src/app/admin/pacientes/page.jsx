@@ -68,7 +68,7 @@ export default function PacientesPage() {
         // Si falta el prestador, usamos el mismo que en SiniestroPage
         prestador: paciente.prestador || {
           nombre: "CLINICA DE LA UNION S.A",
-          cuit: "30-70754530-0",
+          cuit: "30-70754530-1",
           calle: "Av. Siburu",
           nro: "1085",
           piso: "-",

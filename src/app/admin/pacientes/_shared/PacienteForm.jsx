@@ -11,7 +11,7 @@ const THEME_KEY = "paciente_theme";
 
 const PRESTADOR_CONST = {
   nombre: "CLINICA DE LA UNION S.A",
-  cuit: "30-70754530-0",
+  cuit: "30-70754530-1",
   calle: "Av. Siburu",
   nro: "1085",
   piso: "-",

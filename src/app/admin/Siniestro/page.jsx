@@ -9,7 +9,7 @@ const STORAGE_KEY = "siniestro_form_v2";
 
 const PRESTADOR_CONST = {
     nombre: "CLINICA DE LA UNION S.A",
-    cuit: "30-70754530-0",
+    cuit: "30-70754530-1",
     calle: "Av. Siburu",
     nro: "1085",
     piso: "-",
