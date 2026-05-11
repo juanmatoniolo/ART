@@ -47,7 +47,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   const [modoBusqueda, setModoBusqueda] = useState(true);
 
-  // Estado para la selección de artroscopia (simple/compleja)
+  // Estado para la selección de artroscopia (simple / ligamento / hombro)
   const [artroscopiaSelections, setArtroscopiaSelections] = useState({});
   // Estado para la selección de ECG (profesional/clínica)
   const [ecgSelections, setEcgSelections] = useState({});
@@ -179,10 +179,17 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       };
     }
 
-    // Artroscopia (código 120902) con selector
+    // --- ARTROSCOPIA (código 120902) con tres opciones ---
     if (practica.codigo === '120902') {
       const tipo = artroscopiaSelections[practica.__key] || 'simple';
-      const gastoKey = tipo === 'compleja' ? 'Artroscopia_Hombro' : 'Artroscopia_Simple_Gastos_Sanatoriales';
+      let gastoKey;
+      if (tipo === 'simple') {
+        gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+      } else if (tipo === 'ligamento') {
+        gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+      } else { // hombro
+        gastoKey = 'Artroscopia_Hombro';
+      }
       const gasto = Number(valoresConvenio[gastoKey]) || 0;
       return {
         honorarioMedico: 0,
@@ -239,77 +246,90 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     return calcularPractica(practica, valoresConvenio);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
 
-  const handleAgregar = useCallback((practica) => {
-    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+const handleAgregar = useCallback((practica) => {
+  if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
-    const calculo = getCalculo(practica);
+  const calculo = getCalculo(practica);
 
-    const groupId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  // ✅ Capturar tipo de artroscopia si corresponde
+  let tipoArtroscopia = null;
+  if (practica.codigo === '120902') {
+    tipoArtroscopia = artroscopiaSelections[practica.__key] || 'simple';
+  }
 
-    const baseCommon = {
-      ...practica,
-      ...calculo,
-      cantidad: 1,
-      esRX: isRadiografia(practica),
-      esSubsiguiente: isSubsiguiente(practica),
-      groupId
-    };
+  const groupId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-    const agregados = [];
+  const baseCommon = {
+    ...practica,
+    ...calculo,
+    cantidad: 1,
+    esRX: isRadiografia(practica),
+    esSubsiguiente: isSubsiguiente(practica),
+    groupId,
+  };
 
-    // Si es un caso especial que debe unificarse en clínica (ej. 400101)
-    if (calculo.unificarEnClinica) {
-      const total = (calculo.honorarioMedico || 0) + (calculo.gastoSanatorial || 0);
-      const descripcionPersonalizada = `Día de pensión UTI (Hon + Gastos)`;
+  const agregados = [];
+
+  // Caso especial 400101 (unificar en clínica)
+  if (calculo.unificarEnClinica) {
+    const total = (calculo.honorarioMedico || 0) + (calculo.gastoSanatorial || 0);
+    const descripcionPersonalizada = `Día de pensión UTI (Hon + Gastos)`;
+    agregados.push({
+      id: `${baseId}-clin-unificado`,
+      ...baseCommon,
+      descripcion: descripcionPersonalizada,
+      prestadorTipo: 'Clinica',
+      prestadorNombre: 'Clínica de la Unión',
+      honorarioMedico: 0,
+      gastoSanatorial: total,
+      total: total,
+      // No lleva tipoArtroscopia (no es artroscopia)
+    });
+  } else {
+    // Comportamiento normal
+    if (calculo.honorarioMedico > 0) {
       agregados.push({
-        id: `${baseId}-clin-unificado`,
+        id: `${baseId}-dr`,
         ...baseCommon,
-        descripcion: descripcionPersonalizada,
+        prestadorTipo: 'Dr',
+        prestadorNombre: '',
+        honorarioMedico: calculo.honorarioMedico,
+        gastoSanatorial: 0,
+        total: calculo.honorarioMedico,
+      });
+    }
+
+    if (calculo.gastoSanatorial > 0) {
+      const itemClinica = {
+        id: `${baseId}-clin`,
+        ...baseCommon,
         prestadorTipo: 'Clinica',
         prestadorNombre: 'Clínica de la Unión',
         honorarioMedico: 0,
-        gastoSanatorial: total,
-        total: total
-      });
-    } else {
-      // Comportamiento normal: agregar ítem de doctor si hay honorario
-      if (calculo.honorarioMedico > 0) {
-        agregados.push({
-          id: `${baseId}-dr`,
-          ...baseCommon,
-          prestadorTipo: 'Dr',
-          prestadorNombre: '',
-          honorarioMedico: calculo.honorarioMedico,
-          gastoSanatorial: 0,
-          total: calculo.honorarioMedico
-        });
+        gastoSanatorial: calculo.gastoSanatorial,
+        total: calculo.gastoSanatorial,
+      };
+      // ✅ Solo agregar el campo si es artroscopia
+      if (tipoArtroscopia) {
+        itemClinica.tipoArtroscopia = tipoArtroscopia;
       }
-
-      // Agregar ítem de clínica si hay gasto
-      if (calculo.gastoSanatorial > 0) {
-        agregados.push({
-          id: `${baseId}-clin`,
-          ...baseCommon,
-          prestadorTipo: 'Clinica',
-          prestadorNombre: 'Clínica de la Unión',
-          honorarioMedico: 0,
-          gastoSanatorial: calculo.gastoSanatorial,
-          total: calculo.gastoSanatorial
-        });
-      }
+      agregados.push(itemClinica);
     }
+  }
 
-    agregados.forEach(item => agregarPractica(item));
-    let tipoMsg = '';
-    if (practica.codigo === '120902') {
-      tipoMsg = ` (${artroscopiaSelections[practica.__key] || 'simple'})`;
-    } else if (practica.codigo === '17.01.01') {
-      tipoMsg = ` (${ecgSelections[practica.__key] || 'profesional'})`;
-    }
-    showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
-  }, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
+  agregados.forEach(item => agregarPractica(item));
 
+  let tipoMsg = '';
+  if (practica.codigo === '120902') {
+    if (tipoArtroscopia === 'simple') tipoMsg = ' (Simple)';
+    else if (tipoArtroscopia === 'ligamento') tipoMsg = ' (Ligamento cruzado)';
+    else tipoMsg = ' (Hombro)';
+  } else if (practica.codigo === '17.01.01') {
+    tipoMsg = ` (${ecgSelections[practica.__key] || 'profesional'})`;
+  }
+  showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
+}, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
   // Resultados rápidos (cuando query vacío)
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
@@ -347,7 +367,10 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-eco'
         });
       }
-      if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] || valoresConvenio['Artroscopia_Hombro']) {
+      // Agregar artroscopia custom si al menos una de las claves existe
+      if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] ||
+        valoresConvenio['Lig_Cruzado_Gastos_Sanatoriales'] ||
+        valoresConvenio['Artroscopia_Hombro']) {
         picked.push({
           codigo: '120902',
           descripcion: 'Artroscopia',
@@ -426,6 +449,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
     const q = qLocal || query;
 
+    // Obtener valores para mostrar en los radios
+    const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
+    const gastoLigamento = Number(valoresConvenio?.['Lig_Cruzado_Gastos_Sanatoriales']) || 0;
+    const gastoHombro = Number(valoresConvenio?.['Artroscopia_Hombro']) || 0;
+
     if (isMobile) {
       return (
         <article
@@ -455,17 +483,27 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   onChange={() => handleArtroscopiaChange(key, 'simple')}
                 />
                 <span className={styles.radioCustom}></span>
-                Simple (${money(Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0)})
+                Simple ({money(gastoSimple)})
               </label>
               <label className={styles.radioLabel}>
                 <input
                   type="radio"
                   name={`artro-${key}`}
-                  checked={artroscopiaSelections[key] === 'compleja'}
-                  onChange={() => handleArtroscopiaChange(key, 'compleja')}
+                  checked={artroscopiaSelections[key] === 'ligamento'}
+                  onChange={() => handleArtroscopiaChange(key, 'ligamento')}
                 />
                 <span className={styles.radioCustom}></span>
-                Compleja (Hombro) (${money(Number(valoresConvenio?.['Artroscopia_Hombro']) || 0)})
+                Ligamento cruzado ({money(gastoLigamento)})
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name={`artro-${key}`}
+                  checked={artroscopiaSelections[key] === 'hombro'}
+                  onChange={() => handleArtroscopiaChange(key, 'hombro')}
+                />
+                <span className={styles.radioCustom}></span>
+                Hombro ({money(gastoHombro)})
               </label>
             </div>
           )}
@@ -480,7 +518,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   onChange={() => handleEcgChange(key, 'profesional')}
                 />
                 <span className={styles.radioCustom}></span>
-                Profesional (Dr) (${money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
+                Profesional (Dr) ({money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
               </label>
               <label className={styles.radioLabel}>
                 <input
@@ -490,7 +528,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   onChange={() => handleEcgChange(key, 'clinica')}
                 />
                 <span className={styles.radioCustom}></span>
-                Clínica (${money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
+                Clínica ({money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
               </label>
             </div>
           )}
@@ -541,16 +579,25 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   checked={artroscopiaSelections[key] === 'simple' || !artroscopiaSelections[key]}
                   onChange={() => handleArtroscopiaChange(key, 'simple')}
                 />
-                <span>Simple</span>
+                <span>Simple ({money(gastoSimple)})</span>
               </label>
               <label className={styles.radioLabelInline}>
                 <input
                   type="radio"
                   name={`artro-tab-${key}`}
-                  checked={artroscopiaSelections[key] === 'compleja'}
-                  onChange={() => handleArtroscopiaChange(key, 'compleja')}
+                  checked={artroscopiaSelections[key] === 'ligamento'}
+                  onChange={() => handleArtroscopiaChange(key, 'ligamento')}
                 />
-                <span>Compleja</span>
+                <span>Ligamento ({money(gastoLigamento)})</span>
+              </label>
+              <label className={styles.radioLabelInline}>
+                <input
+                  type="radio"
+                  name={`artro-tab-${key}`}
+                  checked={artroscopiaSelections[key] === 'hombro'}
+                  onChange={() => handleArtroscopiaChange(key, 'hombro')}
+                />
+                <span>Hombro ({money(gastoHombro)})</span>
               </label>
             </div>
           )}

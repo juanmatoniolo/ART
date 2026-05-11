@@ -51,6 +51,40 @@ export const normalize = (s) =>
 export const normalizeCodeDigits = (code) =>
 	String(code ?? "").replace(/\D/g, "");
 
+export const normalizeKey = (s) =>
+	String(s ?? '')
+		.trim()
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^a-z0-9]+/g, ' ')
+		.trim();
+
+export const prettyLabel = (s) =>
+	String(s ?? '')
+		.replace(/[_]+/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+
+export const fmtDate = (ms) => {
+	if (!ms) return '—';
+	try {
+		return new Date(ms).toLocaleString('es-AR');
+	} catch {
+		return '—';
+	}
+};
+
+export const safeNum = (v) => {
+	const n = typeof v === 'number' ? v : parseNumber(v);
+	return Number.isFinite(n) ? n : 0;
+};
+
+export const round2 = (n) => {
+  const num = parseNumber(n);
+  return Number.isFinite(num) ? Math.round((num + Number.EPSILON) * 100) / 100 : 0;
+};
+
 /**
  * ============================================================================
  * Flags / utilidades del nomenclador
@@ -106,17 +140,78 @@ export const highlight = (text, q) => {
 
 /**
  * ============================================================================
- * PRÁCTICAS ESPECIALES (valores FIJOS del convenio)
+ * Búsqueda flexible en valores_generales
  * ============================================================================
  */
 
-const buscarValor = (valoresConvenio, claves, defaultValue = null) => {
-	for (const clave of claves) {
-		const v = valoresConvenio?.[clave];
-		if (v !== null && v !== undefined && v !== "") return parseNumber(v);
+const buscarValorFlexible = (valoresConvenio, posiblesClaves, defaultValue = null) => {
+	if (!valoresConvenio) return defaultValue;
+	for (const clave of posiblesClaves) {
+		const normClave = normalizeKey(clave);
+		for (const [key, val] of Object.entries(valoresConvenio)) {
+			if (normalizeKey(key) === normClave) {
+				const parsed = parseNumber(val);
+				if (parsed !== 0 || (val !== undefined && val !== null && val !== "")) {
+					return parsed;
+				}
+			}
+		}
 	}
 	return defaultValue;
 };
+
+const buscarValorPorContenido = (valoresConvenio, terminos, defaultValue = null) => {
+	if (!valoresConvenio) return defaultValue;
+	const terminosNorm = terminos.map(t => normalizeKey(t));
+	for (const [key, val] of Object.entries(valoresConvenio)) {
+		const keyNorm = normalizeKey(key);
+		if (terminosNorm.some(term => keyNorm.includes(term))) {
+			const parsed = parseNumber(val);
+			if (parsed !== 0 || (val !== undefined && val !== null && val !== "")) {
+				return { clave: key, valor: parsed };
+			}
+		}
+	}
+	return defaultValue;
+};
+
+/**
+ * Intenta asociar una práctica con cualquier valor de valores_generales
+ * usando coincidencia de código, descripción o términos clave.
+ */
+const matchGenericValue = (practica, valoresConvenio) => {
+	const cod = String(practica?.codigo || "").trim();
+	const desc = normalize(practica?.descripcion || "");
+	if (!valoresConvenio) return null;
+
+	// 1) Coincidencia exacta por código (si el código está como clave)
+	if (cod && valoresConvenio[cod] !== undefined) {
+		return { clave: cod, valor: parseNumber(valoresConvenio[cod]), tipo: "codigo" };
+	}
+
+	// 2) Buscar por términos significativos extraídos de la descripción
+	const palabrasClave = desc.split(/\s+/).filter(w => w.length > 3);
+	for (const palabra of palabrasClave) {
+		const resultado = buscarValorPorContenido(valoresConvenio, [palabra], null);
+		if (resultado) return { ...resultado, tipo: `termino:${palabra}` };
+	}
+
+	// 3) Coincidencia por nombre completo normalizado
+	const descNorm = normalizeKey(desc);
+	for (const [key, val] of Object.entries(valoresConvenio)) {
+		const keyNorm = normalizeKey(key);
+		if (descNorm === keyNorm || keyNorm.includes(descNorm) || descNorm.includes(keyNorm)) {
+			return { clave: key, valor: parseNumber(val), tipo: "nombre" };
+		}
+	}
+	return null;
+};
+
+/**
+ * ============================================================================
+ * PRÁCTICAS ESPECIALES (valores FIJOS del convenio)
+ * ============================================================================
+ */
 
 const codigoEs = (practicaCodigo, esperado) => {
 	const a = normalizeCodeDigits(practicaCodigo);
@@ -127,57 +222,39 @@ const codigoEs = (practicaCodigo, esperado) => {
 function esPracticaEspecial(practica, valoresConvenio) {
 	const cod = String(practica?.codigo || "").trim();
 	const desc = normalize(practica?.descripcion || "");
+	const capituloNum = Number(String(practica?.capitulo || "").replace(/\D/g, "")) || 0;
 
-	/**
-	 * ✅ NUEVA REGLA
-	 * 43.01.01 / 43.10.01 / 43.11.01
-	 * - NO llevan honorarios médicos
-	 * - SOLO GASTO
-	 * - gasto = gto * diaPension (del convenio)
-	 */
+	// ------------------------------
+	// REGLAS EXPLÍCITAS (prioritarias)
+	// ------------------------------
+
+	// Pensión por GTO (43.01.01, 43.10.01, 43.11.01)
 	const ES_PENSION_POR_GTO =
 		codigoEs(cod, "43.01.01") ||
 		codigoEs(cod, "43.10.01") ||
 		codigoEs(cod, "43.11.01");
 
 	if (ES_PENSION_POR_GTO) {
-		const diaPension =
-			buscarValor(
-				valoresConvenio,
-				[
-					"diaPension",
-					"pension",
-					"pensionDia",
-					"DiaPension",
-					"Pension",
-				],
-				0,
-			) || 0;
-
+		const diaPension = buscarValorFlexible(valoresConvenio, ["pension", "diaPension"], 0);
 		const gto = parseNumber(practica?.gto || 0);
 		const gasto = gto * diaPension;
-
 		return {
 			honorario: 0,
 			gasto,
 			soloHonorario: false,
 			soloGasto: true,
 			label: "Pensión (gto × díaPensión)",
-			baseInfo: { key: "diaPension", value: diaPension },
+			baseInfo: { key: "pension", value: diaPension },
 		};
 	}
 
-	// 1) Consulta
+	// Consulta
 	const ES_CONSULTA =
 		codigoEs(cod, "42.01.01") ||
 		desc.includes("consulta") ||
 		cod.toLowerCase() === "consulta";
 	if (ES_CONSULTA) {
-		const valor = buscarValor(
-			valoresConvenio,
-			["consulta", "Consulta", "CONSULTA"],
-			null,
-		);
+		const valor = buscarValorFlexible(valoresConvenio, ["consulta", "CONSULTA"], null);
 		if (valor !== null) {
 			return {
 				honorario: valor,
@@ -190,28 +267,15 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	// 2) Curaciones (43.02.01 / 430201)
+	// Curaciones (43.02.01)
 	const ES_CURACION =
 		codigoEs(cod, "43.02.01") ||
 		codigoEs(cod, "430201") ||
 		desc === "curaciones" ||
 		desc.includes("curacion") ||
 		desc.includes("curación");
-
 	if (ES_CURACION) {
-		const valor = buscarValor(
-			valoresConvenio,
-			[
-				"Curaciones_R",
-				"CURACIONES_R",
-				"Curaciones",
-				"curaciones",
-				"Curacion",
-				"Curación",
-			],
-			null,
-		);
-
+		const valor = buscarValorFlexible(valoresConvenio, ["Curaciones_R", "CURACIONES_R", "Curaciones"], null);
 		if (valor !== null) {
 			return {
 				honorario: 0,
@@ -224,23 +288,14 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	// 3) ECG (ejemplos)
+	// ECG
 	const ES_ECG =
 		cod.includes("17.01.01") ||
 		cod.includes("42.03.03") ||
 		desc.includes("ecg") ||
 		desc.includes("electro");
 	if (ES_ECG) {
-		const valor = buscarValor(
-			valoresConvenio,
-			[
-				"ECG Y EX EN CV",
-				"ECG",
-				"electrocardiograma",
-				"Electrocardiograma",
-			],
-			null,
-		);
+		const valor = buscarValorFlexible(valoresConvenio, ["ECG Y EX EN CV", "ECG", "electrocardiograma"], null);
 		if (valor !== null) {
 			return {
 				honorario: valor,
@@ -253,18 +308,11 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	// 4) ECO partes blandas (ejemplo)
+	// Eco partes blandas
 	const ES_ECO_PARTES =
 		cod.includes("18.06.01") || desc.includes("eco partes blandas");
 	if (ES_ECO_PARTES) {
-		const valor = buscarValor(
-			valoresConvenio,
-			[
-				"Ecografia Partes Blandas No Moduladas",
-				"Ecografia Partes Blandas",
-			],
-			null,
-		);
+		const valor = buscarValorFlexible(valoresConvenio, ["Ecografia_partes_blandas_no_moduladas", "Ecografia Partes Blandas"], null);
 		if (valor !== null) {
 			return {
 				honorario: valor,
@@ -277,56 +325,10 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
-	// 5) Artroscopia (ejemplo)
-	const ES_ARTROSCOPIA =
-		cod.includes("120902") || desc.includes("artroscopia");
-	if (ES_ARTROSCOPIA) {
-		if (desc.includes("hombro")) {
-			const valor = buscarValor(
-				valoresConvenio,
-				["Artroscopia Hombro", "Artroscopia Hombro (total)"],
-				null,
-			);
-			if (valor !== null) {
-				const honorario = Math.round(valor * 0.7);
-				const gasto = valor - honorario;
-				return {
-					honorario,
-					gasto,
-					soloHonorario: false,
-					soloGasto: false,
-					label: "Artroscopia hombro (valor fijo convenio)",
-					baseInfo: { key: "Artroscopia Hombro", value: valor },
-				};
-			}
-		}
-
-		if (desc.includes("simple")) {
-			const valor = buscarValor(
-				valoresConvenio,
-				[
-					"Artroscopia Simple Gastoss Sanatoriales",
-					"Artroscopia Simple Gastos",
-				],
-				null,
-			);
-			if (valor !== null) {
-				return {
-					honorario: 0,
-					gasto: valor,
-					soloHonorario: false,
-					soloGasto: true,
-					label: "Artroscopia simple (solo gasto fijo)",
-					baseInfo: { key: "Artroscopia Simple", value: valor },
-				};
-			}
-		}
-	}
-
-	// 6) FKT (ejemplo)
+	// FKT
 	const ES_FKT = desc.includes("fkt");
 	if (ES_FKT) {
-		const valor = buscarValor(valoresConvenio, ["FKT", "fkt"], null);
+		const valor = buscarValorFlexible(valoresConvenio, ["FKT", "fkt"], null);
 		if (valor !== null) {
 			return {
 				honorario: 0,
@@ -339,6 +341,111 @@ function esPracticaEspecial(practica, valoresConvenio) {
 		}
 	}
 
+	// ------------------------------
+	// ARTROSCOPIAS Y LIGAMENTO CRUZADO (específicos)
+	// ------------------------------
+	
+	// Artroscopia de hombro (total dividido)
+	if (desc.includes("artroscopia hombro") || desc.includes("artroscopia de hombro")) {
+		const valorTotal = buscarValorFlexible(valoresConvenio, ["Artroscopia_Hombro", "Artroscopia Hombro", "Artroscopia de hombro"], null);
+		if (valorTotal !== null) {
+			const honorario = Math.round(valorTotal * 0.7);
+			const gasto = valorTotal - honorario;
+			return {
+				honorario,
+				gasto,
+				soloHonorario: false,
+				soloGasto: false,
+				label: "Artroscopia hombro (70% honorario / 30% gasto)",
+				baseInfo: { key: "Artroscopia_Hombro", value: valorTotal },
+			};
+		}
+	}
+
+	// Artroscopia simple (solo gasto)
+	if (desc.includes("artroscopia simple")) {
+		const valor = buscarValorFlexible(valoresConvenio, ["Artroscopia_Simple_Gastos_Sanatoriales", "Artroscopia Simple Gastos Sanatoriales", "Artroscopia Simple Gastos"], null);
+		if (valor !== null) {
+			return {
+				honorario: 0,
+				gasto: valor,
+				soloHonorario: false,
+				soloGasto: true,
+				label: "Artroscopia simple (solo gasto sanitario)",
+				baseInfo: { key: "Artroscopia_Simple_Gastos_Sanatoriales", value: valor },
+			};
+		}
+	}
+
+	// Ligamento cruzado (solo gasto)
+	if (desc.includes("ligamento cruzado") || desc.includes("lig cruzado")) {
+		const valor = buscarValorFlexible(valoresConvenio, ["Lig_Cruzado_Gastos_Sanatoriales", "Ligamento Cruzado Gastos", "Lig Cruzado Gastos"], null);
+		if (valor !== null) {
+			return {
+				honorario: 0,
+				gasto: valor,
+				soloHonorario: false,
+				soloGasto: true,
+				label: "Ligamento cruzado (solo gasto sanitario)",
+				baseInfo: { key: "Lig_Cruzado_Gastos_Sanatoriales", value: valor },
+			};
+		}
+	}
+
+	// ------------------------------
+	// MATCHING GENÉRICO (cualquier otro valor fijo del convenio)
+	// ------------------------------
+	const match = matchGenericValue(practica, valoresConvenio);
+	if (match) {
+		const { clave, valor } = match;
+		const claveLower = clave.toLowerCase();
+		
+		// Determinar si es solo gasto, solo honorario o total
+		if (claveLower.includes("gastos_sanatoriales") || claveLower.includes("gasto")) {
+			return {
+				honorario: 0,
+				gasto: valor,
+				soloHonorario: false,
+				soloGasto: true,
+				label: `${prettyLabel(clave)} (solo gasto)`,
+				baseInfo: { key: clave, value: valor },
+			};
+		}
+		if (claveLower.includes("honorario") || claveLower.includes("honor")) {
+			return {
+				honorario: valor,
+				gasto: 0,
+				soloHonorario: true,
+				soloGasto: false,
+				label: `${prettyLabel(clave)} (solo honorario)`,
+				baseInfo: { key: clave, value: valor },
+			};
+		}
+		// Para prácticas quirúrgicas complejas (cap 12/13) asumimos que el valor es total
+		if (capituloNum === 12 || capituloNum === 13) {
+			const honorario = Math.round(valor * 0.7);
+			const gasto = valor - honorario;
+			return {
+				honorario,
+				gasto,
+				soloHonorario: false,
+				soloGasto: false,
+				label: `${prettyLabel(clave)} (70% honorario / 30% gasto)`,
+				baseInfo: { key: clave, value: valor },
+			};
+		}
+		// Por defecto, lo tomamos como honorario
+		return {
+			honorario: valor,
+			gasto: 0,
+			soloHonorario: true,
+			soloGasto: false,
+			label: `${prettyLabel(clave)} (valor fijo honorario)`,
+			baseInfo: { key: clave, value: valor },
+		};
+	}
+
+	// No se encontró ningún valor especial
 	return null;
 }
 
@@ -358,11 +465,10 @@ export const calcularPractica = (practica, valoresConvenio) => {
 
 	const v = { ...defaults, ...(valoresConvenio || {}) };
 
-	// 1) Especiales
+	// 1) Especiales (valores fijos del convenio)
 	const especial = esPracticaEspecial(practica, v);
 	if (especial) {
 		const total = (especial.honorario || 0) + (especial.gasto || 0);
-
 		return {
 			honorarioMedico: especial.honorario,
 			gastoSanatorial: especial.gasto,
@@ -513,50 +619,4 @@ export const obtenerHonorariosAoter = (complejidad, valoresConvenio) => {
 		ayudante1: toNumber(item?.Ayudante_1),
 		ayudante2: toNumber(item?.Ayudante_2),
 	};
-};
-
-
-// ... (código existente de money y parseNumber) ...
-
-// Nuevas funciones auxiliares
-export const normalizeKey = (s) =>
-	String(s ?? '')
-		.trim()
-		.toLowerCase()
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.replace(/[^a-z0-9]+/g, '_')
-		.replace(/^_+|_+$/g, '');
-
-export const prettyLabel = (s) =>
-	String(s ?? '')
-		.replace(/_/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim();
-
-export const norm = (s) =>
-	String(s ?? '')
-		.toLowerCase()
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.trim();
-
-export const fmtDate = (ms) => {
-	if (!ms) return '—';
-	try {
-		return new Date(ms).toLocaleString('es-AR');
-	} catch {
-		return '—';
-	}
-};
-
-export const safeNum = (v) => {
-	const n = typeof v === 'number' ? v : parseNumber(v);
-	return Number.isFinite(n) ? n : 0;
-};
-
-// Redondeo a 2 decimales
-export const round2 = (n) => {
-  const num = parseNumber(n);
-  return Number.isFinite(num) ? Math.round((num + Number.EPSILON) * 100) / 100 : 0;
 };

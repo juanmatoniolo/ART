@@ -85,6 +85,7 @@ export default function CirugiasModule({
   const [regionQueries, setRegionQueries] = useState({});
 
   const [itemSelections, setItemSelections] = useState({});
+  // artroscopiaSelections: guarda 'simple', 'ligamento' o 'hombro'
   const [artroscopiaSelections, setArtroscopiaSelections] = useState({});
 
   const [showTooltip, setShowTooltip] = useState(false);
@@ -212,6 +213,7 @@ export default function CirugiasModule({
         return;
       }
 
+      // --- Caso AOTER (cirugías con honorarios) ---
       if (item.type === 'aoter') {
         const { cirujano, ayudante1, ayudante2 } = obtenerHonorariosAoter(
           item.complejidad,
@@ -304,15 +306,27 @@ export default function CirugiasModule({
         return;
       }
 
+      // --- Caso NACIONAL (prácticas del nomenclador, incluye artroscopia) ---
       if (item.type === 'nacional') {
         let gasto = 0;
+        let tipoMsg = '';
+        let tipoArtroscopia = null;
 
+        // Manejo especial para artroscopia (código 120902)
         if (item.codigo === '120902') {
           const tipo = artroscopiaSelections[item.__key] || 'simple';
-          const gastoKey =
-            tipo === 'compleja'
-              ? 'Artroscopia_Hombro'
-              : 'Artroscopia_Simple_Gastos_Sanatoriales';
+          tipoArtroscopia = tipo;
+          let gastoKey;
+          if (tipo === 'simple') {
+            gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+            tipoMsg = 'simple';
+          } else if (tipo === 'ligamento') {
+            gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+            tipoMsg = 'compleja (ligamento cruzado)';
+          } else {
+            gastoKey = 'Artroscopia_Hombro';
+            tipoMsg = 'hombro';
+          }
           gasto = Number(valoresConvenio[gastoKey]) || 0;
         } else {
           const calculo = calcularPractica(item, valoresConvenio);
@@ -320,10 +334,7 @@ export default function CirugiasModule({
         }
 
         if (gasto === 0) {
-          showTooltipMessage(
-            `⚠️ ${item.codigo} no tiene gasto sanatorial`,
-            'warn'
-          );
+          showTooltipMessage(`⚠️ ${item.codigo} no tiene gasto sanatorial`, 'warn');
           return;
         }
 
@@ -350,20 +361,18 @@ export default function CirugiasModule({
           total: gasto,
         };
 
+        // Solo agregar el campo tipoArtroscopia si existe (es artroscopia)
+        if (tipoArtroscopia) {
+          gastoClinica.tipoArtroscopia = tipoArtroscopia;
+        }
+
         agregarPractica(gastoClinica);
 
-        const tipoMsg =
-          item.codigo === '120902'
-            ? ` (${artroscopiaSelections[item.__key] || 'simple'})`
-            : '';
-
         showTooltipMessage(
-          `✓ ${item.codigo} - ${item.descripcion.slice(
-            0,
-            40
-          )}...${tipoMsg} (solo gasto)`,
+          `✓ ${item.codigo} - ${item.descripcion.slice(0, 40)}... (${tipoMsg || 'solo gasto'})`,
           groupId
         );
+        return;
       }
     },
     [
@@ -505,14 +514,20 @@ export default function CirugiasModule({
     const esArtroscopia = item.codigo === '120902';
 
     let gastoMostrado = calculo.gastoSanatorial;
+    // Para la vista previa del gasto según selección actual
     if (esArtroscopia) {
       const tipo = artroscopiaSelections[item.__key] || 'simple';
-      const gastoKey =
-        tipo === 'compleja'
-          ? 'Artroscopia_Hombro'
-          : 'Artroscopia_Simple_Gastos_Sanatoriales';
+      let gastoKey;
+      if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+      else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+      else gastoKey = 'Artroscopia_Hombro';
       gastoMostrado = Number(valoresConvenio?.[gastoKey]) || 0;
     }
+
+    // Obtener valores para mostrar en los radios
+    const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
+    const gastoLigamento = Number(valoresConvenio?.['Lig_Cruzado_Gastos_Sanatoriales']) || 0;
+    const gastoHombro = Number(valoresConvenio?.['Artroscopia_Hombro']) || 0;
 
     return (
       <article
@@ -556,23 +571,27 @@ export default function CirugiasModule({
                 }
                 onChange={() => handleArtroscopiaChange(item.__key, 'simple')}
               />
-              Simple ({money(
-                Number(
-                  valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']
-                ) || 0
-              )})
+              Simple ({money(gastoSimple)})
             </label>
 
             <label>
               <input
                 type="radio"
                 name={`artro-${item.__key}`}
-                checked={artroscopiaSelections[item.__key] === 'compleja'}
-                onChange={() => handleArtroscopiaChange(item.__key, 'compleja')}
+                checked={artroscopiaSelections[item.__key] === 'ligamento'}
+                onChange={() => handleArtroscopiaChange(item.__key, 'ligamento')}
               />
-              Compleja (Hombro) ({money(
-                Number(valoresConvenio?.['Artroscopia_Hombro']) || 0
-              )})
+              Compleja (Lig. Cruzado) ({money(gastoLigamento)})
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name={`artro-${item.__key}`}
+                checked={artroscopiaSelections[item.__key] === 'hombro'}
+                onChange={() => handleArtroscopiaChange(item.__key, 'hombro')}
+              />
+              Hombro ({money(gastoHombro)})
             </label>
           </div>
         )}
@@ -612,20 +631,17 @@ export default function CirugiasModule({
       return (
         <tr key={item.uniqueId} className={isRecent ? styles.recentRow : ''}>
           <td className={styles.tdCodigo}>{highlight(item.codigo, q)}</td>
-
           <td className={styles.tdDescripcion}>
             {highlight(item.descripcion, q)}
             <div className={styles.tdMeta}>
               {item.region} / Comp. {item.complejidad}
             </div>
           </td>
-
           <td className={styles.tdHonorarios}>
             <div>Cir: {money(cirujano)}</div>
             <div>Ay1: {money(ayudante1)}</div>
             <div>Ay2: {money(ayudante2)}</div>
           </td>
-
           <td className={styles.tdAccion}>
             <div className={styles.tableAyudanteSelector}>
               <label>
@@ -691,17 +707,20 @@ export default function CirugiasModule({
     let gastoMostrado = calculo.gastoSanatorial;
     if (esArtroscopia) {
       const tipo = artroscopiaSelections[item.__key] || 'simple';
-      const gastoKey =
-        tipo === 'compleja'
-          ? 'Artroscopia_Hombro'
-          : 'Artroscopia_Simple_Gastos_Sanatoriales';
+      let gastoKey;
+      if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+      else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+      else gastoKey = 'Artroscopia_Hombro';
       gastoMostrado = Number(valoresConvenio?.[gastoKey]) || 0;
     }
+
+    const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
+    const gastoLigamento = Number(valoresConvenio?.['Lig_Cruzado_Gastos_Sanatoriales']) || 0;
+    const gastoHombro = Number(valoresConvenio?.['Artroscopia_Hombro']) || 0;
 
     return (
       <tr key={item.__key} className={isRecent ? styles.recentRow : ''}>
         <td className={styles.tdCodigo}>{highlight(item.codigo, q)}</td>
-
         <td className={styles.tdDescripcion}>
           {highlight(item.descripcion, q)}
           <div className={styles.tdMeta}>
@@ -720,27 +739,35 @@ export default function CirugiasModule({
                   }
                   onChange={() => handleArtroscopiaChange(item.__key, 'simple')}
                 />
-                Simple
+                Simple ({money(gastoSimple)})
               </label>
 
               <label>
                 <input
                   type="radio"
                   name={`artro-tab-${item.__key}`}
-                  checked={artroscopiaSelections[item.__key] === 'compleja'}
-                  onChange={() => handleArtroscopiaChange(item.__key, 'compleja')}
+                  checked={artroscopiaSelections[item.__key] === 'ligamento'}
+                  onChange={() => handleArtroscopiaChange(item.__key, 'ligamento')}
                 />
-                Compleja
+                Lig. Cruzado ({money(gastoLigamento)})
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name={`artro-tab-${item.__key}`}
+                  checked={artroscopiaSelections[item.__key] === 'hombro'}
+                  onChange={() => handleArtroscopiaChange(item.__key, 'hombro')}
+                />
+                Hombro ({money(gastoHombro)})
               </label>
             </div>
           )}
         </td>
-
         <td className={styles.tdHonorarios}>
           <div>Hon: {money(calculo.honorarioMedico)}</div>
           <div>Gas: {money(gastoMostrado)}</div>
         </td>
-
         <td className={styles.tdAccion}>
           <button
             className={styles.btnAgregarTabla}
@@ -790,7 +817,7 @@ export default function CirugiasModule({
           Buscá códigos AOTER o del nomenclador nacional. Para AOTER podés elegir
           ayudantes; para nacional solo se agrega el gasto sanatorial.
           {valoresConvenio?.['Artroscopia_Hombro'] &&
-            ' Artroscopia: seleccioná simple o compleja.'}
+            ' Artroscopia: seleccioná simple, ligamento cruzado u hombro.'}
         </p>
       </div>
 

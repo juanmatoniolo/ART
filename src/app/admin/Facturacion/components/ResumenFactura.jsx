@@ -34,9 +34,17 @@ const getRolLabel = (item) => {
   return item?.prestadorRol || 'Profesional';
 };
 
-// ─── DoctorSelect ────────────────────────────────────────────────────────────
-// tabIndex: controla el orden de tabulación entre inputs de doctor
-// data-doctorinput: marca para que Enter pueda saltar al siguiente por tabIndex
+// Helper para mostrar el tipo de artroscopia
+const getArtroscopiaLabel = (item) => {
+  if (item?.codigo !== '120902') return null;
+  const tipo = item?.tipoArtroscopia;
+  if (tipo === 'simple') return '🔹 Simple';
+  if (tipo === 'ligamento') return '🔸 Ligamento cruzado';
+  if (tipo === 'hombro') return '🔸 Hombro';
+  return null;
+};
+
+// ─── DoctorSelect (sin cambios) ────────────────────────────────────────────
 const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => {
   const { doctors } = useDoctors();
 
@@ -49,7 +57,6 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     setInputValue(value || '');
   }, [value]);
 
-  // Busca por índice numérico (1-based) o por texto parcial
   const resolveDoctor = (text) => {
     const trimmed = text.trim();
     if (!trimmed) return null;
@@ -66,7 +73,6 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     );
   };
 
-  // Resuelve el nombre y notifica al padre
   const commitValue = (currentText) => {
     const matched = resolveDoctor(currentText);
     const finalValue = matched
@@ -77,20 +83,17 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
     return finalValue;
   };
 
-  // Click afuera también resuelve el nombre
   const handleBlur = () => commitValue(inputValue);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       commitValue(inputValue);
-      // Saltar manualmente al siguiente DoctorSelect en orden
       const next = document.querySelector(
         `[data-doctorinput][tabindex="${(tabIndex ?? 0) + 1}"]`
       );
       if (next) next.focus();
     }
-    // Tab nativo funciona solo gracias al tabIndex en el <input>
   };
 
   const formatDoctorName = (doc, index) => {
@@ -146,7 +149,7 @@ const DoctorSelect = ({ value, onChange, placeholder, roleLabel, tabIndex }) => 
   );
 };
 
-// ─── CantidadInputResumen ─────────────────────────────────────────────────────
+// ─── CantidadInputResumen (sin cambios) ─────────────────────────────────────
 function CantidadInputResumen({ itemId, initialValue, onChange }) {
   const [localValue, setLocalValue] = useState(fmtQtyInput(initialValue));
 
@@ -240,10 +243,6 @@ export default function ResumenFactura({
   const totalMedicamentos = useMemo(() => totalSeccion(medicamentos), [medicamentos]);
   const totalDescartables = useMemo(() => totalSeccion(descartables), [descartables]);
 
-  // tabIndex global para todos los DoctorSelect, en orden de aparición en pantalla
-  // Prácticas honorarios: 1..N
-  // Cirugías: N+1..M
-  // Laboratorios: M+1..K
   const tabOffsetCirugias = practicasHonorarios.length + 1;
   const tabOffsetLabs = tabOffsetCirugias + cirugias.length;
 
@@ -255,7 +254,7 @@ export default function ResumenFactura({
     fecha: paciente?.fechaAtencion || '—',
   };
 
-  // ─── Excel export ────────────────────────────────────────────────────────────
+  // ─── Excel export (sin cambios) ────────────────────────────────────────────
   const exportarDetalle = () => {
     const rows = [];
 
@@ -324,7 +323,7 @@ export default function ResumenFactura({
     XLSX.writeFile(wb, `factura_${pacienteData.nombre}_${pacienteData.dni}.xlsx`);
   };
 
-  // ─── Print helpers ────────────────────────────────────────────────────────────
+  // ─── Print helpers (sin cambios, salvo que se puede agregar el tipo pero no necesario) ───
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -342,6 +341,7 @@ export default function ResumenFactura({
               const cantidad = clampDecimalQty(item.cantidad);
               const total = parseNumber(item.honorarioMedico);
               const unitario = cantidad > 0 ? total / cantidad : total;
+              const artroLabel = getArtroscopiaLabel(item);
               return (
                 <tr key={item.id}>
                   <td>{getRolLabel(item)}</td>
@@ -350,7 +350,10 @@ export default function ResumenFactura({
                     {item.codigo || '—'}
                     {item?.esRX && <span className={styles.badgeRx}>RX</span>}
                   </td>
-                  <td>{item.descripcion || item.nombre || '—'}</td>
+                  <td>
+                    {item.descripcion || item.nombre || '—'}
+                    {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
+                  </td>
                   <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
                   <td className={styles.printNumber}>$ {money(unitario)}</td>
                   <td className={styles.printNumber}>$ {money(total)}</td>
@@ -380,6 +383,7 @@ export default function ResumenFactura({
               const cantidad = clampDecimalQty(item.cantidad);
               const total = parseNumber(item.gastoSanatorial);
               const unitario = cantidad > 0 ? total / cantidad : total;
+              const artroLabel = getArtroscopiaLabel(item);
               return (
                 <tr key={item.id}>
                   <td>{item.prestadorNombre || 'Clínica de la Unión'}</td>
@@ -387,7 +391,10 @@ export default function ResumenFactura({
                     {item.codigo || '—'}
                     {item?.esRX && <span className={styles.badgeRx}>RX</span>}
                   </td>
-                  <td>{item.descripcion || item.nombre || '—'}</td>
+                  <td>
+                    {item.descripcion || item.nombre || '—'}
+                    {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
+                  </td>
                   <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
                   <td className={styles.printNumber}>$ {money(unitario)}</td>
                   <td className={styles.printNumber}>$ {money(total)}</td>
@@ -431,7 +438,7 @@ export default function ResumenFactura({
     );
   };
 
-  // ─── Cantidad stepper ─────────────────────────────────────────────────────────
+  // ─── Cantidad stepper (sin cambios) ─────────────────────────────────────────
   const renderCantidad = (item) => {
     const cur = clampDecimalQty(item?.cantidad);
     const step = cur < 1 ? 0.1 : 1;
@@ -470,7 +477,7 @@ export default function ResumenFactura({
     );
   };
 
-  // ─── Valor stack ──────────────────────────────────────────────────────────────
+  // ─── Valor stack (sin cambios) ──────────────────────────────────────────────
   const renderValorStack = (item) => (
     <div className={styles.valorStack}>
       <div className={styles.valorLine}>
@@ -494,7 +501,7 @@ export default function ResumenFactura({
     </div>
   );
 
-  // ─── Acordeon — tabIndex={-1} para que Tab no pare en el botón header ────────
+  // ─── Acordeón (sin cambios) ─────────────────────────────────────────────────
   const Acordeon = ({ k, title, count, amount, children }) => (
     <section className={styles.acSection}>
       <button
@@ -533,7 +540,7 @@ export default function ResumenFactura({
     </div>
   );
 
-  // ─── TablaPracticas — startTabIndex para numerar DoctorSelect en orden ────────
+  // ─── TablaPracticas (modificada para mostrar el tipo de artroscopia) ────────
   const TablaPracticas = ({ items, mostrarInputDoctor, startTabIndex = 1 }) => (
     <div className={styles.tableContainer}>
       <table className={styles.table}>
@@ -547,47 +554,53 @@ export default function ResumenFactura({
           </tr>
         </thead>
         <tbody>
-          {items.map((p, i) => (
-            <tr key={p.id} className={p?.esRX ? styles.rxRow : ''}>
-              <td className={styles.columnaCodigo}>
-                <strong>{p.codigo}</strong>
-                {p?.esRX && <span className={styles.badgeRx}>RX</span>}
-              </td>
+          {items.map((p, i) => {
+            const artroLabel = getArtroscopiaLabel(p);
+            return (
+              <tr key={p.id} className={p?.esRX ? styles.rxRow : ''}>
+                <td className={styles.columnaCodigo}>
+                  <strong>{p.codigo}</strong>
+                  {p?.esRX && <span className={styles.badgeRx}>RX</span>}
+                </td>
 
-              <td className={styles.columnaDescripcion}>
-                <div className={styles.descPrincipal}>{p.descripcion}</div>
-                <div className={styles.subMeta}>
-                  <span className={styles.metaPill}>{p.prestadorTipo || '—'}</span>
-                  <span className={styles.metaText}>{p.capitulo} – {p.capituloNombre}</span>
-                </div>
-                {mostrarInputDoctor && (
-                  <div className={styles.doctorRow}>
-                    <DoctorSelect
-                      value={p?.prestadorNombre ?? ''}
-                      placeholder="Dr que realiza…"
-                      roleLabel={getRolLabel(p)}
-                      tabIndex={startTabIndex + i}
-                      onChange={(val) => actualizarItem(p.id, { prestadorNombre: val })}
-                    />
+                <td className={styles.columnaDescripcion}>
+                  <div className={styles.descPrincipal}>
+                    {p.descripcion}
+                    {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
                   </div>
-                )}
-              </td>
+                  <div className={styles.subMeta}>
+                    <span className={styles.metaPill}>{p.prestadorTipo || '—'}</span>
+                    <span className={styles.metaText}>{p.capitulo} – {p.capituloNombre}</span>
+                  </div>
+                  {mostrarInputDoctor && (
+                    <div className={styles.doctorRow}>
+                      <DoctorSelect
+                        value={p?.prestadorNombre ?? ''}
+                        placeholder="Dr que realiza…"
+                        roleLabel={getRolLabel(p)}
+                        tabIndex={startTabIndex + i}
+                        onChange={(val) => actualizarItem(p.id, { prestadorNombre: val })}
+                      />
+                    </div>
+                  )}
+                </td>
 
-              <td className={styles.columnaCantidad}>{renderCantidad(p)}</td>
-              <td className={styles.columnaValor}>{renderValorStack(p)}</td>
-              <td className={styles.columnaAcciones}>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className={styles.btnEliminar}
-                  onClick={() => eliminarItem(p.id)}
-                  title="Eliminar"
-                >
-                  🗑️
-                </button>
-              </td>
-            </tr>
-          ))}
+                <td className={styles.columnaCantidad}>{renderCantidad(p)}</td>
+                <td className={styles.columnaValor}>{renderValorStack(p)}</td>
+                <td className={styles.columnaAcciones}>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className={styles.btnEliminar}
+                    onClick={() => eliminarItem(p.id)}
+                    title="Eliminar"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -632,7 +645,6 @@ export default function ResumenFactura({
                 {practicasHonorarios.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay honorarios cargados.</div>
                 ) : (
-                  // tabIndex 1..practicasHonorarios.length
                   <TablaPracticas
                     items={practicasHonorarios}
                     mostrarInputDoctor={true}
@@ -650,7 +662,6 @@ export default function ResumenFactura({
                 {practicasGastos.length === 0 ? (
                   <div className={styles.emptyBlock}>No hay gastos cargados.</div>
                 ) : (
-                  // Gastos no tienen input de doctor → startTabIndex no importa
                   <TablaPracticas
                     items={practicasGastos}
                     mostrarInputDoctor={false}
@@ -661,7 +672,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Cirugías ───────────────────────────────────────────────────────── */}
+        {/* ── Cirugías (también se añade badge para artroscopia si estuviera) ─── */}
         <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)}>
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
@@ -678,58 +689,63 @@ export default function ResumenFactura({
                   </tr>
                 </thead>
                 <tbody>
-                  {cirugias.map((c, i) => (
-                    <tr key={c.id}>
-                      <td className={styles.columnaCodigo}>
-                        <strong>{c.codigo || '—'}</strong>
-                      </td>
+                  {cirugias.map((c, i) => {
+                    const artroLabel = getArtroscopiaLabel(c);
+                    return (
+                      <tr key={c.id}>
+                        <td className={styles.columnaCodigo}>
+                          <strong>{c.codigo || '—'}</strong>
+                        </td>
 
-                      <td className={styles.columnaDescripcion}>
-                        <div className={styles.descPrincipal}>
-                          {c.descripcion || c.nombre || 'Cirugía'}
-                        </div>
-                        <div className={styles.rolesBlock}>
-                          <div className={styles.roleItem}>
-                            <label className={styles.roleLabel}>{getRolLabel(c)}:</label>
-                            <DoctorSelect
-                              value={c?.prestadorNombre ?? ''}
-                              placeholder={`Dr ${getRolLabel(c).toLowerCase()}...`}
-                              roleLabel={getRolLabel(c)}
-                              tabIndex={tabOffsetCirugias + i}
-                              onChange={(val) => actualizarItem(c.id, { prestadorNombre: val })}
-                            />
+                        <td className={styles.columnaDescripcion}>
+                          <div className={styles.descPrincipal}>
+                            {c.descripcion || c.nombre || 'Cirugía'}
+                            {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
                           </div>
-                        </div>
-                      </td>
+                          <div className={styles.rolesBlock}>
+                            <div className={styles.roleItem}>
+                              <label className={styles.roleLabel}>{getRolLabel(c)}:</label>
+                              <DoctorSelect
+                                value={c?.prestadorNombre ?? ''}
+                                placeholder={`Dr ${getRolLabel(c).toLowerCase()}...`}
+                                roleLabel={getRolLabel(c)}
+                                tabIndex={tabOffsetCirugias + i}
+                                onChange={(val) => actualizarItem(c.id, { prestadorNombre: val })}
+                              />
+                            </div>
+                          </div>
+                        </td>
 
-                      <td className={styles.columnaCantidad}>{renderCantidad(c)}</td>
-                      <td className={styles.columnaValor}>{renderValorStack(c)}</td>
-                      <td className={styles.columnaAcciones}>
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          className={styles.btnEliminar}
-                          onClick={() => eliminarItem(c.id)}
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        <td className={styles.columnaCantidad}>{renderCantidad(c)}</td>
+                        <td className={styles.columnaValor}>{renderValorStack(c)}</td>
+                        <td className={styles.columnaAcciones}>
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            className={styles.btnEliminar}
+                            onClick={() => eliminarItem(c.id)}
+                            title="Eliminar"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </Acordeon>
 
-        {/* ── Laboratorios ───────────────────────────────────────────────────── */}
+        {/* ── Laboratorios (sin cambios) ───────────────────────────────────── */}
         <Acordeon k="labs" title="🧪 Laboratorios" count={laboratorios.length} amount={totalSeccion(laboratorios)}>
           {laboratorios.length === 0 ? (
             <div className={styles.emptyBlock}>Sin laboratorios.</div>
           ) : (
             <div className={styles.tableContainer}>
               <table className={styles.table}>
+                {/* igual que antes, sin badge de artroscopia */}
                 <thead>
                   <tr>
                     <th className={styles.thCode}>Código</th>
@@ -742,14 +758,9 @@ export default function ResumenFactura({
                 <tbody>
                   {laboratorios.map((l, i) => (
                     <tr key={l.id}>
-                      <td className={styles.columnaCodigo}>
-                        <strong>{l.codigo || '—'}</strong>
-                      </td>
-
+                      <td className={styles.columnaCodigo}><strong>{l.codigo || '—'}</strong></td>
                       <td className={styles.columnaDescripcion}>
-                        <div className={styles.descPrincipal}>
-                          {l.descripcion || l.nombre || 'Laboratorio'}
-                        </div>
+                        <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
                         <div className={styles.doctorRow}>
                           <DoctorSelect
                             value={l?.prestadorNombre ?? ''}
@@ -760,7 +771,6 @@ export default function ResumenFactura({
                           />
                         </div>
                       </td>
-
                       <td className={styles.columnaCantidad}>{renderCantidad(l)}</td>
                       <td className={styles.columnaValor}>
                         <div className={styles.valorStack}>
@@ -768,21 +778,11 @@ export default function ResumenFactura({
                             <span className={styles.valorLabel}>Total</span>
                             <span className={styles.valorNumber}>{money(l.total)}</span>
                           </div>
-                          {l?.formula && (
-                            <div className={styles.formulaPequeña}>{l.formula}</div>
-                          )}
+                          {l?.formula && <div className={styles.formulaPequeña}>{l.formula}</div>}
                         </div>
                       </td>
                       <td className={styles.columnaAcciones}>
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          className={styles.btnEliminar}
-                          onClick={() => eliminarItem(l.id)}
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
+                        <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(l.id)}>🗑️</button>
                       </td>
                     </tr>
                   ))}
@@ -792,7 +792,7 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Medicación + Descartables ───────────────────────────────────────── */}
+        {/* ── Medicación + Descartables (sin cambios) ───────────────────────── */}
         <Acordeon
           k="medDesc"
           title="💊 Medicación + 🧷 Descartables"
@@ -832,15 +832,7 @@ export default function ResumenFactura({
                           </div>
                         </td>
                         <td className={styles.columnaAcciones}>
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            className={styles.btnEliminar}
-                            onClick={() => eliminarItem(m.id)}
-                            title="Eliminar"
-                          >
-                            🗑️
-                          </button>
+                          <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(m.id)}>🗑️</button>
                         </td>
                       </tr>
                     ))}
@@ -883,15 +875,7 @@ export default function ResumenFactura({
                           </div>
                         </td>
                         <td className={styles.columnaAcciones}>
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            className={styles.btnEliminar}
-                            onClick={() => eliminarItem(d.id)}
-                            title="Eliminar"
-                          >
-                            🗑️
-                          </button>
+                          <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(d.id)}>🗑️</button>
                         </td>
                       </tr>
                     ))}
@@ -920,7 +904,7 @@ export default function ResumenFactura({
         </div>
       </div>
 
-      {/* ── Vista de impresión ──────────────────────────────────────────────── */}
+      {/* ── Vista de impresión (también se añade el badge) ──────────────────── */}
       <div className={styles.printView}>
         <div className={styles.printHeader}>
           <h1>Resumen de Facturación</h1>

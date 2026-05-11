@@ -747,3 +747,27 @@
   border: 1px solid #e2e8f0;
 }
 
+
+
+/* Para los selectores de artroscopia en tarjetas (modo móvil) */
+.artroscopiaSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+/* Para los selectores de artroscopia en tabla (modo desktop) */
+.tableArtroscopiaSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* Opcional: ajustar labels para que no se rompan */
+.radioLabel, .radioLabelInline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
