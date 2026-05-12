@@ -405,3 +405,48 @@
   margin-left: 6px;
   display: inline-block;
 }
+
+/* Cabecera de impresión: dos columnas */
+.printHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #aaa;
+  flex-wrap: wrap;
+}
+.printPatientData {
+  text-align: left;
+}
+.printPatientName {
+  font-size: 12pt;
+  font-weight: bold;
+  color: #0f172a;
+}
+.printPatientDni {
+  font-size: 9pt;
+  color: #475569;
+}
+.printArtBlock {
+  text-align: right;
+}
+.printArtLogo {
+  max-height: 50px;
+  max-width: 140px;
+  object-fit: contain;
+}
+.printSiniestro {
+  font-size: 10pt;
+  font-weight: bold;
+  color: #1e3a8a;
+  margin-top: 4px;
+}
+.printFooter {
+  margin-top: 20px;
+  font-size: 7pt;
+  text-align: center;
+  color: #5b6e8c;
+  border-top: 1px solid #ddd;
+  padding-top: 6px;
+}

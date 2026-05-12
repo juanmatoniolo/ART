@@ -620,3 +620,6 @@ export const obtenerHonorariosAoter = (complejidad, valoresConvenio) => {
 		ayudante2: toNumber(item?.Ayudante_2),
 	};
 };
+
+// ✅ CORRECCIÓN: Agregar alias 'norm' para que useFacturados.js encuentre la función
+export const norm = normalize;
