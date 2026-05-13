@@ -1,0 +1,2126 @@
+/* ==================== BASE ==================== */
+.page {
+    min-height: 100vh;
+    background: #0b1220;
+    color: #e5e7eb;
+}
+
+/* ==================== LAYOUT PRINCIPAL ==================== */
+.layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 1fr;
+        padding: 20px 16px 48px;
+    }
+}
+
+/* ==================== COLUMNA DEL FORMULARIO ==================== */
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+/* ==================== SECCIONES ==================== */
+.section {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sectionIcon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.3px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.sectionHint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: auto;
+    font-style: italic;
+}
+
+.sectionBody {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+}
+
+/* ==================== GRIDS DE COLUMNAS ==================== */
+.cols2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.cols3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.cols4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 900px) {
+
+    .cols3,
+    .cols4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+
+    .cols2,
+    .cols3,
+    .cols4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== SPANS ==================== */
+.fieldWide {
+    grid-column: 1 / -1;
+}
+
+.fieldSpan2 {
+    grid-column: span 2;
+}
+
+@media (max-width: 900px) {
+    .fieldSpan2 {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ==================== CAMPOS ==================== */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.fieldLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* ==================== INPUTS ==================== */
+.input {
+    width: 100%;
+    background: #1a2335;
+    color: #f1f5f9;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    padding: 10px 14px;
+    outline: none;
+    font-size: 15px;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+
+.input::placeholder {
+    color: #4b5568;
+    font-weight: 400;
+}
+
+.input:focus {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.18);
+}
+
+.input:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.inputReadonly {
+    color: #6fa17b;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.3px;
+}
+
+/* ==================== HINTS ==================== */
+.hint {
+    font-size: 11px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.code {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #151f2e;
+    color: #94a3b8;
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 10px;
+}
+
+/* ==================== SEXO CHIPS ==================== */
+.sexRowInline {
+    display: flex;
+    gap: 8px;
+}
+
+.chip {
+    flex: 1;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    background: #1a2335;
+    color: #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    text-align: center;
+}
+
+.chip:hover {
+    border-color: #6fa17b;
+    background: #1e2d40;
+}
+
+.chipActive {
+    border-color: #6fa17b;
+    background: rgba(111, 161, 123, 0.15);
+    color: #a3d9ad;
+    font-weight: 700;
+}
+
+/* ==================== CHECKBOX ==================== */
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: #1a2335;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 14px;
+    transition: border-color 0.15s;
+}
+
+.checkboxRow:hover {
+    border-color: #6fa17b;
+}
+
+.checkboxRow input {
+    width: 16px;
+    height: 16px;
+    accent-color: #6fa17b;
+}
+
+/* ==================== SIDEBAR ==================== */
+.sidebar {
+    position: sticky;
+    top: 24px;
+    z-index: 20;
+}
+
+@media (max-width: 1100px) {
+    .sidebar {
+        position: static;
+    }
+}
+
+.sidebarCard {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ==================== VISTA PREVIA PACIENTE ==================== */
+.patientPreview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.patientAvatar {
+    font-size: 32px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.patientInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.patientName {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.patientNameEmpty {
+    color: #4b5568;
+    font-weight: 400;
+    font-style: italic;
+}
+
+.patientAge {
+    font-size: 13px;
+    color: #6fa17b;
+    font-weight: 600;
+}
+
+.patientHC {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ==================== PREVIEW CIRUGÍA ==================== */
+.cxPreview {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(111, 161, 123, 0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(111, 161, 123, 0.2);
+}
+
+.cxLabel {
+    font-size: 10px;
+    font-weight: 800;
+    color: #6fa17b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    background: rgba(111, 161, 123, 0.15);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.cxValue {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.4;
+}
+
+/* ==================== DIVISOR ==================== */
+.sidebarDivider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* ==================== BOTONES DESCARGA ==================== */
+.downloadTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.downloadBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: #1a2335;
+    border: 1.5px solid #253348;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.downloadBtn:hover {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    transform: translateY(-1px);
+}
+
+.downloadIcon {
+    font-size: 18px;
+    font-weight: 700;
+    color: #6fa17b;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.downloadBtnText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.downloadBtnText strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f1f5f9;
+    display: block;
+}
+
+.downloadBtnText small {
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 200px;
+}
+
+/* ==================== NOTA SIDEBAR ==================== */
+.sidebarNote {
+    font-size: 12px;
+    color: #4b5568;
+    line-height: 1.5;
+    text-align: center;
+    padding: 0 4px;
+    margin: 0;
+}
+
+/* ==================== BANNER ERROR ==================== */
+.bannerError {
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(127, 29, 29, 0.35);
+    color: #fecaca;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.small {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+}
+
+/* ==================== LOADING ==================== */
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 16px;
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.loadingSpinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(111, 161, 123, 0.2);
+    border-top-color: #6fa17b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==================== SELECTOR DE MODO ==================== */
+.modeSelector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.modeBtn {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    background: #1a2335;
+    color: #cbd5e1;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.modeBtn.active {
+    background: #44794d;
+    color: white;
+    border-color: #6fa17b;
+}
+
+.modeBtn:hover:not(.active) {
+    border-color: #6fa17b;
+    background: #1e2d40;
+}
+
+/* ==================== SECCIÓN PACIENTE EXISTENTE ==================== */
+.pacienteSection {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.pacienteSection h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin: 0 0 0.75rem 0;
+}
+
+.pacienteSelector {
+    margin-top: 0.5rem;
+}
+
+.pacienteList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #253348;
+    border-radius: 10px;
+    margin-top: 0.75rem;
+    background: #0b1220;
+}
+
+.pacienteItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #253348;
+    color: #e2e8f0;
+    transition: background 0.1s;
+}
+
+.pacienteItem:last-child {
+    border-bottom: none;
+}
+
+.pacienteItem:hover {
+    background: #1a2335;
+}
+
+.pacienteItem.selected {
+    background: rgba(111, 161, 123, 0.15);
+    border-left: 3px solid #6fa17b;
+}
+
+.pacienteDni {
+    color: #6b7280;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.selectedPacienteInfo {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(111, 161, 123, 0.1);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #a3d9ad;
+    border: 1px solid rgba(111, 161, 123, 0.3);
+}
+
+/* ==================== FECHA ESTIMATIVA Y ACCIONES ==================== */
+.fechaSection {
+    margin: 1.5rem 0 1rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
+}
+
+.primaryBtn {
+    background: #44794d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.primaryBtn:hover {
+    background: #5b9a63;
+}
+
+.primaryBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== PESTAÑAS DE NAVEGACIÓN (tabsContainer) ==================== */
+.tabsContainer {
+    display: flex;
+    gap: 8px;
+    background: #0b1220;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 0 24px;
+    margin-bottom: 20px;
+}
+
+.tabButton {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tabButton:hover {
+    color: #cbd5e1;
+}
+
+.tabButton.activeTab {
+    color: #6fa17b;
+    border-bottom-color: #6fa17b;
+}
+
+/* ==================== PESTAÑAS INTERNAS (tabs) ==================== */
+.tabs {
+    display: flex;
+    gap: 8px;
+    background: #1a2335;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tab:hover {
+    color: #cbd5e1;
+}
+
+.tabActive {
+    background: #2d3a4f;
+    color: #f1f5f9;
+}
+
+.tabCount {
+    margin-left: 6px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 20px;
+}
+
+/* ==================== TABLAS ==================== */
+.tableWrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: #111827;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    vertical-align: middle;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.rowAtendida {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.2);
+}
+
+.cellName strong {
+    display: block;
+    font-weight: 700;
+}
+
+.subText {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* ==================== ESTADOS Y BADGES ==================== */
+.estadoBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.estadoPendiente {
+    background: #f59e0b20;
+    color: #fbbf24;
+    border: 1px solid #f59e0b40;
+}
+
+.estadoAtendida {
+    background: #10b98120;
+    color: #34d399;
+    border: 1px solid #10b98140;
+}
+
+/* ==================== BOTONES DE ACCIÓN EN TABLA ==================== */
+.actionsCell {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.iconBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #e2e8f0;
+}
+
+.iconBtn:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: #6fa17b;
+}
+
+.iconBtnSuccess {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b98140;
+    color: #34d399;
+}
+
+.iconBtnSuccess:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+}
+
+.iconBtnWarning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b40;
+    color: #fbbf24;
+}
+
+.iconBtnWarning:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+}
+
+/* ==================== ESTADO VACÍO ==================== */
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+    background: #111827;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.emptyIcon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* ==================== MODALES ==================== */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.modalHeader h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #9ca3af;
+    transition: color 0.15s;
+}
+
+.closeBtn:hover {
+    color: #f1f5f9;
+}
+
+.modalBody {
+    padding: 20px;
+}
+
+.detailRow {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 14px;
+}
+
+.detailRow strong {
+    display: inline-block;
+    min-width: 130px;
+    color: #94a3b8;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.actionsModal {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.saveBtn {
+    background: #44794d;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background: #5b9a63;
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== ESTILOS ESPECÍFICOS PARA PROGRAMADAS (CARDS) ==================== */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px;
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.pageTitle {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: #f1f5f9;
+}
+
+.pageSubtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+}
+
+.btnListaDia {
+    background: #2d3a4f;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btnListaDia:hover {
+    background: #3b4a63;
+}
+
+/* StatsBar */
+.statsBar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.statCard {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.statNum {
+    font-size: 32px;
+    font-weight: 800;
+    color: #f1f5f9;
+    display: block;
+}
+
+.statLabel {
+    font-size: 13px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statHoy .statNum { color: #fbbf24; }
+.statWarn .statNum { color: #f97316; }
+.statDone .statNum { color: #34d399; }
+
+/* Filtros */
+.filters {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 32px;
+}
+
+.searchWrapper {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #6b7280;
+}
+
+.searchInput {
+    width: 100%;
+    background: #1a2335;
+    border: 1.5px solid #253348;
+    border-radius: 12px;
+    padding: 12px 40px 12px 40px;
+    color: #f1f5f9;
+    font-size: 14px;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: #6fa17b;
+}
+
+.clearSearch {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.filterRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+.filterLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.filterInput {
+    background: #1a2335;
+    border: 1.5px solid #253348;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #f1f5f9;
+    font-size: 13px;
+}
+
+.filterCheckLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.clearBtn {
+    background: transparent;
+    border: 1.5px solid #253348;
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.clearBtn:hover {
+    border-color: #6fa17b;
+    color: #e2e8f0;
+}
+
+/* Cards de cirugías */
+.cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+}
+
+.cxCard {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    padding: 20px;
+    position: relative;
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.cxCard:hover {
+    transform: translateY(-2px);
+    border-color: rgba(111, 161, 123, 0.4);
+}
+
+.cardHoy {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, #111827 0%, #1a1f2e 100%);
+}
+
+.cardMañana {
+    border-left: 4px solid #eab308;
+}
+
+.cardProximo {
+    border-left: 4px solid #3b82f6;
+}
+
+.urgencyBanner {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #f59e0b;
+    color: #0b1220;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+.bannerMañana {
+    background: #eab308;
+}
+
+.cardTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.cardPatientName {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.dniBadge {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: 8px;
+}
+
+.alertBadge {
+    background: #f9731620;
+    color: #fb923c;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+
+.cardCx {
+    font-size: 15px;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+
+.cardMeta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.metaIcon {
+    margin-right: 4px;
+}
+
+.diasChip {
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #1a2335;
+}
+
+.chipHoy {
+    background: #f59e0b20;
+    color: #fbbf24;
+}
+
+.chipProximo {
+    background: #3b82f620;
+    color: #60a5fa;
+}
+
+.cardPreop {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #0b1220;
+    border-radius: 12px;
+}
+
+.preopItem {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.preopItem.clickable:hover {
+    background: rgba(111, 161, 123, 0.1);
+}
+
+.preopOk {
+    background: #10b98110;
+    color: #34d399;
+}
+
+.preopWarn {
+    background: #f9731610;
+    color: #fb923c;
+}
+
+.cardActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.actionPdf, .actionView, .actionEdit, .actionDone, .actionDelete {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: #1a2335;
+    color: #cbd5e1;
+}
+
+.actionPdf:hover, .actionView:hover, .actionEdit:hover, .actionDone:hover, .actionDelete:hover {
+    background: #2d3a4f;
+}
+
+.actionDelete:hover {
+    background: #dc262620;
+    color: #f87171;
+}
+
+/* Tabla de historial */
+.dniSmall {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.tableActions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Modal ficha quirúrgica */
+.fichaModal {
+    max-width: 700px;
+}
+
+.fichaHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.fichaTitle {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.fichaSubtitle {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0 0;
+}
+
+.fichaActions {
+    display: flex;
+    gap: 12px;
+}
+
+.btnPrint {
+    background: #2d3a4f;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.fichaBody {
+    padding: 24px;
+}
+
+.fichaSection {
+    margin-bottom: 24px;
+}
+
+.fichaSection h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #6fa17b;
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.fichaRow {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+}
+
+.fichaKey {
+    width: 140px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.fichaVal {
+    flex: 1;
+    color: #e2e8f0;
+}
+
+.faltante {
+    color: #fb923c;
+    font-weight: 600;
+}
+
+.diasBadge {
+    margin-left: 12px;
+    padding: 2px 8px;
+    background: #f59e0b20;
+    border-radius: 20px;
+    font-size: 11px;
+    color: #fbbf24;
+}
+
+.fichaStatus .fichaVal {
+    font-weight: 700;
+}
+
+.statusOk {
+    color: #34d399;
+}
+
+.statusWarn {
+    color: #fb923c;
+}
+
+.fichaPdfButtons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.btnPdfFrente, .btnPdfDorso {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+}
+
+.btnPdfFrente {
+    background: #2d3a4f;
+    color: #e2e8f0;
+}
+
+.btnPdfDorso {
+    background: #1a2335;
+    color: #e2e8f0;
+}
+
+.btnPdfFrente:hover, .btnPdfDorso:hover {
+    background: #3b4a63;
+}
+
+.listaVacia {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.listaTable {
+    overflow-x: auto;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .cardsGrid {
+        grid-template-columns: 1fr;
+    }
+    .filterRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filterLabel {
+        justify-content: space-between;
+    }
+    .fichaHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+
+
+/* ========== BASE ========== */
+.page {
+    min-height: 100vh;
+    background: #0b1220;
+    color: #e5e7eb;
+}
+
+/* ========== LAYOUT PRINCIPAL ========== */
+.layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 1fr;
+        padding: 20px 16px 48px;
+    }
+}
+
+/* ========== COLUMNA DEL FORMULARIO ========== */
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+/* ========== SECCIONES ========== */
+.section {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sectionIcon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.3px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.sectionHint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: auto;
+    font-style: italic;
+}
+
+.sectionBody {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+}
+
+/* ========== GRIDS DE COLUMNAS ========== */
+.cols2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+.cols3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+.cols4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 900px) {
+    .cols3, .cols4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .cols2, .cols3, .cols4 { grid-template-columns: 1fr; }
+}
+
+.fieldSpan2 {
+    grid-column: span 2;
+}
+@media (max-width: 900px) {
+    .fieldSpan2 { grid-column: 1 / -1; }
+}
+
+/* ========== CAMPOS ========== */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.fieldLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* ========== INPUTS ========== */
+.input {
+    width: 100%;
+    background: #1a2335;
+    color: #f1f5f9;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    padding: 10px 14px;
+    outline: none;
+    font-size: 15px;
+    transition: all 0.15s;
+    box-sizing: border-box;
+}
+.input::placeholder { color: #4b5568; }
+.input:focus {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.18);
+}
+.input:disabled { opacity: 0.45; cursor: not-allowed; }
+.inputReadonly {
+    color: #6fa17b;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.hint {
+    font-size: 11px;
+    color: #475569;
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.code {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #151f2e;
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 10px;
+}
+
+/* ========== SEXO CHIPS ========== */
+.sexRowInline {
+    display: flex;
+    gap: 8px;
+}
+.chip {
+    flex: 1;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    background: #1a2335;
+    color: #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+}
+.chip:hover { border-color: #6fa17b; background: #1e2d40; }
+.chipActive {
+    border-color: #6fa17b;
+    background: rgba(111,161,123,0.15);
+    color: #a3d9ad;
+}
+
+/* ========== CHECKBOX ========== */
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: #1a2335;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.checkboxRow:hover { border-color: #6fa17b; }
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+    position: sticky;
+    top: 24px;
+    z-index: 20;
+}
+@media (max-width: 1100px) {
+    .sidebar { position: static; }
+}
+.sidebarCard {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.patientPreview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px;
+}
+.patientAvatar { font-size: 32px; line-height: 1; }
+.patientInfo { display: flex; flex-direction: column; gap: 3px; }
+.patientName {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.patientNameEmpty { color: #4b5568; font-style: italic; }
+.patientAge { font-size: 13px; color: #6fa17b; font-weight: 600; }
+.patientHC { font-size: 12px; color: #64748b; }
+.cxPreview {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(111,161,123,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(111,161,123,0.2);
+}
+.cxLabel {
+    font-size: 10px;
+    font-weight: 800;
+    color: #6fa17b;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    background: rgba(111,161,123,0.15);
+    border-radius: 4px;
+}
+.cxValue { font-size: 13px; color: #cbd5e1; line-height: 1.4; }
+.sidebarDivider { height: 1px; background: rgba(255,255,255,0.07); }
+.downloadTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+.downloadBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1a2335;
+    border: 1.5px solid #253348;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+}
+.downloadBtn:hover {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    transform: translateY(-1px);
+}
+.downloadIcon { font-size: 18px; color: #6fa17b; }
+.downloadBtnText { display: flex; flex-direction: column; gap: 2px; }
+.downloadBtnText strong { font-size: 14px; color: #f1f5f9; }
+.downloadBtnText small { font-size: 11px; color: #6b7280; }
+.sidebarNote {
+    font-size: 12px;
+    color: #4b5568;
+    text-align: center;
+}
+
+/* ========== TABLAS y SOLICITUDES ========== */
+.tableWrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: #111827;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+}
+.rowAtendida { opacity: 0.6; background: rgba(0,0,0,0.2); }
+.cellName strong { display: block; }
+.subText { font-size: 11px; color: #6b7280; margin-top: 4px; }
+.estadoBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.estadoPendiente {
+    background: #f59e0b20;
+    color: #fbbf24;
+    border: 1px solid #f59e0b40;
+}
+.estadoAtendida {
+    background: #10b98120;
+    color: #34d399;
+    border: 1px solid #10b98140;
+}
+.actionsCell {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.iconBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #e2e8f0;
+}
+.iconBtn:hover { background: rgba(255,255,255,0.05); border-color: #6fa17b; }
+.iconBtnSuccess {
+    background: rgba(16,185,129,0.1);
+    border-color: #10b98140;
+    color: #34d399;
+}
+.iconBtnWarning {
+    background: rgba(245,158,11,0.1);
+    border-color: #f59e0b40;
+    color: #fbbf24;
+}
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+    background: #111827;
+    border-radius: 16px;
+}
+.emptyIcon { font-size: 48px; display: block; margin-bottom: 16px; opacity: 0.5; }
+
+/* ========== PESTAÑAS DE NAVEGACIÓN (comunes) ========== */
+.tabsContainer {
+    display: flex;
+    gap: 8px;
+    background: #0b1220;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 0 0 12px;
+    margin-bottom: 20px;
+}
+.tabButton {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+.tabButton:hover { color: #cbd5e1; }
+.activeTab {
+    color: #6fa17b;
+    border-bottom-color: #6fa17b;
+}
+
+/* ========== TABS INTERNAS (filtros) ========== */
+.tabs {
+    display: flex;
+    gap: 8px;
+    background: #1a2335;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+.tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tab:hover { color: #cbd5e1; }
+.tabActive {
+    background: #2d3a4f;
+    color: #f1f5f9;
+}
+.tabCount {
+    margin-left: 6px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 20px;
+}
+
+/* ========== MODALES ========== */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+.modal {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.modalHeader h2 { font-size: 18px; font-weight: 700; margin: 0; color: #f1f5f9; }
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #9ca3af;
+}
+.closeBtn:hover { color: #f1f5f9; }
+.modalBody { padding: 20px; }
+.detailRow {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 14px;
+}
+.detailRow strong { display: inline-block; min-width: 130px; color: #94a3b8; }
+.formGroup { margin-bottom: 20px; }
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+.actionsModal {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+.cancelBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+}
+.saveBtn {
+    background: #44794d;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+.saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ========== SELECTOR DE PACIENTE ========== */
+.modeSelector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.modeBtn {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    background: #1a2335;
+    color: #cbd5e1;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+}
+.modeBtn.active {
+    background: #44794d;
+    color: white;
+    border-color: #6fa17b;
+}
+.pacienteSection {
+    background: #111827;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+.pacienteSection h3 { font-size: 14px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.75rem; }
+.pacienteSelector { margin-top: 0.5rem; }
+.pacienteList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #253348;
+    border-radius: 10px;
+    margin-top: 0.75rem;
+    background: #0b1220;
+}
+.pacienteItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #253348;
+    color: #e2e8f0;
+}
+.pacienteItem:hover { background: #1a2335; }
+.pacienteItem.selected {
+    background: rgba(111,161,123,0.15);
+    border-left: 3px solid #6fa17b;
+}
+.pacienteDni { color: #6b7280; font-size: 12px; margin-left: 8px; }
+.selectedPacienteInfo {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(111,161,123,0.1);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #a3d9ad;
+}
+
+/* ========== FECHA Y ACCIONES ========== */
+.fechaSection { margin: 1.5rem 0 1rem; }
+.actions { display: flex; justify-content: flex-end; margin-bottom: 2rem; }
+.primaryBtn {
+    background: #44794d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.primaryBtn:hover { background: #5b9a63; }
+.primaryBtn:disabled { opacity: 0.5; }
+
+/* ========== CARGANDO y ERRORES ========== */
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 16px;
+    color: #6b7280;
+}
+.loadingSpinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(111,161,123,0.2);
+    border-top-color: #6fa17b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.bannerError {
+    border: 1px solid rgba(239,68,68,0.35);
+    background: rgba(127,29,29,0.35);
+    color: #fecaca;
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+}
+.small { font-size: 12px; color: #9ca3af; margin-top: 6px; }

@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './page.module.css';
+import styles from './cx-common.module.css';   // ← CSS común
 import { PDFDocument } from 'pdf-lib';
-import Header from '@/components/Header/Header';
 
 // ==================== CONSTANTES Y FUNCIONES AUXILIARES ====================
 const MAPPING_URL = '/mappings/cd-campos_fields_rects.json';
@@ -269,13 +268,14 @@ export default function Page() {
   const [error, setError] = useState('');
   const [form, setForm] = useState({});
   const [suggestions, setSuggestions] = useState({});
-  const [mode, setMode] = useState('manual'); // 'manual' o 'paciente'
+  const [mode, setMode] = useState('manual');
   const [selectedPaciente, setSelectedPaciente] = useState(null);
   const [fechaEstimada, setFechaEstimada] = useState('');
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('form'); // 'form' o 'solicitudes'
+  const [activeTab, setActiveTab] = useState('form');
   const [solicitudes, setSolicitudes] = useState([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
+  const [pendingSolicitudId, setPendingSolicitudId] = useState(null);
 
   // Cargar mapping
   useEffect(() => {
@@ -351,7 +351,7 @@ export default function Page() {
     setForm(initial);
   }, [canonical, mapping]);
 
-  // Cargar sugerencias iniciales (sin médicos)
+  // Cargar sugerencias iniciales
   useEffect(() => {
     if (!canonical) return;
     let seeded = loadSuggestions();
@@ -362,7 +362,6 @@ export default function Page() {
       seeded = addSuggestion(seeded, canonNacimientoPaciente, 'CONCORDIA, ENTRE RIOS');
       seeded = addSuggestion(seeded, canonNacimientoPaciente, 'PARANÁ, ENTRE RIOS');
     }
-
     setSuggestions(seeded);
     saveSuggestions(seeded);
     setForm((prev) => {
@@ -378,27 +377,20 @@ export default function Page() {
     if (!canonDoctor) return;
     let seeded = loadSuggestions();
     const doctoresLista = [
-      "BRARDA AGUSTIN",
-      "CANAGLIA GUSTAVO",
-      "CIANCIOSI SEBASTIAN",
-      "DEL PUERTO RODRIGO",
-      "GIMENEZ MARTIN",
-      "PERTUS DIEGO"
+      "BRARDA AGUSTIN", "CANAGLIA GUSTAVO", "CIANCIOSI SEBASTIAN",
+      "DEL PUERTO RODRIGO", "GIMENEZ MARTIN", "PERTUS DIEGO"
     ];
-    doctoresLista.forEach(dr => {
-      seeded = addSuggestion(seeded, canonDoctor, dr);
-    });
+    doctoresLista.forEach(dr => { seeded = addSuggestion(seeded, canonDoctor, dr); });
     setSuggestions(seeded);
     saveSuggestions(seeded);
   }, [canonDoctor]);
 
-  // Precargar datos del paciente seleccionado (modo paciente existente)
+  // Precargar datos del paciente seleccionado
   useEffect(() => {
     if (mode === 'paciente' && selectedPaciente) {
       const t = selectedPaciente.trabajador || {};
       const art = selectedPaciente.ART || {};
       const newForm = { ...form };
-
       if (canonApellido) newForm[canonApellido] = t.apellido || '';
       if (canonNombre) newForm[canonNombre] = t.nombre || '';
       if (canonDNI) newForm[canonDNI] = t.dni || '';
@@ -419,7 +411,6 @@ export default function Page() {
         newForm[canonDomicilioPaciente] = calleNumero;
       }
       if (canonART && art.nombre) newForm[canonART] = art.nombre;
-
       setForm(newForm);
     }
   }, [selectedPaciente, mode, canonical]);
@@ -629,15 +620,16 @@ export default function Page() {
     }
   }
 
-  // ==================== FUNCIONES PARA SOLICITUDES (desde formulario público) ====================
+  // ==================== FUNCIONES PARA SOLICITUDES ====================
   const cargarSolicitudes = async () => {
     setLoadingSolicitudes(true);
     try {
-      // Leer de la colección que usa el formulario público
       const res = await fetch("https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia.json");
       const data = await res.json();
       if (data) {
-        const lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        let lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        // Ordenar por fecha descendente (más recientes primero)
+        lista.sort((a, b) => (b.fechaSolicitud || 0) - (a.fechaSolicitud || 0));
         setSolicitudes(lista);
       } else {
         setSolicitudes([]);
@@ -656,13 +648,8 @@ export default function Page() {
     }
   }, [activeTab]);
 
-  // Cargar una solicitud en el formulario principal (rellena los datos del paciente)
   const cargarSolicitudEnFormulario = (solicitud) => {
-    // La solicitud tiene exactamente los campos del formulario público:
-    // apellido, nombre, sexo, dni, nacimiento, lugarNacimiento, domicilio, localidad, provincia, telefono, edad (calculada)
     const nuevoForm = { ...form };
-
-    // Mapear campos simples
     if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || '';
     if (canonNombre) nuevoForm[canonNombre] = solicitud.nombre || '';
     if (canonDNI) nuevoForm[canonDNI] = solicitud.dni || '';
@@ -670,63 +657,34 @@ export default function Page() {
     if (canonLocalidad) nuevoForm[canonLocalidad] = solicitud.localidad || '';
     if (canonProvincia) nuevoForm[canonProvincia] = solicitud.provincia || '';
     if (canonDomicilioPaciente) nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || '';
-    // Lugar de nacimiento se puede mapear a canonNacimientoPaciente
     if (canonNacimientoPaciente && solicitud.lugarNacimiento) nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento;
-
-    // Sexo
     if (solicitud.sexo) nuevoForm.sexo = solicitud.sexo === 'M' ? 'M' : 'F';
-
-    // Fecha de nacimiento: campo 'nacimiento' (YYYY-MM-DD)
     if (solicitud.nacimiento) {
       const [y, m, d] = solicitud.nacimiento.split('-');
       if (canonDia) nuevoForm[canonDia] = d || '';
       if (canonMes) nuevoForm[canonMes] = m || '';
       if (canonAnio) nuevoForm[canonAnio] = y || '';
     }
-
-    // Edad ya viene calculada en solicitud.edad, pero la recalcularemos automáticamente con los campos día/mes/año
-    // No es necesario asignar manualmente edad, se recalculará sola.
-
     setForm(nuevoForm);
-    // Cambiar a pestaña formulario
     setActiveTab('form');
-    // Cambiar modo a manual (porque no es un paciente existente necesariamente)
     setMode('manual');
     setSelectedPaciente(null);
-    alert("Solicitud cargada en el formulario. Complete los datos de cirugía (CX, médico, ART, fecha estimativa) y luego guarde o genere PDF.");
+    alert("Solicitud cargada. Complete los datos de cirugía y guarde.");
   };
 
   const aceptarSolicitud = async (solicitud) => {
-    // Primero cargar la solicitud en el formulario (para tener los datos actualizados)
     cargarSolicitudEnFormulario(solicitud);
-    // Esperar un momento para que se actualice el estado (podríamos usar un setTimeout, pero mejor es hacerlo después de que el usuario complete datos faltantes)
-    // En lugar de guardar automáticamente, dejamos que el usuario complete los campos de cirugía y luego guarde manualmente.
-    // Pero también podemos ofrecer un flujo alternativo: al hacer clic en "Aceptar", se carga y luego se abre el formulario para que el usuario complete y guarde.
-    // Para simplificar, simplemente cargamos y cambiamos a la pestaña de formulario.
-    // El usuario luego completará y hará clic en "Guardar Cirugía".
-    // No eliminamos la solicitud hasta que realmente se guarde la cirugía? Podría ser confuso.
-    // Mejor: permitir que el usuario cargue, edite y luego guarde. La solicitud se eliminará solo cuando se guarde exitosamente.
-    // Para eso, necesitaríamos pasar el ID de la solicitud al guardar. Lo haremos así:
-
-    // Guardamos el ID de la solicitud en una variable global temporal (estado) para eliminarla después de guardar.
     setPendingSolicitudId(solicitud.id);
-    alert("Solicitud cargada en el formulario. Complete los datos faltantes y luego haga clic en 'Guardar Cirugía'. La solicitud se eliminará automáticamente después de guardar.");
+    alert("Solicitud cargada. Al guardar la cirugía se eliminará automáticamente.");
   };
 
-  // Estado para manejar eliminación automática al guardar
-  const [pendingSolicitudId, setPendingSolicitudId] = useState(null);
-
-  // Modificar la función guardarCX para que después de guardar, elimine la solicitud pendiente
   const guardarCXYEliminarSolicitud = async () => {
     const success = await guardarCX();
     if (success && pendingSolicitudId) {
       try {
-        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia/${pendingSolicitudId}.json`, {
-          method: 'DELETE',
-        });
-        alert("Solicitud eliminada de la lista.");
+        await fetch(`https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia/${pendingSolicitudId}.json`, { method: 'DELETE' });
+        alert("Solicitud eliminada.");
         setPendingSolicitudId(null);
-        // Refrescar lista de solicitudes si la pestaña está activa
         if (activeTab === 'solicitudes') cargarSolicitudes();
       } catch (err) {
         console.error("Error eliminando solicitud", err);
@@ -734,7 +692,7 @@ export default function Page() {
     }
   };
 
-  // ==================== RENDERIZADO ====================
+  // Renderizado
   if (loading) {
     return (
       <main className={styles.page}>
@@ -767,11 +725,10 @@ export default function Page() {
   return (
     <main className={styles.page}>
       <div className={styles.layout}>
-        {/* COLUMNA PRINCIPAL */}
         <div className={styles.formColumn}>
           {error && <div className={styles.bannerError}>{error}</div>}
 
-          {/* PESTAÑAS */}
+          {/* PESTAÑAS DE NAVEGACIÓN */}
           <div className={styles.tabsContainer}>
             <button
               className={`${styles.tabButton} ${activeTab === 'form' ? styles.activeTab : ''}`}
@@ -789,11 +746,11 @@ export default function Page() {
               className={styles.tabButton}
               onClick={() => router.push('/admin/cx/programada')}
             >
-              📋 Ver Programadas
+              📅 Ver Programadas
             </button>
           </div>
 
-          {/* CONTENIDO DE LA PESTAÑA ACTIVA */}
+          {/* CONTENIDO FORMULARIO */}
           {activeTab === 'form' && (
             <>
               <div className={styles.modeSelector}>
@@ -817,7 +774,7 @@ export default function Page() {
                 </div>
               )}
 
-              {/* ========== FORMULARIO COMPLETO ========== */}
+              {/* Datos de la Cirugía */}
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <span className={styles.sectionIcon}>🏥</span>
@@ -854,6 +811,7 @@ export default function Page() {
                 </div>
               </section>
 
+              {/* Identificación del Paciente */}
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <span className={styles.sectionIcon}>👤</span>
@@ -884,7 +842,6 @@ export default function Page() {
                       <input className={styles.input} name={canonHCPaciente} autoComplete="off" inputMode="numeric"
                         value={formatNumberWithThousands(form?.[canonHCPaciente] ?? '')}
                         onChange={(e) => setValue(canonHCPaciente, parseFormattedNumber(e.target.value))}
-                        onBlur={(e) => commitSuggestion(canonHCPaciente, e.target.value)}
                         placeholder="Ej: 12.345.678" />
                     </div>
                   )}
@@ -892,22 +849,53 @@ export default function Page() {
                     <div className={styles.field}>
                       <label className={styles.fieldLabel}>Sexo</label>
                       <div className={styles.sexRowInline}>
-                        <button type="button"
-                          className={`${styles.chip} ${form.sexo === 'M' ? styles.chipActive : ''}`}
-                          onClick={() => setValue('sexo', form.sexo === 'M' ? '' : 'M')}>
-                          Masculino
-                        </button>
-                        <button type="button"
-                          className={`${styles.chip} ${form.sexo === 'F' ? styles.chipActive : ''}`}
-                          onClick={() => setValue('sexo', form.sexo === 'F' ? '' : 'F')}>
-                          Femenino
-                        </button>
+                        <button type="button" className={`${styles.chip} ${form.sexo === 'M' ? styles.chipActive : ''}`}
+                          onClick={() => setValue('sexo', form.sexo === 'M' ? '' : 'M')}>Masculino</button>
+                        <button type="button" className={`${styles.chip} ${form.sexo === 'F' ? styles.chipActive : ''}`}
+                          onClick={() => setValue('sexo', form.sexo === 'F' ? '' : 'F')}>Femenino</button>
                       </div>
                     </div>
                   )}
                 </div>
               </section>
+                     {/* Datos Adicionales */}
+              {orderedResto.length > 0 && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionIcon}>📋</span>
+                    <h2 className={styles.sectionTitle}>Datos Adicionales</h2>
+                  </div>
+                  <div className={`${styles.sectionBody} ${styles.cols3}`}>
+                    {orderedResto.map((canonName) => {
+                      const internals = canonical.canonicalToInternal[canonName] || [];
+                      const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
+                      return (
+                        <div className={styles.field} key={canonName}>
+                          <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
+                          {isBtn ? (
+                            <label className={styles.checkboxRow}>
+                              <input type="checkbox" checked={!!form[canonName]}
+                                onChange={(e) => setValue(canonName, e.target.checked)} />
+                              <span>Marcar</span>
+                            </label>
+                          ) : (
+                            <AutoInput canonName={canonName} value={form?.[canonName]}
+                              onChange={(e) => setValue(canonName, e.target.value)}
+                              onBlur={(e) => commitSuggestion(canonName, e.target.value)}
+                              suggestions={suggestions} autoComplete={getAutoCompleteAttr(canonName)} />
+                          )}
+                          <div className={styles.hint}>
+                            <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
+                            {internals.length > 2 && <span>+{internals.length - 2}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
 
+              {/* Fecha de Nacimiento */}
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <span className={styles.sectionIcon}>🎂</span>
@@ -937,16 +925,14 @@ export default function Page() {
                       placeholder="AAAA" disabled={!canonAnio} />
                   </div>
                   <div className={styles.field}>
-                    <label className={styles.fieldLabel}>
-                      Edad <span className={styles.badge}>auto</span>
-                    </label>
+                    <label className={styles.fieldLabel}>Edad <span className={styles.badge}>auto</span></label>
                     <input className={`${styles.input} ${styles.inputReadonly}`}
-                      value={edadCalculada ? `${edadCalculada} años` : '—'}
-                      readOnly disabled />
+                      value={edadCalculada ? `${edadCalculada} años` : '—'} readOnly disabled />
                   </div>
                 </div>
               </section>
-
+       
+              {/* Domicilio y Procedencia */}
               {hasLocation && (
                 <section className={styles.section}>
                   <div className={styles.sectionHeader}>
@@ -994,41 +980,7 @@ export default function Page() {
                 </section>
               )}
 
-              {orderedResto.length > 0 && (
-                <section className={styles.section}>
-                  <div className={styles.sectionHeader}>
-                    <span className={styles.sectionIcon}>📋</span>
-                    <h2 className={styles.sectionTitle}>Datos Adicionales</h2>
-                  </div>
-                  <div className={`${styles.sectionBody} ${styles.cols3}`}>
-                    {orderedResto.map((canonName) => {
-                      const internals = canonical.canonicalToInternal[canonName] || [];
-                      const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
-                      return (
-                        <div className={styles.field} key={canonName}>
-                          <label className={styles.fieldLabel}>{humanizeKey(canonName)}</label>
-                          {isBtn ? (
-                            <label className={styles.checkboxRow}>
-                              <input type="checkbox" checked={!!form[canonName]}
-                                onChange={(e) => setValue(canonName, e.target.checked)} />
-                              <span>Marcar</span>
-                            </label>
-                          ) : (
-                            <AutoInput canonName={canonName} value={form?.[canonName]}
-                              onChange={(e) => setValue(canonName, e.target.value)}
-                              onBlur={(e) => commitSuggestion(canonName, e.target.value)}
-                              suggestions={suggestions} autoComplete={getAutoCompleteAttr(canonName)} />
-                          )}
-                          <div className={styles.hint}>
-                            <code className={styles.code}>{internals.slice(0, 2).join(', ')}</code>
-                            {internals.length > 2 && <span>+{internals.length - 2}</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
+
 
               <div className={styles.fechaSection}>
                 <label className={styles.fieldLabel}>Fecha estimativa de Cirugía</label>
@@ -1042,58 +994,88 @@ export default function Page() {
             </>
           )}
 
+          {/* CONTENIDO SOLICITUDES - MEJORADO */}
           {activeTab === 'solicitudes' && (
-            <div className={styles.solicitudesContainer}>
-              <h3>Solicitudes de pacientes (desde el formulario público)</h3>
+            <div>
+              <h3 style={{ marginBottom: '1rem', color: '#cbd5e1' }}>Solicitudes de pacientes (desde el formulario público)</h3>
               {loadingSolicitudes ? (
                 <div className={styles.loadingSpinner} />
               ) : solicitudes.length === 0 ? (
-                <p className={styles.emptyState}>No hay solicitudes pendientes.</p>
+                <div className={styles.emptyState}>
+                  <span className={styles.emptyIcon}>📋</span>
+                  <p>No hay solicitudes pendientes.</p>
+                </div>
               ) : (
-                <div className={styles.solicitudesList}>
-                  {solicitudes.map((sol) => (
-                    <div key={sol.id} className={styles.solicitudCard}>
-                      <div className={styles.solicitudHeader}>
-                        <strong>{sol.apellido} {sol.nombre}</strong>
-                        <span className={styles.solicitudFecha}>
-                          {sol.fechaSolicitud ? new Date(sol.fechaSolicitud).toLocaleDateString() : 'Sin fecha'}
-                        </span>
-                      </div>
-                      <div className={styles.solicitudBody}>
-                        <p><strong>DNI:</strong> {sol.dni}</p>
-                        <p><strong>Teléfono:</strong> {sol.telefono}</p>
-                        <p><strong>Localidad:</strong> {sol.localidad}, {sol.provincia}</p>
-                        <p><strong>Nacimiento:</strong> {sol.nacimiento} (Edad: {sol.edad} años)</p>
-                      </div>
-                      <div className={styles.solicitudActions}>
-                        <button className={styles.secondaryBtn} onClick={() => cargarSolicitudEnFormulario(sol)}>
-                          📋 Cargar en formulario
-                        </button>
-                        <button className={styles.primaryBtn} onClick={() => aceptarSolicitud(sol)}>
-                          ✅ Aceptar (cargar y editar)
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Paciente</th>
+                        <th>Teléfono</th>
+                        <th>Localidad</th>
+                        <th>Fecha solicitud</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {solicitudes.map((sol) => (
+                        <tr key={sol.id} className={sol.atendida ? styles.rowAtendida : ''}>
+                          <td className={styles.cellName}>
+                            <strong>{sol.apellido} {sol.nombre}</strong>
+                            <div className={styles.subText}>DNI {sol.dni}</div>
+                          </td>
+                          <td>{sol.telefono || '—'}</td>
+                          <td>{sol.localidad}, {sol.provincia}</td>
+                          <td>{new Date(sol.fechaSolicitud).toLocaleDateString('es-AR')}</td>
+                          <td>
+                            <span className={`${styles.estadoBadge} ${sol.atendida ? styles.estadoAtendida : styles.estadoPendiente}`}>
+                              {sol.atendida ? 'Atendida' : 'Pendiente'}
+                            </span>
+                          </td>
+                          <td className={styles.actionsCell}>
+                            <button className={styles.iconBtn} title="Ver detalles"
+                              onClick={() => {
+                                const detail = `Paciente: ${sol.apellido} ${sol.nombre}\nDNI: ${sol.dni}\nTeléfono: ${sol.telefono}\nDomicilio: ${sol.domicilio}, ${sol.localidad}, ${sol.provincia}\nNacimiento: ${sol.nacimiento} (${sol.edad} años)\nLugar nac.: ${sol.lugarNacimiento}`;
+                                alert(detail);
+                              }}>👁️</button>
+                            {!sol.atendida && (
+                              <>
+                                <button className={`${styles.iconBtn} ${styles.iconBtnSuccess}`} title="Cargar en formulario"
+                                  onClick={() => cargarSolicitudEnFormulario(sol)}>✍️</button>
+                                <button className={`${styles.iconBtn} ${styles.iconBtnWarning}`} title="Marcar como atendida sin cirugía"
+                                  onClick={async () => {
+                                    if (confirm('¿Marcar como atendida sin cargar cirugía?')) {
+                                      await fetch(`https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia/${sol.id}.json`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ atendida: true, fechaAtendida: Date.now() }),
+                                      });
+                                      cargarSolicitudes();
+                                    }
+                                  }}>✅</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* SIDEBAR (común a ambas pestañas) */}
+        {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarCard}>
             <div className={styles.patientPreview}>
-              <div className={styles.patientAvatar}>
-                {form.sexo === 'F' ? '👩' : form.sexo === 'M' ? '👨' : '🧑'}
-              </div>
+              <div className={styles.patientAvatar}>{form.sexo === 'F' ? '👩' : form.sexo === 'M' ? '👨' : '🧑'}</div>
               <div className={styles.patientInfo}>
                 <div className={styles.patientName}>
-                  {[
-                    canonApellido && form?.[canonApellido],
-                    canonNombre && form?.[canonNombre],
-                  ].filter(Boolean).join(' ') || <span className={styles.patientNameEmpty}>Sin nombre</span>}
+                  {[canonApellido && form?.[canonApellido], canonNombre && form?.[canonNombre]].filter(Boolean).join(' ') ||
+                    <span className={styles.patientNameEmpty}>Sin nombre</span>}
                 </div>
                 {edadCalculada && <div className={styles.patientAge}>{edadCalculada} años</div>}
                 {canonHCPaciente && form?.[canonHCPaciente] && (
@@ -1109,25 +1091,15 @@ export default function Page() {
             )}
             <div className={styles.sidebarDivider} />
             <p className={styles.downloadTitle}>Descargar PDF</p>
-            <button className={styles.downloadBtn} type="button"
-              onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'Frente')}>
+            <button className={styles.downloadBtn} onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, 'Frente')}>
               <span className={styles.downloadIcon}>↓</span>
-              <span className={styles.downloadBtnText}>
-                <strong>Frente</strong>
-                <small>{generateFilename('Frente')}.pdf</small>
-              </span>
+              <span className={styles.downloadBtnText}><strong>Frente</strong><small>{generateFilename('Frente')}.pdf</small></span>
             </button>
-            <button className={styles.downloadBtn} type="button"
-              onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'Dorso')}>
+            <button className={styles.downloadBtn} onClick={() => downloadPdf(TEMPLATE_DORSO_URL, 'Dorso')}>
               <span className={styles.downloadIcon}>↓</span>
-              <span className={styles.downloadBtnText}>
-                <strong>Dorso</strong>
-                <small>{generateFilename('Dorso')}.pdf</small>
-              </span>
+              <span className={styles.downloadBtnText}><strong>Dorso</strong><small>{generateFilename('Dorso')}.pdf</small></span>
             </button>
-            <p className={styles.sidebarNote}>
-              Los PDFs se generan con los datos del formulario y se descargan listos para imprimir.
-            </p>
+            <p className={styles.sidebarNote}>Los PDFs se generan con los datos del formulario y se descargan listos para imprimir.</p>
           </div>
         </aside>
       </div>

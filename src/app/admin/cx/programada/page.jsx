@@ -3,8 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";  // ← Importar useRouter
 import { PDFDocument } from "pdf-lib";
-import styles from "./page.module.css";
-
+import styles from "../cx-common.module.css";
 // ─────────────────────────────────────────────
 //  CONSTANTES
 // ─────────────────────────────────────────────
