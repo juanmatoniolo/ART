@@ -141,6 +141,14 @@ const formatCodeName = (x) => {
   return code ? `${code} — ${name}` : name;
 };
 
+// ── Formateador de DNI con separadores de miles (puntos) ──
+const formatDNI = (dni) => {
+  if (!dni || dni === '—') return '—';
+  const dniStr = String(dni).replace(/\D/g, '');
+  if (dniStr.length === 0) return '—';
+  return dniStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
 // ── Firebase helpers ──────────────────────────────────────────────────────────
 
 async function fetchFullItem(id) {
@@ -149,9 +157,7 @@ async function fetchFullItem(id) {
   return snap.val();
 }
 
-
-
-// ── Helper para obtener la imagen de la ART (evita duplicación) ──
+// ── Helper para obtener la imagen de la ART ──
 const getArtImage = (artName) => {
   if (!artName || artName === 'SIN ART') return '/img-art/default.webp';
   const normalizeForMap = (str) => str
@@ -177,7 +183,7 @@ const getArtImage = (artName) => {
   return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
 };
 
-// ── Impresión: Factura ART completa (compacta, con watermark y firma) ──
+// ── Impresión: Factura ART completa con subtotales por categoría ──
 async function printFacturaCompleta(id) {
   const item = await fetchFullItem(id);
   if (!item) {
@@ -191,7 +197,7 @@ async function printFacturaCompleta(id) {
   const nombreCompleto = apellido && nombrePaciente 
     ? `${apellido}, ${nombrePaciente}` 
     : (paciente.nombreCompleto || '—');
-  const dni = paciente.dni || '—';
+  const dni = formatDNI(paciente.dni || '—');
   const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
   const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
   const artImageUrl = getArtImage(artNombre);
@@ -202,72 +208,116 @@ async function printFacturaCompleta(id) {
   const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
   const descartables = Array.isArray(item.descartables) ? item.descartables : [];
 
-  const honorariosRows = [];
-  const gastosRows = [];
+  // --- Honorarios por subcategoría ---
+  const honorPracticas = [];
+  const honorCirugias = [];
+  const honorLaboratorios = [];
 
   practicas.forEach(p => {
     const honorario = safeNum(p?.honorarioMedico);
-    const gasto = safeNum(p?.gastoSanatorial);
-    const qty = pickQty(p);
-    const unit = pickUnit(p);
-    const desc = formatCodeName(p);
-    const doctor = pickDoctor(p);
-    if (honorario > 0) honorariosRows.push({ desc, doctor, qty, unit, total: honorario });
-    if (gasto > 0) gastosRows.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    if (honorario > 0) {
+      const qty = pickQty(p);
+      const unit = pickUnit(p);
+      const desc = formatCodeName(p);
+      const doctor = pickDoctor(p);
+      honorPracticas.push({ desc, doctor, qty, unit, total: honorario });
+    }
   });
 
   cirugias.forEach(c => {
     const honorario = safeNum(c?.honorarioMedico);
-    const gasto = safeNum(c?.gastoSanatorial);
-    const qty = pickQty(c);
-    const unit = pickUnit(c);
-    const desc = formatCodeName(c);
-    const doctor = pickDoctor(c);
-    if (honorario > 0) honorariosRows.push({ desc, doctor, qty, unit, total: honorario });
-    if (gasto > 0) gastosRows.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    if (honorario > 0) {
+      const qty = pickQty(c);
+      const unit = pickUnit(c);
+      const desc = formatCodeName(c);
+      const doctor = pickDoctor(c);
+      honorCirugias.push({ desc, doctor, qty, unit, total: honorario });
+    }
   });
 
   laboratorios.forEach(l => {
     const honorario = safeNum(l?.honorarioMedico);
+    if (honorario > 0) {
+      const qty = pickQty(l);
+      const unit = pickUnit(l);
+      const desc = formatCodeName(l);
+      const doctor = pickDoctor(l);
+      honorLaboratorios.push({ desc, doctor, qty, unit, total: honorario });
+    }
+  });
+
+  const subHonorPracticas = honorPracticas.reduce((s, r) => s + r.total, 0);
+  const subHonorCirugias = honorCirugias.reduce((s, r) => s + r.total, 0);
+  const subHonorLaboratorios = honorLaboratorios.reduce((s, r) => s + r.total, 0);
+  const totalHonor = subHonorPracticas + subHonorCirugias + subHonorLaboratorios;
+
+  // --- Gastos por subcategoría ---
+  const gastoPracticas = [];
+  const gastoMedicamentos = [];
+  const gastoDescartables = [];
+
+  practicas.forEach(p => {
+    const gasto = safeNum(p?.gastoSanatorial);
+    if (gasto > 0) {
+      const qty = pickQty(p);
+      const unit = pickUnit(p);
+      const desc = formatCodeName(p);
+      gastoPracticas.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    }
+  });
+
+  cirugias.forEach(c => {
+    const gasto = safeNum(c?.gastoSanatorial);
+    if (gasto > 0) {
+      const qty = pickQty(c);
+      const unit = pickUnit(c);
+      const desc = formatCodeName(c);
+      gastoPracticas.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    }
+  });
+
+  laboratorios.forEach(l => {
     const gasto = safeNum(l?.gastoSanatorial);
-    const qty = pickQty(l);
-    const unit = pickUnit(l);
-    const desc = formatCodeName(l);
-    const doctor = pickDoctor(l);
-    if (honorario > 0) honorariosRows.push({ desc, doctor, qty, unit, total: honorario });
-    if (gasto > 0) gastosRows.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    if (gasto > 0) {
+      const qty = pickQty(l);
+      const unit = pickUnit(l);
+      const desc = formatCodeName(l);
+      gastoPracticas.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    }
   });
 
   medicamentos.forEach(m => {
     const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
-    const qty = pickQty(m);
-    const unit = pickUnit(m);
-    const desc = m?.nombre || '—';
-    if (gasto > 0) gastosRows.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    if (gasto > 0) {
+      const qty = pickQty(m);
+      const unit = pickUnit(m);
+      const desc = m?.nombre || '—';
+      gastoMedicamentos.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    }
   });
 
   descartables.forEach(d => {
     const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
-    const qty = pickQty(d);
-    const unit = pickUnit(d);
-    const desc = d?.nombre || '—';
-    if (gasto > 0) gastosRows.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    if (gasto > 0) {
+      const qty = pickQty(d);
+      const unit = pickUnit(d);
+      const desc = d?.nombre || '—';
+      gastoDescartables.push({ desc, origen: 'Clínica de la Unión', qty, unit, total: gasto });
+    }
   });
 
-  const totalHonor = honorariosRows.reduce((sum, r) => sum + r.total, 0);
-  const totalGasto = gastosRows.reduce((sum, r) => sum + r.total, 0);
+  const subGastoPracticas = gastoPracticas.reduce((s, r) => s + r.total, 0);
+  const subGastoMedicamentos = gastoMedicamentos.reduce((s, r) => s + r.total, 0);
+  const subGastoDescartables = gastoDescartables.reduce((s, r) => s + r.total, 0);
+  const totalGasto = subGastoPracticas + subGastoMedicamentos + subGastoDescartables;
   const totalFactura = totalHonor + totalGasto;
 
-  const renderTable = (rows, title, isHonorario) => {
-    if (!rows.length) return '';
-    const columns = isHonorario 
-      ? ['Código - Práctica', 'Profesional', 'Cant.', 'Valor unit.', 'Total']
-      : ['Descripción', 'Centro', 'Cant.', 'Valor unit.', 'Total'];
-    const fields = isHonorario ? ['desc', 'doctor', 'qty', 'unit', 'total'] : ['desc', 'origen', 'qty', 'unit', 'total'];
-    const titleClass = isHonorario ? 'honorario-title' : 'gasto-title';
+  // ── Funciones auxiliares para generar HTML de tablas ──
+  const renderSubTable = (rows, title, columns, fields) => {
+    if (rows.length === 0) return '';
     return `
-      <div class="section">
-        <div class="section-title ${titleClass}">${title} $ ${money(isHonorario ? totalHonor : totalGasto)}</div>
+      <div class="subcategory">
+        <div class="subcategory-title">${title} — $ ${money(rows.reduce((s, r) => s + r.total, 0))}</div>
         <table class="compact-table">
           <thead>
             <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
@@ -290,6 +340,12 @@ async function printFacturaCompleta(id) {
     `;
   };
 
+  const honorColumns = ['Código - Práctica', 'Profesional', 'Cant.', 'Valor unit.', 'Total'];
+  const honorFields = ['desc', 'doctor', 'qty', 'unit', 'total'];
+
+  const gastoColumns = ['Descripción', 'Centro', 'Cant.', 'Valor unit.', 'Total'];
+  const gastoFields = ['desc', 'origen', 'qty', 'unit', 'total'];
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -305,7 +361,6 @@ async function printFacturaCompleta(id) {
       background: white;
       position: relative;
     }
-    /* Watermark (logo de clínica de fondo) */
     .watermark {
       position: fixed;
       top: 50%;
@@ -333,16 +388,31 @@ async function printFacturaCompleta(id) {
     .art-logo { text-align: right; }
     .art-logo img { max-height: 50px; max-width: 140px; object-fit: contain; }
     .siniestro-nro { font-size: 10pt; font-weight: bold; margin-top: 5px; text-align: right; }
-    .section { margin-top: 12px; page-break-inside: avoid; }
+    
+    .section { margin-top: 16px; page-break-inside: avoid; }
     .section-title {
-      font-size: 10pt;
+      font-size: 11pt;
       font-weight: bold;
-      padding: 5px 8px;
-      margin-bottom: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
       border-radius: 4px;
+      background: #e6f0fa;
+      color: #0c4e6e;
     }
-    .honorario-title { background: #e6f0fa; color: #0c4e6e; }
-    .gasto-title { background: #f0f0f0; color: #2d3e50; }
+    .subcategory {
+      margin-left: 8px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+    .subcategory-title {
+      font-size: 10pt;
+      font-weight: 600;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      margin-bottom: 6px;
+      border-left: 3px solid #3b82f6;
+      color: #1e293b;
+    }
     .compact-table {
       width: 100%;
       border-collapse: collapse;
@@ -360,48 +430,12 @@ async function printFacturaCompleta(id) {
       border: 1px solid #ddd;
     }
     .total-row {
-      margin-top: 12px;
+      margin-top: 16px;
       text-align: right;
-      font-size: 10pt;
+      font-size: 11pt;
       font-weight: bold;
       border-top: 1px solid #ccc;
-      padding-top: 6px;
-    }
-    .footer {
-      margin-top: 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      border-top: 1px solid #aaa;
-      padding-top: 12px;
-      page-break-inside: avoid;
-    }
-    .firma {
-      text-align: center;
-      flex: 1;
-    }
-    .firma-linea {
-      width: 180px;
-      border-top: 1px solid #000;
-      margin: 0 auto 4px auto;
-    }
-    .firma-label {
-      font-size: 8pt;
-      color: #555;
-    }
-    .clinica-pie {
-      text-align: center;
-      flex: 1;
-    }
-    .clinica-pie img {
-      max-width: 60px;
-      height: auto;
-      margin-bottom: 4px;
-    }
-    .clinica-info {
-      font-size: 7pt;
-      color: #5b6e8c;
-      line-height: 1.3;
+      padding-top: 8px;
     }
     @media print {
       body { margin: 0.5cm; }
@@ -422,22 +456,26 @@ async function printFacturaCompleta(id) {
     </div>
   </div>
 
-  ${renderTable(honorariosRows, 'HONORARIOS MÉDICOS', true)}
-  ${renderTable(gastosRows, 'GASTOS CLÍNICOS', false)}
+  <!-- HONORARIOS MÉDICOS -->
+  <div class="section">
+    <div class="section-title">HONORARIOS MÉDICOS — TOTAL: $ ${money(totalHonor)}</div>
+    ${renderSubTable(honorPracticas, 'Prácticas', honorColumns, honorFields)}
+    ${renderSubTable(honorCirugias, 'Cirugías', honorColumns, honorFields)}
+    ${renderSubTable(honorLaboratorios, 'Laboratorio', honorColumns, honorFields)}
+    ${honorPracticas.length === 0 && honorCirugias.length === 0 && honorLaboratorios.length === 0 ? '<div class="emptySmall">Sin honorarios médicos.</div>' : ''}
+  </div>
+
+  <!-- GASTOS CLÍNICOS -->
+  <div class="section">
+    <div class="section-title">GASTOS CLÍNICOS — TOTAL: $ ${money(totalGasto)}</div>
+    ${renderSubTable(gastoPracticas, 'Prácticas', gastoColumns, gastoFields)}
+    ${renderSubTable(gastoMedicamentos, 'Medicación', gastoColumns, gastoFields)}
+    ${renderSubTable(gastoDescartables, 'Descartables', gastoColumns, gastoFields)}
+    ${gastoPracticas.length === 0 && gastoMedicamentos.length === 0 && gastoDescartables.length === 0 ? '<div class="emptySmall">Sin gastos clínicos.</div>' : ''}
+  </div>
 
   <div class="total-row">
     TOTAL FACTURA: $ ${money(totalFactura)}
-  </div>
-
-  <div class="footer">
-    <div class="firma">
-      <div class="firma-linea"></div>
-      <div class="firma-label">Firma y sello del prestador</div>
-    </div>
-    <div class="clinica-pie">
-      <img src="/logo.jpg" alt="Clínica de la Unión">
-      <div class="clinica-info">Clínica de la Unión S.A.<br>Av. Siburu 1085 - Chajarí, ER</div>
-    </div>
   </div>
 </body>
 </html>`;
@@ -450,16 +488,21 @@ async function printFacturaCompleta(id) {
   win.print();
 }
 
-// ── Impresión: Medicamentos + Descartables + Laboratorio (con misma estética) ──
+// ── Impresión: Medicamentos + Descartables + Laboratorio (sin firma, DNI formateado) ──
 async function printMedDescLab(id) {
   const item = await fetchFullItem(id);
-  if (!item) { alert('No se encontraron datos para este siniestro.'); return; }
+  if (!item) {
+    alert('No se encontraron datos para este siniestro.');
+    return;
+  }
 
   const paciente = item.paciente || {};
   const apellido = paciente.apellido || '';
   const nombrePaciente = paciente.nombre || paciente.nombreCompleto || '';
-  const nombreCompleto = apellido && nombrePaciente ? `${apellido}, ${nombrePaciente}` : (paciente.nombreCompleto || '—');
-  const dni = paciente.dni || '—';
+  const nombreCompleto = apellido && nombrePaciente
+    ? `${apellido}, ${nombrePaciente}`
+    : (paciente.nombreCompleto || '—');
+  const dni = formatDNI(paciente.dni || '—');
   const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
   const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
   const artImageUrl = getArtImage(artNombre);
@@ -467,8 +510,6 @@ async function printMedDescLab(id) {
   const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
   const descartables = Array.isArray(item.descartables) ? item.descartables : [];
   const laboratorios = Array.isArray(item.laboratorios) ? item.laboratorios : [];
-
-  // Usar las funciones globales pickQty, pickUnit, pickDoctor, formatCodeName, safeNum
 
   const rowsMedDesc = (arr) =>
     arr.map((x) => {
@@ -572,10 +613,11 @@ async function printMedDescLab(id) {
     }
     .patient-info { text-align: left; }
     .patient-name { font-size: 12pt; font-weight: bold; }
-    .patient-dni { font-size: 9pt; color: #2c3e66; }
+    .patient-dni, .siniestro-nro { font-size: 10pt; }
+    .patient-dni { color: #2c3e66; }
     .art-logo { text-align: right; }
     .art-logo img { max-height: 50px; max-width: 140px; object-fit: contain; }
-    .siniestro-nro { font-size: 10pt; font-weight: bold; margin-top: 5px; text-align: right; }
+    .siniestro-nro { font-weight: bold; margin-top: 5px; text-align: right; }
     .section { margin-top: 12px; page-break-inside: avoid; }
     .section-title {
       font-size: 10pt;
@@ -611,42 +653,6 @@ async function printMedDescLab(id) {
       border-top: 1px solid #ccc;
       padding-top: 6px;
     }
-    .footer {
-      margin-top: 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      border-top: 1px solid #aaa;
-      padding-top: 12px;
-      page-break-inside: avoid;
-    }
-    .firma {
-      text-align: center;
-      flex: 1;
-    }
-    .firma-linea {
-      width: 180px;
-      border-top: 1px solid #000;
-      margin: 0 auto 4px auto;
-    }
-    .firma-label {
-      font-size: 8pt;
-      color: #555;
-    }
-    .clinica-pie {
-      text-align: center;
-      flex: 1;
-    }
-    .clinica-pie img {
-      max-width: 60px;
-      height: auto;
-      margin-bottom: 4px;
-    }
-    .clinica-info {
-      font-size: 7pt;
-      color: #5b6e8c;
-      line-height: 1.3;
-    }
     @media print {
       body { margin: 0.5cm; }
       .watermark { opacity: 0.1; }
@@ -660,7 +666,10 @@ async function printMedDescLab(id) {
       <div class="patient-name">${nombreCompleto}</div>
       <div class="patient-dni">DNI ${dni}</div>
     </div>
-   
+    <div class="art-logo">
+      <img src="${artImageUrl}" alt="${artNombre}" onerror="this.src='/img-art/default.webp'">
+      <div class="siniestro-nro">N° Siniestro: ${siniestro}</div>
+    </div>
   </div>
 
   ${secMed}
@@ -670,8 +679,6 @@ async function printMedDescLab(id) {
   <div class="total-row">
     TOTAL GENERAL: $ ${money(totalGen)}
   </div>
-
-
 </body>
 </html>`;
 
@@ -683,7 +690,7 @@ async function printMedDescLab(id) {
   win.print();
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ── Página principal (sin cambios, solo se reemplazan las funciones de impresión) ──
 
 export default function FacturadosPage() {
   const {
@@ -715,25 +722,19 @@ export default function FacturadosPage() {
   const [moving, setMoving] = useState(false);
   const toast = useToast();
 
-  // ── Mover borradores a facturados ────────────────────────────────────────
-
   const handleMoveToFacturados = async () => {
     if (selectedIds.size === 0) {
       toast.info('Seleccioná al menos un siniestro');
       return;
     }
-
     const facturaNro = window.prompt('Número de factura (opcional)');
-    if (facturaNro === null) return; // cancelado
-
+    if (facturaNro === null) return;
     const cantidad = selectedIds.size;
     const confirmar = window.confirm(
       `¿Pasás ${cantidad} siniestro${cantidad !== 1 ? 's' : ''} a Facturados?`
     );
     if (!confirmar) return;
-
     setMoving(true);
-
     const updates = {};
     selectedIds.forEach((id) => {
       updates[`Facturacion/${id}/estado`] = 'cerrado';
@@ -741,20 +742,12 @@ export default function FacturadosPage() {
         updates[`Facturacion/${id}/facturaNro`] = facturaNro.trim();
       }
     });
-
     try {
       await update(ref(db), updates);
       toast.success(`${cantidad} siniestro${cantidad !== 1 ? 's' : ''} movido${cantidad !== 1 ? 's' : ''} a Facturados ✓`);
-
-      if (typeof toggleSelectAll === 'function') {
-        toggleSelectAll(false);
-      }
-
-      if (typeof refresh === 'function') {
-        refresh();
-      } else {
-        setEstadoQuery('cerrado');
-      }
+      if (typeof toggleSelectAll === 'function') toggleSelectAll(false);
+      if (typeof refresh === 'function') refresh();
+      else setEstadoQuery('cerrado');
     } catch (err) {
       console.error('Error al mover a facturados:', err);
       toast.error('Ocurrió un error al actualizar.');
@@ -762,8 +755,6 @@ export default function FacturadosPage() {
       setMoving(false);
     }
   };
-
-  // ── Wrapper de deleteSelected con toast ──────────────────────────────────
 
   const handleDelete = async () => {
     if (selectedIds.size === 0) {
@@ -836,8 +827,6 @@ export default function FacturadosPage() {
           )}
         </main>
       </div>
-
-      {/* Toast notifications — fuera del contenedor para overlay correcto */}
       <ToastContainer toasts={toast.toasts} onRemove={toast.remove} />
     </>
   );

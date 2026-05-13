@@ -69,15 +69,15 @@ export default function WhatsAppSender() {
 
   // Construcción de mensaje
   const buildMessage = () => {
-if (mensaje === "1") {
-  const msgDaniela = encodeURIComponent(
-    "Hola Daniela, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
-  );
-  const msgNatali = encodeURIComponent(
-    "Hola Natali, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
-  );
+    if (mensaje === "1") {
+      const msgDaniela = encodeURIComponent(
+        "Hola Daniela, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
+      );
+      const msgNatali = encodeURIComponent(
+        "Hola Natali, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
+      );
 
-  return `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
 Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
@@ -95,7 +95,7 @@ También le dejamos las kinesiólogas que trabajan con ART:
   💬 Contactar por WhatsApp: wa.me/5493456513866?text=${msgNatali}
 
 En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
-}
+    }
     if (mensaje === "2") {
       return `Buen día, *${name}*.
 Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
@@ -142,10 +142,10 @@ ${profesional}`;
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
-          ? `Bioquímica Confalonieri
-*Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
-          : `Bioquímico Mármol
-*Dirección:* Sarmiento 2610`;
+          ? `Bioquímica Confalonieri\n*Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
+          : bioquimico === "marmol"
+            ? `Bioquímico Mármol\n*Dirección:* Sarmiento 2610`
+            : `Bioquímica Tabeni\n*Dirección:* Jaime Tabeni 1101 (esquina Uruguay)`;
       return `Buen día, *${name}*.
 Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
 
@@ -374,6 +374,7 @@ Le informamos los pasos para retirar su ortopedia:
               >
                 <option value="confalonieri">Bioquímica Confalonieri</option>
                 <option value="marmol">Bioquímico Mármol</option>
+                <option value="tabeni">Bioquímico/a Tabeni</option>  {/* ← nuevo */}
               </select>
             </div>
           )}
