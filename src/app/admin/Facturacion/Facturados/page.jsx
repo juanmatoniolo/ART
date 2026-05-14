@@ -141,12 +141,29 @@ const formatCodeName = (x) => {
   return code ? `${code} — ${name}` : name;
 };
 
-// ── Formateador de DNI con separadores de miles (puntos) ──
+// ── Formateador de DNI / CUIL ──
+// Para números de 7 u 8 dígitos: XX.XXX.XXX
+// Para números de 11 dígitos (CUIL): XX-XX.XXX.XXX-X
 const formatDNI = (dni) => {
   if (!dni || dni === '—') return '—';
-  const dniStr = String(dni).replace(/\D/g, '');
-  if (dniStr.length === 0) return '—';
-  return dniStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const digits = String(dni).replace(/\D/g, '');
+  if (digits.length === 0) return '—';
+
+  if (digits.length === 7 || digits.length === 8) {
+    // DNI: puntos cada 3 desde la derecha
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  } else if (digits.length === 11) {
+    // CUIL: XX-XX.XXX.XXX-X
+    const part1 = digits.slice(0, 2);
+    const part2 = digits.slice(2, 4);
+    const part3 = digits.slice(4, 7);
+    const part4 = digits.slice(7, 10);
+    const check = digits.slice(10, 11);
+    return `${part1}-${part2}.${part3}.${part4}-${check}`;
+  } else {
+    // Cualquier otra longitud: devolver el número original sin formato
+    return dni;
+  }
 };
 
 // ── Firebase helpers ──────────────────────────────────────────────────────────
@@ -690,7 +707,7 @@ async function printMedDescLab(id) {
   win.print();
 }
 
-// ── Página principal (sin cambios, solo se reemplazan las funciones de impresión) ──
+// ── Página principal ──
 
 export default function FacturadosPage() {
   const {
