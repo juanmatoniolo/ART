@@ -44,7 +44,7 @@ const defaultYear = String(today.getFullYear());
 
 function calcularEdad(nacimiento) {
   if (!nacimiento) return "";
-  const [y, m, d] = nacimiento.split("-").map(Number);a
+  const [y, m, d] = nacimiento.split("-").map(Number);
   if (!y || !m || !d) return "";
   const hoy = new Date();
   let edad = hoy.getFullYear() - y;
