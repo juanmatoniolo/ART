@@ -18,10 +18,8 @@ const formatDNI = (dni) => {
   if (digits.length === 0) return '—';
 
   if (digits.length === 7 || digits.length === 8) {
-    // DNI: puntos cada 3 desde la derecha
     return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   } else if (digits.length === 11) {
-    // CUIL: XX-XX.XXX.XXX-X
     const part1 = digits.slice(0, 2);
     const part2 = digits.slice(2, 4);
     const part3 = digits.slice(4, 7);
@@ -29,9 +27,35 @@ const formatDNI = (dni) => {
     const check = digits.slice(10, 11);
     return `${part1}-${part2}.${part3}.${part4}-${check}`;
   } else {
-    // Cualquier otra longitud: devolver el número original sin formato
     return dni;
   }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Mapa unificado de imágenes de ART (claves normalizadas sin espacios ni tildes)
+// ─────────────────────────────────────────────────────────────────────────────
+const ART_IMAGE_MAP = {
+  "asociart": "ASOCIART.png",
+  "comfye": "COMFYE.png",
+  "federacionpatronalap": "FPSEGUROS.png",
+  "federacionpatronalart": "FPART.png",
+  "iapsart": "IAPSART.png",
+  "iaps": "IAPSSEGUROS.webp",
+  "lasegundaap": "LASEGUNDA.svg",
+  "lasegundaart": "LASEGUNDAART.png",
+  "medicarwork": "MEDICARWORk.jpg",
+  "victoriaart": "VICTORIAART.png",
+};
+
+const getArtImage = (artName) => {
+  if (!artName || artName === 'SIN ART') return '/img-art/default.webp';
+  const key = artName
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // quita tildes
+    .replace(/[^\w]/g, '')                              // elimina espacios, puntos, guiones, etc.
+    .trim();
+  const fileName = ART_IMAGE_MAP[key];
+  return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -279,31 +303,6 @@ const PrintView = React.forwardRef(({
   subtotalGastoDescartables,
   artNombre,
 }, ref) => {
-  const getArtImage = (artName) => {
-    if (!artName || artName === 'SIN ART') return '/img-art/default.webp';
-    const normalizeForMap = (str) => str
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w\s]/g, '')
-      .trim();
-    const key = normalizeForMap(artName);
-    const artFiles = {
-      "asociart": "Asociart.webp",
-      "comfye": "COMFYE.webp",
-      "federacion patronal ap": "FederacionpatronalAP.webp",
-      "federacion patronal art": "FederacionpatronalART.webp",
-      "iaps art": "IAPSART.webp",
-      "iaps": "IAPS.webp",
-      "la segunda ap": "LASEGUNDAAP.webp",
-      "la segunda art": "lasegundaart.webp",
-      "medicar work": "medicarwork.webp",
-      "victoria art": "vicotriaart.webp",
-      "vicotria art": "vicotriaart.webp"
-    };
-    const fileName = artFiles[key];
-    return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
-  };
-
   const artImageUrl = getArtImage(artNombre);
 
   const apellido = paciente?.apellido || '';
@@ -643,30 +642,6 @@ export default function FacturadoDetallePage() {
     const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
     const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
-    const getArtImage = (artName) => {
-      if (!artName || artName === 'SIN ART') return '/img-art/default.webp';
-      const normalizeForMap = (str) => str
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^\w\s]/g, '')
-        .trim();
-      const key = normalizeForMap(artName);
-      const artFiles = {
-        "asociart": "Asociart.webp",
-        "comfye": "COMFYE.webp",
-        "federacion patronal ap": "FederacionpatronalAP.webp",
-        "federacion patronal art": "FederacionpatronalART.webp",
-        "iaps art": "IAPSART.webp",
-        "iaps": "IAPS.webp",
-        "la segunda ap": "LASEGUNDAAP.webp",
-        "la segunda art": "lasegundaart.webp",
-        "medicar work": "medicarwork.webp",
-        "victoria art": "vicotriaart.webp",
-        "vicotria art": "vicotriaart.webp"
-      };
-      const fileName = artFiles[key];
-      return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
-    };
     const artImageUrl = getArtImage(artNombre);
 
     const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
@@ -872,13 +847,59 @@ export default function FacturadoDetallePage() {
     @media print {
       body { margin: 0.5cm; }
     }
+
+    .clinic-footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .clinic-name {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .clinic-detail {
+      font-size: 8pt;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .clinic-date {
+      font-size: 9pt;
+      color: #334155;
+      font-style: italic;
+      white-space: nowrap;
+    }
+    .sign-block {
+      margin-top: 40px;
+      display: flex;
+      justify-content: space-around;
+      gap: 40px;
+      page-break-inside: avoid;
+    }
+    .sign-col {
+      flex: 1;
+      text-align: center;
+      max-width: 220px;
+    }
+    .sign-line {
+      border-bottom: 1.5px solid #1e293b;
+      width: 100%;
+      margin-bottom: 6px;
+      height: 36px;
+    }
+    .sign-label {
+      font-size: 8pt;
+      color: #475569;
+    }
   </style>
 </head>
 <body>
-  <div class="watermark">
-    <img src="/logo.png" alt="Clínica de la Unión" onerror="this.src='/logo.jpg'">
-  </div>
-
   <div class="header-row">
     <div class="patient-info">
       <div class="patient-name">${nombreCompleto}</div>
@@ -897,6 +918,23 @@ export default function FacturadoDetallePage() {
   <div class="total-row">
     TOTAL GENERAL: $ ${money(totalGen)}
   </div>
+
+  <!-- Datos institucionales + firma -->
+  <div class="clinic-footer">
+    <div class="clinic-info">
+      <div class="clinic-name">Clínica de la Unión S.A.</div>
+      <div class="clinic-detail">Av. Siburu 1085 — Chajarí, Entre Ríos (C.P. 3228)</div>
+      <div class="clinic-detail">Tel.: (03456) 441580 &nbsp;|&nbsp; clinicadelaunionart@gmail.com</div>
+      <div class="clinic-detail">CUIT: 30‑70754530-1</div>
+    </div>
+  </div>
+
+  <div class="sign-block">
+    <div class="sign-col">
+      <div class="sign-line"></div>
+      <div class="sign-label">Firma y sello — Administración</div>
+    </div>
+  </div>
 </body>
 </html>`;
 
@@ -905,7 +943,23 @@ export default function FacturadoDetallePage() {
     win.document.write(html);
     win.document.close();
     win.focus();
-    win.print();
+
+    // Prevenir doble impresión
+    let printed = false;
+    win.onload = () => {
+      if (!printed) {
+        printed = true;
+        win.print();
+      }
+    };
+    setTimeout(() => {
+      try {
+        if (!printed) {
+          printed = true;
+          win.print();
+        }
+      } catch (e) {}
+    }, 1200);
   };
 
   const onDownloadCsv = () => {

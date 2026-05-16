@@ -462,18 +462,16 @@ async function printFacturaCompleta(id) {
 </head>
 <body>
   <div class="watermark"><img src="/logo.png" alt=""></div>
- <div class="header-row">
-  <div class="patient-info">
-    <div class="patient-name">${nombreCompleto}</div>
-    <div class="patient-dni">DNI ${dniFormateado}</div>
-    <div class="patient-art">${artNombre}</div>
+  <div class="header-row">
+    <div class="patient-info">
+      <div class="patient-name">${nombreCompleto}</div>
+      <div class="patient-dni">DNI ${dni}</div>
+    </div>
+    <div class="art-logo">
+      <img src="${artImageUrl}" alt="${artNombre}" onerror="this.src='/img-art/default.webp'">
+      <div class="siniestro-nro">N° Siniestro: ${siniestro}</div>
+    </div>
   </div>
-  <div class="art-block">
-    <img src="${artImageUrl}" alt="${artNombre}" class="art-logo"
-         onerror="this.src='/img-art/default.webp'">
-    <div class="siniestro-num">N° Siniestro: ${siniestro}</div>
-  </div>
-</div>
 
   <!-- HONORARIOS MÉDICOS -->
   <div class="section">
@@ -616,12 +614,6 @@ async function printMedDescLab(id) {
       background: white;
       position: relative;
     }
-.patient-art {
-  font-size: 10pt;
-  color: #1e293b;
-  font-weight: 600;
-  margin-top: 2px;
-}
     .watermark {
       position: fixed;
       top: 50%;
@@ -690,18 +682,15 @@ async function printMedDescLab(id) {
 </head>
 <body>
   <div class="watermark"><img src="/logo.png" alt=""></div>
- <div class="header-row">
-  <div class="patient-info">
-    <div class="patient-name">${nombreCompleto}</div>
-    <div class="patient-dni">DNI ${dniFormateado}</div>
-    <div class="patient-art">${artNombre}</div>
-  </div>
-  <div class="art-block">
-    <img src="${artImageUrl}" alt="${artNombre}" class="art-logo"
-         onerror="this.src='/img-art/default.webp'">
-    <div class="siniestro-num">N° Siniestro: ${siniestro}</div>
-  </div>
-</div>
+  <div class="header-row">
+    <div class="patient-info">
+      <div class="patient-name">${nombreCompleto}</div>
+      <div class="patient-dni">DNI ${dni}</div>
+    </div>
+    <div class="art-logo">
+      <img src="${artImageUrl}" alt="${artNombre}" onerror="this.src='/img-art/default.webp'">
+      <div class="siniestro-nro">N° Siniestro: ${siniestro}</div>
+    </div>
   </div>
 
   ${secMed}
@@ -714,11 +703,12 @@ async function printMedDescLab(id) {
 </body>
 </html>`;
 
-win.document.write(html);
-win.document.close();
-win.focus();
-win.onload = () => win.print();
-setTimeout(() => { try { win.print(); } catch(e) {} }, 800);
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
 // ── Página principal ──
