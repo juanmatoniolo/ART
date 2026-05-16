@@ -497,12 +497,16 @@ async function printFacturaCompleta(id) {
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.print();
+// ✅ Después
+const win = window.open('', '_blank');
+if (!win) return;
+win.document.write(html);
+win.document.close();
+win.focus();
+// Esperar que todo cargue antes de imprimir
+win.onload = () => win.print();
+// Fallback por si onload ya disparó (documento sincrónico sin recursos externos)
+setTimeout(() => { try { win.print(); } catch(e) {} }, 800);
 }
 
 // ── Impresión: Medicamentos + Descartables + Laboratorio (sin firma, DNI formateado) ──
@@ -631,7 +635,7 @@ async function printMedDescLab(id) {
     .patient-info { text-align: left; }
     .patient-name { font-size: 12pt; font-weight: bold; }
     .patient-dni, .siniestro-nro { font-size: 10pt; }
-    .patient-dni { color: #2c3e66; }
+   .patient-dni { color: #0f172a; }
     .art-logo { text-align: right; }
     .art-logo img { max-height: 50px; max-width: 140px; object-fit: contain; }
     .siniestro-nro { font-weight: bold; margin-top: 5px; text-align: right; }
