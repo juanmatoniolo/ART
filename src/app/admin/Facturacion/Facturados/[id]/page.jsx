@@ -654,15 +654,15 @@ export default function FacturadoDetallePage() {
       const artFiles = {
         "asociart": "Asociart.webp",
         "comfye": "COMFYE.webp",
-        "federacion patronal ap": "Federacion patronal AP.webp",
-        "federacion patronal art": "Federacion patronal ART.webp",
-        "iaps art": "IAPS ART.webp",
+        "federacion patronal ap": "FederacionpatronalAP.webp",
+        "federacion patronal art": "FederacionpatronalART.webp",
+        "iaps art": "IAPSART.webp",
         "iaps": "IAPS.webp",
-        "la segunda ap": "LA SEGUNDA AP.webp",
-        "la segunda art": "la segunda art.webp",
-        "medicar work": "medicar work.webp",
-        "victoria art": "vicotria art.webp",
-        "vicotria art": "vicotria art.webp"
+        "la segunda ap": "LASEGUNDAAP.webp",
+        "la segunda art": "lasegundaart.webp",
+        "medicar work": "medicarwork.webp",
+        "victoria art": "vicotriaart.webp",
+        "vicotria art": "vicotriaart.webp"
       };
       const fileName = artFiles[key];
       return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
