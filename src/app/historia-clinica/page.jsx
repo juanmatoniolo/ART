@@ -1,171 +1,427 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { ref, onValue, push, set, update } from "firebase/database";
-import { db } from "../../lib/firebase";
+import { useEffect, useMemo, useState } from "react";
+import { ref, onValue, push, set, update, runTransaction } from "firebase/database";
 import Fuse from "fuse.js";
+import { db } from "../../lib/firebase";
 import styles from "./historias.module.css";
+import Header from "@/components/Header/Header";
 
 const ITEMS_PER_PAGE = 20;
 
-export default function HistoriasClinicasPage() {
-  // Estados de datos
-  const [pacientes, setPacientes] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [displayed, setDisplayed] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const [loading, setLoading] = useState(true);
-  const [lastNumbers, setLastNumbers] = useState([]);
+const USERS_PATH = "users";
+const HC_PATH = "historias-clinicas";
+const HC_UTI_PATH = "historias-clinica-uti";
+const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
+const COUNTER_UTI_PATH = "counters/historias-clinica-uti/lastNumber";
 
-  // Estados de búsqueda y filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchField, setSearchField] = useState("all"); // "all", "nombre", "dni", "historia"
-  const [showOnlyAlerts, setShowOnlyAlerts] = useState(false);
+const normalizeText = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 
-  // Usuario logueado
-  const [currentUser, setCurrentUser] = useState(null);
+const normalizeUser = (value = "") => normalizeText(value).toLowerCase();
 
-  // Formulario de alta
-  const [form, setForm] = useState({
-    nombre_apellido: "",
-    dni: "",
-    historia_clinica: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
+const parseHCNumber = (item) => {
+  const raw =
+    item?.historia_clinica ??
+    item?.historia_clinica_1 ??
+    item?.historiaClinica ??
+    item?.hc ??
+    "";
 
-  // Edición inline
-  const [editingId, setEditingId] = useState(null);
-  const [editValues, setEditValues] = useState({});
+  const onlyDigits = String(raw).replace(/\D/g, "");
+  return onlyDigits ? Number(onlyDigits) : null;
+};
 
-  // Configuración de Fuse según el campo seleccionado
-  const fuse = useMemo(() => {
-    if (!pacientes.length) return null;
+const formatDni = (value = "") => {
+  const digits = String(value).replace(/\D/g, "");
+  if (!digits) return "-";
+  return new Intl.NumberFormat("es-AR").format(Number(digits));
+};
+
+const formatHC = (value = "") => {
+  const digits = String(value).replace(/\D/g, "");
+  return digits || "-";
+};
+
+const mapHistoriaGeneral = (id, values = {}) => ({
+  id,
+  source: HC_PATH,
+  nombre_apellido: values.nombre_apellido || values.nombre || "",
+  dni: values.dni || values.documento || "",
+  historia_clinica: values.historia_clinica || values.historia_clinica_1 || "",
+  alertas: Array.isArray(values.alertas) ? values.alertas : [],
+  createdBy: values.createdBy || values.creadoPor || "",
+  createdAt: values.createdAt || null,
+  modifiedBy: values.modifiedBy || values.modificadoPor || "",
+  modifiedAt: values.modifiedAt || null,
+  original: values,
+});
+
+const mapHistoriaUti = (id, values = {}) => ({
+  id,
+  source: HC_UTI_PATH,
+  nombre_apellido: values.nombre || values.nombre_apellido || "",
+  dni: values.documento || values.dni || "",
+  historia_clinica: values.historia_clinica_1 || values.historia_clinica || "",
+  alertas: Array.isArray(values.alertas) ? values.alertas : [],
+  createdBy: values.createdBy || values.creadoPor || "",
+  createdAt: values.createdAt || null,
+  modifiedBy: values.modifiedBy || values.modificadoPor || "",
+  modifiedAt: values.modifiedAt || null,
+  original: values,
+});
+
+const getUserEntries = (usersObj = {}) => {
+  return Object.entries(usersObj)
+    .filter(([key, value]) => key?.startsWith("usuario") && value && typeof value === "object")
+    .map(([key, value]) => ({
+      key,
+      user: String(value.user || value.usuario || "").trim(),
+      pass: String(value.pass || value.password || "").trim(),
+      nombre: String(value.nombre || value.user || value.usuario || "").trim(),
+      raw: value,
+    }))
+    .filter((item) => item.user && item.pass);
+};
+
+const filterItems = ({ items, searchTerm, searchField, showOnlyAlerts }) => {
+  let results = items;
+
+  if (searchTerm.trim()) {
     let keys = ["nombre_apellido", "dni", "historia_clinica"];
     if (searchField === "nombre") keys = ["nombre_apellido"];
     else if (searchField === "dni") keys = ["dni"];
     else if (searchField === "historia") keys = ["historia_clinica"];
-    // "all" usa las tres claves
-    return new Fuse(pacientes, {
+
+    const fuse = new Fuse(items, {
       keys,
-      threshold: 0.3, // difuso
+      threshold: 0.3,
       includeScore: false,
     });
-  }, [pacientes, searchField]);
 
-  // Cargar datos y últimos números
+    results = fuse.search(searchTerm).map((r) => r.item);
+  }
+
+  if (showOnlyAlerts) {
+    results = results.filter((item) => item.alertas && item.alertas.length > 0);
+  }
+
+  return results;
+};
+
+export default function HistoriasClinicasPage() {
+  const [tab, setTab] = useState("general");
+  const [loading, setLoading] = useState(true);
+
+  const [historiasGeneral, setHistoriasGeneral] = useState([]);
+  const [historiasUti, setHistoriasUti] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchField, setSearchField] = useState("all");
+  const [showOnlyAlerts, setShowOnlyAlerts] = useState(false);
+
+  const [visibleGeneral, setVisibleGeneral] = useState(ITEMS_PER_PAGE);
+  const [visibleUti, setVisibleUti] = useState(ITEMS_PER_PAGE);
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginForm, setLoginForm] = useState({
+    user: "",
+    pass: "",
+  });
+
+  const [nextGeneralNumber, setNextGeneralNumber] = useState("1");
+  const [nextUtiNumber, setNextUtiNumber] = useState("1");
+
+  const [formGeneral, setFormGeneral] = useState({
+    nombre_apellido: "",
+    dni: "",
+  });
+
+  const [formUti, setFormUti] = useState({
+    nombre_apellido: "",
+    dni: "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+
   useEffect(() => {
-    const pacientesRef = ref(db, "historias-clinicas");
-    const unsubscribe = onValue(pacientesRef, (snapshot) => {
-      const data = snapshot.val();
-      let lista = [];
-      if (data) {
-        lista = Object.entries(data).map(([id, values]) => ({
-          id,
-          ...values,
-        }));
-      }
-      setPacientes(lista);
-
-      // Calcular últimos 5 números de HC
-      const numbers = lista
-        .map((p) => p.historia_clinica)
-        .filter((n) => n && !isNaN(Number(n)))
-        .sort((a, b) => Number(b) - Number(a))
-        .slice(0, 5);
-      setLastNumbers(numbers);
-      setLoading(false);
+    const usersRef = ref(db, USERS_PATH);
+    const unsubUsers = onValue(usersRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const entries = getUserEntries(data);
+      setUsersList(entries);
     });
-    return () => unsubscribe();
+
+    const generalRef = ref(db, HC_PATH);
+    const unsubGeneral = onValue(generalRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const items = Object.entries(data)
+        .map(([id, values]) => mapHistoriaGeneral(id, values))
+        .sort((a, b) => (parseHCNumber(b) || 0) - (parseHCNumber(a) || 0));
+
+      setHistoriasGeneral(items);
+
+      const max = items
+        .map((item) => parseHCNumber(item))
+        .filter((n) => Number.isFinite(n))
+        .reduce((acc, curr) => Math.max(acc, curr), 0);
+
+      setNextGeneralNumber(String(max + 1));
+    });
+
+    const utiRef = ref(db, HC_UTI_PATH);
+    const unsubUti = onValue(utiRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const items = Object.entries(data)
+        .map(([id, values]) => mapHistoriaUti(id, values))
+        .sort((a, b) => (parseHCNumber(b) || 0) - (parseHCNumber(a) || 0));
+
+      setHistoriasUti(items);
+
+      const max = items
+        .map((item) => parseHCNumber(item))
+        .filter((n) => Number.isFinite(n))
+        .reduce((acc, curr) => Math.max(acc, curr), 0);
+
+      setNextUtiNumber(String(max + 1));
+    });
+
+    setLoading(false);
+
+    return () => {
+      unsubUsers();
+      unsubGeneral();
+      unsubUti();
+    };
   }, []);
 
-  // Aplicar búsqueda difusa + filtro de alertas
   useEffect(() => {
-    let results = pacientes;
+    const savedUser = localStorage.getItem("historia_user_auth");
+    if (!savedUser) return;
 
-    // Búsqueda difusa
-    if (searchTerm.trim() && fuse) {
-      const fuseResults = fuse.search(searchTerm).map((r) => r.item);
-      results = fuseResults;
+    try {
+      const parsed = JSON.parse(savedUser);
+      const match = usersList.find(
+        (u) =>
+          normalizeUser(u.user) === normalizeUser(parsed.user) &&
+          u.pass === parsed.pass
+      );
+
+      if (match) {
+        setCurrentUser(match);
+      } else {
+        localStorage.removeItem("historia_user_auth");
+      }
+    } catch {
+      localStorage.removeItem("historia_user_auth");
+    }
+  }, [usersList]);
+
+  const currentItems = tab === "general" ? historiasGeneral : historiasUti;
+
+  const filteredItems = useMemo(() => {
+    return filterItems({
+      items: currentItems,
+      searchTerm,
+      searchField,
+      showOnlyAlerts,
+    });
+  }, [currentItems, searchTerm, searchField, showOnlyAlerts]);
+
+  const visibleCount = tab === "general" ? visibleGeneral : visibleUti;
+  const displayedItems = filteredItems.slice(0, visibleCount);
+
+  const isLogged = Boolean(currentUser);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+
+    const user = loginForm.user.trim();
+    const pass = loginForm.pass.trim();
+
+    if (!user || !pass) {
+      alert("Debes completar usuario y contraseña");
+      return;
     }
 
-    // Filtro de alertas
-    if (showOnlyAlerts) {
-      results = results.filter((p) => p.alertas && p.alertas.length > 0);
+    const match = usersList.find(
+      (item) =>
+        normalizeUser(item.user) === normalizeUser(user) && item.pass === pass
+    );
+
+    if (!match) {
+      alert("Usuario o contraseña incorrectos");
+      return;
     }
 
-    setFiltered(results);
-    setVisibleCount(ITEMS_PER_PAGE);
-  }, [searchTerm, searchField, fuse, pacientes, showOnlyAlerts]);
+    setCurrentUser(match);
+    localStorage.setItem(
+      "historia_user_auth",
+      JSON.stringify({
+        user: match.user,
+        pass: match.pass,
+      })
+    );
 
-  // Paginación local
-  useEffect(() => {
-    setDisplayed(filtered.slice(0, visibleCount));
-  }, [filtered, visibleCount]);
-
-  // Login
-  useEffect(() => {
-    const savedUser = localStorage.getItem("historia_user");
-    if (savedUser) setCurrentUser(savedUser);
-  }, []);
-
-  const handleLogin = () => {
-    const name = prompt("Ingresa tu nombre (para registrar cambios):");
-    if (name && name.trim()) {
-      setCurrentUser(name.trim());
-      localStorage.setItem("historia_user", name.trim());
-    }
+    setLoginForm({ user: "", pass: "" });
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem("historia_user");
+    localStorage.removeItem("historia_user_auth");
   };
 
-  // Agregar paciente
-  const handleSubmit = async (e) => {
+  const getNextHistoryNumber = async (counterPath) => {
+    const counterRef = ref(db, counterPath);
+
+    const tx = await runTransaction(counterRef, (currentValue) => {
+      const currentNumber = Number(currentValue || 0);
+      return currentNumber + 1;
+    });
+
+    if (!tx.committed) {
+      throw new Error("No se pudo reservar el número");
+    }
+
+    return String(tx.snapshot.val());
+  };
+
+  const ensureNextNumber = async (reservedNumber, items, counterPath) => {
+    const currentMax = items
+      .map((item) => parseHCNumber(item))
+      .filter((n) => Number.isFinite(n))
+      .reduce((acc, curr) => Math.max(acc, curr), 0);
+
+    const reserved = Number(reservedNumber || 0);
+
+    if (reserved <= currentMax) {
+      const counterRef = ref(db, counterPath);
+      await set(counterRef, currentMax + 1);
+      return String(currentMax + 1);
+    }
+
+    return String(reserved);
+  };
+
+  const handleCreateGeneral = async (e) => {
     e.preventDefault();
-    if (!currentUser) {
-      alert("Debes iniciar sesión para agregar pacientes");
+
+    if (!isLogged) {
+      alert("Debes iniciar sesión");
       return;
     }
-    if (!form.nombre_apellido || !form.dni || !form.historia_clinica) {
-      alert("Todos los campos son obligatorios");
+
+    if (!formGeneral.nombre_apellido.trim() || !formGeneral.dni.trim()) {
+      alert("Nombre y DNI son obligatorios");
       return;
     }
+
     setSubmitting(true);
+
     try {
-      const newRef = push(ref(db, "historias-clinicas"));
+      let newNumber = await getNextHistoryNumber(COUNTER_GENERAL_PATH);
+      newNumber = await ensureNextNumber(
+        newNumber,
+        historiasGeneral,
+        COUNTER_GENERAL_PATH
+      );
+
+      const newRef = push(ref(db, HC_PATH));
+      const now = Date.now();
+
       await set(newRef, {
-        nombre_apellido: form.nombre_apellido,
-        dni: form.dni,
-        historia_clinica: form.historia_clinica,
+        nombre_apellido: formGeneral.nombre_apellido.trim(),
+        dni: formGeneral.dni.trim(),
+        historia_clinica: newNumber,
         alertas: [],
-        createdBy: currentUser,
-        createdAt: Date.now(),
-        modifiedBy: currentUser,
-        modifiedAt: Date.now(),
+        createdBy: currentUser.user,
+        createdByUserKey: currentUser.key,
+        createdAt: now,
+        modifiedBy: currentUser.user,
+        modifiedByUserKey: currentUser.key,
+        modifiedAt: now,
       });
-      setForm({ nombre_apellido: "", dni: "", historia_clinica: "" });
-      alert("Paciente agregado correctamente");
+
+      setFormGeneral({
+        nombre_apellido: "",
+        dni: "",
+      });
     } catch (error) {
       console.error(error);
-      alert("Error al agregar paciente");
+      alert("Error al crear historia clínica");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Edición inline
-  const startEdit = (paciente) => {
-    if (!currentUser) {
-      alert("Debes iniciar sesión para editar");
+  const handleCreateUti = async (e) => {
+    e.preventDefault();
+
+    if (!isLogged) {
+      alert("Debes iniciar sesión");
       return;
     }
-    setEditingId(paciente.id);
+
+    if (!formUti.nombre_apellido.trim() || !formUti.dni.trim()) {
+      alert("Nombre y DNI son obligatorios");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      let newNumber = await getNextHistoryNumber(COUNTER_UTI_PATH);
+      newNumber = await ensureNextNumber(
+        newNumber,
+        historiasUti,
+        COUNTER_UTI_PATH
+      );
+
+      const newRef = push(ref(db, HC_UTI_PATH));
+      const now = Date.now();
+
+      await set(newRef, {
+        nombre: formUti.nombre_apellido.trim(),
+        documento: formUti.dni.trim(),
+        historia_clinica_1: newNumber,
+        alertas: [],
+        createdBy: currentUser.user,
+        createdByUserKey: currentUser.key,
+        createdAt: now,
+        modifiedBy: currentUser.user,
+        modifiedByUserKey: currentUser.key,
+        modifiedAt: now,
+      });
+
+      setFormUti({
+        nombre_apellido: "",
+        dni: "",
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Error al crear historia clínica UTI");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEdit = (item) => {
+    if (!isLogged) return;
+
+    setEditingId(item.id);
     setEditValues({
-      nombre_apellido: paciente.nombre_apellido || "",
-      dni: paciente.dni || "",
-      historia_clinica: paciente.historia_clinica || "",
+      id: item.id,
+      source: item.source,
+      nombre_apellido: item.nombre_apellido || "",
+      dni: item.dni || "",
+      historia_clinica: item.historia_clinica || "",
     });
   };
 
@@ -174,252 +430,434 @@ export default function HistoriasClinicasPage() {
     setEditValues({});
   };
 
-  const saveEdit = async (id) => {
-    if (!currentUser) return;
+  const saveEdit = async () => {
+    if (!isLogged || !editingId) return;
+
     try {
-      const updates = {
-        ...editValues,
-        modifiedBy: currentUser,
-        modifiedAt: Date.now(),
-      };
-      await update(ref(db, `historias-clinicas/${id}`), updates);
-      setEditingId(null);
-      setEditValues({});
+      const now = Date.now();
+
+      if (editValues.source === HC_UTI_PATH) {
+        await update(ref(db, `${HC_UTI_PATH}/${editingId}`), {
+          nombre: editValues.nombre_apellido.trim(),
+          documento: editValues.dni.trim(),
+          historia_clinica_1: editValues.historia_clinica.trim(),
+          modifiedBy: currentUser.user,
+          modifiedByUserKey: currentUser.key,
+          modifiedAt: now,
+        });
+      } else {
+        await update(ref(db, `${HC_PATH}/${editingId}`), {
+          nombre_apellido: editValues.nombre_apellido.trim(),
+          dni: editValues.dni.trim(),
+          historia_clinica: editValues.historia_clinica.trim(),
+          modifiedBy: currentUser.user,
+          modifiedByUserKey: currentUser.key,
+          modifiedAt: now,
+        });
+      }
+
+      cancelEdit();
     } catch (error) {
       console.error(error);
-      alert("Error al guardar cambios");
+      alert("Error al guardar");
     }
   };
 
-  const handleEditChange = (e) => {
-    setEditValues({ ...editValues, [e.target.name]: e.target.value });
+  const handleLoadMore = () => {
+    if (tab === "general") {
+      setVisibleGeneral((prev) => prev + ITEMS_PER_PAGE);
+    } else {
+      setVisibleUti((prev) => prev + ITEMS_PER_PAGE);
+    }
   };
 
-  const loadMore = () => {
-    setVisibleCount((prev) => prev + ITEMS_PER_PAGE);
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setSearchTerm("");
+    setShowOnlyAlerts(false);
+    setEditingId(null);
+    setEditValues({});
   };
 
   if (loading) {
     return (
+
       <div className={styles.container}>
-        <p>Cargando historias clínicas...</p>
+        <p className={styles.metaText}>Cargando historias clínicas...</p>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Historias Clínicas</h1>
 
-      {/* Barra de login */}
-      <div className={styles.loginBar}>
-        <div className={styles.userInfo}>
-          {currentUser ? (
-            <>
-              <span className={styles.userName}>👤 {currentUser}</span>
-              <button onClick={handleLogout} className={styles.logoutButton}>
+
+    <>
+      <Header />
+      <div className={styles.container}>
+        <h1 className={styles.title}>Historias Clínicas</h1>
+
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${tab === "general" ? styles.activeTab : ""}`}
+            onClick={() => handleTabChange("general")}
+          >
+            Historias clínicas
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.tabButton} ${tab === "uti" ? styles.activeTab : ""}`}
+            onClick={() => handleTabChange("uti")}
+          >
+            Historias clínicas UTI
+          </button>
+        </div>
+
+        <div className={styles.authCard}>
+          {isLogged ? (
+            <div className={styles.userLoggedBox}>
+              <span className={styles.userName}>
+                👤 {currentUser.user} ({currentUser.key})
+              </span>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={styles.logoutButton}
+              >
                 Cerrar sesión
               </button>
-            </>
+            </div>
           ) : (
-            <button onClick={handleLogin} className={styles.loginButton}>
-              Iniciar sesión
-            </button>
+            <form onSubmit={handleLogin} className={styles.loginForm}>
+              <input
+                type="text"
+                placeholder="Usuario"
+                value={loginForm.user}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({
+                    ...prev,
+                    user: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+              />
+
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={loginForm.pass}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({
+                    ...prev,
+                    pass: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+              />
+
+              <button type="submit" className={styles.loginButton}>
+                Iniciar sesión
+              </button>
+            </form>
           )}
         </div>
-      </div>
 
-      {/* Últimos números de HC */}
-      {lastNumbers.length > 0 && (
-        <div className={styles.lastNumbersCard}>
-          <div className={styles.lastNumbersTitle}>📋 Últimos números de historia clínica:</div>
-          <ul className={styles.lastNumbersList}>
-            {lastNumbers.map((num, idx) => (
-              <li key={idx} className={styles.lastNumberItem}>
-                {num}
-              </li>
-            ))}
-          </ul>
+        {tab === "general" && (
+          <div className={styles.formCard}>
+            <h2 className={styles.formTitle}>Nueva historia clínica</h2>
+
+            <form onSubmit={handleCreateGeneral} className={styles.formGrid}>
+              <input
+                type="text"
+                placeholder="Nombre y apellido"
+                value={formGeneral.nombre_apellido}
+                onChange={(e) =>
+                  setFormGeneral((prev) => ({
+                    ...prev,
+                    nombre_apellido: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+                disabled={!isLogged || submitting}
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="DNI"
+                value={formGeneral.dni}
+                onChange={(e) =>
+                  setFormGeneral((prev) => ({
+                    ...prev,
+                    dni: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className={`${styles.formInput} ${styles.centerInput}`}
+                inputMode="numeric"
+                disabled={!isLogged || submitting}
+                required
+              />
+
+              <input
+                type="text"
+                value={nextGeneralNumber}
+                readOnly
+                className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
+                aria-label="Próximo número de historia clínica"
+              />
+
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={!isLogged || submitting}
+              >
+                {submitting ? "Guardando..." : `Agregar HC ${nextGeneralNumber}`}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {tab === "uti" && (
+          <div className={styles.formCard}>
+            <h2 className={styles.formTitle}>Nueva historia clínica UTI</h2>
+
+            <form onSubmit={handleCreateUti} className={styles.formGrid}>
+              <input
+                type="text"
+                placeholder="Nombre y apellido"
+                value={formUti.nombre_apellido}
+                onChange={(e) =>
+                  setFormUti((prev) => ({
+                    ...prev,
+                    nombre_apellido: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+                disabled={!isLogged || submitting}
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="DNI"
+                value={formUti.dni}
+                onChange={(e) =>
+                  setFormUti((prev) => ({
+                    ...prev,
+                    dni: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className={`${styles.formInput} ${styles.centerInput}`}
+                inputMode="numeric"
+                disabled={!isLogged || submitting}
+                required
+              />
+
+              <input
+                type="text"
+                value={nextUtiNumber}
+                readOnly
+                className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
+                aria-label="Próximo número de historia clínica UTI"
+              />
+
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={!isLogged || submitting}
+              >
+                {submitting ? "Guardando..." : `Agregar HC UTI ${nextUtiNumber}`}
+              </button>
+            </form>
+          </div>
+        )}
+
+        <div className={styles.searchOptions}>
+          <select
+            value={searchField}
+            onChange={(e) => setSearchField(e.target.value)}
+            className={styles.searchSelect}
+          >
+            <option value="all">Buscar en todos los campos</option>
+            <option value="nombre">Por nombre y apellido</option>
+            <option value="dni">Por DNI</option>
+            <option value="historia">Por N° de historia clínica</option>
+          </select>
+
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={showOnlyAlerts}
+              onChange={(e) => setShowOnlyAlerts(e.target.checked)}
+              className={styles.checkboxInput}
+            />
+            Mostrar solo pacientes con alertas
+          </label>
         </div>
-      )}
 
-      {/* Formulario de alta (solo si está logueado) */}
-      {currentUser && (
-        <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Agregar nuevo paciente</h2>
-          <form onSubmit={handleSubmit} className={styles.formGrid}>
-            <input
-              type="text"
-              name="nombre_apellido"
-              placeholder="Nombre y apellido"
-              value={form.nombre_apellido}
-              onChange={(e) => setForm({ ...form, nombre_apellido: e.target.value })}
-              className={styles.formInput}
-              required
-            />
-            <input
-              type="text"
-              name="dni"
-              placeholder="DNI"
-              value={form.dni}
-              onChange={(e) => setForm({ ...form, dni: e.target.value })}
-              className={styles.formInput}
-              required
-            />
-            <input
-              type="text"
-              name="historia_clinica"
-              placeholder="N° Historia Clínica"
-              value={form.historia_clinica}
-              onChange={(e) => setForm({ ...form, historia_clinica: e.target.value })}
-              className={styles.formInput}
-              required
-            />
-            <button type="submit" disabled={submitting} className={styles.submitButton}>
-              {submitting ? "Guardando..." : "Agregar"}
-            </button>
-          </form>
-        </div>
-      )}
+        <input
+          type="text"
+          placeholder={`Buscar en ${tab === "general" ? "historias clínicas" : "historias clínicas UTI"}`}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={styles.searchInput}
+        />
 
-      {/* Opciones de búsqueda */}
-      <div className={styles.searchOptions}>
-        <select
-          value={searchField}
-          onChange={(e) => setSearchField(e.target.value)}
-          className={styles.searchSelect}
-        >
-          <option value="all">🔎 Buscar en todos los campos</option>
-          <option value="nombre">👤 Por nombre y apellido</option>
-          <option value="dni">🆔 Por DNI</option>
-          <option value="historia">📋 Por N° de historia clínica</option>
-        </select>
-
-        <label className={styles.checkboxLabel}>
-          <input
-            type="checkbox"
-            checked={showOnlyAlerts}
-            onChange={(e) => setShowOnlyAlerts(e.target.checked)}
-          />
-          ⚠️ Mostrar solo pacientes con alertas
-        </label>
-      </div>
-
-      <input
-        type="text"
-        placeholder="🔍 Escribe para buscar (búsqueda difusa, tolerante a errores)"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className={styles.searchInput}
-      />
-
-      {/* Tabla de resultados */}
-      <div className={styles.tableWrapper}>
-        <div className={styles.tableInner}>
-          <table className={styles.responsiveTable}>
-            <thead>
-              <tr>
-                <th>Nombre y apellido</th>
-                <th>DNI</th>
-                <th>N° Historia Clínica</th>
-                <th>Alertas</th>
-                <th>Modificado por</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayed.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className={styles.emptyMessage}>
-                    No se encontraron resultados
-                  </td>
+        <div className={styles.tableWrapper}>
+          <div className={styles.tableInner}>
+            <table className={styles.responsiveTable}>
+              <thead>
+                <tr className={styles.tableHeadRow}>
+                  <th className={styles.tableHeader}>Nombre y apellido</th>
+                  <th className={`${styles.tableHeader} ${styles.centerCell}`}>DNI</th>
+                  <th className={`${styles.tableHeader} ${styles.centerCell}`}>N° Historia Clínica</th>
+                  <th className={styles.tableHeader}>Alertas</th>
+                  <th className={styles.tableHeader}>Creado por</th>
+                  <th className={styles.tableHeader}>Modificado por</th>
                 </tr>
-              ) : (
-                displayed.map((paciente) => (
-                  <tr
-                    key={paciente.id}
-                    className={currentUser ? styles.clickableRow : ""}
-                    onClick={() => currentUser && startEdit(paciente)}
-                  >
-                    {editingId === paciente.id ? (
-                      <>
-                        <td>
-                          <input
-                            name="nombre_apellido"
-                            value={editValues.nombre_apellido}
-                            onChange={handleEditChange}
-                            className={styles.editInput}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            name="dni"
-                            value={editValues.dni}
-                            onChange={handleEditChange}
-                            className={styles.editInput}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            name="historia_clinica"
-                            value={editValues.historia_clinica}
-                            onChange={handleEditChange}
-                            className={styles.editInput}
-                          />
-                        </td>
-                        <td>{paciente.alertas?.join(", ") || "-"}</td>
-                        <td>
-                          <div className={styles.editButtons}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                saveEdit(paciente.id);
-                              }}
-                              className={styles.saveButton}
-                            >
-                              💾
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelEdit();
-                              }}
-                              className={styles.cancelButton}
-                            >
-                              ✖
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>{paciente.nombre_apellido || "-"}</td>
-                        <td>{paciente.dni || "-"}</td>
-                        <td>{paciente.historia_clinica || "-"}</td>
-                        <td>
-                          {paciente.alertas && paciente.alertas.length > 0 ? (
-                            <span className={styles.alertBadge}>
-                              {paciente.alertas.join(", ")}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td>{paciente.modifiedBy || paciente.createdBy || "-"}</td>
-                      </>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
 
-      {filtered.length > visibleCount && (
-        <button onClick={loadMore} className={styles.loadMoreButton}>
-          Cargar más ({filtered.length - visibleCount} restantes)
-        </button>
-      )}
-    </div>
+              <tbody>
+                {displayedItems.length === 0 ? (
+                  <tr className={styles.tableRow}>
+                    <td colSpan="6" className={styles.emptyMessage}>
+                      No se encontraron resultados
+                    </td>
+                  </tr>
+                ) : (
+                  displayedItems.map((item) => (
+                    <tr
+                      key={`${item.source}-${item.id}`}
+                      className={`${styles.tableRow} ${isLogged ? styles.clickableRow : ""}`}
+                      onClick={() => isLogged && startEdit(item)}
+                    >
+                      {editingId === item.id ? (
+                        <>
+                          <td className={styles.tableCell}>
+                            <input
+                              type="text"
+                              name="nombre_apellido"
+                              value={editValues.nombre_apellido}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  nombre_apellido: e.target.value,
+                                }))
+                              }
+                              className={styles.editInput}
+                            />
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="dni"
+                              value={editValues.dni}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  dni: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput}`}
+                            />
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="historia_clinica"
+                              value={editValues.historia_clinica}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  historia_clinica: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput} ${styles.hcInput}`}
+                            />
+                          </td>
+
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
+
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+
+                          <td className={styles.tableCell}>
+                            <div className={styles.editButtons}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveEdit();
+                                }}
+                                className={styles.saveButton}
+                              >
+                                💾
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelEdit();
+                                }}
+                                className={styles.cancelButton}
+                              >
+                                ✖
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className={styles.tableCell}>{item.nombre_apellido || "-"}</td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell} ${styles.dniCell}`}>
+                            {formatDni(item.dni)}
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <span className={styles.hcNumber}>{formatHC(item.historia_clinica)}</span>
+                          </td>
+
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
+
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+                          <td className={styles.tableCell}>{item.modifiedBy || "-"}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {filteredItems.length > visibleCount && (
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            className={styles.loadMoreButton}
+          >
+            Cargar más ({filteredItems.length - visibleCount} restantes)
+          </button>
+        )}
+      </div>
+    </>
   );
 }
