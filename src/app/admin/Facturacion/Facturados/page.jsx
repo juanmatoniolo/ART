@@ -506,11 +506,6 @@ async function printFacturaCompleta(id) {
     <div class="printTotalLine"><span>Subtotal Gastos:</span><span>$ ${money(totalGasto)}</span></div>
     <div class="printTotalLineFinal"><span>TOTAL:</span><span>$ ${money(totalFactura)}</span></div>
   </div>
-
-  <div class="printFooter">
-    Clínica de la Unión S.A. - Av. Siburu 1085, Chajarí, Entre Ríos<br />
-    Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}
-  </div>
 </div>
 </body>
 </html>`;

@@ -34,28 +34,81 @@ const formatDNI = (dni) => {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Mapa unificado de imágenes de ART (claves normalizadas sin espacios ni tildes)
 // ─────────────────────────────────────────────────────────────────────────────
-const ART_IMAGE_MAP = {
-  "asociart": "ASOCIART.png",
-  "comfye": "COMFYE.png",
-  "federacionpatronalap": "FPSEGUROS.png",
-  "federacionpatronalart": "FPART.png",
-  "iapsart": "IAPSART.png",
-  "iaps": "IAPSSEGUROS.webp",
-  "lasegundaap": "LASEGUNDA.svg",
-  "lasegundaart": "LASEGUNDAART.png",
-  "medicarwork": "MEDICARWORk.jpg",
-  "victoriaart": "VICTORIAART.png",
-};
-
+// Por esto
 const getArtImage = (artName) => {
-  if (!artName || artName === 'SIN ART') return '/img-art/default.webp';
-  const key = artName
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // quita tildes
-    .replace(/[^\w]/g, '')                              // elimina espacios, puntos, guiones, etc.
-    .trim();
-  const fileName = ART_IMAGE_MAP[key];
-  return fileName ? `/img-art/${fileName}` : '/img-art/default.webp';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const normalize = (value = '') =>
+    String(value)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
+  const raw = String(artName || '').trim();
+  const normalized = normalize(raw);
+
+  if (!normalized || normalized === 'sinart') {
+    return `${baseUrl}/img-art/default.webp`;
+  }
+
+  if (normalized.includes('asociart')) {
+    return `${baseUrl}/img-art/ASOCIART.png`;
+  }
+
+  if (normalized.includes('comfye')) {
+    return `${baseUrl}/img-art/COMFYE.png`;
+  }
+
+  if (
+    normalized.includes('federacionpatronalap') ||
+    normalized.includes('fedpatronalap') ||
+    normalized.includes('fedpatronal')
+  ) {
+    return `${baseUrl}/img-art/FEDPATRONAL-AP.png`;
+  }
+
+  if (
+    normalized.includes('federacionpatronalart') ||
+    normalized.includes('fedpatronalart') ||
+    normalized === 'fpart'
+  ) {
+    return `${baseUrl}/img-art/FPART.png`;
+  }
+
+  if (normalized.includes('iapsart')) {
+    return `${baseUrl}/img-art/IAPSART.png`;
+  }
+
+  if (normalized.includes('iapsseguros') || normalized === 'iaps') {
+    return `${baseUrl}/img-art/IAPSSEGUROS.webp`;
+  }
+
+  if (normalized.includes('lasegundaart')) {
+    return `${baseUrl}/img-art/LASEGUNDAART.png`;
+  }
+
+  if (normalized.includes('lasegunda')) {
+    return `${baseUrl}/img-art/LASEGUNDA.webp`;
+  }
+
+  if (
+    normalized.includes('medicarwork') ||
+    normalized.includes('medicarwor')
+  ) {
+    return `${baseUrl}/img-art/MEDICARWOR.png`;
+  }
+
+  if (
+    normalized.includes('victoriaart') ||
+    normalized.includes('victoriaseguro') ||
+    normalized.includes('victoriaseguros')
+  ) {
+    return `${baseUrl}/img-art/vicotriaart.png`;
+  }
+
+  console.warn('Logo ART no mapeado:', { artName: raw, normalized });
+  return `${baseUrl}/img-art/default.webp`;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -454,11 +507,6 @@ const PrintView = React.forwardRef(({
           <span>TOTAL:</span>
           <span>$ {money(totalFactura)}</span>
         </div>
-      </div>
-
-      <div className={styles.printFooter}>
-        Clínica de la Unión S.A. - Av. Siburu 1085, Chajarí, Entre Ríos<br />
-        Fecha de emisión: {new Date().toLocaleDateString('es-AR')}
       </div>
     </div>
   );
@@ -958,7 +1006,7 @@ export default function FacturadoDetallePage() {
           printed = true;
           win.print();
         }
-      } catch (e) {}
+      } catch (e) { }
     }, 1200);
   };
 
