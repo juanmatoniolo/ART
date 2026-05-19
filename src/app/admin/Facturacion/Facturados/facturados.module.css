@@ -57,3 +57,9 @@
   font-size: 0.95rem;
   border: 1px dashed #334155;
 }
+
+.printArtLogo {
+  max-height: 3em;
+  width: auto;
+  object-fit: contain;
+}
