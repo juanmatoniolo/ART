@@ -48,10 +48,10 @@ export default function LoginPage() {
 
             const routes = {
                 ADM: '/admin',
-                DR: '/doctores',
+                RECEPCION: '/historia-clinica',
                 MDE: '/mesa-de-entrada',
                 FARM: '/farmacia',
-                UTI: '/uti/admin', 
+                UTI: '/uti/admin',
             };
 
             router.push(routes[userData.TipoEmpleado] || '/admin');

@@ -33,7 +33,7 @@ export default function AdminDashboard() {
         const [pacientesRes, empleadosRes, facturasRes, medDescRes, cirugiasRes] =
           await Promise.all([
             fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
-            fetch("https://datos-clini-default-rtdb.firebaseio.com/empleados.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/users.json"),
             fetch("https://datos-clini-default-rtdb.firebaseio.com/Facturacion.json"),
             fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables.json"),
             fetch(CIRUGIAS_URL),
@@ -130,14 +130,14 @@ export default function AdminDashboard() {
     },
     {
       title: "Med + Descartables",
-      value: stats.medDesc > 0 ? `$${stats.medDesc.toLocaleString()}` : "—",
+      value: stats.medDesc > 0 ? `${stats.medDesc.toLocaleString()}` : "—",
       icon: Pill,
       color: "#7c3aed",
       href: "/admin/med-descartables",
     },
     {
       title: "Nomencladores",
-      value: "—",
+      value: "4",
       icon: BookOpen,
       color: "#059669",
       href: "/admin/nomencladores",

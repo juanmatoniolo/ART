@@ -5,6 +5,7 @@ import { ref, onValue, push, set, update, runTransaction } from "firebase/databa
 import Fuse from "fuse.js";
 import { db } from "../../lib/firebase";
 import styles from "./historias.module.css";
+import Header from "@/components/Header/Header";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -456,372 +457,375 @@ export default function HistoriasClinicasPage() {
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Historias Clínicas</h1>
+    <>
+      <Header />
+      <div className={styles.container}>
+        <h1 className={styles.title}>Historias Clínicas</h1>
 
-      <div className={styles.authCard}>
-        {isLogged ? (
-          <div className={styles.userLoggedBox}>
-            <span className={styles.userName}>
-              👤 {currentUser.user} ({currentUser.key})
-            </span>
+        <div className={styles.authCard}>
+          {isLogged ? (
+            <div className={styles.userLoggedBox}>
+              <span className={styles.userName}>
+                👤 {currentUser.user} ({currentUser.key})
+              </span>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={styles.logoutButton}
-            >
-              Cerrar sesión
-            </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={styles.logoutButton}
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleLogin} className={styles.loginForm}>
+              <input
+                type="text"
+                placeholder="Usuario"
+                value={loginForm.user}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({
+                    ...prev,
+                    user: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+              />
+
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={loginForm.pass}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({
+                    ...prev,
+                    pass: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+              />
+
+              <button type="submit" className={styles.loginButton}>
+                Iniciar sesión
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${tab === "general" ? styles.activeTab : ""}`}
+            onClick={() => handleTabChange("general")}
+          >
+            Historias clínicas
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.tabButton} ${tab === "uti" ? styles.activeTab : ""}`}
+            onClick={() => handleTabChange("uti")}
+          >
+            Historias clínicas UTI
+          </button>
+        </div>
+
+
+
+        {isLogged && tab === "general" && (
+          <div className={styles.formCard}>
+            <h2 className={styles.formTitle}>Nueva historia clínica</h2>
+
+            <form onSubmit={handleCreateGeneral} className={styles.formGrid}>
+              <input
+                type="text"
+                placeholder="Nombre y apellido"
+                value={formGeneral.nombre_apellido}
+                onChange={(e) =>
+                  setFormGeneral((prev) => ({
+                    ...prev,
+                    nombre_apellido: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+                disabled={submitting}
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="DNI"
+                value={formGeneral.dni}
+                onChange={(e) =>
+                  setFormGeneral((prev) => ({
+                    ...prev,
+                    dni: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className={`${styles.formInput} ${styles.centerInput}`}
+                inputMode="numeric"
+                disabled={submitting}
+                required
+              />
+
+              <input
+                type="text"
+                value={nextGeneralNumber}
+                readOnly
+                className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
+                aria-label="Próximo número de historia clínica"
+              />
+
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={submitting}
+              >
+                {submitting ? "Guardando..." : `Agregar HC ${nextGeneralNumber}`}
+              </button>
+            </form>
           </div>
-        ) : (
-          <form onSubmit={handleLogin} className={styles.loginForm}>
-            <input
-              type="text"
-              placeholder="Usuario"
-              value={loginForm.user}
-              onChange={(e) =>
-                setLoginForm((prev) => ({
-                  ...prev,
-                  user: e.target.value,
-                }))
-              }
-              className={styles.formInput}
-            />
+        )}
 
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={loginForm.pass}
-              onChange={(e) =>
-                setLoginForm((prev) => ({
-                  ...prev,
-                  pass: e.target.value,
-                }))
-              }
-              className={styles.formInput}
-            />
+        {isLogged && tab === "uti" && (
+          <div className={styles.formCard}>
+            <h2 className={styles.formTitle}>Nueva historia clínica UTI</h2>
 
-            <button type="submit" className={styles.loginButton}>
-              Iniciar sesión
-            </button>
-          </form>
+            <form onSubmit={handleCreateUti} className={styles.formGrid}>
+              <input
+                type="text"
+                placeholder="Nombre y apellido"
+                value={formUti.nombre_apellido}
+                onChange={(e) =>
+                  setFormUti((prev) => ({
+                    ...prev,
+                    nombre_apellido: e.target.value,
+                  }))
+                }
+                className={styles.formInput}
+                disabled={submitting}
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="DNI"
+                value={formUti.dni}
+                onChange={(e) =>
+                  setFormUti((prev) => ({
+                    ...prev,
+                    dni: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className={`${styles.formInput} ${styles.centerInput}`}
+                inputMode="numeric"
+                disabled={submitting}
+                required
+              />
+
+              <input
+                type="text"
+                value={nextUtiNumber}
+                readOnly
+                className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
+                aria-label="Próximo número de historia clínica UTI"
+              />
+
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={submitting}
+              >
+                {submitting ? "Guardando..." : `Agregar HC UTI ${nextUtiNumber}`}
+              </button>
+            </form>
+          </div>
+        )}
+
+        <div className={styles.searchOptions}>
+          <select
+            value={searchField}
+            onChange={(e) => setSearchField(e.target.value)}
+            className={styles.searchSelect}
+          >
+            <option value="all">Buscar en todos los campos</option>
+            <option value="nombre">Por nombre y apellido</option>
+            <option value="dni">Por DNI</option>
+            <option value="historia">Por N° de historia clínica</option>
+          </select>
+
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={showOnlyAlerts}
+              onChange={(e) => setShowOnlyAlerts(e.target.checked)}
+              className={styles.checkboxInput}
+            />
+            Mostrar solo pacientes con alertas
+          </label>
+        </div>
+
+        <input
+          type="text"
+          placeholder={`Buscar en ${tab === "general" ? "historias clínicas" : "historias clínicas UTI"}`}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={styles.searchInput}
+        />
+
+        <div className={styles.tableWrapper}>
+          <div className={styles.tableInner}>
+            <table className={styles.responsiveTable}>
+              <thead>
+                <tr className={styles.tableHeadRow}>
+                  <th className={styles.tableHeader}>Nombre y apellido</th>
+                  <th className={`${styles.tableHeader} ${styles.centerCell}`}>DNI</th>
+                  <th className={`${styles.tableHeader} ${styles.centerCell}`}>N° Historia Clínica</th>
+                  <th className={styles.tableHeader}>Alertas</th>
+                  <th className={styles.tableHeader}>Creado por</th>
+                  <th className={styles.tableHeader}>Modificado por</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {displayedItems.length === 0 ? (
+                  <tr className={styles.tableRow}>
+                    <td colSpan="6" className={styles.emptyMessage}>
+                      No se encontraron resultados
+                    </td>
+                  </tr>
+                ) : (
+                  displayedItems.map((item) => (
+                    <tr
+                      key={`${item.source}-${item.id}`}
+                      className={`${styles.tableRow} ${isLogged ? styles.clickableRow : ""}`}
+                      onClick={() => isLogged && startEdit(item)}
+                    >
+                      {editingId === item.id ? (
+                        <>
+                          <td className={styles.tableCell}>
+                            <input
+                              type="text"
+                              name="nombre_apellido"
+                              value={editValues.nombre_apellido}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  nombre_apellido: e.target.value,
+                                }))
+                              }
+                              className={styles.editInput}
+                            />
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="dni"
+                              value={editValues.dni}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  dni: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput}`}
+                            />
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="historia_clinica"
+                              value={editValues.historia_clinica}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  historia_clinica: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput} ${styles.hcInput}`}
+                            />
+                          </td>
+
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
+
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+
+                          <td className={styles.tableCell}>
+                            <div className={styles.editButtons}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveEdit();
+                                }}
+                                className={styles.saveButton}
+                              >
+                                💾
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelEdit();
+                                }}
+                                className={styles.cancelButton}
+                              >
+                                ✖
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className={styles.tableCell}>{item.nombre_apellido || "-"}</td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell} ${styles.dniCell}`}>
+                            {formatDni(item.dni)}
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <span className={styles.hcNumber}>{formatHC(item.historia_clinica)}</span>
+                          </td>
+
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
+
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+                          <td className={styles.tableCell}>{item.modifiedBy || "-"}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {filteredItems.length > visibleCount && (
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            className={styles.loadMoreButton}
+          >
+            Cargar más ({filteredItems.length - visibleCount} restantes)
+          </button>
         )}
       </div>
-
-      <div className={styles.tabs}>
-        <button
-          type="button"
-          className={`${styles.tabButton} ${tab === "general" ? styles.activeTab : ""}`}
-          onClick={() => handleTabChange("general")}
-        >
-          Historias clínicas
-        </button>
-
-        <button
-          type="button"
-          className={`${styles.tabButton} ${tab === "uti" ? styles.activeTab : ""}`}
-          onClick={() => handleTabChange("uti")}
-        >
-          Historias clínicas UTI
-        </button>
-      </div>
-
-
-
-      {isLogged && tab === "general" && (
-        <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Nueva historia clínica</h2>
-
-          <form onSubmit={handleCreateGeneral} className={styles.formGrid}>
-            <input
-              type="text"
-              placeholder="Nombre y apellido"
-              value={formGeneral.nombre_apellido}
-              onChange={(e) =>
-                setFormGeneral((prev) => ({
-                  ...prev,
-                  nombre_apellido: e.target.value,
-                }))
-              }
-              className={styles.formInput}
-              disabled={submitting}
-              required
-            />
-
-            <input
-              type="text"
-              placeholder="DNI"
-              value={formGeneral.dni}
-              onChange={(e) =>
-                setFormGeneral((prev) => ({
-                  ...prev,
-                  dni: e.target.value.replace(/\D/g, ""),
-                }))
-              }
-              className={`${styles.formInput} ${styles.centerInput}`}
-              inputMode="numeric"
-              disabled={submitting}
-              required
-            />
-
-            <input
-              type="text"
-              value={nextGeneralNumber}
-              readOnly
-              className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
-              aria-label="Próximo número de historia clínica"
-            />
-
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={submitting}
-            >
-              {submitting ? "Guardando..." : `Agregar HC ${nextGeneralNumber}`}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {isLogged && tab === "uti" && (
-        <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Nueva historia clínica UTI</h2>
-
-          <form onSubmit={handleCreateUti} className={styles.formGrid}>
-            <input
-              type="text"
-              placeholder="Nombre y apellido"
-              value={formUti.nombre_apellido}
-              onChange={(e) =>
-                setFormUti((prev) => ({
-                  ...prev,
-                  nombre_apellido: e.target.value,
-                }))
-              }
-              className={styles.formInput}
-              disabled={submitting}
-              required
-            />
-
-            <input
-              type="text"
-              placeholder="DNI"
-              value={formUti.dni}
-              onChange={(e) =>
-                setFormUti((prev) => ({
-                  ...prev,
-                  dni: e.target.value.replace(/\D/g, ""),
-                }))
-              }
-              className={`${styles.formInput} ${styles.centerInput}`}
-              inputMode="numeric"
-              disabled={submitting}
-              required
-            />
-
-            <input
-              type="text"
-              value={nextUtiNumber}
-              readOnly
-              className={`${styles.formInput} ${styles.centerInput} ${styles.hcInput}`}
-              aria-label="Próximo número de historia clínica UTI"
-            />
-
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={submitting}
-            >
-              {submitting ? "Guardando..." : `Agregar HC UTI ${nextUtiNumber}`}
-            </button>
-          </form>
-        </div>
-      )}
-
-      <div className={styles.searchOptions}>
-        <select
-          value={searchField}
-          onChange={(e) => setSearchField(e.target.value)}
-          className={styles.searchSelect}
-        >
-          <option value="all">Buscar en todos los campos</option>
-          <option value="nombre">Por nombre y apellido</option>
-          <option value="dni">Por DNI</option>
-          <option value="historia">Por N° de historia clínica</option>
-        </select>
-
-        <label className={styles.checkboxLabel}>
-          <input
-            type="checkbox"
-            checked={showOnlyAlerts}
-            onChange={(e) => setShowOnlyAlerts(e.target.checked)}
-            className={styles.checkboxInput}
-          />
-          Mostrar solo pacientes con alertas
-        </label>
-      </div>
-
-      <input
-        type="text"
-        placeholder={`Buscar en ${tab === "general" ? "historias clínicas" : "historias clínicas UTI"}`}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className={styles.searchInput}
-      />
-
-      <div className={styles.tableWrapper}>
-        <div className={styles.tableInner}>
-          <table className={styles.responsiveTable}>
-            <thead>
-              <tr className={styles.tableHeadRow}>
-                <th className={styles.tableHeader}>Nombre y apellido</th>
-                <th className={`${styles.tableHeader} ${styles.centerCell}`}>DNI</th>
-                <th className={`${styles.tableHeader} ${styles.centerCell}`}>N° Historia Clínica</th>
-                <th className={styles.tableHeader}>Alertas</th>
-                <th className={styles.tableHeader}>Creado por</th>
-                <th className={styles.tableHeader}>Modificado por</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {displayedItems.length === 0 ? (
-                <tr className={styles.tableRow}>
-                  <td colSpan="6" className={styles.emptyMessage}>
-                    No se encontraron resultados
-                  </td>
-                </tr>
-              ) : (
-                displayedItems.map((item) => (
-                  <tr
-                    key={`${item.source}-${item.id}`}
-                    className={`${styles.tableRow} ${isLogged ? styles.clickableRow : ""}`}
-                    onClick={() => isLogged && startEdit(item)}
-                  >
-                    {editingId === item.id ? (
-                      <>
-                        <td className={styles.tableCell}>
-                          <input
-                            type="text"
-                            name="nombre_apellido"
-                            value={editValues.nombre_apellido}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                nombre_apellido: e.target.value,
-                              }))
-                            }
-                            className={styles.editInput}
-                          />
-                        </td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <input
-                            type="text"
-                            name="dni"
-                            value={editValues.dni}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                dni: e.target.value.replace(/\D/g, ""),
-                              }))
-                            }
-                            className={`${styles.editInput} ${styles.centerInput}`}
-                          />
-                        </td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <input
-                            type="text"
-                            name="historia_clinica"
-                            value={editValues.historia_clinica}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                historia_clinica: e.target.value.replace(/\D/g, ""),
-                              }))
-                            }
-                            className={`${styles.editInput} ${styles.centerInput} ${styles.hcInput}`}
-                          />
-                        </td>
-
-                        <td className={styles.tableCell}>
-                          {item.alertas?.length ? (
-                            <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
-                          ) : (
-                            <span className={styles.cellMuted}>-</span>
-                          )}
-                        </td>
-
-                        <td className={styles.tableCell}>{item.createdBy || "-"}</td>
-
-                        <td className={styles.tableCell}>
-                          <div className={styles.editButtons}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                saveEdit();
-                              }}
-                              className={styles.saveButton}
-                            >
-                              💾
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelEdit();
-                              }}
-                              className={styles.cancelButton}
-                            >
-                              ✖
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className={styles.tableCell}>{item.nombre_apellido || "-"}</td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell} ${styles.dniCell}`}>
-                          {formatDni(item.dni)}
-                        </td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <span className={styles.hcNumber}>{formatHC(item.historia_clinica)}</span>
-                        </td>
-
-                        <td className={styles.tableCell}>
-                          {item.alertas?.length ? (
-                            <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
-                          ) : (
-                            <span className={styles.cellMuted}>-</span>
-                          )}
-                        </td>
-
-                        <td className={styles.tableCell}>{item.createdBy || "-"}</td>
-                        <td className={styles.tableCell}>{item.modifiedBy || "-"}</td>
-                      </>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {filteredItems.length > visibleCount && (
-        <button
-          type="button"
-          onClick={handleLoadMore}
-          className={styles.loadMoreButton}
-        >
-          Cargar más ({filteredItems.length - visibleCount} restantes)
-        </button>
-      )}
-    </div>
+    </>
   );
 }
