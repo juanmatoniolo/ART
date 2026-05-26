@@ -82,7 +82,7 @@ Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fue
 Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
 Ingreso por *Roque Sáenz Peña*.
 
-También le dejamos las kinesiólogas que trabajan con ART:
+También le dejamos las kinesiólogas de Clinica de la Union que trabajan con ART:
 
 • *Daniela Rivas*
   📍 Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
@@ -94,7 +94,7 @@ También le dejamos las kinesiólogas que trabajan con ART:
   📱 Tel: 3456513866
   💬 Contactar por WhatsApp: wa.me/5493456513866?text=${msgNatali}
 
-En caso de que su ART sea *IAPS*, puede comunicarse para consultar la cartilla de profesionales afiliados.`;
+*Tambien puede comunicarse a su ART para consultar la cartilla de profesionales afiliados.*`;
     }
     if (mensaje === "2") {
       return `Buen día, *${name}*.
@@ -178,22 +178,10 @@ Le informamos que su *intervención quirúrgica ha sido aprobada*.
 
 Para continuar con el circuito administrativo y la programación, le solicitamos que se presente el *${dia} a las ${hora}*. 
 
-Favor de completar y enviar por este medio los siguientes datos:
+Favor de completar y enviar por este medio los siguientes datos en el link de abajo:
 
+https://art-xi-six.vercel.app/cx
 
-• Apellido:
-• Nombre:
-• DNI / CUIL:
-• Fecha de nacimiento (dd/mm/aaaa):
-• Edad actual:
-• Lugar de nacimiento (ciudad, provincia, país):
-
-
-• Domicilio habitual:
-• Localidad:
-• Provincia:
-
-• Teléfono (con característica):
 
 *IMPORTANTE*
 El día de la cirugía deberá presentar obligatoriamente:
