@@ -26,68 +26,47 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Ajusta la URL según el nodo donde se guardan las cirugías.
-        // Por ejemplo, si es "cx.json" o "cirugias.json"
         const CIRUGIAS_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias.json";
 
-        const [pacientesRes, empleadosRes, facturasRes, medDescRes, cirugiasRes] =
+        const [pacientesRes, empleadosRes, facturasRes, medRes, descRes, cirugiasRes] =
           await Promise.all([
             fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json"),
             fetch("https://datos-clini-default-rtdb.firebaseio.com/users.json"),
             fetch("https://datos-clini-default-rtdb.firebaseio.com/Facturacion.json"),
-            fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables/medicamentos.json"),
+            fetch("https://datos-clini-default-rtdb.firebaseio.com/medydescartables/descartables.json"),
             fetch(CIRUGIAS_URL),
           ]);
 
         const pacientes = await pacientesRes.json();
         const empleados = await empleadosRes.json();
         const facturasData = await facturasRes.json();
-        const medDescData = await medDescRes.json();
+        const medData = await medRes.json();
+        const descData = await descRes.json();
         const cirugiasData = await cirugiasRes.json();
 
-        // Depuración: ver estructura
-        console.log("Datos de cirugías (crudos):", cirugiasData);
-
-        // Contar pacientes y empleados
         const pacientesCount = pacientes ? Object.keys(pacientes).length : 0;
         const empleadosCount = empleados ? Object.keys(empleados).length : 0;
 
-        // Contar facturas cerradas
         let facturadasCount = 0;
         if (facturasData) {
-          const allItems = Object.values(facturasData);
-          const facturasArray = allItems.filter(
-            (item) => item && typeof item === "object" && item.estado !== undefined
-          );
-          facturadasCount = facturasArray.filter((f) => f.estado === "cerrado").length;
+          facturadasCount = Object.values(facturasData).filter(
+            (f) => f && typeof f === "object" && f.estado === "cerrado"
+          ).length;
         }
 
-        // Sumar total de medicamentos y descartables
-        let totalMedDesc = 0;
-        if (medDescData) {
-          const medicamentos = medDescData.medicamentos || [];
-          const descartables = medDescData.descartables || [];
-          const sumarItems = (items) => {
-            if (!Array.isArray(items)) return 0;
-            return items.reduce((acc, item) => acc + (item.total || 0), 0);
-          };
-          totalMedDesc = sumarItems(medicamentos) + sumarItems(descartables);
-        }
+        const medCount = medData ? Object.keys(medData).length : 0;
+        const descCount = descData ? Object.keys(descData).length : 0;
+        const totalMedDesc = medCount + descCount;
 
-        // Contar cirugías pendientes: aquellas donde "realizada" NO es true
         let pendientesCount = 0;
         if (cirugiasData) {
           const cirugiasArray = Array.isArray(cirugiasData)
             ? cirugiasData
             : Object.values(cirugiasData);
-
-          pendientesCount = cirugiasArray.filter((cirugia) => {
-            if (!cirugia || typeof cirugia !== "object") return false;
-            // Si "realizada" no existe o no es true, se considera pendiente
-            return cirugia.realizada !== true;
-          }).length;
-
-          console.log("Cirugías pendientes (realizada !== true):", pendientesCount);
+          pendientesCount = cirugiasArray.filter(
+            (c) => c && typeof c === "object" && c.realizada !== true
+          ).length;
         }
 
         setStats({
@@ -130,7 +109,7 @@ export default function AdminDashboard() {
     },
     {
       title: "Med + Descartables",
-      value: stats.medDesc > 0 ? `${stats.medDesc.toLocaleString()}` : "—",
+      value: stats.medDesc,
       icon: Pill,
       color: "#7c3aed",
       href: "/admin/med-descartables",
