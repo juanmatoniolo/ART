@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
@@ -6,80 +7,91 @@ import styles from "./page.module.css";
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 
 export default function WhatsAppSender() {
-  const searchParams = useSearchParams();
+const searchParams = useSearchParams();
 
-  // Parámetros de URL
-  const initialPhone = searchParams.get("phone") || "";
-  const initialName = searchParams.get("name") || "";
-  const pacienteId = searchParams.get("pacienteId") || null;
+// Parámetros de URL
+const initialPhone = searchParams.get("phone") || "";
+const initialName = searchParams.get("name") || "";
 
-  // Estados del formulario
-  const [phone, setPhone] = useState(initialPhone);
-  const [name, setName] = useState(initialName);
-  const [dia, setDia] = useState("");
-  const [hora, setHora] = useState("");
-  const [mensaje, setMensaje] = useState("1");
-  const [bioquimico, setBioquimico] = useState("confalonieri");
-  const [cardiologo, setCardiologo] = useState("percara");
-  const [preview, setPreview] = useState("");
+// Estados del formulario
+const [phone, setPhone] = useState(initialPhone);
+const [name, setName] = useState(initialName);
+const [dia, setDia] = useState("");
+const [hora, setHora] = useState("");
+const [mensaje, setMensaje] = useState("1");
+const [bioquimico, setBioquimico] = useState("confalonieri");
+const [cardiologo, setCardiologo] = useState("percara");
+const [preview, setPreview] = useState("");
 
-  // Estados para búsqueda de pacientes
-  const [pacientes, setPacientes] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
+// Estados para búsqueda de pacientes
+const [pacientes, setPacientes] = useState([]);
+const [searchTerm, setSearchTerm] = useState("");
+const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
+const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
-  // Cargar lista de pacientes al montar
-  useEffect(() => {
-    const fetchPacientes = async () => {
-      try {
-        const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
-        if (!res.ok) throw new Error("Error al cargar pacientes");
-        const data = await res.json();
-        if (data) {
-          const arr = Object.entries(data).map(([id, value]) => ({
-            id,
-            ...value,
-            fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
-            phone: value.trabajador?.telefono || "",
-          }));
-          setPacientes(arr);
-        }
-      } catch (error) {
-        console.error("Error cargando pacientes:", error);
-      }
-    };
-    fetchPacientes();
-  }, []);
+// Cargar lista de pacientes
+useEffect(() => {
+const fetchPacientes = async () => {
+try {
+const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
 
-  // Filtrar pacientes según término de búsqueda
-  const filteredPacientes = pacientes.filter((p) =>
-    p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.trabajador?.dni || "").includes(searchTerm)
-  );
+```
+    if (!res.ok) {
+      throw new Error("Error al cargar pacientes");
+    }
 
-  // Manejar selección de paciente
-  const handleSelectPaciente = (paciente) => {
-    setName(paciente.fullName);
-    setPhone(paciente.phone);
-    setSearchTerm(paciente.fullName);
-    setShowSuggestions(false);
-  };
+    const data = await res.json();
 
-// Construcción de mensaje
+    if (data) {
+      const arr = Object.entries(data).map(([id, value]) => ({
+        id,
+        ...value,
+        fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+        phone: value.trabajador?.telefono || "",
+      }));
+
+      setPacientes(arr);
+    }
+  } catch (error) {
+    console.error("Error cargando pacientes:", error);
+  }
+};
+
+fetchPacientes();
+```
+
+}, []);
+
+// Filtrar pacientes
+const filteredPacientes = pacientes.filter(
+(p) =>
+p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+(p.trabajador?.dni || "").includes(searchTerm)
+);
+
+// Seleccionar paciente
+const handleSelectPaciente = (paciente) => {
+setName(paciente.fullName);
+setPhone(paciente.phone);
+setSearchTerm(paciente.fullName);
+setShowSuggestions(false);
+};
+
+// Construcción de mensajes
 const buildMessage = () => {
+// KINESIOLOGÍA
 if (mensaje === "1") {
 const msgDaniela = encodeURIComponent(
 "Hola Daniela, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
 );
 
 ```
-const msgNatali = encodeURIComponent(
-  "Hola Natali, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
-);
+  const msgNatali = encodeURIComponent(
+    "Hola Natali, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
+  );
 
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
 ```
 
 ✅ Sus sesiones de kinesiología fueron APROBADAS.
@@ -107,8 +119,11 @@ https://wa.me/5493456513866?text=${msgNatali}
 También puede consultar profesionales en la cartilla de su ART.`;
 }
 
+```
+// RESONANCIA
 if (mensaje === "2") {
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
+```
 
 ✅ Su resonancia fue APROBADA.
 
@@ -132,8 +147,11 @@ Av. Siburu 1085
 • Cirugías recientes`;
 }
 
+```
+// MEDICAMENTOS
 if (mensaje === "3") {
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
+```
 
 ✅ Sus medicamentos fueron APROBADOS.
 
@@ -160,16 +178,19 @@ Orden + copia de denuncia → Farmacia de la Unión.
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 }
 
+```
+// ELECTROCARDIOGRAMA
 if (mensaje === "4") {
-const profesional =
-cardiologo === "percara"
-? `Dr. Percara
-📍 Bolívar 1695 (esquina 9 de Julio)`
-: `Dr. Capovilla
+  const profesional =
+    cardiologo === "percara"
+      ? `Dr. Percara
+```
+
+📍 Bolívar 1695 (esquina 9 de Julio)`          :`Dr. Capovilla
 📍 Bolívar 1645`;
 
 ```
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
 ```
 
 ✅ Su electrocardiograma fue APROBADO.
@@ -184,19 +205,21 @@ return `Buen día, *${name}*.
 ${profesional}`;
 }
 
+```
+// LABORATORIO
 if (mensaje === "5") {
-const profesional =
-bioquimico === "confalonieri"
-? `Bioquímica Confalonieri
-📍 Belgrano y Corrientes (frente a Pepos)`
-: bioquimico === "marmol"
-? `Bioquímico Mármol
-📍 Sarmiento 2610`
-: `Bioquímica Tabeni
+  const profesional =
+    bioquimico === "confalonieri"
+      ? `Bioquímica Confalonieri
+```
+
+📍 Belgrano y Corrientes (frente a Pepos)`          : bioquimico === "marmol"
+          ?`Bioquímico Mármol
+📍 Sarmiento 2610`          :`Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
 ```
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
 ```
 
 ✅ Su estudio de laboratorio fue APROBADO.
@@ -212,8 +235,11 @@ return `Buen día, *${name}*.
 ${profesional}`;
 }
 
+```
+// ECOGRAFÍA
 if (mensaje === "6") {
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
+```
 
 ✅ Su ecografía fue APROBADA.
 
@@ -229,8 +255,11 @@ Al ingresar puede consultar en Mesa de Entrada.
 • Llegar 10 minutos antes`;
 }
 
+```
+// CIRUGÍA
 if (mensaje === "7") {
-return `CLÍNICA DE LA UNIÓN
+  return `CLÍNICA DE LA UNIÓN
+```
 
 Buen día, *${name}*.
 
@@ -257,8 +286,11 @@ Por favor responder:
 Ante cualquier duda puede responder este mensaje.`;
 }
 
+```
+// ORTOPEDIA
 if (mensaje === "8") {
-return `Buen día, *${name}*.
+  return `Buen día, *${name}*.
+```
 
 ✅ Su ortopedia fue APROBADA.
 
@@ -285,211 +317,274 @@ Debe llevar:
 • Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
 }
 
+```
 return "";
+```
+
 };
 
+// Actualizar preview
+useEffect(() => {
+setPreview(buildMessage());
+}, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
-  useEffect(() => {
-    setPreview(buildMessage());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+// Link WhatsApp
+const createWaLink = () => {
+if (!phone) return "";
 
-  const createWaLink = () => {
-    if (!phone) return "";
-    return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
-  };
+```
+return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
+```
 
-  const canSend = phone && name && (!requiresDateTime || (dia && hora));
+};
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Envío rápido WhatsApp</h1>
+const canSend =
+phone && name && (!requiresDateTime || (dia && hora));
 
-        <div className={styles.formGrid}>
-          {/* Búsqueda de pacientes */}
-          <div className={styles.field} style={{ gridColumn: "span 2" }}>
-            <label className={styles.label}>
-              Buscar paciente (opcional)
-            </label>
-            <div className={styles.searchContainer}>
-              <input
-                type="text"
-                className={styles.input}
-                placeholder="Escribe nombre o DNI..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              />
-              {showSuggestions && searchTerm && filteredPacientes.length > 0 && (
-                <div className={styles.suggestions}>
-                  {filteredPacientes.slice(0, 8).map((p) => (
-                    <div
-                      key={p.id}
-                      className={styles.suggestionItem}
-                      onClick={() => handleSelectPaciente(p)}
-                    >
-                      <span className={styles.suggestionName}>{p.fullName}</span>
-                      <span className={styles.suggestionPhone}>{p.phone || "Sin teléfono"}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+return ( <div className={styles.container}> <div className={styles.card}> <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
-          {/* Teléfono */}
+```
+    <div className={styles.formGrid}>
+      {/* Buscar paciente */}
+      <div
+        className={styles.field}
+        style={{ gridColumn: "span 2" }}
+      >
+        <label className={styles.label}>
+          Buscar paciente (opcional)
+        </label>
+
+        <div className={styles.searchContainer}>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Escribe nombre o DNI..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() =>
+              setTimeout(() => setShowSuggestions(false), 200)
+            }
+          />
+
+          {showSuggestions &&
+            searchTerm &&
+            filteredPacientes.length > 0 && (
+              <div className={styles.suggestions}>
+                {filteredPacientes.slice(0, 8).map((p) => (
+                  <div
+                    key={p.id}
+                    className={styles.suggestionItem}
+                    onClick={() => handleSelectPaciente(p)}
+                  >
+                    <span className={styles.suggestionName}>
+                      {p.fullName}
+                    </span>
+
+                    <span className={styles.suggestionPhone}>
+                      {p.phone || "Sin teléfono"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
+      </div>
+
+      {/* Teléfono */}
+      <div className={styles.field}>
+        <label htmlFor="phone" className={styles.label}>
+          Número de teléfono{" "}
+          <span className={styles.required}>*</span>
+        </label>
+
+        <input
+          id="phone"
+          type="tel"
+          className={styles.input}
+          placeholder="Ej: 5493456123456"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+
+      {/* Nombre */}
+      <div className={styles.field}>
+        <label htmlFor="name" className={styles.label}>
+          Nombre del paciente{" "}
+          <span className={styles.required}>*</span>
+        </label>
+
+        <input
+          id="name"
+          type="text"
+          className={styles.input}
+          placeholder="Nombre completo"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+
+      {/* Fecha y hora */}
+      {requiresDateTime && (
+        <>
           <div className={styles.field}>
-            <label htmlFor="phone" className={styles.label}>
-              Número de teléfono <span className={styles.required}>*</span>
+            <label htmlFor="dia" className={styles.label}>
+              Día del turno{" "}
+              <span className={styles.required}>*</span>
             </label>
-            <input
-              id="phone"
-              type="tel"
-              className={styles.input}
-              placeholder="Ej: 5493456123456"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
 
-          {/* Nombre paciente */}
-          <div className={styles.field}>
-            <label htmlFor="name" className={styles.label}>
-              Nombre del paciente <span className={styles.required}>*</span>
-            </label>
             <input
-              id="name"
+              id="dia"
               type="text"
               className={styles.input}
-              placeholder="Nombre completo"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej: lunes 15/04"
+              value={dia}
+              onChange={(e) => setDia(e.target.value)}
             />
           </div>
 
-          {/* Campos condicionales: fecha y hora */}
-          {requiresDateTime && (
-            <>
-              <div className={styles.field}>
-                <label htmlFor="dia" className={styles.label}>
-                  Día del turno <span className={styles.required}>*</span>
-                </label>
-                <input
-                  id="dia"
-                  type="text"
-                  className={styles.input}
-                  placeholder="Ej: lunes 15/04"
-                  value={dia}
-                  onChange={(e) => setDia(e.target.value)}
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="hora" className={styles.label}>
-                  Hora del turno <span className={styles.required}>*</span>
-                </label>
-                <input
-                  id="hora"
-                  type="text"
-                  className={styles.input}
-                  placeholder="Ej: 10:30"
-                  value={hora}
-                  onChange={(e) => setHora(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Selector de mensaje */}
           <div className={styles.field}>
-            <label htmlFor="mensaje" className={styles.label}>
-              Tipo de mensaje
+            <label htmlFor="hora" className={styles.label}>
+              Hora del turno{" "}
+              <span className={styles.required}>*</span>
             </label>
-            <select
-              id="mensaje"
+
+            <input
+              id="hora"
+              type="text"
               className={styles.input}
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
-            >
-              <option value="1">Mensaje 1 – FKT Aprobada</option>
-              <option value="2">Mensaje 2 – RMN Aprobada</option>
-              <option value="3">Mensaje 3 – Medicamentos Aprobados</option>
-              <option value="4">Mensaje 4 – Electrocardiograma</option>
-              <option value="5">Mensaje 5 – Estudios Laboratorio</option>
-              <option value="6">Mensaje 6 – Ecografía Aprobada</option>
-              <option value="7">Mensaje 7 – Cirugía Aprobada</option>
-              <option value="8">Mensaje 8 – Ortopedia</option>
-            </select>
+              placeholder="Ej: 10:30"
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+            />
           </div>
+        </>
+      )}
 
-          {/* Selector de bioquímico (solo mensaje 5) */}
-          {mensaje === "5" && (
-            <div className={styles.field}>
-              <label htmlFor="bioquimico" className={styles.label}>
-                Bioquímico
-              </label>
-              <select
-                id="bioquimico"
-                className={styles.input}
-                value={bioquimico}
-                onChange={(e) => setBioquimico(e.target.value)}
-              >
-                <option value="confalonieri">Bioquímica Confalonieri</option>
-                <option value="marmol">Bioquímico Mármol</option>
-                <option value="tabeni">Bioquímico/a Tabeni</option>  {/* ← nuevo */}
-              </select>
-            </div>
-          )}
+      {/* Tipo mensaje */}
+      <div className={styles.field}>
+        <label htmlFor="mensaje" className={styles.label}>
+          Tipo de mensaje
+        </label>
 
-          {/* Selector de cardiólogo (solo mensaje 4) */}
-          {mensaje === "4" && (
-            <div className={styles.field}>
-              <label htmlFor="cardiologo" className={styles.label}>
-                Cardiólogo
-              </label>
-              <select
-                id="cardiologo"
-                className={styles.input}
-                value={cardiologo}
-                onChange={(e) => setCardiologo(e.target.value)}
-              >
-                <option value="percara">Dr. Percara</option>
-                <option value="capovilla">Dr. Capovilla</option>
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Área de previsualización */}
-        <div className={styles.previewBox}>
-          <label htmlFor="preview" className={styles.label}>
-            Vista previa del mensaje
-          </label>
-          <textarea
-            id="preview"
-            className={styles.textarea}
-            value={preview}
-            onChange={(e) => setPreview(e.target.value)}
-          />
-        </div>
-
-        {/* Botón de envío */}
-        <a
-          href={canSend ? createWaLink() : "#"}
-          target="_blank"
-          className={`${styles.button} ${!canSend ? styles.buttonDisabled : ""}`}
-          onClick={(e) => {
-            if (!canSend) e.preventDefault();
-          }}
-          rel="noreferrer"
+        <select
+          id="mensaje"
+          className={styles.input}
+          value={mensaje}
+          onChange={(e) => setMensaje(e.target.value)}
         >
-          Enviar WhatsApp
-        </a>
+          <option value="1">Mensaje 1 – FKT Aprobada</option>
+          <option value="2">Mensaje 2 – RMN Aprobada</option>
+          <option value="3">Mensaje 3 – Medicamentos</option>
+          <option value="4">Mensaje 4 – Electrocardiograma</option>
+          <option value="5">Mensaje 5 – Laboratorio</option>
+          <option value="6">Mensaje 6 – Ecografía</option>
+          <option value="7">Mensaje 7 – Cirugía</option>
+          <option value="8">Mensaje 8 – Ortopedia</option>
+        </select>
       </div>
+
+      {/* Bioquímico */}
+      {mensaje === "5" && (
+        <div className={styles.field}>
+          <label
+            htmlFor="bioquimico"
+            className={styles.label}
+          >
+            Bioquímico
+          </label>
+
+          <select
+            id="bioquimico"
+            className={styles.input}
+            value={bioquimico}
+            onChange={(e) =>
+              setBioquimico(e.target.value)
+            }
+          >
+            <option value="confalonieri">
+              Bioquímica Confalonieri
+            </option>
+
+            <option value="marmol">
+              Bioquímico Mármol
+            </option>
+
+            <option value="tabeni">
+              Bioquímica Tabeni
+            </option>
+          </select>
+        </div>
+      )}
+
+      {/* Cardiólogo */}
+      {mensaje === "4" && (
+        <div className={styles.field}>
+          <label
+            htmlFor="cardiologo"
+            className={styles.label}
+          >
+            Cardiólogo
+          </label>
+
+          <select
+            id="cardiologo"
+            className={styles.input}
+            value={cardiologo}
+            onChange={(e) =>
+              setCardiologo(e.target.value)
+            }
+          >
+            <option value="percara">
+              Dr. Percara
+            </option>
+
+            <option value="capovilla">
+              Dr. Capovilla
+            </option>
+          </select>
+        </div>
+      )}
     </div>
-  );
+
+    {/* Vista previa */}
+    <div className={styles.previewBox}>
+      <label
+        htmlFor="preview"
+        className={styles.label}
+      >
+        Vista previa del mensaje
+      </label>
+
+      <textarea
+        id="preview"
+        className={styles.textarea}
+        value={preview}
+        onChange={(e) => setPreview(e.target.value)}
+      />
+    </div>
+
+    {/* Botón enviar */}
+    <a
+      href={canSend ? createWaLink() : "#"}
+      target="_blank"
+      rel="noreferrer"
+      className={`${styles.button} ${
+        !canSend ? styles.buttonDisabled : ""
+      }`}
+      onClick={(e) => {
+        if (!canSend) e.preventDefault();
+      }}
+    >
+      Enviar WhatsApp
+    </a>
+  </div>
+</div>
+```
+
+);
 }
