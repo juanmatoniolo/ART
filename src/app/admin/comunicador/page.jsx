@@ -67,12 +67,20 @@ export default function WhatsAppSender() {
     setShowSuggestions(false);
   };
 
- 
-  
 // Construcción de mensaje
 const buildMessage = () => {
-  if (mensaje === "1") {
-    return `Buen día, *${name}*.
+if (mensaje === "1") {
+const msgDaniela = encodeURIComponent(
+"Hola Daniela, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
+);
+
+```
+const msgNatali = encodeURIComponent(
+  "Hola Natali, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
+);
+
+return `Buen día, *${name}*.
+```
 
 ✅ Sus sesiones de kinesiología fueron APROBADAS.
 
@@ -88,15 +96,19 @@ Kinesiólogas disponibles:
 
 • *Daniela Rivas*
 📱 3456440878
+💬 WhatsApp:
+https://wa.me/5493456440878?text=${msgDaniela}
 
 • *Avancini Natali*
 📱 3456513866
+💬 WhatsApp:
+https://wa.me/5493456513866?text=${msgNatali}
 
 También puede consultar profesionales en la cartilla de su ART.`;
-  }
+}
 
-  if (mensaje === "2") {
-    return `Buen día, *${name}*.
+if (mensaje === "2") {
+return `Buen día, *${name}*.
 
 ✅ Su resonancia fue APROBADA.
 
@@ -118,10 +130,10 @@ Av. Siburu 1085
 • Implantes
 • Válvula cardíaca
 • Cirugías recientes`;
-  }
+}
 
-  if (mensaje === "3") {
-    return `Buen día, *${name}*.
+if (mensaje === "3") {
+return `Buen día, *${name}*.
 
 ✅ Sus medicamentos fueron APROBADOS.
 
@@ -146,17 +158,19 @@ Orden + copia de denuncia → Farmacia de la Unión.
 
 • *Otras ART*:
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
-  }
+}
 
-  if (mensaje === "4") {
-    const profesional =
-      cardiologo === "percara"
-        ? `Dr. Percara
+if (mensaje === "4") {
+const profesional =
+cardiologo === "percara"
+? `Dr. Percara
 📍 Bolívar 1695 (esquina 9 de Julio)`
-        : `Dr. Capovilla
+: `Dr. Capovilla
 📍 Bolívar 1645`;
 
-    return `Buen día, *${name}*.
+```
+return `Buen día, *${name}*.
+```
 
 ✅ Su electrocardiograma fue APROBADO.
 
@@ -168,20 +182,22 @@ Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 
 👨‍⚕️ Profesional:
 ${profesional}`;
-  }
+}
 
-  if (mensaje === "5") {
-    const profesional =
-      bioquimico === "confalonieri"
-        ? `Bioquímica Confalonieri
+if (mensaje === "5") {
+const profesional =
+bioquimico === "confalonieri"
+? `Bioquímica Confalonieri
 📍 Belgrano y Corrientes (frente a Pepos)`
-        : bioquimico === "marmol"
-          ? `Bioquímico Mármol
+: bioquimico === "marmol"
+? `Bioquímico Mármol
 📍 Sarmiento 2610`
-          : `Bioquímica Tabeni
+: `Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
-    return `Buen día, *${name}*.
+```
+return `Buen día, *${name}*.
+```
 
 ✅ Su estudio de laboratorio fue APROBADO.
 
@@ -194,10 +210,10 @@ ${profesional}`;
 
 📍 Lugar:
 ${profesional}`;
-  }
+}
 
-  if (mensaje === "6") {
-    return `Buen día, *${name}*.
+if (mensaje === "6") {
+return `Buen día, *${name}*.
 
 ✅ Su ecografía fue APROBADA.
 
@@ -211,16 +227,16 @@ Al ingresar puede consultar en Mesa de Entrada.
 ⚠️ Importante:
 • Traer DNI físico
 • Llegar 10 minutos antes`;
-  }
+}
 
-  if (mensaje === "7") {
-    return `CLÍNICA DE LA UNIÓN
+if (mensaje === "7") {
+return `CLÍNICA DE LA UNIÓN
 
 Buen día, *${name}*.
 
 ✅ Su cirugía fue APROBADA por la ART.
 
-📅 *La cirugía será el día ${dia} a las ${hora}.*
+📅 La cirugía será el día *${dia} a las ${hora}*.
 
 ⚠️ IMPORTANTE:
 • Debe venir en AYUNAS
@@ -239,10 +255,10 @@ Por favor responder:
 *CONFIRMO ASISTENCIA*
 
 Ante cualquier duda puede responder este mensaje.`;
-  }
+}
 
-  if (mensaje === "8") {
-    return `Buen día, *${name}*.
+if (mensaje === "8") {
+return `Buen día, *${name}*.
 
 ✅ Su ortopedia fue APROBADA.
 
@@ -267,10 +283,12 @@ Debe llevar:
 3️⃣ Consultar cobertura
 • Si la ART cubre el 100%, retira sin costo
 • Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
-  }
+}
 
-  return "";
+return "";
 };
+
+
   useEffect(() => {
     setPreview(buildMessage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
