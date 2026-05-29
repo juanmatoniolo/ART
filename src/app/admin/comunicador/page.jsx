@@ -67,110 +67,154 @@ export default function WhatsAppSender() {
     setShowSuggestions(false);
   };
 
-  // Construcción de mensaje
-  const buildMessage = () => {
-    if (mensaje === "1") {
-      const msgDaniela = encodeURIComponent(
-        "Hola Daniela, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
-      );
-      const msgNatali = encodeURIComponent(
-        "Hola Natali, me acaban de autorizar las sesiones de kinesiología desde la ART. Necesito más información para concurrir."
-      );
+ 
+  
+// Construcción de mensaje
+const buildMessage = () => {
+  if (mensaje === "1") {
+    return `Buen día, *${name}*.
 
-      return `Buen día, *${name}*.
-Le informamos desde Clínica de la Unión que *sus sesiones de kinesiología fueron aprobadas*.
-Puede pasar a retirar la autorización por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
-Ingreso por *Roque Sáenz Peña*.
+✅ Sus sesiones de kinesiología fueron APROBADAS.
 
-También le dejamos las kinesiólogas de Clinica de la Union que trabajan con ART:
+Puede retirar la autorización por Mesa de Entrada.
+
+📍 Ingreso por Roque Sáenz Peña.
+
+🕒 Horarios:
+• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+• Sábados: 8 a 12 hs
+
+Kinesiólogas disponibles:
 
 • *Daniela Rivas*
-  📍 Consultorio: 9 de Julio 1870 (Chajarí – E.R.)
-  📱 Tel: 3456440878
-  💬 Contactar por WhatsApp: wa.me/5493456440878?text=${msgDaniela}
+📱 3456440878
 
 • *Avancini Natali*
-  📍 Consultorio: Rivadavia 2665 (Chajarí – E.R.)
-  📱 Tel: 3456513866
-  💬 Contactar por WhatsApp: wa.me/5493456513866?text=${msgNatali}
+📱 3456513866
 
-*Tambien puede comunicarse a su ART para consultar la cartilla de profesionales afiliados.*`;
-    }
-    if (mensaje === "2") {
-      return `Buen día, *${name}*.
-Le escribimos desde Clínica de la Unión. Su *resonancia fue aprobada* y tiene turno para *${dia} a las ${hora}*.
+También puede consultar profesionales en la cartilla de su ART.`;
+  }
 
-*Indicaciones importantes:*
-• Límite de peso: *140 kg*
-• Asistir con ropa cómoda y *DNI físico*
-• Llegar *15 minutos antes* del turno
-• *Avisar si posee*: prótesis metálicas, implante coclear, marcapasos, válvula cardíaca o cirugías recientes
-• Puede asistir con *un acompañante* (en sala de espera)
+  if (mensaje === "2") {
+    return `Buen día, *${name}*.
 
-*Ingreso por Avenida Siburu 1085.* (Imágenes Médicas)`;
-    }
-    if (mensaje === "3") {
-      return `Buen día, *${name}*.
-Le informamos desde Clínica de la Unión que *sus medicamentos fueron aprobados*.
-Puede pasar a retirar la orden por *Mesa de Entrada*, de *lunes a viernes de 8 a 12 hs* o de *16 a 20 hs*, y *sábados de 8 a 12 hs*.
-Ingreso por *Roque Sáenz Peña*.
+✅ Su resonancia fue APROBADA.
 
-*Cómo trabajan las ART:*
+📅 Turno: *${dia} a las ${hora}*
 
-• *IAPS*: Presentarse con la orden en Farmacia Zordan o Farmacia de la Unión.
-• *Federación Patronal*: Orden + denuncia → Farmacia Del Pueblo.
-• *La Segunda*: Orden + copia de la denuncia → Farmacia de la Unión.
-• *Otras ART*: Orden + copia de la denuncia → Farmacia Zordan o Farmacia de la Unión.`;
-    }
-    if (mensaje === "4") {
-      const profesional =
-        cardiologo === "percara"
-          ? `Dr. Percara
-*Dirección:* Bolívar 1695 (esquina con 9 de Julio)`
-          : `Dr. Capovilla
-*Dirección:* Bolívar 1645 (entre Pablo Estampa y 9 de Julio)`;
-      return `Buen día, *${name}*.
-Le informamos desde Clínica de la Unión que su *electrocardiograma fue aprobado* y tiene turno para *${dia} a las ${hora}*.
+📍 Lugar:
+Imágenes Médicas
+Av. Siburu 1085
 
-*Indicaciones:*
-• Asistir con documento
+⚠️ Importante:
+• Traer DNI físico
+• Llegar 15 minutos antes
+• Asistir con ropa cómoda
+• Peso máximo permitido: 140 kg
+
+❗Avisar antes del estudio si posee:
+• Marcapasos
+• Prótesis metálicas
+• Implantes
+• Válvula cardíaca
+• Cirugías recientes`;
+  }
+
+  if (mensaje === "3") {
+    return `Buen día, *${name}*.
+
+✅ Sus medicamentos fueron APROBADOS.
+
+Puede retirar la orden por Mesa de Entrada.
+
+📍 Ingreso por Roque Sáenz Peña.
+
+🕒 Horarios:
+• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+• Sábados: 8 a 12 hs
+
+⚠️ Cómo retirar según ART:
+
+• *IAPS*:
+Orden en Farmacia Zordan o Farmacia de la Unión.
+
+• *Federación Patronal*:
+Orden + denuncia → Farmacia Del Pueblo.
+
+• *La Segunda*:
+Orden + copia de denuncia → Farmacia de la Unión.
+
+• *Otras ART*:
+Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
+  }
+
+  if (mensaje === "4") {
+    const profesional =
+      cardiologo === "percara"
+        ? `Dr. Percara
+📍 Bolívar 1695 (esquina 9 de Julio)`
+        : `Dr. Capovilla
+📍 Bolívar 1645`;
+
+    return `Buen día, *${name}*.
+
+✅ Su electrocardiograma fue APROBADO.
+
+📅 Turno: *${dia} a las ${hora}*
+
+⚠️ Importante:
+• Traer DNI físico
 • Llegar 15 minutos antes
 
-*Profesional:*
+👨‍⚕️ Profesional:
 ${profesional}`;
-    }
-    if (mensaje === "5") {
-      const profesional =
-        bioquimico === "confalonieri"
-          ? `Bioquímica Confalonieri\n*Dirección:* Belgrano y Corrientes (frente a la juguetería Pepos)`
-          : bioquimico === "marmol"
-            ? `Bioquímico Mármol\n*Dirección:* Sarmiento 2610`
-            : `Bioquímica Tabeni\n*Dirección:* Jaime Tabeni 1101 (esquina Uruguay)`;
-      return `Buen día, *${name}*.
-Le informamos desde Clínica de la Unión que su *estudio de laboratorio fue aprobado* y tiene turno para *${dia} a las ${hora}*.
+  }
 
-*Profesional:*
-${profesional}
+  if (mensaje === "5") {
+    const profesional =
+      bioquimico === "confalonieri"
+        ? `Bioquímica Confalonieri
+📍 Belgrano y Corrientes (frente a Pepos)`
+        : bioquimico === "marmol"
+          ? `Bioquímico Mármol
+📍 Sarmiento 2610`
+          : `Bioquímica Tabeni
+📍 Jaime Tabeni 1101`;
 
-*Requisitos:*
-• Presentarse con 8 horas de ayuno
-• Llevar documento
-• Llegar 10 a 15 minutos antes`;
-    }
-    if (mensaje === "6") {
-      return `Buen día, *${name}*.
-Le informamos desde Clínica de la Unión que su *ecografía fue aprobada* y tiene turno para *${dia} a las ${hora}*.
+    return `Buen día, *${name}*.
 
-*Lugar de realización:*
-Sector de *BioImagen* dentro de Clínica de la Unión.
-En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
+✅ Su estudio de laboratorio fue APROBADO.
 
-*Indicaciones:*
-• Asistir con documento
-• Llegar 10 a 15 minutos antes`;
-    }
-    if (mensaje === "7") {
-      return `CLÍNICA DE LA UNIÓN
+📅 Turno: *${dia} a las ${hora}*
+
+⚠️ IMPORTANTE:
+• Debe asistir con 8 horas de AYUNO
+• Traer DNI físico
+• Llegar 10 minutos antes
+
+📍 Lugar:
+${profesional}`;
+  }
+
+  if (mensaje === "6") {
+    return `Buen día, *${name}*.
+
+✅ Su ecografía fue APROBADA.
+
+📅 Turno: *${dia} a las ${hora}*
+
+📍 Lugar:
+Sector BioImagen dentro de Clínica de la Unión.
+
+Al ingresar puede consultar en Mesa de Entrada.
+
+⚠️ Importante:
+• Traer DNI físico
+• Llegar 10 minutos antes`;
+  }
+
+  if (mensaje === "7") {
+    return `CLÍNICA DE LA UNIÓN
 
 Buen día, *${name}*.
 
@@ -191,28 +235,42 @@ Antes de la cirugía necesitamos que complete este formulario:
 
 https://art-xi-six.vercel.app/cx
 
+Por favor responder:
+*CONFIRMO ASISTENCIA*
+
 Ante cualquier duda puede responder este mensaje.`;
-    }
+  }
 
-    if (mensaje === "8") {
-      return `Buen día, *${name}*.
+  if (mensaje === "8") {
+    return `Buen día, *${name}*.
 
-Le informamos los pasos para retirar su ortopedia:
+✅ Su ortopedia fue APROBADA.
 
-1. *Retirar autorización* en Mesa de Entrada de la Clínica (ingreso por Roque Sáenz Peña).  
-   Horarios: Lun a vie 8-12 y 16-20, sáb 8-12.
+📌 Pasos a seguir:
 
-2. *Ir a Distrimed* (9 de Julio 3240, frente a Farmacia Barbieri) con:  
-   - Copia de la denuncia  
-   - Autorización ortopédica
+1️⃣ Retirar autorización
+📍 Mesa de Entrada de Clínica de la Unión
+Ingreso por Roque Sáenz Peña.
 
-3. *Consultar cobertura* en la ortopedia:  
-   - Si la ART cubre el 100%, retira sin cargo.  
-   - Si no, debe abonar y luego pedir reintegro a su ART (guardar factura).`;
-    }
-    return "";
-  };
+🕒 Horarios:
+• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+• Sábados: 8 a 12 hs
 
+2️⃣ Presentarse en Distrimed
+📍 9 de Julio 3240
+(frente a Farmacia Barbieri)
+
+Debe llevar:
+• Copia de la denuncia
+• Autorización ortopédica
+
+3️⃣ Consultar cobertura
+• Si la ART cubre el 100%, retira sin costo
+• Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
+  }
+
+  return "";
+};
   useEffect(() => {
     setPreview(buildMessage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
