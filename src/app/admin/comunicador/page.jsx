@@ -170,28 +170,30 @@ En caso de no conocer la ubicación, puede consultar en *Mesa de Entrada*.
 • Llegar 10 a 15 minutos antes`;
     }
     if (mensaje === "7") {
-      return `CLÍNICA DE LA UNIÓN S.A.
+      return `CLÍNICA DE LA UNIÓN
 
 Buen día, *${name}*.
 
-Le informamos que su *intervención quirúrgica ha sido aprobada*.
+✅ Su cirugía fue APROBADA por la ART.
 
-Para continuar con el circuito administrativo y la programación, le solicitamos que se presente el *${dia} a las ${hora}*. 
+📅 *La cirugía será el día ${dia} a las ${hora}.*
 
-Favor de completar y enviar por este medio los siguientes datos en el link de abajo:
+⚠️ IMPORTANTE:
+• Debe venir en AYUNAS
+• Debe asistir en el horario indicado
+• Ese día ya se realiza la cirugía
+• Traer DNI físico original
+• Traer fotocopia del DNI (frente y dorso)
+
+📍 Al ingresar a la clínica, presentarse en Mesa de Entrada.
+
+Antes de la cirugía necesitamos que complete este formulario:
 
 https://art-xi-six.vercel.app/cx
 
-
-*IMPORTANTE*
-El día de la cirugía deberá presentar obligatoriamente:
-• DNI físico original
-• Fotocopia del DNI (frente y dorso)
-
-Quedamos a la espera de su información para avanzar.
-
-Muchas gracias.`;
+Ante cualquier duda puede responder este mensaje.`;
     }
+
     if (mensaje === "8") {
       return `Buen día, *${name}*.
 
