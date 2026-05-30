@@ -1,994 +1,486 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { push, ref, set, get, child, update } from "firebase/database";
-import styles from "./SiniestroPage.module.css";
-import Header from "@/components/Header/Header";
+import { ref, push } from "firebase/database";
+import styles from "./foja.module.css";
 
-const STORAGE_KEY = "siniestro_form_v2";
-const THEME_KEY = "siniestro_theme";
-
-const PRESTADOR_CONST = {
-  nombre: "CLINICA DE LA UNION S.A",
-  cuit: "30-70754530-1",
-  calle: "Av. Siburu",
-  nro: "1085",
-  piso: "-",
-  depto: "-",
-  localidad: "Chajari",
-  provincia: "Entre Rios",
-  cp: "3228",
-  celular: "3456-441580",
-  mail: "clinicadelaunionart@gmail.com",
+const initialState = {
+  apelidoynombre: "",
+  edad: "",
+  cirujano: "",
+  segundoayudante: "",
+  anestesista: "",
+  dia: "",
+  mes: "",
+  anio: "",
+  hsfin: "",
+  inichsinicio: "",
+  primerayudante: "",
+  preoperatorio: "",
+  posoperatorio: "",
+  procedimientoqx: "",
+  hallazgos: "",
 };
 
-const ART_OPTIONS = [
-  "Asociart",
-  "COMFYE",
-  "Federacion patronal AP",
-  "Federacion patronal ART",
-  "IAPS AP",
-  "IAPS ART",
-  "La segunda ART",
-  "La segunda personas",
-  "Medicar work",
-  "Victoria seguros",
-];
-
-const today = new Date();
-const defaultDay = String(today.getDate()).padStart(2, "0");
-const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
-const defaultYear = String(today.getFullYear());
-
-const initialForm = {
-  ART: "",
-  nroSiniestro: "",
-  empleadorNombre: "",
-  empleadorCuitDni: "",
-  trabajadorApellido: "",
-  trabajadorNombre: "",
-  trabajadorDni: "",
-  trabajadorNacimiento: "",
-  trabajadorSexo: "",
-  trabajadorCalle: "",
-  trabajadorNumero: "",
-  trabajadorPiso: "",
-  trabajadorDepto: "",
-  trabajadorLocalidad: "",
-  trabajadorProvincia: "",
-  trabajadorCP: "",
-  trabajadorTelefono: "",
-  consultaTipo: "",
-  diaIngreso: defaultDay,
-  mesIngreso: defaultMonth,
-  anioIngreso: defaultYear,
-  diaDenuncia: defaultDay,
-  mesDenuncia: defaultMonth,
-  anioDenuncia: defaultYear,
-  trabajadorEdad: "",
-};
-
-// --- helpers ---
-function onlyDigits(s) {
-  return (s ?? "").toString().replace(/\D/g, "");
-}
-
-function formatCuil(digits) {
-  if (digits.length !== 11) return digits;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}.${digits.slice(4, 7)}.${digits.slice(7, 10)}-${digits.slice(10)}`;
-}
-
-function formatDni(digits) {
-  if (!digits) return "";
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-function formatIdField(value) {
-  const d = onlyDigits(value);
-  if (!d) return value;
-  if (d.length === 11) return formatCuil(d);
-  return formatDni(d);
-}
-
-function calcularEdad(nacimiento) {
-  if (!nacimiento) return "";
-  const [y, m, d] = nacimiento.split("-").map(Number);
-  if (!y || !m || !d) return "";
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - y;
-  const mesActual = hoy.getMonth() + 1;
-  const diaActual = hoy.getDate();
-  if (mesActual < m || (mesActual === m && diaActual < d)) edad--;
-  return edad >= 0 ? String(edad) : "";
-}
-
-function validate(f) {
-  const e = {};
-  const empId = onlyDigits(f.empleadorCuitDni);
-  if (empId && empId.length < 8 && empId.length > 0) {
-    e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
-  }
-
-  // Validación que acepta DNI (7-9) o CUIL (11)
-  const dni = onlyDigits(f.trabajadorDni);
-  if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
-    e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
-  }
-
-  const tel = onlyDigits(f.trabajadorTelefono);
-  if (tel && tel.length < 8) {
-    e.trabajadorTelefono = "Teléfono inválido";
-  }
-
-  const validarFecha = (dia, mes, anio, prefix) => {
-    const d = Number(dia), m = Number(mes), a = Number(anio);
-    if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
-    if (mes && (m < 1 || m > 12)) e[`${prefix}Mes`] = "Mes inválido";
-    if (anio && (a < 1900 || a > 2100)) e[`${prefix}Anio`] = "Año inválido";
-  };
-  validarFecha(f.diaIngreso, f.mesIngreso, f.anioIngreso, "ingreso");
-  validarFecha(f.diaDenuncia, f.mesDenuncia, f.anioDenuncia, "denuncia");
-  return e;
-}
-
-function cx(...cls) {
-  return cls.filter(Boolean).join(" ");
-}
-
-// --- Componentes auxiliares ---
-function Section({ title, subtitle, children }) {
-  return (
-    <section className={styles.section}>
-      <div className={styles.sectionHead}>
-        <div>
-          <h3 className={styles.sectionTitle}>{title}</h3>
-          {subtitle && <div className={styles.sectionHint}>{subtitle}</div>}
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function DatePartInput({ label, value, onChange, placeholder, maxLength, error, className }) {
-  return (
-    <div className={cx(styles.datePartField, className)}>
-      <label className={styles.label}>{label}</label>
-      <input
-        className={cx(styles.input, error && styles.inputError)}
-        value={value}
-        onChange={onChange}
-        inputMode="numeric"
-        placeholder={placeholder}
-        maxLength={maxLength}
-      />
-      {error && <div className={styles.errorText}>{error}</div>}
-    </div>
-  );
-}
-
-// --- Componente principal ---
-export default function SiniestroPage() {
-  const [activeTab, setActiveTab] = useState("nuevo");
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [createdId, setCreatedId] = useState(null);
+export default function FojaQXPage() {
+  const [form, setForm] = useState(initialState);
+  const [status, setStatus] = useState("idle"); // idle | saving | success | error
+  const [errorMsg, setErrorMsg] = useState("");
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfError, setPdfError] = useState(null);
-  const [theme, setTheme] = useState("dark");
-  const [shouldFocusError, setShouldFocusError] = useState(false); // <-- Nuevo estado
+  const [firebaseId, setFirebaseId] = useState(null);
 
-  const [pacientes, setPacientes] = useState([]);
-  const [loadingPacientes, setLoadingPacientes] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editingId, setEditingId] = useState(null);
-
-  const submittingRef = useRef(false);
-
-  // --- Tema claro/oscuro ---
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
-    setTheme(savedTheme);
-    document.body.classList.toggle("light-mode", savedTheme === "light");
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem(THEME_KEY, newTheme);
-    document.body.classList.toggle("light-mode", newTheme === "light");
-  };
-
-  // --- Persistencia local del formulario ---
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setForm({ ...initialForm, ...JSON.parse(raw) });
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-      } catch {}
-    }, 250);
-    return () => clearTimeout(t);
-  }, [form]);
-
+  // Limpiar URL del blob al desmontar
   useEffect(() => {
     return () => {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
   }, [pdfUrl]);
 
-  useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      trabajadorEdad: calcularEdad(prev.trabajadorNacimiento),
-    }));
-  }, [form.trabajadorNacimiento]);
-
-  // --- Auto-foco en el primer error ---
-  useEffect(() => {
-    if (shouldFocusError && Object.keys(errors).length > 0) {
-      const timer = setTimeout(() => {
-        const errorField = document.querySelector(`.${styles.inputError}`);
-        if (errorField) {
-          errorField.focus();
-          errorField.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-        setShouldFocusError(false);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [shouldFocusError, errors]);
-
-  useEffect(() => {
-    if (activeTab === "buscar") {
-      fetchAllPacientes();
-    }
-  }, [activeTab]);
-
-  const fetchAllPacientes = async () => {
-    setLoadingPacientes(true);
-    try {
-      const snapshot = await get(child(ref(db), "pacientes"));
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
-        arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        setPacientes(arr);
-      } else {
-        setPacientes([]);
-      }
-    } catch (error) {
-      console.error("Error cargando pacientes:", error);
-    } finally {
-      setLoadingPacientes(false);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const canSubmit = useMemo(() => !saving, [saving]);
-
-  const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
-
-  const onBlurCuitDni = () => {
-    setForm((p) => ({ ...p, empleadorCuitDni: formatIdField(p.empleadorCuitDni) }));
-  };
-
-  const onBlurTrabajadorDni = () => {
-    setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
-  };
-
-  const handleEditPaciente = (paciente) => {
-    const t = paciente.trabajador || {};
-    const emp = paciente.empleador || {};
-    const art = paciente.ART || {};
-    const fi = paciente.fechaIngreso || {};
-    const fd = paciente.fechaDenuncia || {};
-    const consulta = paciente.consulta?.tipo || "";
-
-    setForm({
-      ART: art.nombre || "",
-      nroSiniestro: art.nroSiniestro || "",
-      empleadorNombre: emp.nombre || "",
-      empleadorCuitDni: emp.cuit || "",
-      trabajadorApellido: t.apellido || "",
-      trabajadorNombre: t.nombre || "",
-      trabajadorDni: t.dni || "",
-      trabajadorNacimiento: t.nacimiento || "",
-      trabajadorSexo: t.sexo || "",
-      trabajadorCalle: t.calle || "",
-      trabajadorNumero: t.numero || "",
-      trabajadorPiso: t.piso || "",
-      trabajadorDepto: t.depto || "",
-      trabajadorLocalidad: t.localidad || "",
-      trabajadorProvincia: t.provincia || "",
-      trabajadorCP: t.cp || "",
-      trabajadorTelefono: t.telefono || "",
-      consultaTipo: consulta,
-      diaIngreso: fi.dia || defaultDay,
-      mesIngreso: fi.mes || defaultMonth,
-      anioIngreso: fi.anio || defaultYear,
-      diaDenuncia: fd.dia || defaultDay,
-      mesDenuncia: fd.mes || defaultMonth,
-      anioDenuncia: fd.anio || defaultYear,
-      trabajadorEdad: t.edad || "",
-    });
-    setEditingId(paciente.id);
-    setActiveTab("nuevo");
-    setCreatedId(null);
-    setPdfError(null);
-    setPdfUrl(null);
-    setPdfFileName(null);
-  };
-
-  const handlePrintPaciente = async (paciente) => {
-    try {
-      const payload = {
-        ...paciente,
-        prestador: paciente.prestador || PRESTADOR_CONST,
-      };
-      const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
-      const dni = onlyDigits(payload.trabajador?.dni) || "SIN_DNI";
-      const nroSiniestro = payload.ART?.nroSiniestro || "SINIESTRO";
-      const fileName = `ART_${apellido}_${dni}_${nroSiniestro}.pdf`;
-
-      const res = await fetch("/api/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, fileName }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Error al generar PDF: ${res.status} ${errorText}`);
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert("No se pudo generar el PDF.");
-    }
-  };
-
-  function openPdf() {
-    if (pdfUrl) window.open(pdfUrl, "_blank", "noopener,noreferrer");
-  }
-
-  function downloadPdf() {
-    if (!pdfUrl) return;
-    const a = document.createElement("a");
-    a.href = pdfUrl;
-    a.download = pdfFileName || "FORMULARIO_ART.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-
-  async function onSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-
-    setCreatedId(null);
+    setStatus("saving");
+    setErrorMsg("");
     setPdfError(null);
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    setPdfUrl(null);
-    setPdfFileName(null);
-
-    const v = validate(form);
-    setErrors(v);
-    if (Object.keys(v).length) {
-      setShouldFocusError(true); // <-- Activa el scroll al error
-      submittingRef.current = false;
-      return;
+    setFirebaseId(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+      setPdfFileName(null);
     }
 
-    setSaving(true);
     try {
-      const empleadorCuitFormatted = formatIdField(form.empleadorCuitDni);
-      const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
+      // 1. Guardar en Firebase
+      const fojaRef = ref(db, "fojaqx");
+      const snapshot = await push(fojaRef, {
+        ...form,
+        timestamp: new Date().toISOString(),
+      });
+      const newId = snapshot.key;
+      setFirebaseId(newId);
 
-      const payload = {
-        ART: {
-          nombre: form.ART.trim() || "",
-          nroSiniestro: form.nroSiniestro.trim() || "",
-        },
-        empleador: {
-          nombre: form.empleadorNombre.trim() || "",
-          cuit: empleadorCuitFormatted || "",
-        },
-        trabajador: {
-          apellido: form.trabajadorApellido.trim() || "",
-          nombre: form.trabajadorNombre.trim() || "",
-          dni: trabajadorDniFormatted || "",
-          nacimiento: form.trabajadorNacimiento || "",
-          edad: form.trabajadorEdad,
-          sexo: form.trabajadorSexo || "",
-          calle: form.trabajadorCalle.trim() || "",
-          numero: form.trabajadorNumero.trim() || "",
-          piso: form.trabajadorPiso.trim() || "",
-          depto: form.trabajadorDepto.trim() || "",
-          localidad: form.trabajadorLocalidad.trim() || "",
-          provincia: form.trabajadorProvincia.trim() || "",
-          cp: onlyDigits(form.trabajadorCP) || "",
-          telefono: onlyDigits(form.trabajadorTelefono) || "",
-        },
-        consulta: { tipo: form.consultaTipo || "" },
-        fechaIngreso: {
-          dia: form.diaIngreso,
-          mes: form.mesIngreso,
-          anio: form.anioIngreso,
-          iso: `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`,
-        },
-        fechaDenuncia: {
-          dia: form.diaDenuncia,
-          mes: form.mesDenuncia,
-          anio: form.anioDenuncia,
-          iso: `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`,
-        },
-        prestador: PRESTADOR_CONST,
-        updatedAt: Date.now(),
-      };
-
-      let savedId;
-      if (editingId) {
-        await update(ref(db, `pacientes/${editingId}`), payload);
-        savedId = editingId;
-      } else {
-        payload.createdAt = Date.now();
-        const newRef = push(ref(db, "pacientes"));
-        await set(newRef, payload);
-        savedId = newRef.key;
-      }
-      setCreatedId(savedId);
-
-      const fileName = `ART_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"}_${payload.ART.nroSiniestro || "SINIESTRO"}.pdf`;
-
-      const res = await fetch("/api/pdf", {
+      // 2. Generar PDF llamando a la API route
+      const response = await fetch("/api/fojaqx/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, fileName }),
+        body: JSON.stringify(form),
       });
 
-      const ct = res.headers.get("content-type") || "";
-      if (!res.ok || !ct.includes("application/pdf")) {
-        const detail = ct.includes("application/json")
-          ? JSON.stringify(await res.json().catch(() => ({})), null, 2)
-          : await res.text().catch(() => "");
-        console.error("PDF FAIL:", { status: res.status, ct, detail });
-        setPdfError(`Falló la generación del PDF (${res.status}). Revisá consola.`);
-        return;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error al generar PDF: ${response.status} ${errorText}`);
       }
 
-      const blob = await res.blob();
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
+      const fileName = `FojaQX_${form.apelidoynombre.replace(/\s/g, "_")}_${form.dia}_${form.mes}_${form.anio}.pdf`;
       setPdfUrl(url);
       setPdfFileName(fileName);
 
-      setEditingId(null);
-      if (activeTab === "buscar") fetchAllPacientes();
+      setStatus("success");
+      setForm(initialState);
+      // Opcional: resetear el formulario después de 4 segundos
+      setTimeout(() => {
+        if (status === "success") setStatus("idle");
+      }, 8000);
     } catch (err) {
       console.error(err);
-      setPdfError("Error guardando o generando PDF. Revisá consola.");
-    } finally {
-      setSaving(false);
-      submittingRef.current = false;
+      setStatus("error");
+      setErrorMsg(err.message || "Error al guardar o generar PDF. Intente nuevamente.");
     }
-  }
+  };
 
-  const filteredPacientes = pacientes.filter((p) => {
-    const t = p.trabajador || {};
-    const fullName = `${t.apellido || ""} ${t.nombre || ""}`.toLowerCase();
-    const dni = t.dni || "";
-    const term = searchTerm.toLowerCase();
-    return fullName.includes(term) || dni.includes(term);
-  });
+  const handleReset = () => {
+    setForm(initialState);
+    setStatus("idle");
+    setErrorMsg("");
+    setPdfError(null);
+    setFirebaseId(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+      setPdfFileName(null);
+    }
+  };
+
+  const openPdf = () => {
+    if (pdfUrl) window.open(pdfUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const downloadPdf = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement("a");
+    a.href = pdfUrl;
+    a.download = pdfFileName || "foja_quirurgica.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
   return (
-    <>
-      <Header />
-      <div className={cx(styles.page, theme === "light" && styles.lightMode)}>
-        <div className={styles.shell}>
-          <div className={styles.header}>
-            <div>
-              <h1 className={styles.title}>Gestión de Siniestros</h1>
-              <p className={styles.subtitle}>
-                {activeTab === "nuevo"
-                  ? editingId
-                    ? "Editando paciente existente"
-                    : "Nuevo registro de siniestro"
-                  : "Buscar y gestionar pacientes"}
-              </p>
-            </div>
-            <div className={styles.headerActions}>
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={toggleTheme}
-                title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              >
-                {theme === "dark" ? "☀️" : "🌙"}
-              </button>
-              {activeTab === "nuevo" && (
-                <button
-                  type="button"
-                  className={styles.ghostBtn}
-                  disabled={saving}
-                  onClick={() => {
-                    setForm(initialForm);
-                    setErrors({});
-                    setCreatedId(null);
-                    setPdfError(null);
-                    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-                    setPdfUrl(null);
-                    setPdfFileName(null);
-                    setEditingId(null);
-                    localStorage.removeItem(STORAGE_KEY);
-                  }}
-                >
-                  Limpiar
-                </button>
-              )}
-            </div>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* Header */}
+        <header className={styles.header}>
+          <div className={styles.headerAccent} />
+          <div className={styles.headerContent}>
+            <span className={styles.headerTag}>Registro Quirúrgico</span>
+            <h1 className={styles.title}>Foja Quirúrgica QX</h1>
+            <p className={styles.subtitle}>
+              Completar todos los campos y confirmar para guardar el registro y generar el PDF.
+            </p>
           </div>
+        </header>
 
-          <div className={styles.tabsContainer}>
-            <button
-              className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
-              onClick={() => setActiveTab("nuevo")}
-            >
-              📝 Nuevo / Editar
-            </button>
-            <button
-              className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
-              onClick={() => {
-                setActiveTab("buscar");
-                fetchAllPacientes();
-              }}
-            >
-              🔍 Buscar Pacientes
-            </button>
-          </div>
-
-          {activeTab === "nuevo" ? (
-            <>
-              {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
-
-              <form onSubmit={onSubmit} autoComplete="on">
-                <div className={styles.card}>
-                  <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales">
-                    <div className={styles.grid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>ART</label>
-                        <select
-                          className={cx(styles.input, errors.ART && styles.inputError)}
-                          value={form.ART}
-                          onChange={onChange("ART")}
-                        >
-                          <option value="">Seleccione una ART</option>
-                          {ART_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                        {errors.ART && <div className={styles.errorText}>{errors.ART}</div>}
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>N° siniestro</label>
-                        <input
-                          className={styles.input}
-                          value={form.nroSiniestro}
-                          onChange={onChange("nroSiniestro")}
-                          inputMode="numeric"
-                          placeholder="Opcional"
-                        />
-                      </div>
-                      <div className={styles.fieldFull}>
-                        <label className={styles.label}>Motivo de consulta</label>
-                        <div className={styles.chips}>
-                          {[
-                            ["AT", "Accidente de trabajo"],
-                            ["AIT", "Accidente In Itinere"],
-                            ["EP", "Enfermedad Profesional"],
-                            ["INT", "Intercurrencia"],
-                          ].map(([val, label]) => (
-                            <label
-                              key={val}
-                              className={cx(styles.chip, form.consultaTipo === val && styles.chipActive)}
-                              htmlFor={`motivo_${val}`}
-                            >
-                              <input
-                                id={`motivo_${val}`}
-                                type="radio"
-                                name="motivo"
-                                value={val}
-                                checked={form.consultaTipo === val}
-                                onChange={onChange("consultaTipo")}
-                              />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </Section>
-
-                  <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
-                    <div className={styles.fechasWrapper}>
-                      <div className={styles.fechaGroup}>
-                        <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
-                        <div className={styles.fechaRow}>
-                          <DatePartInput
-                            label="Día"
-                            value={form.diaIngreso}
-                            onChange={onChange("diaIngreso")}
-                            placeholder="DD"
-                            maxLength={2}
-                            error={errors.ingresoDia}
-                          />
-                          <DatePartInput
-                            label="Mes"
-                            value={form.mesIngreso}
-                            onChange={onChange("mesIngreso")}
-                            placeholder="MM"
-                            maxLength={2}
-                            error={errors.ingresoMes}
-                          />
-                          <DatePartInput
-                            label="Año"
-                            value={form.anioIngreso}
-                            onChange={onChange("anioIngreso")}
-                            placeholder="AAAA"
-                            maxLength={4}
-                            error={errors.ingresoAnio}
-                            className={styles.datePartWide}
-                          />
-                        </div>
-                      </div>
-
-                      <div className={styles.fechaGroup}>
-                        <div className={styles.fechaGroupLabel}>Fecha de denuncia</div>
-                        <div className={styles.fechaRow}>
-                          <DatePartInput
-                            label="Día"
-                            value={form.diaDenuncia}
-                            onChange={onChange("diaDenuncia")}
-                            placeholder="DD"
-                            maxLength={2}
-                            error={errors.denunciaDia}
-                          />
-                          <DatePartInput
-                            label="Mes"
-                            value={form.mesDenuncia}
-                            onChange={onChange("mesDenuncia")}
-                            placeholder="MM"
-                            maxLength={2}
-                            error={errors.denunciaMes}
-                          />
-                          <DatePartInput
-                            label="Año"
-                            value={form.anioDenuncia}
-                            onChange={onChange("anioDenuncia")}
-                            placeholder="AAAA"
-                            maxLength={4}
-                            error={errors.denunciaAnio}
-                            className={styles.datePartWide}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Section>
-
-                  <Section title="3) Empleador" subtitle="Todos los campos son opcionales">
-                    <div className={styles.grid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Nombre empresa</label>
-                        <input
-                          className={cx(styles.input, errors.empleadorNombre && styles.inputError)}
-                          value={form.empleadorNombre}
-                          onChange={onChange("empleadorNombre")}
-                          placeholder="Razón social (opcional)"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>CUIT / DNI</label>
-                        <input
-                          className={cx(styles.input, errors.empleadorCuitDni && styles.inputError)}
-                          value={form.empleadorCuitDni}
-                          onChange={onChange("empleadorCuitDni")}
-                          onBlur={onBlurCuitDni}
-                          inputMode="numeric"
-                          placeholder="Opcional (solo números)"
-                        />
-                        {errors.empleadorCuitDni && <div className={styles.errorText}>{errors.empleadorCuitDni}</div>}
-                      </div>
-                    </div>
-                  </Section>
-
-                  <Section title="4) Trabajador" subtitle="Todos los campos son opcionales">
-                    <div className={styles.grid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Apellido</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorApellido}
-                          onChange={onChange("trabajadorApellido")}
-                          placeholder="Apellido"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Nombre</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorNombre}
-                          onChange={onChange("trabajadorNombre")}
-                          placeholder="Nombre"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>DNI / CUIL</label>
-                        <input
-                          className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
-                          value={form.trabajadorDni}
-                          onChange={onChange("trabajadorDni")}
-                          onBlur={onBlurTrabajadorDni}
-                          inputMode="numeric"
-                          placeholder="DNI o CUIL"
-                        />
-                        {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.label}>Fecha de nacimiento</label>
-                        <input
-                          type="date"
-                          className={styles.input}
-                          value={form.trabajadorNacimiento}
-                          onChange={onChange("trabajadorNacimiento")}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Edad (calculada)</label>
-                        <input
-                          className={cx(styles.input, styles.inputReadonly)}
-                          value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""}
-                          readOnly
-                          tabIndex={-1}
-                          placeholder="Se calcula automáticamente"
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.label}>Sexo</label>
-                        <div className={styles.chips}>
-                          {["M", "F"].map((val) => (
-                            <label
-                              key={val}
-                              className={cx(styles.chip, form.trabajadorSexo === val && styles.chipActive)}
-                            >
-                              <input
-                                type="radio"
-                                name="sexo"
-                                value={val}
-                                checked={form.trabajadorSexo === val}
-                                onChange={onChange("trabajadorSexo")}
-                              />
-                              {val}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Teléfono</label>
-                        <input
-                          className={cx(styles.input, errors.trabajadorTelefono && styles.inputError)}
-                          value={form.trabajadorTelefono}
-                          onChange={onChange("trabajadorTelefono")}
-                          inputMode="numeric"
-                          placeholder="Teléfono"
-                        />
-                        {errors.trabajadorTelefono && <div className={styles.errorText}>{errors.trabajadorTelefono}</div>}
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Calle</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorCalle}
-                          onChange={onChange("trabajadorCalle")}
-                          placeholder="Calle"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Número</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorNumero}
-                          onChange={onChange("trabajadorNumero")}
-                          inputMode="numeric"
-                          placeholder="N°"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Piso</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorPiso}
-                          onChange={onChange("trabajadorPiso")}
-                          placeholder="Piso"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Depto</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorDepto}
-                          onChange={onChange("trabajadorDepto")}
-                          placeholder="Depto"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Localidad</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorLocalidad}
-                          onChange={onChange("trabajadorLocalidad")}
-                          placeholder="Localidad"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Provincia</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorProvincia}
-                          onChange={onChange("trabajadorProvincia")}
-                          placeholder="Provincia"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>CP</label>
-                        <input
-                          className={styles.input}
-                          value={form.trabajadorCP}
-                          onChange={onChange("trabajadorCP")}
-                          inputMode="numeric"
-                          placeholder="CP"
-                        />
-                      </div>
-                    </div>
-                  </Section>
-
-                  <div className={styles.footer}>
-                    <button type="submit" className={styles.primaryBtn} disabled={!canSubmit}>
-                      {saving
-                        ? "Guardando y generando..."
-                        : editingId
-                        ? "Actualizar y generar PDF"
-                        : "Guardar y generar PDF"}
-                    </button>
-
-                    <div className={styles.pdfRow}>
-                      {createdId && (
-                        <div className={styles.toastSuccess}>
-                          ✅ {editingId ? "Actualizado" : "Guardado"}. ID: <b>{createdId}</b>
-                        </div>
-                      )}
-                      {pdfError && <div className={styles.toastDanger}>❌ {pdfError}</div>}
-                      {pdfUrl && (
-                        <div className={styles.toastSuccess}>
-                          <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                            <div>
-                              📄 PDF generado: <b style={{ wordBreak: "break-word" }}>{pdfFileName}</b>
-                            </div>
-                            <div className={styles.pdfActions}>
-                              <button type="button" className={styles.secondaryBtn} onClick={openPdf}>
-                                Abrir
-                              </button>
-                              <button type="button" className={styles.primaryBtn} style={{ height: 40, width: "auto" }} onClick={downloadPdf}>
-                                Descargar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </>
-          ) : (
-            <div className={styles.searchTab}>
-              <div className={styles.searchHeader}>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Sección: Datos del Paciente */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionNumber}>01</span>
+              <h2 className={styles.sectionTitle}>Datos del Paciente</h2>
+            </div>
+            <div className={styles.grid2}>
+              <div className={styles.fieldFull}>
+                <label className={styles.label} htmlFor="apelidoynombre">
+                  Apellido y Nombre
+                </label>
                 <input
+                  id="apelidoynombre"
+                  name="apelidoynombre"
                   type="text"
+                  value={form.apelidoynombre}
+                  onChange={handleChange}
                   className={styles.input}
-                  placeholder="Buscar por nombre, apellido o DNI..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Apellido completo, Nombre"
+                  required
                 />
-                <button
-                  className={styles.ghostBtn}
-                  onClick={fetchAllPacientes}
-                  disabled={loadingPacientes}
-                >
-                  🔄 Actualizar
-                </button>
               </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="edad">
+                  Edad
+                </label>
+                <input
+                  id="edad"
+                  name="edad"
+                  type="number"
+                  min="0"
+                  max="150"
+                  value={form.edad}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Años"
+                  required
+                />
+              </div>
+            </div>
+          </section>
 
-              {loadingPacientes ? (
-                <div className={styles.loading}>Cargando pacientes...</div>
-              ) : filteredPacientes.length === 0 ? (
-                <div className={styles.empty}>No se encontraron pacientes.</div>
-              ) : (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Paciente</th>
-                        <th>DNI</th>
-                        <th>ART</th>
-                        <th>N° Siniestro</th>
-                        <th>Fecha Ingreso</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredPacientes.map((p) => {
-                        const t = p.trabajador || {};
-                        const art = p.ART || {};
-                        const fi = p.fechaIngreso || {};
-                        return (
-                          <tr key={p.id}>
-                            <td>
-                              {t.apellido} {t.nombre}
-                            </td>
-                            <td>{t.dni || "—"}</td>
-                            <td>{art.nombre || "—"}</td>
-                            <td>{art.nroSiniestro || "—"}</td>
-                            <td>
-                              {fi.dia && fi.mes && fi.anio
-                                ? `${fi.dia}/${fi.mes}/${fi.anio}`
-                                : "—"}
-                            </td>
-                            <td className={styles.actionsCell}>
-                              <button
-                                className={styles.iconBtn}
-                                title="Editar"
-                                onClick={() => handleEditPaciente(p)}
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                className={styles.iconBtn}
-                                title="Imprimir PDF"
-                                onClick={() => handlePrintPaciente(p)}
-                              >
-                                🖨️
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {/* Sección: Equipo Quirúrgico */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionNumber}>02</span>
+              <h2 className={styles.sectionTitle}>Equipo Quirúrgico</h2>
+            </div>
+            <div className={styles.grid2}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="cirujano">
+                  Cirujano
+                </label>
+                <input
+                  id="cirujano"
+                  name="cirujano"
+                  type="text"
+                  value={form.cirujano}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Dr./Dra."
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="primerayudante">
+                  Primer Ayudante
+                </label>
+                <input
+                  id="primerayudante"
+                  name="primerayudante"
+                  type="text"
+                  value={form.primerayudante}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Dr./Dra."
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="segundoayudante">
+                  Segundo Ayudante
+                </label>
+                <input
+                  id="segundoayudante"
+                  name="segundoayudante"
+                  type="text"
+                  value={form.segundoayudante}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Dr./Dra."
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="anestesista">
+                  Anestesista
+                </label>
+                <input
+                  id="anestesista"
+                  name="anestesista"
+                  type="text"
+                  value={form.anestesista}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Dr./Dra."
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Sección: Fecha y Horarios */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionNumber}>03</span>
+              <h2 className={styles.sectionTitle}>Fecha y Horarios</h2>
+            </div>
+            <div className={styles.grid3}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="dia">
+                  Día
+                </label>
+                <input
+                  id="dia"
+                  name="dia"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={form.dia}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="DD"
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="mes">
+                  Mes
+                </label>
+                <select
+                  id="mes"
+                  name="mes"
+                  value={form.mes}
+                  onChange={handleChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="">— Mes —</option>
+                  {[
+                    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+                  ].map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="anio">
+                  Año
+                </label>
+                <input
+                  id="anio"
+                  name="anio"
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={form.anio}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="AAAA"
+                  required
+                />
+              </div>
+            </div>
+            <div className={styles.grid2} style={{ marginTop: "1.25rem" }}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="inichsinicio">
+                  Hora de Inicio
+                </label>
+                <input
+                  id="inichsinicio"
+                  name="inichsinicio"
+                  type="time"
+                  value={form.inichsinicio}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="hsfin">
+                  Hora de Fin
+                </label>
+                <input
+                  id="hsfin"
+                  name="hsfin"
+                  type="time"
+                  value={form.hsfin}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Sección: Descripción Quirúrgica */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionNumber}>04</span>
+              <h2 className={styles.sectionTitle}>Descripción Quirúrgica</h2>
+            </div>
+            <div className={styles.fieldFull}>
+              <label className={styles.label} htmlFor="preoperatorio">
+                Diagnóstico Preoperatorio
+              </label>
+              <textarea
+                id="preoperatorio"
+                name="preoperatorio"
+                value={form.preoperatorio}
+                onChange={handleChange}
+                className={styles.textarea}
+                rows={3}
+                placeholder="Descripción del diagnóstico previo a la cirugía..."
+                required
+              />
+            </div>
+            <div className={styles.fieldFull}>
+              <label className={styles.label} htmlFor="procedimientoqx">
+                Procedimiento Quirúrgico
+              </label>
+              <textarea
+                id="procedimientoqx"
+                name="procedimientoqx"
+                value={form.procedimientoqx}
+                onChange={handleChange}
+                className={styles.textarea}
+                rows={4}
+                placeholder="Descripción detallada del procedimiento realizado..."
+                required
+              />
+            </div>
+            <div className={styles.fieldFull}>
+              <label className={styles.label} htmlFor="hallazgos">
+                Hallazgos Intraoperatorios
+              </label>
+              <textarea
+                id="hallazgos"
+                name="hallazgos"
+                value={form.hallazgos}
+                onChange={handleChange}
+                className={styles.textarea}
+                rows={3}
+                placeholder="Hallazgos durante la cirugía..."
+              />
+            </div>
+            <div className={styles.fieldFull}>
+              <label className={styles.label} htmlFor="posoperatorio">
+                Indicaciones Posoperatorias
+              </label>
+              <textarea
+                id="posoperatorio"
+                name="posoperatorio"
+                value={form.posoperatorio}
+                onChange={handleChange}
+                className={styles.textarea}
+                rows={3}
+                placeholder="Indicaciones y cuidados post operatorios..."
+              />
+            </div>
+          </section>
+
+          {/* Status messages */}
+          {status === "saving" && (
+            <div className={styles.alertInfo}>
+              <span className={styles.alertIcon}>⏳</span>
+              Guardando registro y generando PDF...
             </div>
           )}
-        </div>
+          {status === "success" && (
+            <div className={styles.alertSuccess}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+                <div>
+                  <span className={styles.alertIcon}>✓</span>
+                  Registro guardado correctamente en Firebase.
+                  {firebaseId && <span style={{ fontSize: "0.85rem", marginLeft: "0.5rem" }}>ID: {firebaseId}</span>}
+                </div>
+                {pdfUrl && (
+                  <div className={styles.pdfActions} style={{ display: "flex", gap: "0.5rem" }}>
+                    <button type="button" className={styles.btnSecondary} onClick={openPdf}>
+                      📄 Abrir PDF
+                    </button>
+                    <button type="button" className={styles.btnPrimary} onClick={downloadPdf}>
+                      ⬇️ Descargar PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {status === "error" && (
+            <div className={styles.alertError}>
+              <span className={styles.alertIcon}>✕</span>
+              {errorMsg}
+            </div>
+          )}
+          {pdfError && (
+            <div className={styles.alertError}>
+              <span className={styles.alertIcon}>⚠️</span>
+              {pdfError}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className={styles.actions}>
+            <button
+              type="button"
+              onClick={handleReset}
+              className={styles.btnSecondary}
+              disabled={status === "saving"}
+            >
+              Limpiar
+            </button>
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              disabled={status === "saving"}
+            >
+              {status === "saving" ? (
+                <>
+                  <span className={styles.spinner} />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Registro y Generar PDF"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
 }

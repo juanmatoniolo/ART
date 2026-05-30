@@ -36,7 +36,7 @@ const fetchPacientes = async () => {
 try {
 const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
 
-```
+
     if (!res.ok) {
       throw new Error("Error al cargar pacientes");
     }
@@ -59,7 +59,7 @@ const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
 };
 
 fetchPacientes();
-```
+
 
 }, []);
 
@@ -86,13 +86,12 @@ const msgDaniela = encodeURIComponent(
 "Hola Daniela, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
 );
 
-```
   const msgNatali = encodeURIComponent(
     "Hola Natali, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
   );
 
   return `Buen día, *${name}*.
-```
+
 
 ✅ Sus sesiones de kinesiología fueron APROBADAS.
 
@@ -119,11 +118,11 @@ https://wa.me/5493456513866?text=${msgNatali}
 También puede consultar profesionales en la cartilla de su ART.`;
 }
 
-```
+
 // RESONANCIA
 if (mensaje === "2") {
   return `Buen día, *${name}*.
-```
+
 
 ✅ Su resonancia fue APROBADA.
 
@@ -147,11 +146,10 @@ Av. Siburu 1085
 • Cirugías recientes`;
 }
 
-```
 // MEDICAMENTOS
 if (mensaje === "3") {
   return `Buen día, *${name}*.
-```
+
 
 ✅ Sus medicamentos fueron APROBADOS.
 
@@ -178,20 +176,19 @@ Orden + copia de denuncia → Farmacia de la Unión.
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 }
 
-```
+
 // ELECTROCARDIOGRAMA
 if (mensaje === "4") {
   const profesional =
     cardiologo === "percara"
       ? `Dr. Percara
-```
+
 
 📍 Bolívar 1695 (esquina 9 de Julio)`          :`Dr. Capovilla
 📍 Bolívar 1645`;
 
-```
   return `Buen día, *${name}*.
-```
+
 
 ✅ Su electrocardiograma fue APROBADO.
 
@@ -205,22 +202,22 @@ if (mensaje === "4") {
 ${profesional}`;
 }
 
-```
+
 // LABORATORIO
 if (mensaje === "5") {
   const profesional =
     bioquimico === "confalonieri"
       ? `Bioquímica Confalonieri
-```
+
 
 📍 Belgrano y Corrientes (frente a Pepos)`          : bioquimico === "marmol"
           ?`Bioquímico Mármol
 📍 Sarmiento 2610`          :`Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
-```
+
   return `Buen día, *${name}*.
-```
+
 
 ✅ Su estudio de laboratorio fue APROBADO.
 
@@ -235,11 +232,11 @@ if (mensaje === "5") {
 ${profesional}`;
 }
 
-```
+
 // ECOGRAFÍA
 if (mensaje === "6") {
   return `Buen día, *${name}*.
-```
+
 
 ✅ Su ecografía fue APROBADA.
 
@@ -255,11 +252,11 @@ Al ingresar puede consultar en Mesa de Entrada.
 • Llegar 10 minutos antes`;
 }
 
-```
+
 // CIRUGÍA
 if (mensaje === "7") {
   return `CLÍNICA DE LA UNIÓN
-```
+
 
 Buen día, *${name}*.
 
@@ -286,11 +283,11 @@ Por favor responder:
 Ante cualquier duda puede responder este mensaje.`;
 }
 
-```
+
 // ORTOPEDIA
 if (mensaje === "8") {
   return `Buen día, *${name}*.
-```
+
 
 ✅ Su ortopedia fue APROBADA.
 
@@ -317,9 +314,9 @@ Debe llevar:
 • Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
 }
 
-```
+
 return "";
-```
+
 
 };
 
@@ -332,9 +329,9 @@ setPreview(buildMessage());
 const createWaLink = () => {
 if (!phone) return "";
 
-```
+
 return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
-```
+
 
 };
 
@@ -343,7 +340,7 @@ phone && name && (!requiresDateTime || (dia && hora));
 
 return ( <div className={styles.container}> <div className={styles.card}> <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
-```
+
     <div className={styles.formGrid}>
       {/* Buscar paciente */}
       <div
@@ -584,7 +581,7 @@ return ( <div className={styles.container}> <div className={styles.card}> <h1 cl
     </a>
   </div>
 </div>
-```
+
 
 );
 }
