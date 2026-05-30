@@ -458,6 +458,7 @@ export default function HistoriasClinicasPage() {
 
   return (
     <>
+    
       <Header />
       <div className={styles.container}>
         <h1 className={styles.title}>Historias Clínicas</h1>
