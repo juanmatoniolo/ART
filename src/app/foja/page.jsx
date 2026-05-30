@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { ref, push } from "firebase/database";
-import styles from "./Foja.module.css";
+import styles from "./foja.module.css";
 import Header from "@/components/Header/Header";
 
 // ────────────────────────────────────────────── Constantes

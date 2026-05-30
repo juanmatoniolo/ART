@@ -52,7 +52,7 @@ export default function LoginPage() {
                 MDE: '/mesa-de-entrada',
                 FARM: '/farmacia',
                 UTI: '/uti/admin',
-                MEDICO:`/foja`
+                MEDICO:`/foja/medicos`
             };
 
             router.push(routes[userData.TipoEmpleado] || '/admin');
