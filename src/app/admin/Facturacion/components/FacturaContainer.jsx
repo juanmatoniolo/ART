@@ -9,6 +9,7 @@ import { db } from '@/lib/firebase';
 
 import { useConvenio } from './ConvenioContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../utils/storage';
+import { cerrarPacientePorFactura } from '../utils/siniestroPacienteSync';
 
 import DatosPaciente from './DatosPaciente';
 import PracticasModule from './PracticasModule';
@@ -110,6 +111,7 @@ export default function FacturaContainer() {
 
   const [activeTab, setActiveTab] = useState('datos');
   const [paciente, setPaciente] = useState({
+    pacienteId: '',
     nombreCompleto: '',
     dni: '',
     artSeguro: '',
@@ -245,6 +247,7 @@ export default function FacturaContainer() {
         ) || todayISO();
 
         setPaciente({
+          pacienteId: pacienteData.pacienteId || v?.pacienteId || '',
           nombreCompleto: nombre,
           dni: dni,
           artSeguro: art,
@@ -422,6 +425,8 @@ export default function FacturaContainer() {
         updatedAt: now,
       });
 
+      await cerrarPacientePorFactura({ id, ...payload }, id);
+
       if (estado === 'borrador') setDraftId(id);
       if (estado === 'cerrado') setDraftId('');
 
@@ -594,7 +599,7 @@ export default function FacturaContainer() {
     setLaboratorios([]);
     setMedicamentos([]);
     setDescartables([]);
-    setPaciente({ nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
+    setPaciente({ pacienteId: '', nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
     setActiveTab('datos');
     setDraftId('');
     localStorage.removeItem('FACTURACION_DRAFT_ID');

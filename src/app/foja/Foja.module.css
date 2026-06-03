@@ -100,13 +100,15 @@
 }
 
 /* ----- GRID (mobile: columnas) ----- */
-.grid2, .grid3 {
+.grid2,
+.grid3 {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.field, .fieldFull {
+.field,
+.fieldFull {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -128,7 +130,9 @@
 }
 
 /* ----- INPUTS (táctiles) ----- */
-.input, .select, .textarea {
+.input,
+.select,
+.textarea {
   font-family: 'Inter', monospace;
   font-size: 1rem;
   padding: 0.85rem 1rem;
@@ -148,7 +152,9 @@
   line-height: 1.45;
 }
 
-.input:focus, .select:focus, .textarea:focus {
+.input:focus,
+.select:focus,
+.textarea:focus {
   border-color: #2c7a5e;
   outline: none;
   box-shadow: 0 0 0 3px rgba(44, 122, 94, 0.15);
@@ -158,6 +164,7 @@
 .input[type="number"] {
   -moz-appearance: textfield;
 }
+
 .input[type="number"]::-webkit-inner-spin-button,
 .input[type="number"]::-webkit-outer-spin-button {
   opacity: 0.5;
@@ -236,7 +243,9 @@
   align-items: center;
 }
 
-.btnSecondary, .btnDownload, .btnShare {
+.btnSecondary,
+.btnDownload,
+.btnShare {
   font-family: inherit;
   font-weight: 600;
   font-size: 0.85rem;
@@ -256,37 +265,49 @@
   border: 1.5px solid #cdc2b6;
   color: #6b5e52;
 }
+
 .btnSecondary:hover:not(:disabled) {
   background: #f5f2ed;
   border-color: #b8aa98;
   color: #4a3f35;
   transform: translateY(-1px);
 }
-.btnSecondary:active { transform: scale(0.97); }
+
+.btnSecondary:active {
+  transform: scale(0.97);
+}
 
 .btnDownload {
   background: #2c7a5e;
   color: white;
   box-shadow: 0 2px 6px rgba(44, 122, 94, 0.2);
 }
+
 .btnDownload:hover:not(:disabled) {
   background: #21634b;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(44, 122, 94, 0.3);
 }
-.btnDownload:active { transform: scale(0.97); }
+
+.btnDownload:active {
+  transform: scale(0.97);
+}
 
 .btnShare {
   background: #25d366;
   color: white;
   box-shadow: 0 2px 6px rgba(37, 211, 102, 0.2);
 }
+
 .btnShare:hover:not(:disabled) {
   background: #1da15a;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
 }
-.btnShare:active { transform: scale(0.97); }
+
+.btnShare:active {
+  transform: scale(0.97);
+}
 
 .btnPrimary {
   background: #2c7a5e;
@@ -301,12 +322,16 @@
   cursor: pointer;
   transition: 0.2s;
 }
+
 .btnPrimary:hover:not(:disabled) {
   background: #21634b;
   transform: translateY(-1px);
 }
 
-.btnPrimary:disabled, .btnSecondary:disabled, .btnDownload:disabled, .btnShare:disabled {
+.btnPrimary:disabled,
+.btnSecondary:disabled,
+.btnDownload:disabled,
+.btnShare:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
@@ -322,43 +347,96 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ----- RESPONSIVE (tablet y escritorio) ----- */
 @media (min-width: 640px) {
-  .page { padding: 2rem; }
-  .header { padding: 2rem 1.8rem; }
-  .section { padding: 1.5rem 1.8rem; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
-  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
-  .actions { display: flex; justify-content: flex-end; gap: 0.8rem; }
-  .btnPrimary, .btnSecondary, .btnDownload, .btnShare { padding: 0.7rem 1.8rem; }
+  .page {
+    padding: 2rem;
+  }
+
+  .header {
+    padding: 2rem 1.8rem;
+  }
+
+  .section {
+    padding: 1.5rem 1.8rem;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+  }
+
+  .grid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+  }
+
+  .btnPrimary,
+  .btnSecondary,
+  .btnDownload,
+  .btnShare {
+    padding: 0.7rem 1.8rem;
+  }
 }
 
 @media (min-width: 1024px) {
-  .container { max-width: 880px; }
-  .input, .select, .textarea { font-size: 0.95rem; padding: 0.7rem 1rem; }
+  .container {
+    max-width: 880px;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    font-size: 0.95rem;
+    padding: 0.7rem 1rem;
+  }
 }
 
 /* ----- ANIMACIONES ----- */
-.alertError, .successPanel {
+.alertError,
+.successPanel {
   animation: fadeSlide 0.2s ease;
 }
+
 @keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ----- AJUSTES MÓVILES EXTRA (botones ancho completo) ----- */
 @media (max-width: 480px) {
-  .btnSecondary, .btnDownload, .btnShare {
+
+  .btnSecondary,
+  .btnDownload,
+  .btnShare {
     padding: 0.7rem 1rem;
     font-size: 0.8rem;
     flex: 1;
     justify-content: center;
   }
+
   .buttonGroup {
     width: 100%;
   }

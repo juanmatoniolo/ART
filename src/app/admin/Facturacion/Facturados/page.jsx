@@ -11,6 +11,7 @@ import ItemCard from './components/ItemCard';
 import styles from './facturados.module.css';
 import { money } from '../utils/calculos';
 import { useState, useCallback, useEffect } from 'react';
+import { cerrarPacientePorFactura, cerrarPacientesPorFacturacion } from '../utils/siniestroPacienteSync';
 
 // ── Toast system ─────────────────────────────────────────────────────────────
 
@@ -659,10 +660,41 @@ export default function FacturadosPage() {
     fechaHasta,
     setFechaHasta,
     refresh,
+    raw,
   } = useFacturados();
 
   const [moving, setMoving] = useState(false);
+  const [syncingPacientes, setSyncingPacientes] = useState(false);
   const toast = useToast();
+  const toastSuccess = toast.success;
+  const toastError = toast.error;
+
+  useEffect(() => {
+    if (loading || !raw || Object.keys(raw).length === 0) return;
+
+    let cancelled = false;
+
+    const syncPacientesCerrados = async () => {
+      setSyncingPacientes(true);
+      try {
+        const result = await cerrarPacientesPorFacturacion(raw);
+        if (!cancelled && result.updated > 0) {
+          toastSuccess(`${result.updated} paciente${result.updated !== 1 ? 's' : ''} marcado${result.updated !== 1 ? 's' : ''} como cerrado`, 4500);
+        }
+      } catch (err) {
+        console.error('Error sincronizando pacientes cerrados:', err);
+        if (!cancelled) toastError('No se pudieron sincronizar los pacientes cerrados.');
+      } finally {
+        if (!cancelled) setSyncingPacientes(false);
+      }
+    };
+
+    syncPacientesCerrados();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, raw, toastSuccess, toastError]);
 
   const handleMoveToFacturados = async () => {
     if (selectedIds.size === 0) {
@@ -682,6 +714,12 @@ export default function FacturadosPage() {
     });
     try {
       await update(ref(db), updates);
+      await Promise.all(Array.from(selectedIds).map(async (id) => {
+        const snap = await get(ref(db, `Facturacion/${id}`));
+        if (snap.exists()) {
+          await cerrarPacientePorFactura({ id, ...snap.val(), estado: 'cerrado' }, id);
+        }
+      }));
       toast.success(`${cantidad} siniestro${cantidad !== 1 ? 's' : ''} movido${cantidad !== 1 ? 's' : ''} a Facturados ✓`);
       if (typeof toggleSelectAll === 'function') toggleSelectAll(false);
       if (typeof refresh === 'function') refresh();
@@ -711,6 +749,11 @@ export default function FacturadosPage() {
     <>
       <div className={styles.container}>
         <header className={styles.header}>
+          {syncingPacientes && (
+            <div className={styles.empty} style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
+              Sincronizando estados de pacientes...
+            </div>
+          )}
           <Header
             selectedCount={selectedIds.size}
             onExport={exportCompleto}

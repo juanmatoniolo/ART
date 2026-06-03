@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ref, onValue, update, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { money, parseNumber } from '../../utils/calculos';
+import { cerrarPacientePorFactura } from '../../utils/siniestroPacienteSync';
 import styles from './page.module.css';
 
 const normalizeKey = (s) =>
@@ -184,6 +185,8 @@ export default function BorradoresPage() {
         updatedAt: now,
         facturaNro,
       });
+
+      await cerrarPacientePorFactura({ id, ...prev, estado: 'cerrado', cerradoAt: now, facturaNro }, id);
 
       if (prev?.siniestroKey) {
         await update(ref(db, `Facturacion/siniestros/${prev.siniestroKey}`), {

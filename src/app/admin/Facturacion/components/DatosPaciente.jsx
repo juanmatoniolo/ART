@@ -108,6 +108,7 @@ export default function DatosPaciente({ paciente, setPaciente, onSiguiente }) {
 
     setPaciente((prev) => ({
       ...prev,
+      pacienteId: pac.id,
       nombreCompleto,
       dni: dniFormateado,
       artSeguro: art.nombre || '',

@@ -115,6 +115,7 @@ export default function PacientesPage() {
   };
 
   const activosCount = pacientes.filter((p) => (p.estado || "activo") === "activo").length;
+  const cerradosCount = pacientes.filter((p) => p.estado === "cerrado").length;
   const totalCount = pacientes.length;
 
   if (loading) return <div className={styles.loadingScreen}><div className={styles.spinner} /><span>Cargando pacientes...</span></div>;
@@ -138,6 +139,7 @@ export default function PacientesPage() {
           <h1 className={styles.pageTitle}>Pacientes</h1>
           <div className={styles.statsRow}>
             <span className={styles.statBadge} data-type="activo">{activosCount} activos</span>
+            <span className={styles.statBadge} data-type="cerrado">{cerradosCount} cerrados</span>
             <span className={styles.statBadge} data-type="total">{totalCount} total</span>
           </div>
         </div>
