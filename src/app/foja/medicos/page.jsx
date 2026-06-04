@@ -6,164 +6,306 @@ import { db } from "@/lib/firebase";
 import { ref, onValue, off, update } from "firebase/database";
 import { getSession, isAuthenticated } from "@/utils/session";
 import Header from "@/components/Header/Header";
+import styles from "./medicos.module.css";
 
-// Estilos en línea (si no tienes el archivo CSS)
-const styles = {
-  loading: {
-    textAlign: "center",
-    padding: "50px",
-    fontSize: "18px",
-    color: "#666"
-  },
-  error: {
-    textAlign: "center",
-    padding: "50px",
-    fontSize: "18px",
-    color: "#d32f2f"
-  },
-  container: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "20px"
-  },
-  title: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    marginBottom: "20px",
-    color: "#333"
-  },
-  filters: {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "20px",
-    flexWrap: "wrap"
-  },
-  searchInput: {
-    flex: 1,
-    minWidth: "200px",
-    padding: "10px",
-    border: "1px solid #ddd",
-    borderRadius: "4px",
-    fontSize: "14px"
-  },
-  filterSelect: {
-    padding: "10px",
-    border: "1px solid #ddd",
-    borderRadius: "4px",
-    fontSize: "14px",
-    minWidth: "150px"
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-    gap: "20px"
-  },
-  card: {
-    border: "1px solid #e0e0e0",
-    borderRadius: "8px",
-    padding: "15px",
-    backgroundColor: "#fff",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-  },
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "10px",
-    paddingBottom: "10px",
-    borderBottom: "2px solid #f0f0f0"
-  },
-  date: {
-    fontSize: "12px",
-    color: "#666"
-  },
-  cardBody: {
-    marginBottom: "15px"
-  },
-  cardActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    paddingTop: "10px",
-    borderTop: "1px solid #f0f0f0"
-  },
-  btnEdit: {
-    padding: "8px 16px",
-    backgroundColor: "#1976d2",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "14px"
-  },
-  empty: {
-    textAlign: "center",
-    padding: "40px",
-    color: "#666"
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000
-  },
-  modal: {
-    backgroundColor: "white",
-    borderRadius: "8px",
-    padding: "20px",
-    maxWidth: "600px",
-    maxHeight: "80vh",
-    overflowY: "auto",
-    width: "90%"
-  },
-  modalError: {
-    backgroundColor: "#ffebee",
-    color: "#c62828",
-    padding: "10px",
-    borderRadius: "4px",
-    marginBottom: "15px"
-  },
-  editForm: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px"
-  },
-  modalRow: {
-    display: "flex",
-    gap: "10px"
-  },
-  modalActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "10px",
-    marginTop: "20px"
-  },
-  btnCancel: {
-    padding: "8px 16px",
-    backgroundColor: "#9e9e9e",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer"
-  },
-  btnSave: {
-    padding: "8px 16px",
-    backgroundColor: "#4caf50",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer"
-  }
+// ─── Helpers ────────────────────────────────────────────────
+const formatDate = (dia, mes, anio) =>
+  dia && mes && anio ? `${dia} ${mes} ${anio}` : "Sin fecha";
+
+const formatTime = (inicio, fin) => {
+  if (!inicio && !fin) return null;
+  return [inicio, fin].filter(Boolean).join(" – ");
 };
 
-// ────────────────────────────────────────────── Helper para formatear fecha
-const formatDate = (dia, mes, anio) => `${dia}/${mes}/${anio}`;
+// ─── Iconos SVG ─────────────────────────────────────────────
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
 
+const EditIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+const ChevronIcon = ({ open }) => (
+  <svg
+    width="14" height="14"
+    viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transition: "transform 0.22s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+// ─── Subcomponentes ──────────────────────────────────────────
+function StatChip({ num, label }) {
+  return (
+    <div className={styles.statChip}>
+      <span className={styles.statNum}>{num}</span>
+      <span className={styles.statLabel}>{label}</span>
+    </div>
+  );
+}
+
+function FilterTag({ label, onRemove }) {
+  return (
+    <button className={styles.filterTag} onClick={onRemove} title={`Quitar filtro: ${label}`}>
+      {label} <CloseIcon />
+    </button>
+  );
+}
+
+function RegistroCard({ reg, onEdit }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardStripe} />
+      <div className={styles.cardInner}>
+        {/* Top */}
+        <div className={styles.cardTop}>
+          <div>
+            <h3 className={styles.patientName}>{reg.apelidoynombre}</h3>
+            <p className={styles.cardDate}>{formatDate(reg.dia, reg.mes, reg.anio)}</p>
+          </div>
+          {reg.edad && <span className={styles.ageTag}>{reg.edad} años</span>}
+        </div>
+
+        {/* Pills */}
+        <div className={styles.cardPills}>
+          {reg.cirujano && (
+            <span className={styles.pill}>
+              <span className={styles.pillDot} />
+              {reg.cirujano}
+            </span>
+          )}
+          {reg.anestesista && (
+            <span className={styles.pill}>
+              <span className={`${styles.pillDot} ${styles.pillDotGold}`} />
+              {reg.anestesista}
+            </span>
+          )}
+          {formatTime(reg.inichsinicio, reg.hsfin) && (
+            <span className={styles.pill}>
+              🕐 {formatTime(reg.inichsinicio, reg.hsfin)}
+            </span>
+          )}
+        </div>
+
+        {/* Procedimiento (resumen) */}
+        {reg.procedimientoqx && (
+          <p className={expanded ? undefined : styles.cardCollapsed}
+            style={expanded ? { fontSize: "0.83rem", color: "#3d4f4a", lineHeight: 1.6, marginBottom: "0.85rem" } : undefined}>
+            {reg.procedimientoqx}
+          </p>
+        )}
+
+        {/* Detalles expandidos */}
+        {expanded && (
+          <div className={styles.expandedRow}>
+            {reg.preoperatorio && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Preoperatorio</span>
+                <span className={styles.expandedValue}>{reg.preoperatorio}</span>
+              </div>
+            )}
+            {reg.posoperatorio && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Posoperatorio</span>
+                <span className={styles.expandedValue}>{reg.posoperatorio}</span>
+              </div>
+            )}
+            {reg.hallazgos && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Hallazgos</span>
+                <span className={styles.expandedValue}>{reg.hallazgos}</span>
+              </div>
+            )}
+            {(reg.primerayudante || reg.segundoayudante) && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Ayudantes</span>
+                <span className={styles.expandedValue}>
+                  {[reg.primerayudante, reg.segundoayudante].filter(Boolean).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className={styles.cardFooter}>
+          <button className={styles.btnToggle} onClick={() => setExpanded(v => !v)}>
+            {expanded ? "Ver menos" : "Ver más"}
+            <ChevronIcon open={expanded} />
+          </button>
+          <button className={styles.btnEdit} onClick={() => onEdit(reg)}>
+            <EditIcon /> Editar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal de edición ────────────────────────────────────────
+function EditModal({ registro, onClose, onSaved }) {
+  const [form, setForm] = useState({ ...registro });
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setErrorMsg("");
+    try {
+      const registroRef = ref(db, `fojaqx/${registro.id}`);
+      const { id, timestamp, ...datosActualizados } = form;
+      await update(registroRef, { ...datosActualizados, updatedAt: new Date().toISOString() });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setErrorMsg("Error al actualizar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        {/* Handle para mobile */}
+        <div className={styles.modalHandle}>
+          <div className={styles.modalHandleBar} />
+        </div>
+
+        {/* Header */}
+        <div className={styles.modalHeader}>
+          <div className={styles.modalAccent} />
+          <h2 className={styles.modalTitle}>Editar Foja Quirúrgica</h2>
+          <p className={styles.modalSubtitle}>{form.apelidoynombre || "Paciente"}</p>
+        </div>
+
+        {/* Body */}
+        <div className={styles.modalBody}>
+          {errorMsg && <div className={styles.modalError}>⚠ {errorMsg}</div>}
+
+          {/* Paciente */}
+          <div className={styles.modalSection}>
+            <p className={styles.modalSectionTitle}>Paciente</p>
+            <div className={styles.modalGrid2}>
+              <div className={styles.modalFieldFull}>
+                <label className={styles.modalLabel}>Apellido y Nombre</label>
+                <input name="apelidoynombre" value={form.apelidoynombre || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Edad</label>
+                <input name="edad" type="number" value={form.edad || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+            </div>
+          </div>
+
+          {/* Equipo */}
+          <div className={styles.modalSection}>
+            <p className={styles.modalSectionTitle}>Equipo Quirúrgico</p>
+            <div className={styles.modalGrid2}>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Cirujano</label>
+                <input name="cirujano" value={form.cirujano || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Anestesista</label>
+                <input name="anestesista" value={form.anestesista || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>1er Ayudante</label>
+                <input name="primerayudante" value={form.primerayudante || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>2do Ayudante</label>
+                <input name="segundoayudante" value={form.segundoayudante || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+            </div>
+          </div>
+
+          {/* Fecha y horario */}
+          <div className={styles.modalSection}>
+            <p className={styles.modalSectionTitle}>Fecha y Horarios</p>
+            <div className={styles.modalGrid3}>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Día</label>
+                <input name="dia" type="number" min="1" max="31" value={form.dia || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Mes</label>
+                <input name="mes" value={form.mes || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Año</label>
+                <input name="anio" type="number" value={form.anio || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+            </div>
+            <div className={styles.modalGrid2}>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Hora inicio</label>
+                <input name="inichsinicio" type="time" value={form.inichsinicio || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Hora fin</label>
+                <input name="hsfin" type="time" value={form.hsfin || ""} onChange={handleChange} className={styles.modalInput} />
+              </div>
+            </div>
+          </div>
+
+          {/* Descripción */}
+          <div className={styles.modalSection}>
+            <p className={styles.modalSectionTitle}>Descripción Quirúrgica</p>
+            <div className={styles.modalField} style={{ gridColumn: "1/-1" }}>
+              <label className={styles.modalLabel}>Diagnóstico Preoperatorio</label>
+              <textarea name="preoperatorio" rows="2" value={form.preoperatorio || ""} onChange={handleChange} className={styles.modalTextarea} />
+            </div>
+            <div className={styles.modalField}>
+              <label className={styles.modalLabel}>Diagnóstico Posoperatorio</label>
+              <textarea name="posoperatorio" rows="2" value={form.posoperatorio || ""} onChange={handleChange} className={styles.modalTextarea} />
+            </div>
+            <div className={styles.modalField}>
+              <label className={styles.modalLabel}>Procedimiento Quirúrgico</label>
+              <textarea name="procedimientoqx" rows="3" value={form.procedimientoqx || ""} onChange={handleChange} className={styles.modalTextarea} />
+            </div>
+            <div className={styles.modalField}>
+              <label className={styles.modalLabel}>Hallazgos</label>
+              <textarea name="hallazgos" rows="2" value={form.hallazgos || ""} onChange={handleChange} className={styles.modalTextarea} />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer sticky */}
+        <div className={styles.modalFooter}>
+          <button className={styles.btnCancel} onClick={onClose} disabled={saving}>Cancelar</button>
+          <button className={styles.btnSave} onClick={handleSave} disabled={saving}>
+            {saving ? <><span className={styles.btnSpinner} /> Guardando…</> : "✓ Guardar cambios"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Página principal ────────────────────────────────────────
 export default function MedicosPage() {
   const router = useRouter();
   const [registros, setRegistros] = useState([]);
@@ -173,20 +315,21 @@ export default function MedicosPage() {
   const [filterCirujano, setFilterCirujano] = useState("");
   const [filterAnestesista, setFilterAnestesista] = useState("");
   const [editingRegistro, setEditingRegistro] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [userRole, setUserRole] = useState(null);
+  const [toast, setToast] = useState("");
 
-  // ──────────────── Verificar autenticación y rol ────────────────
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2800);
+  };
+
+  // Auth
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const authed = await isAuthenticated();
-        if (!authed) {
-          router.push("/login");
-          return;
-        }
+        if (!authed) { router.push("/login"); return; }
         const session = getSession();
         if (session?.TipoEmpleado !== "MEDICO") {
           setErrorMsg("Acceso denegado. Solo médicos pueden ver esta página.");
@@ -195,7 +338,6 @@ export default function MedicosPage() {
         }
         setUserRole(session.TipoEmpleado);
       } catch (error) {
-        console.error("Error en autenticación:", error);
         setErrorMsg("Error al verificar autenticación");
         router.push("/login");
       }
@@ -203,258 +345,171 @@ export default function MedicosPage() {
     checkAuth();
   }, [router]);
 
-  // ──────────────── Cargar datos desde Firebase ────────────────
+  // Firebase
   useEffect(() => {
     if (userRole !== "MEDICO") return;
-
     const fojaRef = ref(db, "fojaqx");
-    const unsubscribe = onValue(
-      fojaRef,
-      (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const lista = Object.entries(data).map(([id, value]) => ({
-            id,
-            ...value,
-          }));
-          // Ordenar por timestamp descendente (más reciente primero)
-          lista.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
-          setRegistros(lista);
-          setFilteredRegistros(lista);
-        } else {
-          setRegistros([]);
-          setFilteredRegistros([]);
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error(error);
-        setErrorMsg("Error al cargar los registros.");
-        setLoading(false);
+    const unsubscribe = onValue(fojaRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const lista = Object.entries(data)
+          .map(([id, value]) => ({ id, ...value }))
+          .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+        setRegistros(lista);
+        setFilteredRegistros(lista);
+      } else {
+        setRegistros([]);
+        setFilteredRegistros([]);
       }
-    );
-
+      setLoading(false);
+    }, (error) => {
+      setErrorMsg("Error al cargar los registros.");
+      setLoading(false);
+    });
     return () => off(fojaRef);
   }, [userRole]);
 
-  // ──────────────── Filtros combinados (nombre, cirujano, anestesista) ────────────────
+  // Filtros
   useEffect(() => {
     let results = [...registros];
-
-    if (searchTerm.trim() !== "") {
+    if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      results = results.filter((reg) =>
-        reg.apelidoynombre?.toLowerCase().includes(term)
-      );
+      results = results.filter(r => r.apelidoynombre?.toLowerCase().includes(term));
     }
-
-    if (filterCirujano) {
-      results = results.filter((reg) => reg.cirujano === filterCirujano);
-    }
-
-    if (filterAnestesista) {
-      results = results.filter((reg) => reg.anestesista === filterAnestesista);
-    }
-
+    if (filterCirujano) results = results.filter(r => r.cirujano === filterCirujano);
+    if (filterAnestesista) results = results.filter(r => r.anestesista === filterAnestesista);
     setFilteredRegistros(results);
   }, [searchTerm, filterCirujano, filterAnestesista, registros]);
 
-  // ──────────────── Obtener listas únicas para los selectores ────────────────
-  const cirujanosUnicos = [...new Set(registros.map((r) => r.cirujano).filter(Boolean))];
-  const anestesistasUnicos = [...new Set(registros.map((r) => r.anestesista).filter(Boolean))];
+  const cirujanosUnicos = [...new Set(registros.map(r => r.cirujano).filter(Boolean))];
+  const anestesistasUnicos = [...new Set(registros.map(r => r.anestesista).filter(Boolean))];
 
-  // ──────────────── Abrir modal de edición ────────────────
-  const handleEdit = (registro) => {
-    setEditingRegistro(registro);
-    setEditForm({ ...registro });
-  };
+  const hasActiveFilters = filterCirujano || filterAnestesista;
 
-  // ──────────────── Manejar cambios en el formulario de edición ────────────────
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({ ...prev, [name]: value }));
-  };
+  // Estados de carga / error
+  if (loading) return (
+    <>
+      <Header />
+      <div className={styles.page}>
+        <div className={styles.loadingWrap}>
+          <div className={styles.loadingSpinner} />
+          <span>Cargando historias clínicas…</span>
+        </div>
+      </div>
+    </>
+  );
 
-  // ──────────────── Guardar cambios en Firebase ────────────────
-  const handleSaveEdit = async () => {
-    if (!editingRegistro) return;
-    setSaving(true);
-    setErrorMsg("");
-
-    try {
-      const registroRef = ref(db, `fojaqx/${editingRegistro.id}`);
-      // No se debe modificar el id ni el timestamp original (opcional mantener timestamp)
-      const { id, timestamp, ...datosActualizados } = editForm;
-      await update(registroRef, {
-        ...datosActualizados,
-        updatedAt: new Date().toISOString(),
-      });
-      setEditingRegistro(null);
-      setEditForm({});
-    } catch (err) {
-      setErrorMsg("Error al actualizar: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const closeModal = () => {
-    setEditingRegistro(null);
-    setEditForm({});
-  };
-
-  if (loading) return <div style={styles.loading}>Cargando historias clínicas...</div>;
-  if (errorMsg && !registros.length)
-    return <div style={styles.error}>{errorMsg}</div>;
+  if (errorMsg && !registros.length) return (
+    <>
+      <Header />
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.errorWrap}>⚠ {errorMsg}</div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
       <Header />
-      <div style={styles.container}>
-        <h1 style={styles.title}>Gestión de Fojas Quirúrgicas - Médicos</h1>
+      <div className={styles.page}>
+        <div className={styles.container}>
 
-        {/* Barra de búsqueda y filtros */}
-        <div style={styles.filters}>
-          <input
-            type="text"
-            placeholder="Buscar por paciente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
+          {/* Header */}
+          <header className={styles.header}>
+            <div className={styles.headerAccent} />
+            <span className={styles.headerTag}>Clínica de la Unión S.A.</span>
+            <h1 className={styles.headerTitle}>Fojas Quirúrgicas</h1>
+            <p className={styles.headerSub}>Panel de gestión para médicos · {registros.length} registros totales</p>
+          </header>
 
-          <select
-            value={filterCirujano}
-            onChange={(e) => setFilterCirujano(e.target.value)}
-            style={styles.filterSelect}
-          >
-            <option value="">Todos los cirujanos</option>
-            {cirujanosUnicos.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterAnestesista}
-            onChange={(e) => setFilterAnestesista(e.target.value)}
-            style={styles.filterSelect}
-          >
-            <option value="">Todos los anestesistas</option>
-            {anestesistasUnicos.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Listado de registros */}
-        {filteredRegistros.length === 0 ? (
-          <p style={styles.empty}>No se encontraron registros.</p>
-        ) : (
-          <div style={styles.grid}>
-            {filteredRegistros.map((reg) => (
-              <div key={reg.id} style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <h3>{reg.apelidoynombre}</h3>
-                  <span style={styles.date}>
-                    {formatDate(reg.dia, reg.mes, reg.anio)}
-                  </span>
-                </div>
-                <div style={styles.cardBody}>
-                  <p><strong>Edad:</strong> {reg.edad} años</p>
-                  <p><strong>Cirujano:</strong> {reg.cirujano}</p>
-                  <p><strong>Anestesista:</strong> {reg.anestesista}</p>
-                  <p><strong>Procedimiento:</strong> {reg.procedimientoqx}</p>
-                  <p><strong>Preoperatorio:</strong> {reg.preoperatorio}</p>
-                  <p><strong>Hallazgos:</strong> {reg.hallazgos || "Ninguno"}</p>
-                </div>
-                <div style={styles.cardActions}>
-                  <button onClick={() => handleEdit(reg)} style={styles.btnEdit}>
-                    Editar
-                  </button>
-                </div>
-              </div>
-            ))}
+          {/* Stats */}
+          <div className={styles.statsBar}>
+            <StatChip num={registros.length} label="Total" />
+            <StatChip num={filteredRegistros.length} label="Filtrados" />
+            <StatChip num={cirujanosUnicos.length} label="Cirujanos" />
+            <StatChip num={anestesistasUnicos.length} label="Anestesistas" />
           </div>
-        )}
+
+          {/* Filtros */}
+          <div className={styles.filters}>
+            <div className={styles.searchWrapper}>
+              <span className={styles.searchIcon}><SearchIcon /></span>
+              <input
+                type="search"
+                placeholder="Buscar paciente…"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+            </div>
+            <div className={styles.filterRow}>
+              <select
+                value={filterCirujano}
+                onChange={e => setFilterCirujano(e.target.value)}
+                className={styles.filterSelect}
+              >
+                <option value="">Todos los cirujanos</option>
+                {cirujanosUnicos.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                value={filterAnestesista}
+                onChange={e => setFilterAnestesista(e.target.value)}
+                className={styles.filterSelect}
+              >
+                <option value="">Todos los anestesistas</option>
+                {anestesistasUnicos.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+
+            {/* Tags activos */}
+            {hasActiveFilters && (
+              <div className={styles.activeFilters}>
+                {filterCirujano && (
+                  <FilterTag label={filterCirujano} onRemove={() => setFilterCirujano("")} />
+                )}
+                {filterAnestesista && (
+                  <FilterTag label={filterAnestesista} onRemove={() => setFilterAnestesista("")} />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Lista */}
+          {filteredRegistros.length === 0 ? (
+            <div className={styles.empty}>
+              <div className={styles.emptyIcon}>🔍</div>
+              <p className={styles.emptyText}>Sin resultados</p>
+              <p className={styles.emptyHint}>
+                {searchTerm || hasActiveFilters
+                  ? "Probá con otros términos o quitá los filtros."
+                  : "No hay fojas cargadas aún."}
+              </p>
+            </div>
+          ) : (
+            <div className={styles.grid}>
+              {filteredRegistros.map((reg, i) => (
+                <div key={reg.id} style={{ animationDelay: `${Math.min(i * 40, 300)}ms` }}>
+                  <RegistroCard reg={reg} onEdit={setEditingRegistro} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal */}
       {editingRegistro && (
-        <div style={styles.modalOverlay} onClick={closeModal}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2>Editar Foja Quirúrgica</h2>
-            {errorMsg && <div style={styles.modalError}>{errorMsg}</div>}
-            <form style={styles.editForm}>
-              <label>Apellido y Nombre</label>
-              <input name="apelidoynombre" value={editForm.apelidoynombre || ""} onChange={handleEditChange} />
-
-              <label>Edad</label>
-              <input name="edad" type="number" value={editForm.edad || ""} onChange={handleEditChange} />
-
-              <label>Cirujano</label>
-              <input name="cirujano" value={editForm.cirujano || ""} onChange={handleEditChange} />
-
-              <label>1er Ayudante</label>
-              <input name="primerayudante" value={editForm.primerayudante || ""} onChange={handleEditChange} />
-
-              <label>2do Ayudante</label>
-              <input name="segundoayudante" value={editForm.segundoayudante || ""} onChange={handleEditChange} />
-
-              <label>Anestesista</label>
-              <input name="anestesista" value={editForm.anestesista || ""} onChange={handleEditChange} />
-
-              <div style={styles.modalRow}>
-                <div>
-                  <label>Día</label>
-                  <input name="dia" value={editForm.dia || ""} onChange={handleEditChange} />
-                </div>
-                <div>
-                  <label>Mes</label>
-                  <input name="mes" value={editForm.mes || ""} onChange={handleEditChange} />
-                </div>
-                <div>
-                  <label>Año</label>
-                  <input name="anio" value={editForm.anio || ""} onChange={handleEditChange} />
-                </div>
-              </div>
-
-              <div style={styles.modalRow}>
-                <div>
-                  <label>Hora inicio</label>
-                  <input name="inichsinicio" type="time" value={editForm.inichsinicio || ""} onChange={handleEditChange} />
-                </div>
-                <div>
-                  <label>Hora fin</label>
-                  <input name="hsfin" type="time" value={editForm.hsfin || ""} onChange={handleEditChange} />
-                </div>
-              </div>
-
-              <label>Diagnóstico Preoperatorio</label>
-              <textarea name="preoperatorio" rows="2" value={editForm.preoperatorio || ""} onChange={handleEditChange} />
-
-              <label>Diagnóstico Posoperatorio</label>
-              <textarea name="posoperatorio" rows="2" value={editForm.posoperatorio || ""} onChange={handleEditChange} />
-
-              <label>Procedimiento Quirúrgico</label>
-              <textarea name="procedimientoqx" rows="3" value={editForm.procedimientoqx || ""} onChange={handleEditChange} />
-
-              <label>Hallazgos</label>
-              <textarea name="hallazgos" rows="2" value={editForm.hallazgos || ""} onChange={handleEditChange} />
-
-              <div style={styles.modalActions}>
-                <button type="button" onClick={closeModal} style={styles.btnCancel}>Cancelar</button>
-                <button type="button" onClick={handleSaveEdit} style={styles.btnSave} disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar cambios"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditModal
+          registro={editingRegistro}
+          onClose={() => setEditingRegistro(null)}
+          onSaved={() => showToast("✓ Registro actualizado correctamente")}
+        />
       )}
+
+      {/* Toast */}
+      {toast && <div className={styles.toast}>{toast}</div>}
     </>
   );
 }
