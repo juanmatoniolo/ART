@@ -7,16 +7,18 @@ export const runtime = "nodejs";
 
 const LUGAR_FECHA_CONST = "CHAJARÍ, ENTRE RÍOS";
 
-function templatePath() {
-	return path.join(process.cwd(), "src", "templates", "ART-COMPLETOS.pdf");
+function getTemplatePath(templateName = "ART-COMPLETOS.pdf") {
+	return path.join(process.cwd(), "src", "templates", templateName);
 }
 
-// Solo dígitos (para limpieza interna, pero no se usa en campos con formato)
+function cleanFileName(fileName = "FORMULARIO_ART.pdf") {
+	return fileName.toString().replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 function onlyDigits(s) {
 	return (s ?? "").toString().replace(/\D/g, "");
 }
 
-// Limpia texto: recorta, mayúsculas, evita valores vacíos o "-"
 function cleanText(s) {
 	const v = (s ?? "").toString().trim();
 	if (!v) return "";
@@ -43,15 +45,20 @@ function formatDate({ dia, mes, anio }) {
 	return `${pad2(dia)}-${pad2(mes)}-${anio}`;
 }
 
-// Función auxiliar para formatear CUIT (11 dígitos) con guiones y puntos
-// Se usa solo si se necesita aplicar formato, pero en general el frontend ya lo envía formateado.
-function formatCuil(digits) {
-	const d = onlyDigits(digits);
-	if (d.length !== 11) return digits;
-	return `${d.slice(0, 2)}-${d.slice(2, 4)}.${d.slice(4, 7)}.${d.slice(7, 10)}-${d.slice(10)}`;
+function normalizePayload(payload, pdfType = "art") {
+	if (pdfType !== "evolucion") return payload;
+
+	return {
+		...payload,
+		fechaIngreso: {
+			...(payload?.fechaIngreso || {}),
+			dia: "",
+			mes: "",
+			anio: "",
+		},
+	};
 }
 
-// Construye los campos a rellenar en el PDF a partir del payload recibido.
 function buildPdfFields(payload) {
 	const t = payload.trabajador || {};
 	const emp = payload.empleador || {};
@@ -59,13 +66,11 @@ function buildPdfFields(payload) {
 	const c = payload.consulta || {};
 	const fechaIngreso = payload.fechaIngreso || {};
 	const fechaDenuncia = payload.fechaDenuncia || {};
-
-	// ✅ TOMAR PRESTADOR DEL PAYLOAD (enviado desde el frontend)
 	const p = payload.prestador || {};
 
-	// Cálculos de fechas y nombre completo
 	const nac = splitDateISO(t.nacimiento);
-	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
+	const nombreEmpleado =
+		`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
 	const edad = t.edad ? `${t.edad} AÑOS` : "";
 
 	const fechaIngresoObj = {
@@ -84,15 +89,12 @@ function buildPdfFields(payload) {
 	const fechaIngresoStr = formatDate(fechaIngresoObj);
 	const fechaDenunciaStr = formatDate(fechaDenunciaObj);
 
-	// Retornamos los valores que se escribirán en los campos del PDF
 	return {
-		// ART
 		art: cleanText(art.nombre),
 		"num-siniestro": cleanText(art.nroSiniestro),
 
-		// TRABAJADOR
 		"empleado-nombre": nombreEmpleado,
-		"empleado-dni": cleanText(t.dni),        // conserva puntos y guiones
+		"empleado-dni": cleanText(t.dni),
 		"empleado-dia": nac.dia,
 		"empleado-mes": nac.mes,
 		"empleado-anio": nac.anio,
@@ -104,23 +106,20 @@ function buildPdfFields(payload) {
 		"empleado-depto": cleanText(t.depto),
 		"empleado-localidad": cleanText(t.localidad),
 		"empleado-provincia": cleanText(t.provincia),
-		"empleado-cp": cleanText(t.cp),          // mantiene formato si lo tiene
+		"empleado-cp": cleanText(t.cp),
 		"empleado-celular": cleanText(t.telefono),
 		"Sexo M": t.sexo === "M",
 		F: t.sexo === "F",
 
-		// EMPLEADOR
 		"empleador-nombre": cleanText(emp.nombre),
-		"empleador-cuit": cleanText(emp.cuit),   // conserva guiones y puntos
+		"empleador-cuit": cleanText(emp.cuit),
 		"empleador-cuil": cleanText(emp.cuit),
 
-		// MOTIVO
 		"motivo-trabajo": c.tipo === "AT",
 		"motivo-in-itinere": c.tipo === "AIT",
 		"motivo-enfermedad-profesional": c.tipo === "EP",
 		"motivo-intercurrencia": c.tipo === "INT",
 
-		// FECHAS (ingreso y denuncia)
 		dia: fechaIngresoObj.dia,
 		mes: fechaIngresoObj.mes,
 		anio: fechaIngresoObj.anio,
@@ -130,12 +129,10 @@ function buildPdfFields(payload) {
 		"anio-denuncia": fechaDenunciaObj.anio,
 		"fecha-denuncia": fechaDenunciaStr,
 
-		// LUGAR Y FECHA CONSTANTE
 		"lugar-fecha": LUGAR_FECHA_CONST,
 
-		// ✅ PRESTADOR (desde payload, respetando el formato original)
 		"prestador-nombre": cleanText(p.nombre),
-		"prestador-cuit": cleanText(p.cuit),       // ej: "30-70754530-1"
+		"prestador-cuit": cleanText(p.cuit),
 		"prestador-calle": cleanText(p.calle),
 		"prestador-nro": cleanText(p.nro),
 		"prestador-piso": cleanText(p.piso),
@@ -148,7 +145,6 @@ function buildPdfFields(payload) {
 	};
 }
 
-// Rellena los campos del formulario del PDF
 function fillFormFields(form, fields) {
 	const missing = [];
 
@@ -176,12 +172,13 @@ function fillFormFields(form, fields) {
 	if (missing.length) console.log("[PDF] missing fields:", missing);
 }
 
-// Endpoint GET de diagnóstico (no requiere variables de entorno)
 export async function GET(req) {
 	try {
 		const url = new URL(req.url);
 		const debug = url.searchParams.get("debug") === "1";
-		const pdfFile = templatePath();
+		const templateName =
+			url.searchParams.get("templateName") || "ART-COMPLETOS.pdf";
+		const pdfFile = getTemplatePath(templateName);
 
 		if (!debug) {
 			return NextResponse.json({
@@ -202,8 +199,6 @@ export async function GET(req) {
 			template: pdfFile,
 			fieldsCount: fieldNames.length,
 			fieldNames,
-			// Ya no dependemos de ENV, pero se puede mostrar un mensaje
-			message: "Los datos del prestador se toman del payload enviado por el frontend",
 		});
 	} catch (e) {
 		return NextResponse.json(
@@ -217,10 +212,14 @@ export async function GET(req) {
 	}
 }
 
-// Endpoint POST: genera el PDF con los datos recibidos
 export async function POST(req) {
 	try {
-		const { payload, fileName } = await req.json();
+		const {
+			payload,
+			fileName,
+			templateName = "ART-COMPLETOS.pdf",
+			pdfType = "art",
+		} = await req.json();
 
 		if (!payload) {
 			return NextResponse.json(
@@ -229,21 +228,20 @@ export async function POST(req) {
 			);
 		}
 
-		const pdfFile = templatePath();
+		const pdfFile = getTemplatePath(templateName);
 		const templateBytes = await fs.readFile(pdfFile);
 
 		const pdfDoc = await PDFDocument.load(templateBytes);
 		const form = pdfDoc.getForm();
 
-		const fields = buildPdfFields(payload);
+		const safePayload = normalizePayload(payload, pdfType);
+		const fields = buildPdfFields(safePayload);
+
 		fillFormFields(form, fields);
-
 		form.flatten();
-		const out = await pdfDoc.save();
 
-		const safeName = (fileName || "FORMULARIO_ART.pdf")
-			.toString()
-			.replace(/[^a-zA-Z0-9._-]/g, "_");
+		const out = await pdfDoc.save();
+		const safeName = cleanFileName(fileName);
 
 		return new NextResponse(out, {
 			status: 200,
@@ -255,6 +253,7 @@ export async function POST(req) {
 		});
 	} catch (e) {
 		console.error("[PDF] ERROR:", e);
+
 		return NextResponse.json(
 			{
 				error: "No se pudo generar el PDF",

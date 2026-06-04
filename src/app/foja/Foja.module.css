@@ -34,6 +34,11 @@
     background: linear-gradient(90deg, #2c7a5e, #7faa9a, #d4b87a);
 }
 
+.headerContent {
+    position: relative;
+    z-index: 1;
+}
+
 .headerTag {
     font-size: 0.7rem;
     font-weight: 600;
@@ -160,7 +165,6 @@
     box-shadow: 0 0 0 3px rgba(44, 122, 94, 0.15);
     background: white;
 }
-
 
 .input[type="number"]::-webkit-inner-spin-button,
 .input[type="number"]::-webkit-outer-spin-button {
@@ -332,6 +336,12 @@
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
 }
 
 /* ----- SPINNER ----- */

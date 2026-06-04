@@ -85,15 +85,14 @@ const IconShare = () => (
 // ────────────────────────────────────────────── Componente principal
 export default function Foja() {
     const [form, setForm] = useState(INITIAL_FORM);
-    const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
-    const [pdfStatus, setPdfStatus] = useState("idle");   // idle | loading | done | error
+    const [saveStatus, setSaveStatus] = useState("idle");
+    const [pdfStatus, setPdfStatus] = useState("idle");
     const [savedKey, setSavedKey] = useState(null);
     const [errorMsg, setErrorMsg] = useState("");
     const [pdfUrl, setPdfUrl] = useState(null);
     const [pdfFileName, setPdfFileName] = useState(null);
     const pdfUrlRef = useRef(null);
 
-    // Limpiar URL al desmontar o cuando cambia
     useEffect(() => {
         return () => {
             if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
@@ -152,7 +151,6 @@ export default function Foja() {
     const handleGuardar = async (e) => {
         e.preventDefault();
 
-        // Validación rápida de campos obligatorios
         const required = ["apelidoynombre", "edad", "cirujano", "anestesista", "dia", "mes", "anio", "inichsinicio", "hsfin", "preoperatorio", "procedimientoqx"];
         for (const field of required) {
             if (!form[field]) {
@@ -372,18 +370,20 @@ export default function Foja() {
 
 // ────────────────────────────────────────────── Subcomponentes
 function SectionHeader({ num, title }) {
+    const stylesLocal = require("./foja.module.css");
     return (
-        <div className={styles.sectionHeader}>
-            <span className={styles.sectionNumber}>{num}</span>
-            <h2 className={styles.sectionTitle}>{title}</h2>
+        <div className={stylesLocal.sectionHeader}>
+            <span className={stylesLocal.sectionNumber}>{num}</span>
+            <h2 className={stylesLocal.sectionTitle}>{title}</h2>
         </div>
     );
 }
 
 function Field({ label, htmlFor, children, full }) {
+    const stylesLocal = require("./foja.module.css");
     return (
-        <div className={full ? styles.fieldFull : styles.field}>
-            <label className={styles.label} htmlFor={htmlFor}>{label}</label>
+        <div className={full ? stylesLocal.fieldFull : stylesLocal.field}>
+            <label className={stylesLocal.label} htmlFor={htmlFor}>{label}</label>
             {children}
         </div>
     );
