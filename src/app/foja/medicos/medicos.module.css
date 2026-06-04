@@ -1,234 +1,172 @@
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+  color: #666;
+}
+
+.error {
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+  color: #d32f2f;
+}
+
 .container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 20px;
 }
 
 .title {
-  font-family: 'Merriweather', serif;
-  font-size: 1.8rem;
-  color: #1f2e2a;
-  margin-bottom: 1.5rem;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
 }
 
-/* Filtros */
 .filters {
   display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  background: white;
-  padding: 1rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.searchInput, .filterSelect {
+.searchInput {
   flex: 1;
-  min-width: 180px;
-  padding: 0.7rem 1rem;
-  border: 1.5px solid #e2dbd1;
-  border-radius: 2rem;
-  font-size: 0.9rem;
-  background: #fefcf9;
+  min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
-.searchInput:focus, .filterSelect:focus {
-  border-color: #2c7a5e;
-  outline: none;
+.filterSelect {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 150px;
 }
 
-/* Grid de tarjetas */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
+  gap: 20px;
 }
 
 .card {
-  background: white;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cardHeader {
-  background: #f5f3f0;
-  padding: 1rem;
-  border-bottom: 1px solid #e2dbd1;
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.cardHeader h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #2c7a5e;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
 }
 
 .date {
-  font-size: 0.8rem;
-  color: #6b6b6b;
+  font-size: 12px;
+  color: #666;
 }
 
 .cardBody {
-  padding: 1rem;
-  font-size: 0.9rem;
-}
-
-.cardBody p {
-  margin: 0.5rem 0;
-  color: #4a5b55;
+  margin-bottom: 15px;
 }
 
 .cardActions {
-  padding: 0.8rem 1rem 1rem;
-  border-top: 1px solid #eae4db;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .btnEdit {
-  background: #2c7a5e;
+  padding: 8px 16px;
+  background-color: #1976d2;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  font-weight: 600;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s;
+  font-size: 14px;
 }
 
-.btnEdit:hover {
-  background: #21634b;
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: #666;
 }
 
-/* Modal */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
-  padding: 1rem;
 }
 
 .modal {
-  background: white;
-  border-radius: 1.5rem;
-  max-width: 700px;
-  width: 100%;
-  max-height: 90vh;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 600px;
+  max-height: 80vh;
   overflow-y: auto;
-  padding: 1.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
 }
 
-.modal h2 {
-  margin-top: 0;
-  color: #1f2e2a;
+.modalError {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
 }
 
-.editForm label {
-  display: block;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.3rem;
-  font-size: 0.85rem;
-  color: #6a5e52;
-}
-
-.editForm input, .editForm textarea, .editForm select {
-  width: 100%;
-  padding: 0.6rem;
-  border: 1.5px solid #e2dbd1;
-  border-radius: 0.8rem;
-  font-family: inherit;
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .modalRow {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-.modalRow > div {
-  flex: 1;
+  gap: 10px;
 }
 
 .modalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.btnCancel, .btnSave {
-  padding: 0.6rem 1.2rem;
-  border-radius: 2rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .btnCancel {
-  background: #e2dbd1;
-  color: #4a3f35;
-}
-.btnCancel:hover {
-  background: #cdc2b6;
+  padding: 8px 16px;
+  background-color: #9e9e9e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .btnSave {
-  background: #2c7a5e;
+  padding: 8px 16px;
+  background-color: #4caf50;
   color: white;
-}
-.btnSave:hover:not(:disabled) {
-  background: #21634b;
-}
-.btnSave:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.modalError {
-  background: #fee9e9;
-  color: #9b3a3a;
-  padding: 0.5rem;
-  border-radius: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.loading, .empty, .error {
-  text-align: center;
-  padding: 3rem;
-  color: #6b6b6b;
-}
-
-.error {
-  color: #c96a6a;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-  .filters {
-    flex-direction: column;
-  }
-  .modal {
-    max-width: 95%;
-    padding: 1rem;
-  }
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }

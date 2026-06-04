@@ -46,3 +46,11 @@ export function clearSession() {
 		console.error("❌ Error al limpiar sesión:", err);
 	}
 }
+
+// ✅ NUEVA FUNCIÓN AÑADIDA
+export function isAuthenticated() {
+	if (typeof window === "undefined") return false; // ✅ Previene errores SSR
+
+	const session = getSession();
+	return session !== null && session !== undefined;
+}
