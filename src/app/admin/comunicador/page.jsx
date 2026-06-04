@@ -87,7 +87,7 @@ const msgDaniela = encodeURIComponent(
 );
 
   const msgNatali = encodeURIComponent(
-    "Hola Natali, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
+    "Hola Natalia, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
   );
 
   return `Buen día, *${name}*.
