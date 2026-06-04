@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { ref, push } from "firebase/database";
 import Header from "@/components/Header/Header";
-import styles from "./foja.module.css";
+import styles from "./fojaqx.module.css";
 
 // ────────────────────────────────────────────── Constantes
 const MESES = [
@@ -370,7 +370,7 @@ export default function Foja() {
 
 // ────────────────────────────────────────────── Subcomponentes
 function SectionHeader({ num, title }) {
-    const stylesLocal = require("./foja.module.css");
+    const stylesLocal = require("./fojaqx.module.css");
     return (
         <div className={stylesLocal.sectionHeader}>
             <span className={stylesLocal.sectionNumber}>{num}</span>
@@ -380,7 +380,7 @@ function SectionHeader({ num, title }) {
 }
 
 function Field({ label, htmlFor, children, full }) {
-    const stylesLocal = require("./foja.module.css");
+    const stylesLocal = require("./fojaqx.module.css");
     return (
         <div className={full ? stylesLocal.fieldFull : stylesLocal.field}>
             <label className={stylesLocal.label} htmlFor={htmlFor}>{label}</label>
