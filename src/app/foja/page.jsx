@@ -83,7 +83,7 @@ const IconShare = () => (
 );
 
 // ────────────────────────────────────────────── Componente principal
-export default function FojaQXPage() {
+export default function Foja() {
     const [form, setForm] = useState(INITIAL_FORM);
     const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
     const [pdfStatus, setPdfStatus] = useState("idle");   // idle | loading | done | error
