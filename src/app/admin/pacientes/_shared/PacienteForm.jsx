@@ -34,6 +34,7 @@ const ART_OPTIONS = [
   "La segunda personas",
   "Medicar work",
   "Victoria seguros",
+  "Reconquista ART",
 ];
 
 // Fechas por defecto: hoy

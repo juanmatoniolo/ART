@@ -34,7 +34,8 @@ const ART_OPTIONS = [
   "La segunda personas",
   "Medicar work",
   "Victoria seguros",
-  "otros",
+  "Reconquista ART",
+  
 ];
 
 const today = new Date();

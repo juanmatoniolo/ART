@@ -69,7 +69,8 @@ const ART_OPTIONS = [
     "La segunda ART",
     "La segunda personas",
     "Medicar work",
-    "Victoria seguros"
+    "Victoria seguros",
+    "Reconquista ART"
 ];
 function onlyDigits(s) {
     return (s ?? "").toString().replace(/\D/g, "");
