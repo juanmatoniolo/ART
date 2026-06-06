@@ -7,125 +7,85 @@ import styles from "./page.module.css";
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 
 export default function WhatsAppSender() {
-const searchParams = useSearchParams();
+  const searchParams = useSearchParams();
 
-// Parámetros de URL
-const initialPhone = searchParams.get("phone") || "";
-const initialName = searchParams.get("name") || "";
+  // Parámetros de URL
+  const initialPhone = searchParams.get("phone") || "";
+  const initialName = searchParams.get("name") || "";
 
-// Estados del formulario
-const [phone, setPhone] = useState(initialPhone);
-const [name, setName] = useState(initialName);
-const [dia, setDia] = useState("");
-const [hora, setHora] = useState("");
-const [mensaje, setMensaje] = useState("1");
-const [bioquimico, setBioquimico] = useState("confalonieri");
-const [cardiologo, setCardiologo] = useState("percara");
-const [preview, setPreview] = useState("");
+  // Estados del formulario
+  const [phone, setPhone] = useState(initialPhone);
+  const [name, setName] = useState(initialName);
+  const [dia, setDia] = useState("");
+  const [hora, setHora] = useState("");
+  const [mensaje, setMensaje] = useState("1");
+  const [bioquimico, setBioquimico] = useState("confalonieri");
+  const [cardiologo, setCardiologo] = useState("percara");
+  const [preview, setPreview] = useState("");
 
-// Estados para búsqueda de pacientes
-const [pacientes, setPacientes] = useState([]);
-const [searchTerm, setSearchTerm] = useState("");
-const [showSuggestions, setShowSuggestions] = useState(false);
+  // Estados para búsqueda de pacientes
+  const [pacientes, setPacientes] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
+  const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
-// Cargar lista de pacientes
-useEffect(() => {
-const fetchPacientes = async () => {
-try {
-const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
-
-
-    if (!res.ok) {
-      throw new Error("Error al cargar pacientes");
-    }
-
-    const data = await res.json();
-
-    if (data) {
-      const arr = Object.entries(data).map(([id, value]) => ({
-        id,
-        ...value,
-        fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
-        phone: value.trabajador?.telefono || "",
-      }));
-
-      setPacientes(arr);
-    }
-  } catch (error) {
-    console.error("Error cargando pacientes:", error);
-  }
-};
-
-fetchPacientes();
+  // Cargar lista de pacientes
+  useEffect(() => {
+    const fetchPacientes = async () => {
+      try {
+        const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
 
 
-}, []);
+        if (!res.ok) {
+          throw new Error("Error al cargar pacientes");
+        }
 
-// Filtrar pacientes
-const filteredPacientes = pacientes.filter(
-(p) =>
-p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-(p.trabajador?.dni || "").includes(searchTerm)
-);
+        const data = await res.json();
 
-// Seleccionar paciente
-const handleSelectPaciente = (paciente) => {
-setName(paciente.fullName);
-setPhone(paciente.phone);
-setSearchTerm(paciente.fullName);
-setShowSuggestions(false);
-};
+        if (data) {
+          const arr = Object.entries(data).map(([id, value]) => ({
+            id,
+            ...value,
+            fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+            phone: value.trabajador?.telefono || "",
+          }));
+
+          setPacientes(arr);
+        }
+      } catch (error) {
+        console.error("Error cargando pacientes:", error);
+      }
+    };
+
+    fetchPacientes();
+
+
+  }, []);
+
+  // Filtrar pacientes
+  const filteredPacientes = pacientes.filter(
+    (p) =>
+      p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.trabajador?.dni || "").includes(searchTerm)
+  );
+
+  // Seleccionar paciente
+  const handleSelectPaciente = (paciente) => {
+    setName(paciente.fullName);
+    setPhone(paciente.phone);
+    setSearchTerm(paciente.fullName);
+    setShowSuggestions(false);
+  };
 
 // Construcción de mensajes
 const buildMessage = () => {
 
-
 // KINESIOLOGÍA
-if (mensaje === "1") {
-const msgDaniela = encodeURIComponent(
-"Hola Daniela, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
-);
 
-const msgNatali = encodeURIComponent(
-"Hola Natalia, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
-);
-
-return `Buen día, *${name}*.
-
-✅ Sus sesiones de kinesiología fueron APROBADAS.
-
-Puede retirar la autorización por Mesa de Entrada.
-
-📍 Ingreso por Roque Sáenz Peña.
-
-🕒 Horarios:
-• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
-• Sábados: 8 a 12 hs
-
-Para solicitar turno puede comunicarse con:
-
-*Daniela Rivas*
-📍 9 de Julio 1870
-📱 3456440878
-💬 WhatsApp:
-https://wa.me/5493456440878?text=${msgDaniela}
-
-*Natalia Avancini*
-📍 Rivadavia 2665, Chajarí
-📱 3456513866
-💬 WhatsApp:
-https://wa.me/5493456513866?text=${msgNatali}
-
-También puede atenderse con cualquier profesional de la cartilla de su ART.`;
-}
-
-
-
-// RESONANCIA
-if (mensaje === "2") {
-  return `Buen día, *${name}*.
+    // RESONANCIA
+    if (mensaje === "2") {
+      return `Buen día, *${name}*.
 
 
 ✅ Su resonancia fue APROBADA.
@@ -148,11 +108,11 @@ Av. Siburu 1085
 • Implantes
 • Válvula cardíaca
 • Cirugías recientes`;
-}
+    }
 
-// MEDICAMENTOS
-if (mensaje === "3") {
-  return `Buen día, *${name}*.
+    // MEDICAMENTOS
+    if (mensaje === "3") {
+      return `Buen día, *${name}*.
 
 
 ✅ Sus medicamentos fueron APROBADOS.
@@ -178,20 +138,20 @@ Orden + copia de denuncia → Farmacia de la Unión.
 
 • *Otras ART*:
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
-}
+    }
 
 
-// ELECTROCARDIOGRAMA
-if (mensaje === "4") {
-  const profesional =
-    cardiologo === "percara"
-      ? `Dr. Percara
+    // ELECTROCARDIOGRAMA
+    if (mensaje === "4") {
+      const profesional =
+        cardiologo === "percara"
+          ? `Dr. Percara
 
 
-📍 Bolívar 1695 (esquina 9 de Julio)`          :`Dr. Capovilla
+📍 Bolívar 1695 (esquina 9 de Julio)`          : `Dr. Capovilla
 📍 Bolívar 1645`;
 
-  return `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 
 
 ✅ Su electrocardiograma fue APROBADO.
@@ -204,23 +164,23 @@ if (mensaje === "4") {
 
 👨‍⚕️ Profesional:
 ${profesional}`;
-}
+    }
 
 
-// LABORATORIO
-if (mensaje === "5") {
-  const profesional =
-    bioquimico === "confalonieri"
-      ? `Bioquímica Confalonieri
+    // LABORATORIO
+    if (mensaje === "5") {
+      const profesional =
+        bioquimico === "confalonieri"
+          ? `Bioquímica Confalonieri
 
 
 📍 Belgrano y Corrientes (frente a Pepos)`          : bioquimico === "marmol"
-          ?`Bioquímico Mármol
-📍 Sarmiento 2610`          :`Bioquímica Tabeni
+            ? `Bioquímico Mármol
+📍 Sarmiento 2610`          : `Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
 
-  return `Buen día, *${name}*.
+      return `Buen día, *${name}*.
 
 
 ✅ Su estudio de laboratorio fue APROBADO.
@@ -234,12 +194,12 @@ if (mensaje === "5") {
 
 📍 Lugar:
 ${profesional}`;
-}
+    }
 
 
-// ECOGRAFÍA
-if (mensaje === "6") {
-  return `Buen día, *${name}*.
+    // ECOGRAFÍA
+    if (mensaje === "6") {
+      return `Buen día, *${name}*.
 
 
 ✅ Su ecografía fue APROBADA.
@@ -254,12 +214,12 @@ Al ingresar puede consultar en Mesa de Entrada.
 ⚠️ Importante:
 • Traer DNI físico
 • Llegar 10 minutos antes`;
-}
+    }
 
 
-// CIRUGÍA
-if (mensaje === "7") {
-  return `CLÍNICA DE LA UNIÓN
+    // CIRUGÍA
+    if (mensaje === "7") {
+      return `CLÍNICA DE LA UNIÓN
 
 
 Buen día, *${name}*.
@@ -285,12 +245,12 @@ Por favor responder:
 *CONFIRMO ASISTENCIA*
 
 Ante cualquier duda puede responder este mensaje.`;
-}
+    }
 
 
-// ORTOPEDIA
-if (mensaje === "8") {
-  return `Buen día, *${name}*.
+    // ORTOPEDIA
+    if (mensaje === "8") {
+      return `Buen día, *${name}*.
 
 
 ✅ Su ortopedia fue APROBADA.
@@ -316,33 +276,33 @@ Debe llevar:
 3️⃣ Consultar cobertura
 • Si la ART cubre el 100%, retira sin costo
 • Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
-}
+    }
 
 
-return "";
+    return "";
 
 
-};
+  };
 
-// Actualizar preview
-useEffect(() => {
-setPreview(buildMessage());
-}, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+  // Actualizar preview
+  useEffect(() => {
+    setPreview(buildMessage());
+  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
-// Link WhatsApp
-const createWaLink = () => {
-if (!phone) return "";
-
-
-return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
+  // Link WhatsApp
+  const createWaLink = () => {
+    if (!phone) return "";
 
 
-};
+    return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
 
-const canSend =
-phone && name && (!requiresDateTime || (dia && hora));
 
-return ( <div className={styles.container}> <div className={styles.card}> <h1 className={styles.title}>Envío rápido WhatsApp</h1>
+  };
+
+  const canSend =
+    phone && name && (!requiresDateTime || (dia && hora));
+
+  return (<div className={styles.container}> <div className={styles.card}> <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
 
     <div className={styles.formGrid}>
@@ -574,9 +534,8 @@ return ( <div className={styles.container}> <div className={styles.card}> <h1 cl
       href={canSend ? createWaLink() : "#"}
       target="_blank"
       rel="noreferrer"
-      className={`${styles.button} ${
-        !canSend ? styles.buttonDisabled : ""
-      }`}
+      className={`${styles.button} ${!canSend ? styles.buttonDisabled : ""
+        }`}
       onClick={(e) => {
         if (!canSend) e.preventDefault();
       }}
@@ -584,8 +543,8 @@ return ( <div className={styles.container}> <div className={styles.card}> <h1 cl
       Enviar WhatsApp
     </a>
   </div>
-</div>
+  </div>
 
 
-);
+  );
 }
