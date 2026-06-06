@@ -80,18 +80,19 @@ setShowSuggestions(false);
 
 // Construcción de mensajes
 const buildMessage = () => {
+
+
 // KINESIOLOGÍA
 if (mensaje === "1") {
 const msgDaniela = encodeURIComponent(
 "Hola Daniela, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
 );
 
-  const msgNatali = encodeURIComponent(
-    "Hola Natalia, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
-  );
+const msgNatali = encodeURIComponent(
+"Hola Natalia, me aprobaron las sesiones de kinesiología desde Clínica de la Unión y quisiera coordinar un turno."
+);
 
-  return `Buen día, *${name}*.
-
+return `Buen día, *${name}*.
 
 ✅ Sus sesiones de kinesiología fueron APROBADAS.
 
@@ -103,20 +104,23 @@ Puede retirar la autorización por Mesa de Entrada.
 • Lunes a viernes: 8 a 12 hs y 16 a 20 hs
 • Sábados: 8 a 12 hs
 
-Kinesiólogas disponibles:
+Para solicitar turno puede comunicarse con:
 
-• *Daniela Rivas*
+*Daniela Rivas*
+📍 9 de Julio 1870
 📱 3456440878
 💬 WhatsApp:
 https://wa.me/5493456440878?text=${msgDaniela}
 
-• *Avancini Natali*
+*Natalia Avancini*
+📍 Rivadavia 2665, Chajarí
 📱 3456513866
 💬 WhatsApp:
 https://wa.me/5493456513866?text=${msgNatali}
 
-También puede consultar profesionales en la cartilla de su ART.`;
+También puede atenderse con cualquier profesional de la cartilla de su ART.`;
 }
+
 
 
 // RESONANCIA
