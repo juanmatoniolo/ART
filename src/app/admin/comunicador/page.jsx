@@ -9,11 +9,9 @@ const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 export default function WhatsAppSender() {
   const searchParams = useSearchParams();
 
-  // Parámetros de URL
   const initialPhone = searchParams.get("phone") || "";
   const initialName = searchParams.get("name") || "";
 
-  // Estados del formulario
   const [phone, setPhone] = useState(initialPhone);
   const [name, setName] = useState(initialName);
   const [dia, setDia] = useState("");
@@ -23,21 +21,17 @@ export default function WhatsAppSender() {
   const [cardiologo, setCardiologo] = useState("percara");
   const [preview, setPreview] = useState("");
 
-  // Estados para búsqueda de pacientes
   const [pacientes, setPacientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
-  // Cargar lista de pacientes
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
         const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
-        if (!res.ok) {
-          throw new Error("Error al cargar pacientes");
-        }
+        if (!res.ok) throw new Error("Error al cargar pacientes");
         const data = await res.json();
         if (data) {
           const arr = Object.entries(data).map(([id, value]) => ({
@@ -55,14 +49,12 @@ export default function WhatsAppSender() {
     fetchPacientes();
   }, []);
 
-  // Filtrar pacientes
   const filteredPacientes = pacientes.filter(
     (p) =>
       p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.trabajador?.dni || "").includes(searchTerm)
   );
 
-  // Seleccionar paciente
   const handleSelectPaciente = (paciente) => {
     setName(paciente.fullName);
     setPhone(paciente.phone);
@@ -70,21 +62,23 @@ export default function WhatsAppSender() {
     setShowSuggestions(false);
   };
 
-  // Construcción de mensajes
   const buildMessage = () => {
-    // KINESIOLOGÍA (FKT Aprobada)
+    // FKT - KINESIOLOGÍA
     if (mensaje === "1") {
       return `Buen día, *${name}*.
 
 
 ✅ Su sesión de kinesiología fue APROBADA.
 
-📍 Lugar:
-Clínica de la Unión
+Puede concurrir con:
 
-⚠️ Importante:
-• Traer DNI físico
-• Llegar 10 minutos antes`;
+• *Kinesióloga Rivas Daniela*
+📍 9 de Julio 1870
+👉 Escribirle: https://wa.me/5493416123456
+
+• *Kinesióloga Avancini Natalia*
+📍 Rivadavia 2665
+👉 Escribirle: https://wa.me/5493416123457`;
     }
 
     // RESONANCIA
@@ -106,7 +100,7 @@ Av. Siburu 1085
 • Asistir con ropa cómoda
 • Peso máximo permitido: 140 kg
 
-❗Avisar antes del estudio si posee:
+❗Avisar a las chicas de Imagenes Medicas si posee:
 • Marcapasos
 • Prótesis metálicas
 • Implantes
@@ -282,12 +276,10 @@ Debe llevar:
     return "";
   };
 
-  // Actualizar preview
   useEffect(() => {
     setPreview(buildMessage());
   }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
 
-  // Link WhatsApp
   const createWaLink = () => {
     if (!phone) return "";
     return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(preview)}`;
