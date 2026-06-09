@@ -596,4 +596,3 @@ Debe llevar:
       </div>
     </div>
   );
-}
