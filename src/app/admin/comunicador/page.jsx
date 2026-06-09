@@ -70,6 +70,16 @@ export default function WhatsAppSender() {
 
 ✅ Su sesión de kinesiología fue APROBADA.
 
+
+Puede retirar la orden por Mesa de Entrada.
+
+📍 Ingreso por Roque Sáenz Peña.
+
+🕒 Horarios:
+• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+• Sábados: 8 a 12 hs
+
+
 Puede concurrir con:
 
 • *Kinesióloga Rivas Daniela*
@@ -173,9 +183,9 @@ ${profesional}`;
 
 📍 Belgrano y Corrientes (frente a Pepos)`
           : bioquimico === "marmol"
-          ? `Bioquímico Mármol
+            ? `Bioquímico Mármol
 📍 Sarmiento 2610`
-          : `Bioquímica Tabeni
+            : `Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
       return `Buen día, *${name}*.
@@ -287,6 +297,114 @@ Debe llevar:
 
   const canSend = phone && name && (!requiresDateTime || (dia && hora));
 
+  // UI simple para pruebas
+  return (
+    <div className={styles.container} style={{ maxWidth: 800, margin: "0 auto", padding: 20 }}>
+      <h1>Enviar mensaje por WhatsApp</h1>
+
+      <div>
+        <label>Buscar paciente:</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setShowSuggestions(true);
+          }}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          placeholder="Escriba nombre o DNI"
+          style={{ width: "100%", padding: 8 }}
+        />
+        {showSuggestions && filteredPacientes.length > 0 && (
+          <ul style={{ border: "1px solid #ccc", maxHeight: 150, overflowY: "auto" }}>
+            {filteredPacientes.map((p) => (
+              <li
+                key={p.id}
+                onClick={() => handleSelectPaciente(p)}
+                style={{ cursor: "pointer", padding: 5 }}
+              >
+                {p.fullName} - {p.phone}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <label>Nombre completo:</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: "100%", padding: 8 }} />
+      </div>
+
+      <div>
+        <label>Teléfono (con código de país, sin +):</label>
+        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: "100%", padding: 8 }} />
+      </div>
+
+      <div>
+        <label>Tipo de mensaje:</label>
+        <select value={mensaje} onChange={(e) => setMensaje(e.target.value)} style={{ width: "100%", padding: 8 }}>
+          <option value="1">Kinesiología</option>
+          <option value="2">Resonancia</option>
+          <option value="3">Medicamentos</option>
+          <option value="4">Electrocardiograma</option>
+          <option value="5">Laboratorio</option>
+          <option value="6">Ecografía</option>
+          <option value="7">Cirugía</option>
+          <option value="8">Ortopedia</option>
+        </select>
+      </div>
+
+      {requiresDateTime && (
+        <>
+          <div>
+            <label>Fecha (día):</label>
+            <input type="text" value={dia} onChange={(e) => setDia(e.target.value)} placeholder="ej: 15/04/2025" style={{ width: "100%", padding: 8 }} />
+          </div>
+          <div>
+            <label>Hora:</label>
+            <input type="text" value={hora} onChange={(e) => setHora(e.target.value)} placeholder="ej: 10:30 hs" style={{ width: "100%", padding: 8 }} />
+          </div>
+        </>
+      )}
+
+      {mensaje === "5" && (
+        <div>
+          <label>Bioquímico:</label>
+          <select value={bioquimico} onChange={(e) => setBioquimico(e.target.value)} style={{ width: "100%", padding: 8 }}>
+            <option value="confalonieri">Confalonieri</option>
+            <option value="marmol">Mármol</option>
+            <option value="tabeni">Tabeni</option>
+          </select>
+        </div>
+      )}
+
+      {mensaje === "4" && (
+        <div>
+          <label>Cardiólogo:</label>
+          <select value={cardiologo} onChange={(e) => setCardiologo(e.target.value)} style={{ width: "100%", padding: 8 }}>
+            <option value="percara">Dr. Percara</option>
+            <option value="capovilla">Dr. Capovilla</option>
+          </select>
+        </div>
+      )}
+
+      <div>
+        <label>Vista previa del mensaje:</label>
+        <pre style={{ background: "#f4f4f4", padding: 10, whiteSpace: "pre-wrap" }}>{preview}</pre>
+      </div>
+
+      {canSend ? (
+        <a href={createWaLink()} target="_blank" rel="noopener noreferrer">
+          <button style={{ padding: "10px 20px", fontSize: 16 }}>Enviar por WhatsApp</button>
+        </a>
+      ) : (
+        <button disabled style={{ padding: "10px 20px", fontSize: 16 }}>
+          {!phone ? "Falta teléfono" : !name ? "Falta nombre" : requiresDateTime && (!dia || !hora) ? "Falta fecha u hora" : "Completa los datos"}
+        </button>
+      )}
+    </div>
+  );
+}
   return (
     <div className={styles.container}>
       <div className={styles.card}>
