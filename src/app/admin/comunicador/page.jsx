@@ -63,7 +63,7 @@ export default function WhatsAppSender() {
   };
 
   const buildMessage = () => {
-    // FKT - KINESIOLOGÍA
+    // Kinesiología
     if (mensaje === "1") {
       return `Buen día, *${name}*.
 
@@ -91,7 +91,7 @@ Puede concurrir con:
 👉 Escribirle: https://wa.me/5493416123457`;
     }
 
-    // RESONANCIA
+    // Resonancia
     if (mensaje === "2") {
       return `Buen día, *${name}*.
 
@@ -118,7 +118,7 @@ Av. Siburu 1085
 • Cirugías recientes`;
     }
 
-    // MEDICAMENTOS
+    // Medicamentos
     if (mensaje === "3") {
       return `Buen día, *${name}*.
 
@@ -148,7 +148,7 @@ Orden + copia de denuncia → Farmacia de la Unión.
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
-    // ELECTROCARDIOGRAMA
+    // Electrocardiograma
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
@@ -174,7 +174,7 @@ Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 ${profesional}`;
     }
 
-    // LABORATORIO
+    // Laboratorio
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
@@ -204,7 +204,7 @@ ${profesional}`;
 ${profesional}`;
     }
 
-    // ECOGRAFÍA
+    // Ecografía
     if (mensaje === "6") {
       return `Buen día, *${name}*.
 
@@ -223,7 +223,7 @@ Al ingresar puede consultar en Mesa de Entrada.
 • Llegar 10 minutos antes`;
     }
 
-    // CIRUGÍA
+    // Cirugía
     if (mensaje === "7") {
       return `CLÍNICA DE LA UNIÓN
 
@@ -253,7 +253,7 @@ Por favor responder:
 Ante cualquier duda puede responder este mensaje.`;
     }
 
-    // ORTOPEDIA
+    // Ortopedia
     if (mensaje === "8") {
       return `Buen día, *${name}*.
 
@@ -297,114 +297,6 @@ Debe llevar:
 
   const canSend = phone && name && (!requiresDateTime || (dia && hora));
 
-  // UI simple para pruebas
-  return (
-    <div className={styles.container} style={{ maxWidth: 800, margin: "0 auto", padding: 20 }}>
-      <h1>Enviar mensaje por WhatsApp</h1>
-
-      <div>
-        <label>Buscar paciente:</label>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setShowSuggestions(true);
-          }}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          placeholder="Escriba nombre o DNI"
-          style={{ width: "100%", padding: 8 }}
-        />
-        {showSuggestions && filteredPacientes.length > 0 && (
-          <ul style={{ border: "1px solid #ccc", maxHeight: 150, overflowY: "auto" }}>
-            {filteredPacientes.map((p) => (
-              <li
-                key={p.id}
-                onClick={() => handleSelectPaciente(p)}
-                style={{ cursor: "pointer", padding: 5 }}
-              >
-                {p.fullName} - {p.phone}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <label>Nombre completo:</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: "100%", padding: 8 }} />
-      </div>
-
-      <div>
-        <label>Teléfono (con código de país, sin +):</label>
-        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: "100%", padding: 8 }} />
-      </div>
-
-      <div>
-        <label>Tipo de mensaje:</label>
-        <select value={mensaje} onChange={(e) => setMensaje(e.target.value)} style={{ width: "100%", padding: 8 }}>
-          <option value="1">Kinesiología</option>
-          <option value="2">Resonancia</option>
-          <option value="3">Medicamentos</option>
-          <option value="4">Electrocardiograma</option>
-          <option value="5">Laboratorio</option>
-          <option value="6">Ecografía</option>
-          <option value="7">Cirugía</option>
-          <option value="8">Ortopedia</option>
-        </select>
-      </div>
-
-      {requiresDateTime && (
-        <>
-          <div>
-            <label>Fecha (día):</label>
-            <input type="text" value={dia} onChange={(e) => setDia(e.target.value)} placeholder="ej: 15/04/2025" style={{ width: "100%", padding: 8 }} />
-          </div>
-          <div>
-            <label>Hora:</label>
-            <input type="text" value={hora} onChange={(e) => setHora(e.target.value)} placeholder="ej: 10:30 hs" style={{ width: "100%", padding: 8 }} />
-          </div>
-        </>
-      )}
-
-      {mensaje === "5" && (
-        <div>
-          <label>Bioquímico:</label>
-          <select value={bioquimico} onChange={(e) => setBioquimico(e.target.value)} style={{ width: "100%", padding: 8 }}>
-            <option value="confalonieri">Confalonieri</option>
-            <option value="marmol">Mármol</option>
-            <option value="tabeni">Tabeni</option>
-          </select>
-        </div>
-      )}
-
-      {mensaje === "4" && (
-        <div>
-          <label>Cardiólogo:</label>
-          <select value={cardiologo} onChange={(e) => setCardiologo(e.target.value)} style={{ width: "100%", padding: 8 }}>
-            <option value="percara">Dr. Percara</option>
-            <option value="capovilla">Dr. Capovilla</option>
-          </select>
-        </div>
-      )}
-
-      <div>
-        <label>Vista previa del mensaje:</label>
-        <pre style={{ background: "#f4f4f4", padding: 10, whiteSpace: "pre-wrap" }}>{preview}</pre>
-      </div>
-
-      {canSend ? (
-        <a href={createWaLink()} target="_blank" rel="noopener noreferrer">
-          <button style={{ padding: "10px 20px", fontSize: 16 }}>Enviar por WhatsApp</button>
-        </a>
-      ) : (
-        <button disabled style={{ padding: "10px 20px", fontSize: 16 }}>
-          {!phone ? "Falta teléfono" : !name ? "Falta nombre" : requiresDateTime && (!dia || !hora) ? "Falta fecha u hora" : "Completa los datos"}
-        </button>
-      )}
-    </div>
-  );
-}
   return (
     <div className={styles.container}>
       <div className={styles.card}>
@@ -596,3 +488,4 @@ Debe llevar:
       </div>
     </div>
   );
+}
