@@ -1,32 +1,27 @@
 "use client";
-import s from "../../farmaciaDashboard.module.css";
+import Icon from "../Icon";
 import { Overlay } from "./AgregarModal";
 
 const CONFIGS = {
-    success: { bg: "linear-gradient(135deg,#10b981,#059669)", icon: "✅" },
-    error: { bg: "linear-gradient(135deg,#ef4444,#b91c1c)", icon: "❌" },
-    warning: { bg: "linear-gradient(135deg,#f59e0b,#d97706)", icon: "⚠️" },
-    info: { bg: "linear-gradient(135deg,#3b82f6,#2563eb)", icon: "ℹ️" },
+    success: { tone: "success", icon: "check", color: "#059669" },
+    error: { tone: "danger", icon: "alert", color: "#dc2626" },
+    warning: { tone: "warning", icon: "alert", color: "#d97706" },
+    info: { tone: "", icon: "list", color: "#2563eb" },
 };
 
 export default function MensajeModal({ data, onClose }) {
     const cfg = CONFIGS[data.tipo] || CONFIGS.info;
     return (
         <Overlay onClose={onClose}>
-            <div className={s.modalHeader} style={{ background: cfg.bg }}>
-                <h3 className={s.modalTitle} style={{ color: "#fff" }}>
-                    {cfg.icon} {data.titulo}
-                </h3>
-                <button className={s.closeBtn} style={{ color: "#fff" }} onClick={onClose}>✕</button>
+            <div className={"fxm-head" + (cfg.tone ? " " + cfg.tone : "")}>
+                <h3 className="fxm-title"><Icon name={cfg.icon} size={24} /> {data.titulo}</h3>
+                <button className="fxm-close" onClick={onClose} aria-label="Cerrar"><Icon name="close" size={22} /></button>
             </div>
-            <div className={s.modalBody}>
-                <p className={s.mensajeText}>{data.mensaje}</p>
+            <div className="fxm-body">
+                <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4 }}>{data.mensaje}</p>
             </div>
-            <div className={s.modalFooter} style={{ justifyContent: "center" }}>
-                <button className={`${s.actionBtn} ${s.btn_primary}`}
-                    style={{ background: cfg.bg }} onClick={onClose}>
-                    Aceptar
-                </button>
+            <div className="fxm-footer">
+                <button className="fxm-btn primary" style={{ background: cfg.color }} onClick={onClose}>Aceptar</button>
             </div>
         </Overlay>
     );

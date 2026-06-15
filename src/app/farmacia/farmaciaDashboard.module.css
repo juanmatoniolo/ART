@@ -2084,3 +2084,334 @@
         display: block;
     }
 }
+
+/* ═══════════════════════════════════════════════
+   AGREGAR AL FINAL DE farmaciaDashboard.module.css
+   Pantallas nuevas: Listas de Precios + Exportar precios
+   Usa los mismos tokens (var(--c-...)) que ya tenés.
+   ═══════════════════════════════════════════════ */
+
+/* ── Helper para íconos SVG dentro de tu diseño ── */
+.svgIc {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+/* ── Listas de Precios: chips selector ── */
+.precioChips {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.precioChip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .6rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 20px;
+    background: white;
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--c-muted);
+    cursor: pointer;
+    transition: var(--tr);
+}
+
+.precioChip:hover {
+    border-color: var(--c-primary);
+}
+
+.precioChipActive {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+    color: #fff;
+}
+
+.precioChipMult {
+    opacity: .8;
+    font-weight: 500;
+}
+
+/* ── Listas de Precios: tarjetas (mobile) ── */
+.precioCards {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.precioCard {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    background: white;
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-lg);
+    padding: 1rem;
+    transition: var(--tr);
+}
+
+.precioCard:hover {
+    box-shadow: var(--sh-sm);
+}
+
+.precioCardIcon {
+    color: var(--c-primary);
+    flex-shrink: 0;
+}
+
+.precioCardInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.precioCardName {
+    margin: 0;
+    font-weight: 700;
+    font-size: .9rem;
+}
+
+.precioCardMeta {
+    margin: .2rem 0 0;
+    font-size: .78rem;
+    color: var(--c-muted);
+}
+
+.precioPriceBox {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.precioPriceLabel {
+    display: block;
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.precioPriceVal {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--c-green2);
+}
+
+/* ── Listas de Precios: tabla comparativa (desktop) ── */
+.precioTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.precioTable th {
+    background: #f8fafc;
+    padding: .75rem 1rem;
+    text-align: center;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--c-muted);
+    border-bottom: 2px solid var(--c-border);
+    white-space: nowrap;
+}
+
+.precioTable th.thLeft,
+.precioTable td.tdLeft {
+    text-align: left;
+}
+
+.precioTable td {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--c-border);
+    text-align: center;
+    font-size: .875rem;
+}
+
+.precioTable .precioCell {
+    font-weight: 700;
+    color: var(--c-green2);
+}
+
+.precioTable tr:hover td {
+    background: #f8fafc;
+}
+
+/* ── Exportar precios: selección de listas ── */
+.expSelInfo {
+    margin: 0 0 1rem;
+    font-size: .875rem;
+    color: var(--c-muted);
+}
+
+.expSelList {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.expSelRow {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    padding: .875rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-md);
+    background: white;
+    cursor: pointer;
+    font-size: .95rem;
+    color: var(--c-text);
+    text-align: left;
+    transition: var(--tr);
+}
+
+.expSelRow:hover {
+    border-color: var(--c-primary);
+}
+
+.expSelRowOn {
+    border-color: var(--c-primary);
+    background: #eff6ff;
+}
+
+.expSelRowAll {
+    background: #f8fafc;
+    font-weight: 700;
+}
+
+.expSelCheck {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-sm);
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.expSelRowOn .expSelCheck {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+}
+
+.expSelName {
+    flex: 1;
+    font-weight: 600;
+}
+
+.expSelMult {
+    color: var(--c-muted);
+    font-weight: 500;
+}
+
+.expSelCount {
+    background: var(--c-bg);
+    color: var(--c-muted);
+    font-weight: 700;
+    font-size: .8rem;
+    padding: .15rem .6rem;
+    border-radius: 20px;
+}
+
+/* ── Gestionar listas ── */
+.gestionGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+.gestionBox {
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-md);
+    padding: 1.25rem;
+}
+
+.gestionBoxAlt {
+    background: var(--c-bg);
+}
+
+.gestionTitle {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.gestionExample {
+    background: #eff6ff;
+    border: 1px solid #c7d2fe;
+    border-radius: var(--r-sm);
+    padding: .75rem 1rem;
+    font-size: .9rem;
+    margin: .25rem 0 1rem;
+}
+
+.gestionMultRow {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+
+.gestionMultSign {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.gestionHint {
+    font-size: .85rem;
+    color: var(--c-muted);
+}
+
+.gestionItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .75rem 0;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.gestionItem:last-child {
+    border-bottom: none;
+}
+
+.gestionItemName {
+    margin: 0;
+    font-weight: 700;
+    font-size: .95rem;
+}
+
+.gestionItemMeta {
+    margin: .15rem 0 0;
+    font-size: .82rem;
+    color: var(--c-muted);
+}
+
+.gestionTip {
+    font-size: .8rem;
+    color: var(--c-muted);
+    margin: 1rem 0 0;
+}
+
+@media (min-width: 768px) {
+    .precioCards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gestionGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1200px) {
+    .precioCards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

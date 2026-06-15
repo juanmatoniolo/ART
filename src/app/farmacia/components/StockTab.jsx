@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import s from "../farmaciaDashboard.module.css";
+import Icon from "./Icon";
 import { formatCurrency, getStockColor, getStockStatus, matchesAllTerms } from "../utils/farmacia";
 import EditarProductoModal from "./modals/EditarProductoModal";
 import EliminarModal from "./modals/EliminarModal";
@@ -25,34 +26,34 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
             <div className={s.panel}>
                 <div className={s.panelHeader}>
                     <div>
-                        <h3 className={s.panelTitle}>📦 Control de Stock</h3>
+                        <h3 className={s.panelTitle}><Icon name="box" size={20} /> Control de Stock</h3>
                         <p className={s.panelSub}>
                             {filtrados.length} productos · {formatCurrency(estadisticas.valorTotalStock)}
                         </p>
                     </div>
                     <div className={s.panelActions}>
                         <button className={`${s.actionBtn} ${s.btn_primary}`} onClick={onAgregar}>
-                            ➕ <span className={s.actionBtnLabel}>Producto</span>
+                            <Icon name="plus" size={18} /> <span className={s.actionBtnLabel}>Producto</span>
                         </button>
                         <button className={`${s.actionBtn} ${s.btn_secondary}`} onClick={onCargaMasiva}>
-                            📥 <span className={s.actionBtnLabel}>Masiva</span>
+                            <Icon name="download" size={18} /> <span className={s.actionBtnLabel}>Masiva</span>
                         </button>
                         <button className={`${s.actionBtn} ${s.btn_import}`} onClick={onImportar}>
-                            📂 <span className={s.actionBtnLabel}>CSV</span>
+                            <Icon name="file" size={18} /> <span className={s.actionBtnLabel}>CSV</span>
                         </button>
                     </div>
                 </div>
 
                 <div className={s.filtersRow}>
                     <div className={s.searchWrap}>
-                        <span className={s.searchIconInner}>🔍</span>
+                        <span className={`${s.searchIconInner} ${s.svgIc}`}><Icon name="search" size={18} /></span>
                         <input className={s.searchInput} placeholder="Buscar producto..."
                             value={busqueda} onChange={e => setBusqueda(e.target.value)} />
                     </div>
                     <select className={s.filterSelect} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
                         <option value="todos">Todos</option>
-                        <option value="medicamentos">💊 Medicamentos</option>
-                        <option value="descartables">🧷 Descartables</option>
+                        <option value="medicamentos">Medicamentos</option>
+                        <option value="descartables">Descartables</option>
                     </select>
                 </div>
 
@@ -64,8 +65,8 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                             <div key={item.id} className={s.stockCard}>
                                 <div className={s.stockCardHeader}>
                                     <div className={s.stockCardInfo}>
-                                        <span className={s.stockCardIcon}>
-                                            {item.tipo === "medicamento" ? "💊" : "🧷"}
+                                        <span className={`${s.stockCardIcon} ${s.svgIc}`} style={{ color }}>
+                                            <Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={22} />
                                         </span>
                                         <div>
                                             <p className={s.stockCardName}>{item.nombre.replace(/_/g, " ")}</p>
@@ -73,8 +74,8 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                                         </div>
                                     </div>
                                     <div className={s.stockCardActions}>
-                                        <button className={s.iconBtn} onClick={() => setEditItem(item)} title="Editar">✏️</button>
-                                        <button className={`${s.iconBtn} ${s.iconBtnDanger}`} onClick={() => setDeleteItem(item)} title="Eliminar">🗑️</button>
+                                        <button className={`${s.iconBtn} ${s.svgIc}`} onClick={() => setEditItem(item)} title="Editar"><Icon name="edit" size={18} /></button>
+                                        <button className={`${s.iconBtn} ${s.iconBtnDanger} ${s.svgIc}`} onClick={() => setDeleteItem(item)} title="Eliminar"><Icon name="trash" size={18} /></button>
                                     </div>
                                 </div>
                                 <div className={s.stockCardFooter}>
@@ -94,7 +95,7 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                         );
                     })}
                     {filtrados.length === 0 && (
-                        <div className={s.emptyState}><span>📭</span><p>No se encontraron productos</p></div>
+                        <div className={s.emptyState}><span className={s.svgIc}><Icon name="inbox" size={40} /></span><p>No se encontraron productos</p></div>
                     )}
                 </div>
 
@@ -118,8 +119,8 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                                     <tr key={item.id} className={s.stockRow}>
                                         <td>
                                             <div className={s.productCell}>
-                                                <span className={s.productCellIcon}>
-                                                    {item.tipo === "medicamento" ? "💊" : "🧷"}
+                                                <span className={`${s.productCellIcon} ${s.svgIc}`} style={{ color }}>
+                                                    <Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={20} />
                                                 </span>
                                                 <div>
                                                     <p className={s.productCellName}>{item.nombre.replace(/_/g, " ")}</p>
@@ -147,8 +148,8 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                                         </td>
                                         <td className={s.thCenter}>
                                             <div className={s.tableActions}>
-                                                <button className={s.iconBtn} onClick={() => setEditItem(item)}>✏️</button>
-                                                <button className={`${s.iconBtn} ${s.iconBtnDanger}`} onClick={() => setDeleteItem(item)}>🗑️</button>
+                                                <button className={`${s.iconBtn} ${s.svgIc}`} onClick={() => setEditItem(item)}><Icon name="edit" size={18} /></button>
+                                                <button className={`${s.iconBtn} ${s.iconBtnDanger} ${s.svgIc}`} onClick={() => setDeleteItem(item)}><Icon name="trash" size={18} /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -157,24 +158,16 @@ export default function StockTab({ items, estadisticas, onAgregar, onCargaMasiva
                         </tbody>
                     </table>
                     {filtrados.length === 0 && (
-                        <div className={s.emptyState}><span>📭</span><p>No se encontraron productos</p></div>
+                        <div className={s.emptyState}><span className={s.svgIc}><Icon name="inbox" size={40} /></span><p>No se encontraron productos</p></div>
                     )}
                 </div>
             </div>
 
             {editItem && (
-                <EditarProductoModal
-                    item={editItem}
-                    onClose={() => setEditItem(null)}
-                    onSubmit={editarProducto}
-                />
+                <EditarProductoModal item={editItem} onClose={() => setEditItem(null)} onSubmit={editarProducto} />
             )}
             {deleteItem && (
-                <EliminarModal
-                    item={deleteItem}
-                    onClose={() => setDeleteItem(null)}
-                    onSubmit={eliminarProducto}
-                />
+                <EliminarModal item={deleteItem} onClose={() => setDeleteItem(null)} onSubmit={eliminarProducto} />
             )}
         </>
     );

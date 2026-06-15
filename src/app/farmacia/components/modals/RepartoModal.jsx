@@ -1,262 +1,247 @@
 "use client";
-import { useState, useMemo, useRef, useEffect } from "react";
-import s from "../../farmaciaDashboard.module.css";
-import { Overlay, CloseBtn, Field } from "./AgregarModal";
+import { useState, useMemo, useEffect } from "react";
+import Icon from "../Icon";
+import { Overlay, Header, Field } from "./AgregarModal";
 import { normalizeText, formatCurrency } from "../../utils/farmacia";
 
 const DESTINOS = ["Guardia", "Primer Piso", "Segundo Piso", "Quirófano", "UTI",
     "Pediatría", "Maternidad", "Administración", "Depósito", "Otro"];
 
 export default function RepartoModal({ onClose, onSubmit, items }) {
-    const [paso, setPaso] = useState("datos");   // datos | productos | confirmacion
+    const [paso, setPaso] = useState("datos"); // datos | productos | confirmacion
     const [destino, setDestino] = useState("Guardia");
     const [responsable, setResp] = useState("");
     const [nota, setNota] = useState("");
     const [busqueda, setBusqueda] = useState("");
-    const [sugerencias, setSugер] = useState([]);
-    const [seleccionados, setSelected] = useState([]);
+    const [sugerencias, setSug] = useState([]);
+    const [seleccionados, setSel] = useState([]);
     const [loading, setLoading] = useState(false);
-    const searchRef = useRef();
 
-    // Autocompletado
     useEffect(() => {
-        if (!busqueda.trim()) { setSugер([]); return; }
+        if (!busqueda.trim()) { setSug([]); return; }
         const q = normalizeText(busqueda);
-        const res = items
-            .filter(i => i.stockActual > 0 && normalizeText(i.nombre).includes(q))
-            .slice(0, 8);
-        setSugер(res);
+        setSug(items.filter(i => i.stockActual > 0 && normalizeText(i.nombre).includes(q)).slice(0, 8));
     }, [busqueda, items]);
 
     const agregar = (item) => {
-        setBusqueda(""); setSugер([]);
+        setBusqueda(""); setSug([]);
         if (seleccionados.find(p => p.id === item.id)) return;
-        setSelected(prev => [...prev, {
-            ...item, cantidad: 1,
-            stockAnterior: item.stockActual,
-            stockNuevo: item.stockActual - 1
-        }]);
+        setSel(prev => [...prev, { ...item, cantidad: 1, stockAnterior: item.stockActual, stockNuevo: item.stockActual - 1 }]);
     };
-
     const setCantidad = (id, val) => {
-        const n = Math.max(1, Math.min(parseInt(val) || 1,
-            seleccionados.find(p => p.id === id)?.stockAnterior || 1));
-        setSelected(prev => prev.map(p => p.id !== id ? p : {
-            ...p, cantidad: n, stockNuevo: p.stockAnterior - n
+        setSel(prev => prev.map(p => {
+            if (p.id !== id) return p;
+            const n = Math.max(1, Math.min(parseInt(val) || 1, p.stockAnterior));
+            return { ...p, cantidad: n, stockNuevo: p.stockAnterior - n };
         }));
     };
+    const quitar = (id) => setSel(prev => prev.filter(p => p.id !== id));
 
-    const quitar = (id) => setSelected(prev => prev.filter(p => p.id !== id));
-
-    const totales = useMemo(() => seleccionados.reduce((acc, p) => ({
-        unidades: acc.unidades + p.cantidad,
-        valor: acc.valor + p.cantidad * p.precio
+    const totales = useMemo(() => seleccionados.reduce((a, p) => ({
+        unidades: a.unidades + p.cantidad, valor: a.valor + p.cantidad * p.precio
     }), { unidades: 0, valor: 0 }), [seleccionados]);
 
     const handleSubmit = async () => {
         setLoading(true);
-        const productosConKey = seleccionados.map(p => ({ ...p, cantidadReparto: String(p.cantidad) }));
-        const ok = await onSubmit(productosConKey, { destino, responsable, nota });
+        const productos = seleccionados.map(p => ({ ...p, cantidadReparto: String(p.cantidad) }));
+        const ok = await onSubmit(productos, { destino, responsable, nota });
         setLoading(false);
         if (ok) onClose();
     };
 
-    // ── PASO 1: Datos ─────────────────────────────────────────────────────
-    if (paso === "datos") return (
-        <Overlay onClose={onClose}>
-            <div className={s.modalHeader} style={{ background: "linear-gradient(135deg,#ef4444,#b91c1c)" }}>
-                <h3 className={s.modalTitle} style={{ color: "#fff" }}>🚚 Nuevo Despacho</h3>
-                <CloseBtn onClick={onClose} />
-            </div>
-            <div className={s.modalBody}>
-                <div className={s.stepIndicator}>
-                    <div className={`${s.stepDot} ${s.stepDotActive}`}>1</div>
-                    <div className={s.stepLine} />
-                    <div className={s.stepDot}>2</div>
-                    <div className={s.stepLine} />
-                    <div className={s.stepDot}>3</div>
-                </div>
-                <p className={s.stepLabel}>Datos del despacho</p>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: ".875rem", marginTop: "1rem" }}>
-                    <Field label="📍 Destino">
-                        <div className={s.destinoGrid}>
-                            {DESTINOS.map(d => (
-                                <button key={d}
-                                    className={`${s.destinoChip} ${destino === d ? s.destinoChipActive : ""}`}
-                                    onClick={() => setDestino(d)}
-                                >
-                                    {d}
-                                </button>
-                            ))}
-                        </div>
-                    </Field>
-                    <Field label="👤 Responsable *">
-                        <input className={s.formInput} value={responsable}
-                            onChange={e => setResp(e.target.value)}
-                            placeholder="Nombre del responsable" />
-                    </Field>
-                    <Field label="📝 Observaciones (opcional)">
-                        <textarea className={s.formTextarea} rows={2} value={nota}
-                            onChange={e => setNota(e.target.value)}
-                            placeholder="Notas adicionales..." />
-                    </Field>
-                </div>
-            </div>
-            <div className={s.modalFooter}>
-                <button className={s.btnCancel} onClick={onClose}>Cancelar</button>
-                <button className={`${s.actionBtn} ${s.btn_danger}`}
-                    disabled={!responsable.trim()}
-                    onClick={() => setPaso("productos")}>
-                    Siguiente →
-                </button>
-            </div>
-        </Overlay>
+    const Steps = ({ n }) => (
+        <div className="rp-steps">
+            {[1, 2, 3].map((i, idx) => (
+                <span key={i} style={{ display: "contents" }}>
+                    <span className={"rp-dot" + (n === i ? " on" : n > i ? " done" : "")}>
+                        {n > i ? <Icon name="check" size={16} /> : i}
+                    </span>
+                    {idx < 2 && <span className="rp-line" />}
+                </span>
+            ))}
+        </div>
     );
 
-    // ── PASO 2: Productos ─────────────────────────────────────────────────
-    if (paso === "productos") return (
-        <Overlay onClose={onClose}>
-            <div className={s.modalHeader} style={{ background: "linear-gradient(135deg,#ef4444,#b91c1c)" }}>
-                <h3 className={s.modalTitle} style={{ color: "#fff" }}>🚚 Productos a repartir</h3>
-                <CloseBtn onClick={onClose} />
-            </div>
-            <div className={s.modalBody}>
-                <div className={s.stepIndicator}>
-                    <div className={s.stepDot}>1</div>
-                    <div className={s.stepLine} />
-                    <div className={`${s.stepDot} ${s.stepDotActive}`}>2</div>
-                    <div className={s.stepLine} />
-                    <div className={s.stepDot}>3</div>
-                </div>
-                <p className={s.stepLabel}>Buscá y agregá productos</p>
-
-                {/* Buscador tipo WhatsApp */}
-                <div className={s.repartoSearch} ref={searchRef}>
-                    <div className={s.searchWrap} style={{ marginTop: ".75rem" }}>
-                        <span className={s.searchIconInner}>🔍</span>
-                        <input
-                            className={s.searchInput}
-                            placeholder="Buscar medicamento o descartable..."
-                            value={busqueda}
-                            onChange={e => setBusqueda(e.target.value)}
-                            autoComplete="off"
-                        />
-                        {busqueda && (
-                            <button className={s.searchClear} onClick={() => { setBusqueda(""); setSugер([]); }}>
-                                ✕
-                            </button>
-                        )}
-                    </div>
-
-                    {sugerencias.length > 0 && (
-                        <div className={s.autocompleteList}>
-                            {sugerencias.map(item => (
-                                <div key={item.id} className={s.autocompleteItem} onClick={() => agregar(item)}>
-                                    <span className={s.autocompleteIcon}>
-                                        {item.tipo === "medicamento" ? "💊" : "🧷"}
-                                    </span>
-                                    <div className={s.autocompleteInfo}>
-                                        <p className={s.autocompleteName}>{item.nombre.replace(/_/g, " ")}</p>
-                                        <p className={s.autocompleteMeta}>
-                                            {item.presentacion} · Stock: {item.stockActual}
-                                        </p>
-                                    </div>
-                                    <span className={s.autocompleteAdd}>+</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Lista seleccionados */}
-                {seleccionados.length === 0 ? (
-                    <div className={s.emptyState} style={{ padding: "2rem" }}>
-                        <span>🔍</span>
-                        <p>Buscá productos para agregar</p>
-                    </div>
-                ) : (
-                    <div className={s.repartoList}>
-                        {seleccionados.map(p => (
-                            <div key={p.id} className={s.repartoItem}>
-                                <div className={s.repartoItemInfo}>
-                                    <p className={s.repartoItemName}>{p.nombre.replace(/_/g, " ")}</p>
-                                    <p className={s.repartoItemMeta}>
-                                        Stock: {p.stockAnterior} → <strong style={{ color: "#ef4444" }}>{p.stockNuevo}</strong>
-                                    </p>
-                                </div>
-                                <div className={s.repartoCantControls}>
-                                    <button className={s.cantBtn}
-                                        onClick={() => setCantidad(p.id, p.cantidad - 1)}
-                                        disabled={p.cantidad <= 1}>−</button>
-                                    <span className={s.cantDisplay}>{p.cantidad}</span>
-                                    <button className={s.cantBtn}
-                                        onClick={() => setCantidad(p.id, p.cantidad + 1)}
-                                        disabled={p.cantidad >= p.stockAnterior}>+</button>
-                                </div>
-                                <button className={s.removeBtn} onClick={() => quitar(p.id)}>✕</button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-            <div className={s.modalFooter}>
-                <button className={s.btnCancel} onClick={() => setPaso("datos")}>← Atrás</button>
-                <button className={`${s.actionBtn} ${s.btn_danger}`}
-                    disabled={seleccionados.length === 0}
-                    onClick={() => setPaso("confirmacion")}>
-                    Confirmar ({seleccionados.length}) →
-                </button>
-            </div>
-        </Overlay>
-    );
-
-    // ── PASO 3: Confirmación ──────────────────────────────────────────────
     return (
         <Overlay onClose={onClose}>
-            <div className={s.modalHeader} style={{ background: "linear-gradient(135deg,#ef4444,#b91c1c)" }}>
-                <h3 className={s.modalTitle} style={{ color: "#fff" }}>🚚 Confirmar despacho</h3>
-                <CloseBtn onClick={onClose} />
-            </div>
-            <div className={s.modalBody}>
-                <div className={s.stepIndicator}>
-                    <div className={s.stepDot}>1</div>
-                    <div className={s.stepLine} />
-                    <div className={s.stepDot}>2</div>
-                    <div className={s.stepLine} />
-                    <div className={`${s.stepDot} ${s.stepDotActive}`}>3</div>
-                </div>
-                <p className={s.stepLabel}>Revisá antes de confirmar</p>
+            <Header icon="truck" title="Repartir a un sector" onClose={onClose} tone="danger" />
 
-                <div className={s.confirmSummary}>
-                    <div className={s.confirmRow}><span>📍 Destino</span><strong>{destino}</strong></div>
-                    <div className={s.confirmRow}><span>👤 Responsable</span><strong>{responsable}</strong></div>
-                    <div className={s.confirmRow}><span>📦 Productos</span><strong>{seleccionados.length}</strong></div>
-                    <div className={s.confirmRow}><span>📊 Unidades</span><strong>{totales.unidades}</strong></div>
-                    <div className={s.confirmRow}>
-                        <span>💰 Valor total</span>
-                        <strong style={{ color: "#ef4444" }}>{formatCurrency(totales.valor)}</strong>
-                    </div>
-                    {nota && <div className={s.confirmRow}><span>📝 Nota</span><span>{nota}</span></div>}
-                </div>
+            <div className="fxm-body">
+                <Steps n={paso === "datos" ? 1 : paso === "productos" ? 2 : 3} />
 
-                <div className={s.confirmItems}>
-                    {seleccionados.map(p => (
-                        <div key={p.id} className={s.confirmItem}>
-                            <span>{p.tipo === "medicamento" ? "💊" : "🧷"}</span>
-                            <span className={s.confirmItemName}>{p.nombre.replace(/_/g, " ")}</span>
-                            <span className={s.confirmItemQty} style={{ color: "#ef4444" }}>×{p.cantidad}</span>
+                {/* PASO 1 */}
+                {paso === "datos" && (
+                    <>
+                        <Field label="¿A qué sector va?">
+                            <div className="rp-dest">
+                                {DESTINOS.map(d => (
+                                    <button key={d} className={"rp-chip" + (destino === d ? " on" : "")} onClick={() => setDestino(d)}>{d}</button>
+                                ))}
+                            </div>
+                        </Field>
+                        <Field label="¿Quién lo recibe? (responsable)">
+                            <input className="fxm-input" value={responsable} onChange={e => setResp(e.target.value)} placeholder="Nombre y apellido" />
+                        </Field>
+                        <Field label="Observaciones (opcional)">
+                            <textarea className="fxm-input" style={{ minHeight: 80, padding: 12, resize: "vertical" }} rows={2}
+                                value={nota} onChange={e => setNota(e.target.value)} placeholder="Notas adicionales..." />
+                        </Field>
+                    </>
+                )}
+
+                {/* PASO 2 */}
+                {paso === "productos" && (
+                    <>
+                        <div className="rp-search">
+                            <div className="fxlp-search" style={{ marginBottom: 0 }}>
+                                <Icon name="search" size={22} />
+                                <input placeholder="Buscar medicamento o descartable..." value={busqueda}
+                                    onChange={e => setBusqueda(e.target.value)} autoComplete="off" />
+                                {busqueda && <button onClick={() => { setBusqueda(""); setSug([]); }} aria-label="Limpiar"><Icon name="close" size={18} /></button>}
+                            </div>
+                            {sugerencias.length > 0 && (
+                                <div className="rp-auto">
+                                    {sugerencias.map(item => (
+                                        <button key={item.id} className="rp-auto-item" onClick={() => agregar(item)}>
+                                            <span className="ic"><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={22} /></span>
+                                            <div className="info">
+                                                <p className="n">{item.nombre.replace(/_/g, " ")}</p>
+                                                <p className="m">{item.presentacion} · Stock: {item.stockActual}</p>
+                                            </div>
+                                            <Icon name="plus" size={20} />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
+
+                        {seleccionados.length === 0 ? (
+                            <div className="rp-empty"><Icon name="search" size={36} /><p>Buscá productos para agregar</p></div>
+                        ) : (
+                            <div className="rp-list">
+                                {seleccionados.map(p => (
+                                    <div key={p.id} className="rp-item">
+                                        <div className="info">
+                                            <p className="n">{p.nombre.replace(/_/g, " ")}</p>
+                                            <p className="m">Queda: <strong style={{ color: "#dc2626" }}>{p.stockNuevo}</strong> de {p.stockAnterior}</p>
+                                        </div>
+                                        <div className="qty">
+                                            <button onClick={() => setCantidad(p.id, p.cantidad - 1)} disabled={p.cantidad <= 1} aria-label="Menos"><Icon name="minus" size={20} /></button>
+                                            <span>{p.cantidad}</span>
+                                            <button onClick={() => setCantidad(p.id, p.cantidad + 1)} disabled={p.cantidad >= p.stockAnterior} aria-label="Más"><Icon name="plus" size={20} /></button>
+                                        </div>
+                                        <button className="rp-x" onClick={() => quitar(p.id)} aria-label="Quitar"><Icon name="close" size={20} /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* PASO 3 */}
+                {paso === "confirmacion" && (
+                    <>
+                        <div className="rp-sum">
+                            <div className="row"><span><Icon name="pin" size={18} /> Sector</span><strong>{destino}</strong></div>
+                            <div className="row"><span><Icon name="user" size={18} /> Recibe</span><strong>{responsable}</strong></div>
+                            <div className="row"><span><Icon name="box" size={18} /> Productos</span><strong>{seleccionados.length}</strong></div>
+                            <div className="row"><span><Icon name="list" size={18} /> Unidades</span><strong>{totales.unidades}</strong></div>
+                            <div className="row"><span><Icon name="money" size={18} /> Valor</span><strong style={{ color: "#dc2626" }}>{formatCurrency(totales.valor)}</strong></div>
+                            {nota && <div className="row"><span><Icon name="edit" size={18} /> Nota</span><span>{nota}</span></div>}
+                        </div>
+                        <div className="rp-items">
+                            {seleccionados.map(p => (
+                                <div key={p.id} className="rp-conf">
+                                    <Icon name={p.tipo === "medicamento" ? "pills" : "box"} size={20} />
+                                    <span className="n">{p.nombre.replace(/_/g, " ")}</span>
+                                    <span className="q">×{p.cantidad}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
             </div>
-            <div className={s.modalFooter}>
-                <button className={s.btnCancel} onClick={() => setPaso("productos")}>← Atrás</button>
-                <button className={`${s.actionBtn} ${s.btn_danger}`}
-                    onClick={handleSubmit} disabled={loading}>
-                    {loading ? "Procesando..." : "✅ Confirmar despacho"}
-                </button>
+
+            <div className="fxm-footer">
+                {paso === "datos" && (
+                    <>
+                        <button className="fxm-btn ghost" onClick={onClose}>Cancelar</button>
+                        <button className="fxm-btn danger" disabled={!responsable.trim()} onClick={() => setPaso("productos")}>
+                            Siguiente <Icon name="arrowRight" size={20} />
+                        </button>
+                    </>
+                )}
+                {paso === "productos" && (
+                    <>
+                        <button className="fxm-btn ghost" onClick={() => setPaso("datos")}><Icon name="arrowLeft" size={20} /> Atrás</button>
+                        <button className="fxm-btn danger" disabled={!seleccionados.length} onClick={() => setPaso("confirmacion")}>
+                            Revisar ({seleccionados.length}) <Icon name="arrowRight" size={20} />
+                        </button>
+                    </>
+                )}
+                {paso === "confirmacion" && (
+                    <>
+                        <button className="fxm-btn ghost" onClick={() => setPaso("productos")}><Icon name="arrowLeft" size={20} /> Atrás</button>
+                        <button className="fxm-btn danger" onClick={handleSubmit} disabled={loading}>
+                            <Icon name="check" size={20} /> {loading ? "Procesando..." : "Confirmar reparto"}
+                        </button>
+                    </>
+                )}
             </div>
+
+            <style>{`
+                .rp-steps { display: flex; align-items: center; justify-content: center; gap: 6px; }
+                .rp-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    font-weight: 800; font-size: 16px; background: #f1f1f1; color: #9ca3af; }
+                .rp-dot.on { background: #dc2626; color: #fff; }
+                .rp-dot.done { background: #fee2e2; color: #dc2626; }
+                .rp-line { width: 36px; height: 3px; background: #f1f1f1; border-radius: 3px; }
+
+                .rp-dest { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                .rp-chip { min-height: 52px; border-radius: 12px; border: 2px solid #d1d5db; background: #fff;
+                    font-size: 16px; font-weight: 700; color: #374151; cursor: pointer; }
+                .rp-chip.on { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+
+                .rp-search { position: relative; }
+                .rp-auto { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; margin-top: 6px;
+                    background: #fff; border: 2px solid #e5e7eb; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+                .rp-auto-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px;
+                    border: none; border-bottom: 1px solid #f3f4f6; background: #fff; cursor: pointer; text-align: left; color: #1f2937; }
+                .rp-auto-item:active { background: #f9fafb; }
+                .rp-auto-item .ic { color: #dc2626; display: flex; }
+                .rp-auto-item .info { flex: 1; min-width: 0; }
+                .rp-auto-item .n { margin: 0; font-size: 16px; font-weight: 700; }
+                .rp-auto-item .m { margin: 2px 0 0; font-size: 13px; color: #6b7280; }
+
+                .rp-empty { text-align: center; padding: 28px; color: #9ca3af; }
+                .rp-empty p { margin: 8px 0 0; }
+
+                .rp-list { display: flex; flex-direction: column; gap: 10px; }
+                .rp-item { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #e5e7eb; border-radius: 14px; padding: 12px; }
+                .rp-item .info { flex: 1; min-width: 0; }
+                .rp-item .n { margin: 0; font-size: 16px; font-weight: 700; }
+                .rp-item .m { margin: 2px 0 0; font-size: 13px; color: #6b7280; }
+                .rp-item .qty { display: flex; align-items: center; gap: 4px; }
+                .rp-item .qty button { width: 44px; height: 44px; border-radius: 10px; border: 2px solid #d1d5db;
+                    background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #374151; }
+                .rp-item .qty button:disabled { opacity: .4; }
+                .rp-item .qty span { min-width: 32px; text-align: center; font-size: 18px; font-weight: 800; }
+                .rp-x { width: 40px; height: 40px; border-radius: 10px; border: none; background: #fef2f2; color: #dc2626;
+                    cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+                .rp-sum { background: #f9fafb; border: 1px solid #eef0f2; border-radius: 14px; padding: 6px 14px; }
+                .rp-sum .row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+                    padding: 12px 0; border-bottom: 1px solid #f1f1f1; font-size: 16px; }
+                .rp-sum .row:last-child { border-bottom: none; }
+                .rp-sum .row span { display: inline-flex; align-items: center; gap: 6px; color: #6b7280; }
+
+                .rp-items { display: flex; flex-direction: column; gap: 6px; }
+                .rp-conf { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border: 1px solid #eef0f2; border-radius: 10px; }
+                .rp-conf .n { flex: 1; font-weight: 600; }
+                .rp-conf .q { font-weight: 800; color: #dc2626; }
+
+                @media (min-width: 768px) { .rp-dest { grid-template-columns: repeat(3, 1fr); } }
+            `}</style>
         </Overlay>
     );
 }

@@ -14,10 +14,14 @@ import RepartoModal from "./components/modals/RepartoModal";
 import ImportarExcelModal from "./components/modals/ImportarExcelModal";
 import MensajeModal from "./components/modals/MensajeModal";
 import s from "./farmaciaDashboard.module.css";
+import ListasPreciosTab from "./components/ListasPreciosTab";
+
 
 export default function FarmaciaDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [modal, setModal] = useState(null);
+
+
 
     const {
         items, movimientos, estadisticas, itemsBajoStockList,
@@ -26,7 +30,20 @@ export default function FarmaciaDashboard() {
         procesarCargaMasiva, procesarReparto,
         editarProducto, eliminarProducto,
         importarDesdeExcel, exportarDatos,
+        listasPrecios, guardarListaPrecio, eliminarListaPrecio, exportarListasPrecios,
     } = useFarmacia();
+
+    {
+        activeTab === "precios" && (
+            <ListasPreciosTab
+                items={items}
+                listas={listasPrecios}
+                onGuardarLista={guardarListaPrecio}
+                onEliminarLista={eliminarListaPrecio}
+                onExportarListas={exportarListasPrecios}
+            />
+        )
+    }
 
     return (
         <div className={s.dashboardContainer}>
@@ -37,8 +54,8 @@ export default function FarmaciaDashboard() {
                 onReparto={() => setModal("reparto")}
                 onExportar={() => setActiveTab("exportar")}
             />
-            <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
 
+            <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
             <main className={s.mainContent}>
                 {activeTab === "dashboard" && (
                     <DashboardTab
@@ -58,6 +75,14 @@ export default function FarmaciaDashboard() {
                         eliminarProducto={eliminarProducto}
                     />
                 )}
+                {activeTab === "precios" && (
+                    <ListasPreciosTab
+                        items={items}
+                        listas={listasPrecios}
+                        onGuardarLista={guardarListaPrecio}
+                        onEliminarLista={eliminarListaPrecio}
+                    />
+                )}
                 {activeTab === "movimientos" && <MovimientosTab movimientos={movimientos} />}
                 {activeTab === "catalogo" && <div className={s.panel}><MedyDescartablesPage /></div>}
                 {activeTab === "exportar" && (
@@ -74,6 +99,7 @@ export default function FarmaciaDashboard() {
             {modal === "reparto" && <RepartoModal onClose={() => setModal(null)} onSubmit={procesarReparto} items={items} />}
             {modal === "importar" && <ImportarExcelModal onClose={() => setModal(null)} onSubmit={importarDesdeExcel} />}
             {mensaje && <MensajeModal data={mensaje} onClose={cerrarMensaje} />}
+
         </div>
     );
 }
