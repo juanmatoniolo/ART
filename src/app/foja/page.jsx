@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { ref, push, get, child, onValue } from "firebase/database";
+import { ref, push, onValue } from "firebase/database";
 import Header from "@/components/Header/Header";
 import styles from "./fojaqx.module.css";
 
@@ -15,6 +15,7 @@ const MESES = [
 const INITIAL_FORM = {
     apelidoynombre: "",
     edad: "",
+    cirujanoTitulo: "Dr.",
     cirujano: "",
     primerayudante: "",
     segundoayudante: "",
@@ -31,22 +32,61 @@ const INITIAL_FORM = {
 };
 
 // ────────────────────────────────────────────── Helpers
+const getCirujanoCompleto = (form) => {
+    const nombre = (form.cirujano || "").trim();
+    const titulo = (form.cirujanoTitulo || "Dr.").trim();
+    return nombre ? `${titulo} ${nombre}`.trim() : "";
+};
+
+const getTemplateData = (template) => {
+    // Compatibilidad con plantillas anteriores que guardaban todo el formulario.
+    const source = template?.templateData || template?.formData || template || {};
+
+    let cirujano = source.cirujano || template?.cirujano || "";
+    let cirujanoTitulo = source.cirujanoTitulo || "Dr.";
+
+    const match = cirujano.match(/^(Dr\.|Dra\.)\s*(.*)$/i);
+    if (match) {
+        cirujanoTitulo = match[1].toLowerCase().startsWith("dra") ? "Dra." : "Dr.";
+        cirujano = match[2];
+    }
+
+    return {
+        cirujanoTitulo,
+        cirujano: cirujano.trim(),
+        preoperatorio: source.preoperatorio || template?.preoperatorio || "",
+        posoperatorio: source.posoperatorio || template?.posoperatorio || "",
+        procedimientoqx: source.procedimientoqx || template?.procedimientoqx || "",
+        hallazgos: source.hallazgos || template?.hallazgos || "",
+    };
+};
+
+// Une los 4 campos de la descripción quirúrgica en un solo texto.
+// Formato: "1- <preoperatorio>\n2- <posoperatorio>\n3- <procedimientoqx>\n4- <hallazgos>"
+const buildCx = (form) => {
+    const campos = [
+        form.preoperatorio,
+        form.posoperatorio,
+        form.procedimientoqx,
+        form.hallazgos,
+    ];
+    return campos
+        .map((contenido, i) => `${i + 1}- ${(contenido || "").trim()}`)
+        .join("\n");
+};
+
 const buildPayload = (form) => ({
     paciente: { apelidoynombre: form.apelidoynombre, edad: form.edad },
     equipo: {
-        cirujano: form.cirujano,
+        cirujano: getCirujanoCompleto(form),
         primerayudante: form.primerayudante,
         segundoayudante: form.segundoayudante,
         anestesista: form.anestesista,
     },
     fecha: { dia: form.dia, mes: form.mes, anio: form.anio },
     horario: { inicio: form.inichsinicio, fin: form.hsfin },
-    descripcion: {
-        preoperatorio: form.preoperatorio,
-        posoperatorio: form.posoperatorio,
-        procedimientoqx: form.procedimientoqx,
-        hallazgos: form.hallazgos,
-    },
+    // Toda la descripción quirúrgica unificada en un único campo.
+    cx: buildCx(form),
 });
 
 const buildFileName = (form) => {
@@ -199,8 +239,9 @@ export default function Foja() {
 
         try {
             const fojaRef = ref(db, "fojaqx");
+            // Se guarda la estructura del payload (con la descripción unificada en `cx`).
             const snap = await push(fojaRef, {
-                ...form,
+                ...buildPayload(form),
                 timestamp: new Date().toISOString(),
             });
             setSavedKey(snap.key);
@@ -212,59 +253,82 @@ export default function Foja() {
         }
     };
 
-    // Guardar plantilla
+    // Guarda únicamente los datos reutilizables de una cirugía.
     const saveTemplate = async () => {
-        if (!templateName.trim()) {
-            setErrorMsg("Debés ingresar un nombre para la plantilla.");
+        const name = templateName.trim();
+        const hasDescription = [
+            form.preoperatorio,
+            form.posoperatorio,
+            form.procedimientoqx,
+            form.hallazgos,
+        ].some((value) => value.trim() !== "");
+
+        if (!name) {
+            setErrorMsg("Ingresá un nombre para identificar la plantilla.");
             return;
         }
-        if (!form.procedimientoqx && !form.cirujano && !form.preoperatorio) {
-            setErrorMsg("Completá al menos el procedimiento quirúrgico o cirujano antes de guardar la plantilla.");
+
+        if (!form.cirujano.trim() || !hasDescription) {
+            setErrorMsg("Completá el cirujano y al menos un campo de la descripción quirúrgica.");
             return;
         }
 
         setSavingTemplate(true);
         setErrorMsg("");
 
+        const templateData = {
+            cirujanoTitulo: form.cirujanoTitulo,
+            cirujano: form.cirujano.trim(),
+            preoperatorio: form.preoperatorio.trim(),
+            posoperatorio: form.posoperatorio.trim(),
+            procedimientoqx: form.procedimientoqx.trim(),
+            hallazgos: form.hallazgos.trim(),
+        };
+
         try {
             await push(plantillasRef, {
-                name: templateName.trim(),
-                formData: form,
-                cirujano: form.cirujano,
-                procedimientoqx: form.procedimientoqx,
-                preoperatorio: form.preoperatorio,
-                posoperatorio: form.posoperatorio,
-                hallazgos: form.hallazgos,
+                name,
+                templateData,
+                cirujano: getCirujanoCompleto(form),
+                ...templateData,
                 timestamp: Date.now(),
             });
+
             setTemplateName("");
-            setErrorMsg("¡Plantilla guardada con éxito!");
-            setTimeout(() => setErrorMsg(""), 3000);
+            setErrorMsg(`Plantilla "${name}" guardada correctamente.`);
+            setTimeout(() => setErrorMsg(""), 3500);
         } catch (err) {
-            console.error(err);
-            setErrorMsg("Error al guardar la plantilla: " + err.message);
+            console.error("[FOJA-QX] Error al guardar plantilla:", err);
+            setErrorMsg(`Error al guardar la plantilla: ${err.message}`);
         } finally {
             setSavingTemplate(false);
         }
     };
 
-    // Cargar plantilla seleccionada
+    // Carga solo cirujano y descripción; conserva paciente, equipo, fecha y horarios.
     const loadTemplate = () => {
         if (!selectedTemplateId) {
             setErrorMsg("Seleccioná una plantilla para cargar.");
             return;
         }
-        const template = templates.find(t => t.id === selectedTemplateId);
-        if (template && template.formData) {
-            setForm(template.formData);
-            resetPdfState();
-            setSaveStatus("idle");
-            setSavedKey(null);
-            setErrorMsg(`Plantilla "${template.name}" cargada. Podés modificarla y guardar como nueva.`);
-            setTimeout(() => setErrorMsg(""), 3000);
-        } else {
-            setErrorMsg("La plantilla no contiene datos válidos.");
+
+        const template = templates.find((item) => item.id === selectedTemplateId);
+        if (!template) {
+            setErrorMsg("La plantilla seleccionada ya no está disponible.");
+            return;
         }
+
+        const templateData = getTemplateData(template);
+        setForm((current) => ({
+            ...current,
+            ...templateData,
+        }));
+
+        resetPdfState();
+        setSaveStatus("idle");
+        setSavedKey(null);
+        setErrorMsg(`Plantilla "${template.name}" cargada sin modificar los datos del paciente.`);
+        setTimeout(() => setErrorMsg(""), 3500);
     };
 
     const openPdf = () => {
@@ -366,76 +430,65 @@ export default function Foja() {
                             </div>
                         </header>
 
-                        {/* --- SECCIÓN DE PLANTILLAS --- */}
-                        <div className={styles.section}>
-                            <SectionHeader num="📋" title="Plantillas Quirúrgicas" />
-                            <div className={styles.grid2}>
-                                <div className={styles.fieldFull}>
-                                    <label className={styles.label} htmlFor="templateSelect">
-                                        Cargar plantilla existente
-                                    </label>
-                                    <div className={styles.templateRow}>
-                                        <select
-                                            id="templateSelect"
-                                            className={styles.select}
-                                            value={selectedTemplateId}
-                                            onChange={(e) => setSelectedTemplateId(e.target.value)}
-                                            disabled={loadingTemplates}
-                                        >
-                                            <option value="">-- Seleccionar plantilla --</option>
-                                            {templates.map((t) => (
-                                                <option key={t.id} value={t.id}>
-                                                    {t.name} ({t.cirujano || "Sin cirujano"})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            type="button"
-                                            className={styles.btnSecondary}
-                                            onClick={loadTemplate}
-                                            disabled={!selectedTemplateId || loadingTemplates}
-                                        >
-                                            Cargar
-                                        </button>
-                                    </div>
-                                    {loadingTemplates && <small className={styles.hint}>Cargando plantillas...</small>}
-                                    {templates.length === 0 && !loadingTemplates && (
-                                        <small className={styles.hint}>No hay plantillas guardadas aún.</small>
-                                    )}
-                                    {/* Previsualización de la plantilla seleccionada */}
-                                    {selectedTemplateId && (
-                                        <TemplatePreview
-                                            template={templates.find(t => t.id === selectedTemplateId)}
-                                        />
-                                    )}
-                                </div>
-                                <div className={styles.fieldFull}>
-                                    <label className={styles.label} htmlFor="templateName">
-                                        Guardar formulario actual como plantilla
-                                    </label>
-                                    <div className={styles.templateRow}>
-                                        <input
-                                            id="templateName"
-                                            type="text"
-                                            className={styles.input}
-                                            placeholder="Ej: Apendicectomía - Pérez"
-                                            value={templateName}
-                                            onChange={(e) => setTemplateName(e.target.value)}
-                                        />
-                                        <button
-                                            type="button"
-                                            className={styles.btnPrimary}
-                                            onClick={saveTemplate}
-                                            disabled={savingTemplate}
-                                        >
-                                            {savingTemplate ? "Guardando..." : "Guardar"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Carga rápida de plantillas: permanece arriba del formulario. */}
+                        <section className={`${styles.section} ${styles.templateLoader}`}>
+                            <SectionHeader num="📋" title="Cargar plantilla quirúrgica" />
+                            <p className={styles.sectionNote}>
+                                La plantilla completa únicamente el cirujano y la descripción quirúrgica.
+                                Los datos del paciente, fecha y horarios se conservan.
+                            </p>
 
-                        <form onSubmit={handleGuardar} className={styles.form} noValidate>
+                            <div className={styles.templateLoadGrid}>
+                                <div className={styles.field}>
+                                    <label className={styles.label} htmlFor="templateSelect">
+                                        Plantilla guardada
+                                    </label>
+                                    <select
+                                        id="templateSelect"
+                                        className={styles.select}
+                                        value={selectedTemplateId}
+                                        onChange={(event) => setSelectedTemplateId(event.target.value)}
+                                        disabled={loadingTemplates}
+                                    >
+                                        <option value="">
+                                            {loadingTemplates
+                                                ? "Cargando plantillas..."
+                                                : "-- Seleccionar plantilla --"}
+                                        </option>
+                                        {templates.map((template) => (
+                                            <option key={template.id} value={template.id}>
+                                                {template.name} ({template.cirujano || "Sin cirujano"})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className={styles.btnSecondary}
+                                    onClick={loadTemplate}
+                                    disabled={!selectedTemplateId || loadingTemplates}
+                                >
+                                    Cargar plantilla
+                                </button>
+                            </div>
+
+                            {!loadingTemplates && templates.length === 0 && (
+                                <small className={styles.hint}>
+                                    Todavía no hay plantillas guardadas.
+                                </small>
+                            )}
+
+                            {selectedTemplateId && (
+                                <TemplatePreview
+                                    template={templates.find(
+                                        (template) => template.id === selectedTemplateId,
+                                    )}
+                                />
+                            )}
+                        </section>
+
+                        <form onSubmit={handleGuardar} className={styles.form} autoComplete="on" noValidate>
                             {/* Sección 01 - Paciente */}
                             <section
                                 className={styles.section}
@@ -458,6 +511,7 @@ export default function Foja() {
                                             placeholder="Apellido, Nombre completo"
                                             value={form.apelidoynombre}
                                             onChange={handleChange}
+                                            autoComplete="name"
                                             required
                                         />
                                     </Field>
@@ -478,6 +532,8 @@ export default function Foja() {
                                             placeholder="Años"
                                             value={form.edad}
                                             onChange={handleChange}
+                                            autoComplete="on"
+                                            inputMode="numeric"
                                             required
                                         />
                                     </Field>
@@ -491,17 +547,55 @@ export default function Foja() {
                             >
                                 <SectionHeader num="02" title="Equipo Quirúrgico" />
                                 <div className={styles.grid2}>
-                                    <Field label="Cirujano *" htmlFor="cirujano" value={form.cirujano} onChange={handleChange}>
-                                        <input id="cirujano" name="cirujano" type="text" className={styles.input} placeholder="Dr./Dra." value={form.cirujano} onChange={handleChange} required />
+                                    <Field
+                                        label="Cirujano *"
+                                        htmlFor="cirujano"
+                                        value={form.cirujano}
+                                        onChange={handleChange}
+                                    >
+                                        <div className={styles.doctorField}>
+                                            <select
+                                                id="cirujanoTitulo"
+                                                name="cirujanoTitulo"
+                                                className={styles.doctorTitle}
+                                                value={form.cirujanoTitulo}
+                                                onChange={handleChange}
+                                                aria-label="Tratamiento del cirujano"
+                                            >
+                                                <option value="Dr.">Dr.</option>
+                                                <option value="Dra.">Dra.</option>
+                                            </select>
+                                            <input
+                                                id="cirujano"
+                                                name="cirujano"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="Apellido y nombre"
+                                                value={form.cirujano}
+                                                onChange={handleChange}
+                                                autoComplete="on"
+                                                list="cirujanos-sugeridos"
+                                                required
+                                            />
+                                            <datalist id="cirujanos-sugeridos">
+                                                {[...new Set(
+                                                    templates
+                                                        .map((template) => getTemplateData(template).cirujano)
+                                                        .filter(Boolean),
+                                                )].map((nombre) => (
+                                                    <option key={nombre} value={nombre} />
+                                                ))}
+                                            </datalist>
+                                        </div>
                                     </Field>
                                     <Field label="1er Ayudante" htmlFor="primerayudante" value={form.primerayudante} onChange={handleChange}>
-                                        <input id="primerayudante" name="primerayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.primerayudante} onChange={handleChange} />
+                                        <input id="primerayudante" name="primerayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.primerayudante} onChange={handleChange} autoComplete="on" />
                                     </Field>
                                     <Field label="2do Ayudante" htmlFor="segundoayudante" value={form.segundoayudante} onChange={handleChange}>
-                                        <input id="segundoayudante" name="segundoayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.segundoayudante} onChange={handleChange} />
+                                        <input id="segundoayudante" name="segundoayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.segundoayudante} onChange={handleChange} autoComplete="on" />
                                     </Field>
                                     <Field label="Anestesista *" htmlFor="anestesista" value={form.anestesista} onChange={handleChange}>
-                                        <input id="anestesista" name="anestesista" type="text" className={styles.input} placeholder="Dr./Dra." value={form.anestesista} onChange={handleChange} required />
+                                        <input id="anestesista" name="anestesista" type="text" className={styles.input} placeholder="Dr./Dra." value={form.anestesista} onChange={handleChange} autoComplete="on" required />
                                     </Field>
                                 </div>
                             </section>
@@ -514,24 +608,24 @@ export default function Foja() {
                                 <SectionHeader num="03" title="Fecha y Horarios" />
                                 <div className={styles.grid3}>
                                     <Field label="Día *" htmlFor="dia" value={form.dia} onChange={handleChange}>
-                                        <input id="dia" name="dia" type="number" min="1" max="31" className={styles.input} placeholder="DD" value={form.dia} onChange={handleChange} required />
+                                        <input id="dia" name="dia" autoComplete="on" type="number" min="1" max="31" className={styles.input} placeholder="DD" value={form.dia} onChange={handleChange} required />
                                     </Field>
                                     <Field label="Mes *" htmlFor="mes" value={form.mes} onChange={handleChange}>
-                                        <select id="mes" name="mes" value={form.mes} onChange={handleChange} className={styles.select} required>
+                                        <select id="mes" name="mes" autoComplete="on" value={form.mes} onChange={handleChange} className={styles.select} required>
                                             <option value="">— Mes —</option>
                                             {MESES.map(m => <option key={m} value={m}>{m}</option>)}
                                         </select>
                                     </Field>
                                     <Field label="Año *" htmlFor="anio" value={form.anio} onChange={handleChange}>
-                                        <input id="anio" name="anio" type="number" min="2000" max="2100" className={styles.input} placeholder="AAAA" value={form.anio} onChange={handleChange} required />
+                                        <input id="anio" name="anio" autoComplete="on" type="number" min="2000" max="2100" className={styles.input} placeholder="AAAA" value={form.anio} onChange={handleChange} required />
                                     </Field>
                                 </div>
                                 <div className={styles.grid2} style={{ marginTop: "1.1rem" }}>
                                     <Field label="Hora de Inicio *" htmlFor="inichsinicio" value={form.inichsinicio} onChange={handleChange}>
-                                        <input id="inichsinicio" name="inichsinicio" type="time" className={styles.input} value={form.inichsinicio} onChange={handleChange} required />
+                                        <input id="inichsinicio" name="inichsinicio" autoComplete="on" type="time" className={styles.input} value={form.inichsinicio} onChange={handleChange} required />
                                     </Field>
                                     <Field label="Hora de Fin *" htmlFor="hsfin" value={form.hsfin} onChange={handleChange}>
-                                        <input id="hsfin" name="hsfin" type="time" className={styles.input} value={form.hsfin} onChange={handleChange} required />
+                                        <input id="hsfin" name="hsfin" autoComplete="on" type="time" className={styles.input} value={form.hsfin} onChange={handleChange} required />
                                     </Field>
                                 </div>
                             </section>
@@ -542,18 +636,81 @@ export default function Foja() {
                                 ref={(el) => (sectionRefs.current.descripcion = el)}
                             >
                                 <SectionHeader num="04" title="Descripción Quirúrgica" />
+                                <p className={styles.sectionNote}>
+                                    Estos cuatro campos se combinan automáticamente en un único texto (numerado 1 a 4) al guardar.
+                                </p>
                                 <Field label="1. Diagnóstico Preoperatorio *" htmlFor="preoperatorio" value={form.preoperatorio} onChange={handleChange} full tooltip="Diagnóstico con el que el paciente ingresa a cirugía">
-                                    <textarea id="preoperatorio" name="preoperatorio" value={form.preoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico previo a la cirugía..." required />
+                                    <textarea id="preoperatorio" name="preoperatorio" autoComplete="on" value={form.preoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico previo a la cirugía..." required />
                                 </Field>
                                 <Field label="2. Diagnóstico Posoperatorio" htmlFor="posoperatorio" value={form.posoperatorio} onChange={handleChange} full tooltip="Diagnóstico confirmado después de la cirugía">
-                                    <textarea id="posoperatorio" name="posoperatorio" value={form.posoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico posterior a la cirugía..." />
+                                    <textarea id="posoperatorio" name="posoperatorio" autoComplete="on" value={form.posoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico posterior a la cirugía..." />
                                 </Field>
                                 <Field label="3. Procedimiento Quirúrgico *" htmlFor="procedimientoqx" value={form.procedimientoqx} onChange={handleChange} full tooltip="Describa detalladamente la técnica quirúrgica realizada">
-                                    <textarea id="procedimientoqx" name="procedimientoqx" value={form.procedimientoqx} onChange={handleChange} className={styles.textarea} rows={5} placeholder="Descripción detallada del procedimiento..." required />
+                                    <textarea id="procedimientoqx" name="procedimientoqx" autoComplete="on" value={form.procedimientoqx} onChange={handleChange} className={styles.textarea} rows={5} placeholder="Descripción detallada del procedimiento..." required />
                                 </Field>
                                 <Field label="4. Operación y Hallazgos" htmlFor="hallazgos" value={form.hallazgos} onChange={handleChange} full tooltip="Hallazgos intraoperatorios relevantes">
-                                    <textarea id="hallazgos" name="hallazgos" value={form.hallazgos} onChange={handleChange} className={styles.textarea} rows={4} placeholder="Hallazgos intraoperatorios..." />
+                                    <textarea id="hallazgos" name="hallazgos" autoComplete="on" value={form.hallazgos} onChange={handleChange} className={styles.textarea} rows={4} placeholder="Hallazgos intraoperatorios..." />
                                 </Field>
+                            </section>
+
+                            {/* Acciones principales */}
+                            <div className={styles.actions}>
+                                <button type="button" onClick={handleLimpiar} className={styles.btnSecondary} disabled={saveStatus === "saving"}>
+                                    Limpiar
+                                </button>
+                                <button type="submit" className={styles.btnPrimary} disabled={saveStatus === "saving" || saveStatus === "saved"}>
+                                    {saveStatus === "saving" ? (
+                                        <><span className={styles.spinner} /> Guardando...</>
+                                    ) : saveStatus === "saved" ? (
+                                        "✓ Guardado"
+                                    ) : (
+                                        "Generar Foja"
+                                    )}
+                                </button>
+                            </div>
+                            <hr />
+                            <section className={`${styles.section} ${styles.templateSaveSection}`}>
+                                <SectionHeader num="💾" title="Guardar como plantilla" />
+                                <p className={styles.sectionNote}>
+                                    Se guardarán el cirujano y los cuatro campos de la descripción
+                                    quirúrgica. No se guardan datos del paciente, ayudantes, anestesista,
+                                    fecha ni horarios.
+                                </p>
+
+                                <div className={styles.templateSaveGrid}>
+                                    <div className={styles.field}>
+                                        <label className={styles.label} htmlFor="templateName">
+                                            Nombre de la plantilla
+                                        </label>
+                                        <input
+                                            id="templateName"
+                                            name="templateName"
+                                            type="text"
+                                            autoComplete="on"
+                                            className={styles.input}
+                                            placeholder="Ej.: Apendicectomía convencional"
+                                            value={templateName}
+                                            onChange={(event) => setTemplateName(event.target.value)}
+                                            maxLength={80}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className={styles.btnPrimary}
+                                        onClick={saveTemplate}
+                                        disabled={savingTemplate}
+                                    >
+                                        {savingTemplate ? (
+                                            <>
+                                                <span className={styles.spinner} aria-hidden="true" />
+                                                Guardando...
+                                            </>
+                                        ) : (
+                                            "Guardar plantilla"
+                                        )}
+                                    </button>
+                                </div>
                             </section>
 
                             {/* Alertas de error */}
@@ -582,42 +739,10 @@ export default function Foja() {
                                 </div>
                             )}
 
-                            {/* Acciones principales */}
-                            <div className={styles.actions}>
-                                <button type="button" onClick={handleLimpiar} className={styles.btnSecondary} disabled={saveStatus === "saving"}>
-                                    Limpiar
-                                </button>
-                                <button type="submit" className={styles.btnPrimary} disabled={saveStatus === "saving" || saveStatus === "saved"}>
-                                    {saveStatus === "saving" ? (
-                                        <><span className={styles.spinner} /> Guardando...</>
-                                    ) : saveStatus === "saved" ? (
-                                        "✓ Guardado"
-                                    ) : (
-                                        "Guardar Registro"
-                                    )}
-                                </button>
-                            </div>
+
                         </form>
                     </main>
                 </div>
-
-                {/* Botón flotante para guardar y generar PDF */}
-                <button
-                    className={styles.fabSave}
-                    onClick={handleGuardar}
-                    disabled={saveStatus === "saving" || saveStatus === "saved"}
-                    title="Guardar registro y generar PDF"
-                >
-                    {saveStatus === "saving" ? (
-                        <span className={styles.spinner} />
-                    ) : saveStatus === "saved" ? (
-                        "✓"
-                    ) : (
-                        <>
-                            💾 <span className={styles.fabLabel}>Guardar y PDF</span>
-                        </>
-                    )}
-                </button>
             </div>
         </>
     );
@@ -660,6 +785,7 @@ function Field({ label, htmlFor, children, full, tooltip, value, onChange }) {
 
 function ProgressSidebar({ sections, isComplete, onNavigate }) {
     const completedCount = sections.filter(s => isComplete(s.id)).length;
+    const pct = Math.round((completedCount / sections.length) * 100);
     return (
         <aside className={styles.progressSidebar}>
             <div className={styles.progressHeader}>
@@ -667,6 +793,9 @@ function ProgressSidebar({ sections, isComplete, onNavigate }) {
                 <span className={styles.progressCounter}>
                     {completedCount}/{sections.length}
                 </span>
+            </div>
+            <div className={styles.progressBar}>
+                <div className={styles.progressBarFill} style={{ width: `${pct}%` }} />
             </div>
             <div className={styles.progressList}>
                 {sections.map((sec) => (
@@ -689,16 +818,33 @@ function ProgressSidebar({ sections, isComplete, onNavigate }) {
 
 function TemplatePreview({ template }) {
     if (!template) return null;
+
+    const data = getTemplateData(template);
+    const surgeon = data.cirujano
+        ? `${data.cirujanoTitulo} ${data.cirujano}`.trim()
+        : "—";
+
     return (
-        <div className={styles.templatePreview}>
+        <div className={styles.templatePreview} aria-live="polite">
             <div className={styles.previewRow}>
-                <span>Cirujano:</span> {template.cirujano || "—"}
+                <span>Cirujano:</span>
+                <p>{surgeon}</p>
             </div>
             <div className={styles.previewRow}>
-                <span>Procedimiento:</span> {template.procedimientoqx || "—"}
+                <span>Preoperatorio:</span>
+                <p>{data.preoperatorio || "—"}</p>
             </div>
             <div className={styles.previewRow}>
-                <span>Preoperatorio:</span> {template.preoperatorio || "—"}
+                <span>Posoperatorio:</span>
+                <p>{data.posoperatorio || "—"}</p>
+            </div>
+            <div className={styles.previewRow}>
+                <span>Procedimiento:</span>
+                <p>{data.procedimientoqx || "—"}</p>
+            </div>
+            <div className={styles.previewRow}>
+                <span>Hallazgos:</span>
+                <p>{data.hallazgos || "—"}</p>
             </div>
         </div>
     );

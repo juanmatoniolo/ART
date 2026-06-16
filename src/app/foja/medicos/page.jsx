@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { ref, onValue, off, update } from "firebase/database";
+import { ref, onValue, off, update, remove } from "firebase/database";
 import { getSession, isAuthenticated } from "@/utils/session";
 import Header from "@/components/Header/Header";
 import styles from "./medicos.module.css";
@@ -18,6 +18,36 @@ const formatTime = (inicio, fin) => {
   return [inicio, fin].filter(Boolean).join(" – ");
 };
 
+// Reconstruye el texto unificado de la descripción quirúrgica.
+// Si el registro ya trae `cx` (nuevo formato), lo usa tal cual.
+// Si no, lo arma desde los 4 campos sueltos (registros viejos).
+const buildCx = (reg) => {
+  if (typeof reg.cx === "string" && reg.cx.trim() !== "") return reg.cx;
+  const campos = [reg.preoperatorio, reg.posoperatorio, reg.procedimientoqx, reg.hallazgos];
+  return campos.map((c, i) => `${i + 1}- ${(c || "").trim()}`).join("\n");
+};
+
+// Arma el payload que espera /api/fojaqx/pdf (mismo formato que el alta).
+const buildPdfPayload = (reg) => ({
+  paciente: { apelidoynombre: reg.apelidoynombre, edad: reg.edad },
+  equipo: {
+    cirujano: reg.cirujano,
+    primerayudante: reg.primerayudante,
+    segundoayudante: reg.segundoayudante,
+    anestesista: reg.anestesista,
+  },
+  fecha: { dia: reg.dia, mes: reg.mes, anio: reg.anio },
+  horario: { inicio: reg.inichsinicio, fin: reg.hsfin },
+  cx: buildCx(reg),
+});
+
+const buildFileName = (reg) => {
+  const apellido = reg.apelidoynombre
+    ? reg.apelidoynombre.split(",")[0].trim().replace(/\s+/g, "_")
+    : "foja";
+  return `FojaQX_${apellido}_${reg.dia}-${reg.mes}-${reg.anio}.pdf`;
+};
+
 // ─── Iconos SVG ─────────────────────────────────────────────
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,6 +59,22 @@ const EditIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+const DownloadIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" />
   </svg>
 );
 
@@ -73,8 +119,43 @@ function FilterTag({ label, onRemove }) {
   );
 }
 
-function RegistroCard({ reg, onEdit }) {
+function RegistroCard({ reg, onEdit, onDelete, onToast }) {
   const [expanded, setExpanded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const payload = buildPdfPayload(reg);
+      const fileName = buildFileName(reg);
+
+      const res = await fetch("/api/fojaqx/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, fileName }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      onToast?.("✓ Foja descargada");
+    } catch (err) {
+      onToast?.("✕ No se pudo generar el PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className={styles.card}>
@@ -156,8 +237,55 @@ function RegistroCard({ reg, onEdit }) {
             {expanded ? "Ver menos" : "Ver más"}
             <ChevronIcon open={expanded} />
           </button>
-          <button className={styles.btnEdit} onClick={() => onEdit(reg)}>
-            <EditIcon /> Editar
+          <div className={styles.cardActions}>
+            <button className={styles.btnDownload} onClick={handleDownload} disabled={downloading}>
+              {downloading
+                ? <><span className={styles.btnSpinnerDark} /> Generando…</>
+                : <><DownloadIcon /> Foja</>}
+            </button>
+            <button className={styles.btnEdit} onClick={() => onEdit(reg)}>
+              <EditIcon /> Editar
+            </button>
+            <button className={styles.btnDelete} onClick={() => onDelete(reg)}>
+              <TrashIcon /> Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal de confirmación de borrado ────────────────────────
+function ConfirmDeleteModal({ registro, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    await onConfirm();
+    // El componente se desmonta al cerrarse; no hace falta resetear.
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.confirmModal} onClick={e => e.stopPropagation()}>
+        <div className={styles.confirmIcon}>
+          <TrashIcon />
+        </div>
+        <h3 className={styles.confirmTitle}>Eliminar foja</h3>
+        <p className={styles.confirmText}>
+          ¿Seguro que querés eliminar la foja de{" "}
+          <strong>{registro.apelidoynombre || "este paciente"}</strong>?
+          Esta acción no se puede deshacer.
+        </p>
+        <div className={styles.confirmActions}>
+          <button className={styles.btnCancel} onClick={onClose} disabled={deleting}>
+            Cancelar
+          </button>
+          <button className={styles.btnDangerSolid} onClick={handleConfirm} disabled={deleting}>
+            {deleting
+              ? <><span className={styles.btnSpinner} /> Eliminando…</>
+              : "Sí, eliminar"}
           </button>
         </div>
       </div>
@@ -186,7 +314,13 @@ function EditModal({ registro, onClose, onSaved }) {
     try {
       const registroRef = ref(db, `fojaqx/${registro.id}`);
       const { id, timestamp, ...datosActualizados } = form;
-      await update(registroRef, { ...datosActualizados, updatedAt: new Date().toISOString() });
+      // Mantenemos `cx` sincronizado con los campos editados.
+      const cx = buildCx(datosActualizados);
+      await update(registroRef, {
+        ...datosActualizados,
+        cx,
+        updatedAt: new Date().toISOString(),
+      });
       onSaved();
       onClose();
     } catch (err) {
@@ -349,6 +483,7 @@ export default function MedicosPage() {
   const [filterCirujano, setFilterCirujano] = useState("");
   const [filterAnestesista, setFilterAnestesista] = useState("");
   const [editingRegistro, setEditingRegistro] = useState(null);
+  const [deletingRegistro, setDeletingRegistro] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [userRole, setUserRole] = useState(null);
   const [toast, setToast] = useState("");
@@ -414,6 +549,19 @@ export default function MedicosPage() {
     if (filterAnestesista) results = results.filter(r => r.anestesista === filterAnestesista);
     setFilteredRegistros(results);
   }, [searchTerm, filterCirujano, filterAnestesista, registros]);
+
+  // Eliminar registro
+  const handleDelete = async () => {
+    if (!deletingRegistro) return;
+    try {
+      await remove(ref(db, `fojaqx/${deletingRegistro.id}`));
+      showToast("✓ Foja eliminada");
+    } catch (err) {
+      showToast("✕ No se pudo eliminar la foja");
+    } finally {
+      setDeletingRegistro(null);
+    }
+  };
 
   const cirujanosUnicos = [...new Set(registros.map(r => r.cirujano).filter(Boolean))];
   const anestesistasUnicos = [...new Set(registros.map(r => r.anestesista).filter(Boolean))];
@@ -525,7 +673,12 @@ export default function MedicosPage() {
             <div className={styles.grid}>
               {filteredRegistros.map((reg, i) => (
                 <div key={reg.id} style={{ animationDelay: `${Math.min(i * 40, 300)}ms` }}>
-                  <RegistroCard reg={reg} onEdit={setEditingRegistro} />
+                  <RegistroCard
+                    reg={reg}
+                    onEdit={setEditingRegistro}
+                    onDelete={setDeletingRegistro}
+                    onToast={showToast}
+                  />
                 </div>
               ))}
             </div>
@@ -533,12 +686,21 @@ export default function MedicosPage() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal de edición */}
       {editingRegistro && (
         <EditModal
           registro={editingRegistro}
           onClose={() => setEditingRegistro(null)}
           onSaved={() => showToast("✓ Registro actualizado correctamente")}
+        />
+      )}
+
+      {/* Modal de confirmación de borrado */}
+      {deletingRegistro && (
+        <ConfirmDeleteModal
+          registro={deletingRegistro}
+          onClose={() => setDeletingRegistro(null)}
+          onConfirm={handleDelete}
         />
       )}
 
