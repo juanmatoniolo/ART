@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { ref, push } from "firebase/database";
+import { ref, push, get, child, onValue } from "firebase/database";
 import Header from "@/components/Header/Header";
 import styles from "./fojaqx.module.css";
 
@@ -32,25 +32,15 @@ const INITIAL_FORM = {
 
 // ────────────────────────────────────────────── Helpers
 const buildPayload = (form) => ({
-    paciente: {
-        apelidoynombre: form.apelidoynombre,
-        edad: form.edad,
-    },
+    paciente: { apelidoynombre: form.apelidoynombre, edad: form.edad },
     equipo: {
         cirujano: form.cirujano,
         primerayudante: form.primerayudante,
         segundoayudante: form.segundoayudante,
         anestesista: form.anestesista,
     },
-    fecha: {
-        dia: form.dia,
-        mes: form.mes,
-        anio: form.anio,
-    },
-    horario: {
-        inicio: form.inichsinicio,
-        fin: form.hsfin,
-    },
+    fecha: { dia: form.dia, mes: form.mes, anio: form.anio },
+    horario: { inicio: form.inichsinicio, fin: form.hsfin },
     descripcion: {
         preoperatorio: form.preoperatorio,
         posoperatorio: form.posoperatorio,
@@ -92,6 +82,45 @@ export default function Foja() {
     const [pdfUrl, setPdfUrl] = useState(null);
     const [pdfFileName, setPdfFileName] = useState(null);
     const pdfUrlRef = useRef(null);
+
+    // Estados para plantillas
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState("");
+    const [templateName, setTemplateName] = useState("");
+    const [savingTemplate, setSavingTemplate] = useState(false);
+    const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+    // Referencia a la base de datos para plantillas
+    const plantillasRef = ref(db, "fojaqx/plantilla");
+
+    // Scroll spy para progreso (opcional)
+    const [activeSection, setActiveSection] = useState(null);
+    const sectionRefs = useRef({});
+
+    // Cargar plantillas desde Firebase al montar
+    useEffect(() => {
+        const unsubscribe = onValue(plantillasRef, (snapshot) => {
+            const data = snapshot.val();
+            const templatesList = [];
+            if (data) {
+                Object.keys(data).forEach((key) => {
+                    templatesList.push({
+                        id: key,
+                        ...data[key],
+                    });
+                });
+                templatesList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            }
+            setTemplates(templatesList);
+            setLoadingTemplates(false);
+        }, (error) => {
+            console.error("Error cargando plantillas:", error);
+            setErrorMsg("No se pudieron cargar las plantillas.");
+            setLoadingTemplates(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -151,7 +180,11 @@ export default function Foja() {
     const handleGuardar = async (e) => {
         e.preventDefault();
 
-        const required = ["apelidoynombre", "edad", "cirujano", "anestesista", "dia", "mes", "anio", "inichsinicio", "hsfin", "preoperatorio", "procedimientoqx"];
+        const required = [
+            "apelidoynombre", "edad", "cirujano", "anestesista",
+            "dia", "mes", "anio", "inichsinicio", "hsfin",
+            "preoperatorio", "procedimientoqx"
+        ];
         for (const field of required) {
             if (!form[field]) {
                 setErrorMsg(`Completá el campo ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`);
@@ -176,6 +209,61 @@ export default function Foja() {
         } catch (err) {
             setSaveStatus("error");
             setErrorMsg(err.message || "Error al guardar en Firebase.");
+        }
+    };
+
+    // Guardar plantilla
+    const saveTemplate = async () => {
+        if (!templateName.trim()) {
+            setErrorMsg("Debés ingresar un nombre para la plantilla.");
+            return;
+        }
+        if (!form.procedimientoqx && !form.cirujano && !form.preoperatorio) {
+            setErrorMsg("Completá al menos el procedimiento quirúrgico o cirujano antes de guardar la plantilla.");
+            return;
+        }
+
+        setSavingTemplate(true);
+        setErrorMsg("");
+
+        try {
+            await push(plantillasRef, {
+                name: templateName.trim(),
+                formData: form,
+                cirujano: form.cirujano,
+                procedimientoqx: form.procedimientoqx,
+                preoperatorio: form.preoperatorio,
+                posoperatorio: form.posoperatorio,
+                hallazgos: form.hallazgos,
+                timestamp: Date.now(),
+            });
+            setTemplateName("");
+            setErrorMsg("¡Plantilla guardada con éxito!");
+            setTimeout(() => setErrorMsg(""), 3000);
+        } catch (err) {
+            console.error(err);
+            setErrorMsg("Error al guardar la plantilla: " + err.message);
+        } finally {
+            setSavingTemplate(false);
+        }
+    };
+
+    // Cargar plantilla seleccionada
+    const loadTemplate = () => {
+        if (!selectedTemplateId) {
+            setErrorMsg("Seleccioná una plantilla para cargar.");
+            return;
+        }
+        const template = templates.find(t => t.id === selectedTemplateId);
+        if (template && template.formData) {
+            setForm(template.formData);
+            resetPdfState();
+            setSaveStatus("idle");
+            setSavedKey(null);
+            setErrorMsg(`Plantilla "${template.name}" cargada. Podés modificarla y guardar como nueva.`);
+            setTimeout(() => setErrorMsg(""), 3000);
+        } else {
+            setErrorMsg("La plantilla no contiene datos válidos.");
         }
     };
 
@@ -227,164 +315,391 @@ export default function Foja() {
         resetPdfState();
     };
 
+    // Indicador de completitud por sección
+    const isSectionComplete = (section) => {
+        switch (section) {
+            case "paciente":
+                return form.apelidoynombre.trim() !== "" && form.edad !== "";
+            case "equipo":
+                return form.cirujano.trim() !== "" && form.anestesista.trim() !== "";
+            case "fecha":
+                return form.dia && form.mes && form.anio && form.inichsinicio && form.hsfin;
+            case "descripcion":
+                return form.preoperatorio.trim() !== "" && form.procedimientoqx.trim() !== "";
+            default:
+                return false;
+        }
+    };
+
+    // Scroll al hacer clic en progreso (opcional)
+    const scrollToSection = (sectionId) => {
+        const el = sectionRefs.current[sectionId];
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     return (
         <>
             <Header />
             <div className={styles.page}>
-                <div className={styles.container}>
-                    <header className={styles.header}>
-                        <div className={styles.headerAccent} />
-                        <div className={styles.headerContent}>
-                            <span className={styles.headerTag}>Clínica de la Unión S.A.</span>
-                            <h1 className={styles.title}>Foja Quirúrgica QX</h1>
-                            <p className={styles.subtitle}>Completá el registro, guardalo en Firebase y descargá o compartí el PDF.</p>
-                        </div>
-                    </header>
+                <div className={styles.layout}>
+                    {/* Barra lateral de progreso */}
+                    <ProgressSidebar
+                        sections={[
+                            { id: "paciente", label: "Paciente" },
+                            { id: "equipo", label: "Equipo" },
+                            { id: "fecha", label: "Fecha y hora" },
+                            { id: "descripcion", label: "Descripción" },
+                        ]}
+                        isComplete={isSectionComplete}
+                        onNavigate={scrollToSection}
+                    />
 
-                    <form onSubmit={handleGuardar} className={styles.form} noValidate>
-                        {/* Sección 01 - Paciente */}
-                        <section className={styles.section}>
-                            <SectionHeader num="01" title="Datos del Paciente" />
+                    <main className={styles.mainContent}>
+                        <header className={styles.header}>
+                            <div className={styles.headerAccent} />
+                            <div className={styles.headerContent}>
+                                <span className={styles.headerTag}>Clínica de la Unión S.A.</span>
+                                <h1 className={styles.title}>Foja Quirúrgica QX</h1>
+                                <p className={styles.subtitle}>
+                                    Completá el registro, guardalo en Firebase y descargá o compartí el PDF.
+                                </p>
+                            </div>
+                        </header>
+
+                        {/* --- SECCIÓN DE PLANTILLAS --- */}
+                        <div className={styles.section}>
+                            <SectionHeader num="📋" title="Plantillas Quirúrgicas" />
                             <div className={styles.grid2}>
                                 <div className={styles.fieldFull}>
-                                    <label className={styles.label} htmlFor="apelidoynombre">Apellido y Nombre *</label>
-                                    <input id="apelidoynombre" name="apelidoynombre" type="text" value={form.apelidoynombre} onChange={handleChange} className={styles.input} placeholder="Apellido, Nombre completo" required />
+                                    <label className={styles.label} htmlFor="templateSelect">
+                                        Cargar plantilla existente
+                                    </label>
+                                    <div className={styles.templateRow}>
+                                        <select
+                                            id="templateSelect"
+                                            className={styles.select}
+                                            value={selectedTemplateId}
+                                            onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                            disabled={loadingTemplates}
+                                        >
+                                            <option value="">-- Seleccionar plantilla --</option>
+                                            {templates.map((t) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name} ({t.cirujano || "Sin cirujano"})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className={styles.btnSecondary}
+                                            onClick={loadTemplate}
+                                            disabled={!selectedTemplateId || loadingTemplates}
+                                        >
+                                            Cargar
+                                        </button>
+                                    </div>
+                                    {loadingTemplates && <small className={styles.hint}>Cargando plantillas...</small>}
+                                    {templates.length === 0 && !loadingTemplates && (
+                                        <small className={styles.hint}>No hay plantillas guardadas aún.</small>
+                                    )}
+                                    {/* Previsualización de la plantilla seleccionada */}
+                                    {selectedTemplateId && (
+                                        <TemplatePreview
+                                            template={templates.find(t => t.id === selectedTemplateId)}
+                                        />
+                                    )}
                                 </div>
-                                <div className={styles.field}>
-                                    <label className={styles.label} htmlFor="edad">Edad *</label>
-                                    <input id="edad" name="edad" type="number" min="0" max="150" value={form.edad} onChange={handleChange} className={styles.input} placeholder="Años" required />
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Sección 02 - Equipo */}
-                        <section className={styles.section}>
-                            <SectionHeader num="02" title="Equipo Quirúrgico" />
-                            <div className={styles.grid2}>
-                                <Field label="Cirujano *" htmlFor="cirujano">
-                                    <input id="cirujano" name="cirujano" type="text" value={form.cirujano} onChange={handleChange} className={styles.input} placeholder="Dr./Dra." required />
-                                </Field>
-                                <Field label="1er Ayudante" htmlFor="primerayudante">
-                                    <input id="primerayudante" name="primerayudante" type="text" value={form.primerayudante} onChange={handleChange} className={styles.input} placeholder="Dr./Dra." />
-                                </Field>
-                                <Field label="2do Ayudante" htmlFor="segundoayudante">
-                                    <input id="segundoayudante" name="segundoayudante" type="text" value={form.segundoayudante} onChange={handleChange} className={styles.input} placeholder="Dr./Dra." />
-                                </Field>
-                                <Field label="Anestesista *" htmlFor="anestesista">
-                                    <input id="anestesista" name="anestesista" type="text" value={form.anestesista} onChange={handleChange} className={styles.input} placeholder="Dr./Dra." required />
-                                </Field>
-                            </div>
-                        </section>
-
-                        {/* Sección 03 - Fecha y horarios */}
-                        <section className={styles.section}>
-                            <SectionHeader num="03" title="Fecha y Horarios" />
-                            <div className={styles.grid3}>
-                                <Field label="Día *" htmlFor="dia">
-                                    <input id="dia" name="dia" type="number" min="1" max="31" value={form.dia} onChange={handleChange} className={styles.input} placeholder="DD" required />
-                                </Field>
-                                <Field label="Mes *" htmlFor="mes">
-                                    <select id="mes" name="mes" value={form.mes} onChange={handleChange} className={styles.select} required>
-                                        <option value="">— Mes —</option>
-                                        {MESES.map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
-                                </Field>
-                                <Field label="Año *" htmlFor="anio">
-                                    <input id="anio" name="anio" type="number" min="2000" max="2100" value={form.anio} onChange={handleChange} className={styles.input} placeholder="AAAA" required />
-                                </Field>
-                            </div>
-                            <div className={styles.grid2} style={{ marginTop: "1.1rem" }}>
-                                <Field label="Hora de Inicio *" htmlFor="inichsinicio">
-                                    <input id="inichsinicio" name="inichsinicio" type="time" value={form.inichsinicio} onChange={handleChange} className={styles.input} required />
-                                </Field>
-                                <Field label="Hora de Fin *" htmlFor="hsfin">
-                                    <input id="hsfin" name="hsfin" type="time" value={form.hsfin} onChange={handleChange} className={styles.input} required />
-                                </Field>
-                            </div>
-                        </section>
-
-                        {/* Sección 04 - Descripción */}
-                        <section className={styles.section}>
-                            <SectionHeader num="04" title="Descripción Quirúrgica" />
-                            <Field label="1. Diagnóstico Preoperatorio *" htmlFor="preoperatorio" full>
-                                <textarea id="preoperatorio" name="preoperatorio" value={form.preoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico previo a la cirugía..." required />
-                            </Field>
-                            <Field label="2. Diagnóstico Posoperatorio" htmlFor="posoperatorio" full>
-                                <textarea id="posoperatorio" name="posoperatorio" value={form.posoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico posterior a la cirugía..." />
-                            </Field>
-                            <Field label="3. Procedimiento Quirúrgico *" htmlFor="procedimientoqx" full>
-                                <textarea id="procedimientoqx" name="procedimientoqx" value={form.procedimientoqx} onChange={handleChange} className={styles.textarea} rows={5} placeholder="Descripción detallada del procedimiento..." required />
-                            </Field>
-                            <Field label="4. Operación y Hallazgos" htmlFor="hallazgos" full>
-                                <textarea id="hallazgos" name="hallazgos" value={form.hallazgos} onChange={handleChange} className={styles.textarea} rows={4} placeholder="Hallazgos intraoperatorios..." />
-                            </Field>
-                        </section>
-
-                        {/* Alertas de error */}
-                        {(saveStatus === "error" || pdfStatus === "error") && (
-                            <div className={styles.alertError}>
-                                <span className={styles.alertIcon}>✕</span>
-                                {errorMsg}
-                            </div>
-                        )}
-
-                        {/* Panel de éxito con PDF listo */}
-                        {saveStatus === "saved" && pdfStatus === "done" && pdfUrl && (
-                            <div className={styles.successPanel}>
-                                <div className={styles.successInfo}>
-                                    <span className={styles.successIcon}>✓</span>
-                                    <div>
-                                        <p className={styles.successTitle}>Registro guardado y PDF listo</p>
-                                        {savedKey && <p className={styles.successKey}>ID: {savedKey}</p>}
+                                <div className={styles.fieldFull}>
+                                    <label className={styles.label} htmlFor="templateName">
+                                        Guardar formulario actual como plantilla
+                                    </label>
+                                    <div className={styles.templateRow}>
+                                        <input
+                                            id="templateName"
+                                            type="text"
+                                            className={styles.input}
+                                            placeholder="Ej: Apendicectomía - Pérez"
+                                            value={templateName}
+                                            onChange={(e) => setTemplateName(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.btnPrimary}
+                                            onClick={saveTemplate}
+                                            disabled={savingTemplate}
+                                        >
+                                            {savingTemplate ? "Guardando..." : "Guardar"}
+                                        </button>
                                     </div>
                                 </div>
-                                <div className={styles.buttonGroup}>
-                                    <button type="button" className={styles.btnSecondary} onClick={openPdf}>📄 Abrir</button>
-                                    <button type="button" className={styles.btnDownload} onClick={downloadPdf}><IconDownload /> Descargar</button>
-                                    <button type="button" className={styles.btnShare} onClick={handleSharePDF}><IconShare /> Compartir</button>
-                                </div>
                             </div>
-                        )}
-
-                        {/* Acciones principales */}
-                        <div className={styles.actions}>
-                            <button type="button" onClick={handleLimpiar} className={styles.btnSecondary} disabled={saveStatus === "saving"}>
-                                Limpiar
-                            </button>
-                            <button type="submit" className={styles.btnPrimary} disabled={saveStatus === "saving" || saveStatus === "saved"}>
-                                {saveStatus === "saving" ? (
-                                    <><span className={styles.spinner} /> Guardando...</>
-                                ) : saveStatus === "saved" ? (
-                                    "✓ Guardado"
-                                ) : (
-                                    "Guardar Registro"
-                                )}
-                            </button>
                         </div>
-                    </form>
+
+                        <form onSubmit={handleGuardar} className={styles.form} noValidate>
+                            {/* Sección 01 - Paciente */}
+                            <section
+                                className={styles.section}
+                                ref={(el) => (sectionRefs.current.paciente = el)}
+                            >
+                                <SectionHeader num="01" title="Datos del Paciente" />
+                                <div className={styles.grid2}>
+                                    <Field
+                                        label="Apellido y Nombre *"
+                                        htmlFor="apelidoynombre"
+                                        tooltip="Ingrese apellido y nombre completos del paciente"
+                                        value={form.apelidoynombre}
+                                        onChange={handleChange}
+                                    >
+                                        <input
+                                            id="apelidoynombre"
+                                            name="apelidoynombre"
+                                            type="text"
+                                            className={styles.input}
+                                            placeholder="Apellido, Nombre completo"
+                                            value={form.apelidoynombre}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Field>
+                                    <Field
+                                        label="Edad *"
+                                        htmlFor="edad"
+                                        tooltip="Edad en años"
+                                        value={form.edad}
+                                        onChange={handleChange}
+                                    >
+                                        <input
+                                            id="edad"
+                                            name="edad"
+                                            type="number"
+                                            min="0"
+                                            max="150"
+                                            className={styles.input}
+                                            placeholder="Años"
+                                            value={form.edad}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Field>
+                                </div>
+                            </section>
+
+                            {/* Sección 02 - Equipo */}
+                            <section
+                                className={styles.section}
+                                ref={(el) => (sectionRefs.current.equipo = el)}
+                            >
+                                <SectionHeader num="02" title="Equipo Quirúrgico" />
+                                <div className={styles.grid2}>
+                                    <Field label="Cirujano *" htmlFor="cirujano" value={form.cirujano} onChange={handleChange}>
+                                        <input id="cirujano" name="cirujano" type="text" className={styles.input} placeholder="Dr./Dra." value={form.cirujano} onChange={handleChange} required />
+                                    </Field>
+                                    <Field label="1er Ayudante" htmlFor="primerayudante" value={form.primerayudante} onChange={handleChange}>
+                                        <input id="primerayudante" name="primerayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.primerayudante} onChange={handleChange} />
+                                    </Field>
+                                    <Field label="2do Ayudante" htmlFor="segundoayudante" value={form.segundoayudante} onChange={handleChange}>
+                                        <input id="segundoayudante" name="segundoayudante" type="text" className={styles.input} placeholder="Dr./Dra." value={form.segundoayudante} onChange={handleChange} />
+                                    </Field>
+                                    <Field label="Anestesista *" htmlFor="anestesista" value={form.anestesista} onChange={handleChange}>
+                                        <input id="anestesista" name="anestesista" type="text" className={styles.input} placeholder="Dr./Dra." value={form.anestesista} onChange={handleChange} required />
+                                    </Field>
+                                </div>
+                            </section>
+
+                            {/* Sección 03 - Fecha y horarios */}
+                            <section
+                                className={styles.section}
+                                ref={(el) => (sectionRefs.current.fecha = el)}
+                            >
+                                <SectionHeader num="03" title="Fecha y Horarios" />
+                                <div className={styles.grid3}>
+                                    <Field label="Día *" htmlFor="dia" value={form.dia} onChange={handleChange}>
+                                        <input id="dia" name="dia" type="number" min="1" max="31" className={styles.input} placeholder="DD" value={form.dia} onChange={handleChange} required />
+                                    </Field>
+                                    <Field label="Mes *" htmlFor="mes" value={form.mes} onChange={handleChange}>
+                                        <select id="mes" name="mes" value={form.mes} onChange={handleChange} className={styles.select} required>
+                                            <option value="">— Mes —</option>
+                                            {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </Field>
+                                    <Field label="Año *" htmlFor="anio" value={form.anio} onChange={handleChange}>
+                                        <input id="anio" name="anio" type="number" min="2000" max="2100" className={styles.input} placeholder="AAAA" value={form.anio} onChange={handleChange} required />
+                                    </Field>
+                                </div>
+                                <div className={styles.grid2} style={{ marginTop: "1.1rem" }}>
+                                    <Field label="Hora de Inicio *" htmlFor="inichsinicio" value={form.inichsinicio} onChange={handleChange}>
+                                        <input id="inichsinicio" name="inichsinicio" type="time" className={styles.input} value={form.inichsinicio} onChange={handleChange} required />
+                                    </Field>
+                                    <Field label="Hora de Fin *" htmlFor="hsfin" value={form.hsfin} onChange={handleChange}>
+                                        <input id="hsfin" name="hsfin" type="time" className={styles.input} value={form.hsfin} onChange={handleChange} required />
+                                    </Field>
+                                </div>
+                            </section>
+
+                            {/* Sección 04 - Descripción */}
+                            <section
+                                className={styles.section}
+                                ref={(el) => (sectionRefs.current.descripcion = el)}
+                            >
+                                <SectionHeader num="04" title="Descripción Quirúrgica" />
+                                <Field label="1. Diagnóstico Preoperatorio *" htmlFor="preoperatorio" value={form.preoperatorio} onChange={handleChange} full tooltip="Diagnóstico con el que el paciente ingresa a cirugía">
+                                    <textarea id="preoperatorio" name="preoperatorio" value={form.preoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico previo a la cirugía..." required />
+                                </Field>
+                                <Field label="2. Diagnóstico Posoperatorio" htmlFor="posoperatorio" value={form.posoperatorio} onChange={handleChange} full tooltip="Diagnóstico confirmado después de la cirugía">
+                                    <textarea id="posoperatorio" name="posoperatorio" value={form.posoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico posterior a la cirugía..." />
+                                </Field>
+                                <Field label="3. Procedimiento Quirúrgico *" htmlFor="procedimientoqx" value={form.procedimientoqx} onChange={handleChange} full tooltip="Describa detalladamente la técnica quirúrgica realizada">
+                                    <textarea id="procedimientoqx" name="procedimientoqx" value={form.procedimientoqx} onChange={handleChange} className={styles.textarea} rows={5} placeholder="Descripción detallada del procedimiento..." required />
+                                </Field>
+                                <Field label="4. Operación y Hallazgos" htmlFor="hallazgos" value={form.hallazgos} onChange={handleChange} full tooltip="Hallazgos intraoperatorios relevantes">
+                                    <textarea id="hallazgos" name="hallazgos" value={form.hallazgos} onChange={handleChange} className={styles.textarea} rows={4} placeholder="Hallazgos intraoperatorios..." />
+                                </Field>
+                            </section>
+
+                            {/* Alertas de error */}
+                            {(saveStatus === "error" || pdfStatus === "error" || errorMsg) && (
+                                <div className={styles.alertError}>
+                                    <span className={styles.alertIcon}>✕</span>
+                                    {errorMsg}
+                                </div>
+                            )}
+
+                            {/* Panel de éxito con PDF listo */}
+                            {saveStatus === "saved" && pdfStatus === "done" && pdfUrl && (
+                                <div className={styles.successPanel}>
+                                    <div className={styles.successInfo}>
+                                        <span className={styles.successIcon}>✓</span>
+                                        <div>
+                                            <p className={styles.successTitle}>Registro guardado y PDF listo</p>
+                                            {savedKey && <p className={styles.successKey}>ID: {savedKey}</p>}
+                                        </div>
+                                    </div>
+                                    <div className={styles.buttonGroup}>
+                                        <button type="button" className={styles.btnSecondary} onClick={openPdf}>📄 Abrir</button>
+                                        <button type="button" className={styles.btnDownload} onClick={downloadPdf}><IconDownload /> Descargar</button>
+                                        <button type="button" className={styles.btnShare} onClick={handleSharePDF}><IconShare /> Compartir</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Acciones principales */}
+                            <div className={styles.actions}>
+                                <button type="button" onClick={handleLimpiar} className={styles.btnSecondary} disabled={saveStatus === "saving"}>
+                                    Limpiar
+                                </button>
+                                <button type="submit" className={styles.btnPrimary} disabled={saveStatus === "saving" || saveStatus === "saved"}>
+                                    {saveStatus === "saving" ? (
+                                        <><span className={styles.spinner} /> Guardando...</>
+                                    ) : saveStatus === "saved" ? (
+                                        "✓ Guardado"
+                                    ) : (
+                                        "Guardar Registro"
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </main>
                 </div>
+
+                {/* Botón flotante para guardar y generar PDF */}
+                <button
+                    className={styles.fabSave}
+                    onClick={handleGuardar}
+                    disabled={saveStatus === "saving" || saveStatus === "saved"}
+                    title="Guardar registro y generar PDF"
+                >
+                    {saveStatus === "saving" ? (
+                        <span className={styles.spinner} />
+                    ) : saveStatus === "saved" ? (
+                        "✓"
+                    ) : (
+                        <>
+                            💾 <span className={styles.fabLabel}>Guardar y PDF</span>
+                        </>
+                    )}
+                </button>
             </div>
         </>
     );
 }
 
-// ────────────────────────────────────────────── Subcomponentes
+// ────────────────────────────────────────────── Subcomponentes nuevos/mejorados
+
 function SectionHeader({ num, title }) {
-    const stylesLocal = require("./fojaqx.module.css");
     return (
-        <div className={stylesLocal.sectionHeader}>
-            <span className={stylesLocal.sectionNumber}>{num}</span>
-            <h2 className={stylesLocal.sectionTitle}>{title}</h2>
+        <div className={styles.sectionHeader}>
+            <span className={styles.sectionNumber}>{num}</span>
+            <h2 className={styles.sectionTitle}>{title}</h2>
         </div>
     );
 }
 
-function Field({ label, htmlFor, children, full }) {
-    const stylesLocal = require("./fojaqx.module.css");
+function Field({ label, htmlFor, children, full, tooltip, value, onChange }) {
+    const isValid = value && value.toString().trim() !== "";
     return (
-        <div className={full ? stylesLocal.fieldFull : stylesLocal.field}>
-            <label className={stylesLocal.label} htmlFor={htmlFor}>{label}</label>
-            {children}
+        <div className={`${styles.field} ${full ? styles.fieldFull : ""}`}>
+            <div className={styles.labelRow}>
+                <label className={styles.label} htmlFor={htmlFor}>
+                    {label}
+                </label>
+                {tooltip && (
+                    <span className={styles.tooltip} data-tip={tooltip}>
+                        ?
+                    </span>
+                )}
+            </div>
+            <div className={styles.inputWrapper}>
+                {children}
+                <span className={`${styles.statusIcon} ${isValid ? styles.valid : ""}`}>
+                    {isValid ? "✓" : "!"}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function ProgressSidebar({ sections, isComplete, onNavigate }) {
+    const completedCount = sections.filter(s => isComplete(s.id)).length;
+    return (
+        <aside className={styles.progressSidebar}>
+            <div className={styles.progressHeader}>
+                <span>Progreso</span>
+                <span className={styles.progressCounter}>
+                    {completedCount}/{sections.length}
+                </span>
+            </div>
+            <div className={styles.progressList}>
+                {sections.map((sec) => (
+                    <button
+                        key={sec.id}
+                        className={`${styles.progressItem} ${isComplete(sec.id) ? styles.progressDone : ""}`}
+                        onClick={() => onNavigate(sec.id)}
+                        type="button"
+                    >
+                        <span className={styles.progressIcon}>
+                            {isComplete(sec.id) ? "✅" : "⬜"}
+                        </span>
+                        <span>{sec.label}</span>
+                    </button>
+                ))}
+            </div>
+        </aside>
+    );
+}
+
+function TemplatePreview({ template }) {
+    if (!template) return null;
+    return (
+        <div className={styles.templatePreview}>
+            <div className={styles.previewRow}>
+                <span>Cirujano:</span> {template.cirujano || "—"}
+            </div>
+            <div className={styles.previewRow}>
+                <span>Procedimiento:</span> {template.procedimientoqx || "—"}
+            </div>
+            <div className={styles.previewRow}>
+                <span>Preoperatorio:</span> {template.preoperatorio || "—"}
+            </div>
         </div>
     );
 }

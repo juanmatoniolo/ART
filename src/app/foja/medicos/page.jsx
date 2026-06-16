@@ -7,6 +7,7 @@ import { ref, onValue, off, update } from "firebase/database";
 import { getSession, isAuthenticated } from "@/utils/session";
 import Header from "@/components/Header/Header";
 import styles from "./medicos.module.css";
+import PlantillasProcedimientoModal from "./PlantillasProcedimientoModal";
 
 // ─── Helpers ────────────────────────────────────────────────
 const formatDate = (dia, mes, anio) =>
@@ -45,6 +46,12 @@ const ChevronIcon = ({ open }) => (
 const CloseIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const TemplateIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
   </svg>
 );
 
@@ -163,11 +170,15 @@ function EditModal({ registro, onClose, onSaved }) {
   const [form, setForm] = useState({ ...registro });
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPlantillas, setShowPlantillas] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
+
+  // Aplica una plantilla de procedimiento (fusiona sus campos al formulario)
+  const aplicarPlantilla = (campos) => setForm(prev => ({ ...prev, ...campos }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -273,7 +284,21 @@ function EditModal({ registro, onClose, onSaved }) {
 
           {/* Descripción */}
           <div className={styles.modalSection}>
-            <p className={styles.modalSectionTitle}>Descripción Quirúrgica</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: ".75rem", flexWrap: "wrap", marginBottom: ".5rem" }}>
+              <p className={styles.modalSectionTitle} style={{ margin: 0 }}>Descripción Quirúrgica</p>
+              <button
+                type="button"
+                onClick={() => setShowPlantillas(true)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: ".4rem",
+                  fontSize: ".8rem", fontWeight: 600, padding: ".5rem .9rem",
+                  borderRadius: 40, border: "1.5px solid #2c7a5e", background: "#f0f7f4",
+                  color: "#2c7a5e", cursor: "pointer",
+                }}
+              >
+                <TemplateIcon /> Plantillas
+              </button>
+            </div>
             <div className={styles.modalField} style={{ gridColumn: "1/-1" }}>
               <label className={styles.modalLabel}>Diagnóstico Preoperatorio</label>
               <textarea name="preoperatorio" rows="2" value={form.preoperatorio || ""} onChange={handleChange} className={styles.modalTextarea} />
@@ -301,6 +326,15 @@ function EditModal({ registro, onClose, onSaved }) {
           </button>
         </div>
       </div>
+
+      {/* Plantillas de procedimiento */}
+      {showPlantillas && (
+        <PlantillasProcedimientoModal
+          form={form}
+          onAplicar={aplicarPlantilla}
+          onClose={() => setShowPlantillas(false)}
+        />
+      )}
     </div>
   );
 }

@@ -63,25 +63,41 @@ export default function WhatsAppSender() {
   };
 
   const buildMessage = () => {
-    // FKT - KINESIOLOGÍA
+    // Kinesiología
     if (mensaje === "1") {
       return `Buen día, *${name}*.
 
 
 ✅ Su sesión de kinesiología fue APROBADA.
 
+
+Puede retirar la orden por Mesa de Entrada.
+
+📍 Ingreso por Roque Sáenz Peña.
+
+🕒 Horarios:
+• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+• Sábados: 8 a 12 hs
+
+
 Puede concurrir con:
 
 • *Kinesióloga Rivas Daniela*
 📍 9 de Julio 1870
-👉 Escribirle: https://wa.me/5493416123456
+👉 Escribirle: https://wa.me/5493456440878
 
 • *Kinesióloga Avancini Natalia*
 📍 Rivadavia 2665
-👉 Escribirle: https://wa.me/5493416123457`;
+👉 Escribirle: https://wa.me/54933456513866
+
+
+
+*Iportante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia"
+`;
+
     }
 
-    // RESONANCIA
+    // Resonancia
     if (mensaje === "2") {
       return `Buen día, *${name}*.
 
@@ -108,7 +124,7 @@ Av. Siburu 1085
 • Cirugías recientes`;
     }
 
-    // MEDICAMENTOS
+    // Medicamentos
     if (mensaje === "3") {
       return `Buen día, *${name}*.
 
@@ -138,7 +154,7 @@ Orden + copia de denuncia → Farmacia de la Unión.
 Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
-    // ELECTROCARDIOGRAMA
+    // Electrocardiograma
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
@@ -164,7 +180,7 @@ Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 ${profesional}`;
     }
 
-    // LABORATORIO
+    // Laboratorio
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
@@ -173,9 +189,9 @@ ${profesional}`;
 
 📍 Belgrano y Corrientes (frente a Pepos)`
           : bioquimico === "marmol"
-          ? `Bioquímico Mármol
+            ? `Bioquímico Mármol
 📍 Sarmiento 2610`
-          : `Bioquímica Tabeni
+            : `Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
       return `Buen día, *${name}*.
@@ -194,7 +210,7 @@ ${profesional}`;
 ${profesional}`;
     }
 
-    // ECOGRAFÍA
+    // Ecografía
     if (mensaje === "6") {
       return `Buen día, *${name}*.
 
@@ -213,7 +229,7 @@ Al ingresar puede consultar en Mesa de Entrada.
 • Llegar 10 minutos antes`;
     }
 
-    // CIRUGÍA
+    // Cirugía
     if (mensaje === "7") {
       return `CLÍNICA DE LA UNIÓN
 
@@ -243,7 +259,7 @@ Por favor responder:
 Ante cualquier duda puede responder este mensaje.`;
     }
 
-    // ORTOPEDIA
+    // Ortopedia
     if (mensaje === "8") {
       return `Buen día, *${name}*.
 

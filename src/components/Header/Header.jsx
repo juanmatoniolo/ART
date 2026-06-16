@@ -31,22 +31,22 @@ export default function Header() {
                     <FileText size={16} />
                     ART
                 </Link>
-            
-                <Link
+
+                {/*       <Link
                     href="/historia-clinica"
                     className={`${styles.navLink} ${pathname.startsWith('/cx') ? styles.active : ''}`}
                 >
                     <ClipboardList size={16} />
                    HC
-                </Link>
- 
-                        <Link
+                </Link> */}
+
+                <Link
                     href="/foja"
                     className={`${styles.navLink} ${pathname.startsWith('/foja') ? styles.active : ''}`}
                 >
                     <Activity size={16} />
                     FojaQX
-                </Link> 
+                </Link>
             </nav>
         </header>
     );
