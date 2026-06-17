@@ -139,9 +139,16 @@ function buildPdfFields(payload) {
 	const fecha = payload.fecha || {};
 	const horario = payload.horario || {};
 
+	const edadLimpia = cleanText(paciente.edad);
+	const edadFormateada = edadLimpia
+		? /\baños?\b/i.test(edadLimpia)
+			? edadLimpia
+			: `${edadLimpia} años`
+		: "";
+
 	return {
 		apelidoynombre: cleanText(paciente.apelidoynombre),
-		edad: cleanText(paciente.edad),
+		edad: edadFormateada,
 		cirujano: cleanText(equipo.cirujano),
 		primerayudante: cleanText(equipo.primerayudante),
 		segundoayudante: cleanText(equipo.segundoayudante),

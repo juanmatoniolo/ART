@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { ref, onValue, off, update, remove } from "firebase/database";
@@ -10,6 +10,212 @@ import styles from "./medicos.module.css";
 import PlantillasProcedimientoModal from "./PlantillasProcedimientoModal";
 
 // ─── Helpers ────────────────────────────────────────────────
+const cleanValue = (value) => {
+  if (value == null) return "";
+  return String(value).trim();
+};
+
+const splitProfessionalName = (value, fallbackTitle = "Dr.") => {
+  const fullName = cleanValue(value);
+  const match = fullName.match(/^(Dr\.?|Dra\.?)\s*(.*)$/i);
+
+  if (!match) {
+    return {
+      titulo: fallbackTitle,
+      nombre: fullName,
+      completo: fullName ? `${fallbackTitle} ${fullName}`.trim() : "",
+    };
+  }
+
+  const titulo = match[1].toLowerCase().startsWith("dra") ? "Dra." : "Dr.";
+  const nombre = cleanValue(match[2]);
+
+  return {
+    titulo,
+    nombre,
+    completo: nombre ? `${titulo} ${nombre}` : titulo,
+  };
+};
+
+const joinProfessionalName = (titulo, nombre) => {
+  const cleanName = cleanValue(nombre).replace(/^(Dr\.?|Dra\.?)\s*/i, "");
+  return cleanName ? `${titulo || "Dr."} ${cleanName}`.trim() : "";
+};
+
+const parseCx = (cx) => {
+  const emptyResult = {
+    preoperatorio: "",
+    posoperatorio: "",
+    procedimientoqx: "",
+    hallazgos: "",
+  };
+
+  if (typeof cx !== "string" || !cx.trim()) return emptyResult;
+
+  const normalizedCx = cx.replace(/\r\n?/g, "\n").trim();
+
+  const labeledSections = [
+    ["preoperatorio", /(?:^|\n)\s*(?:1[.)-]?\s*)?Diagn[oó]stico\s+Preoperatorio\s*:?\s*/i],
+    ["posoperatorio", /(?:^|\n)\s*(?:2[.)-]?\s*)?Diagn[oó]stico\s+Posoperatorio\s*:?\s*/i],
+    ["procedimientoqx", /(?:^|\n)\s*(?:3[.)-]?\s*)?Procedimiento\s+Quir[uú]rgico\s*:?\s*/i],
+    ["hallazgos", /(?:^|\n)\s*(?:4[.)-]?\s*)?(?:Operaci[oó]n\s+y\s+)?Hallazgos\s*:?\s*/i],
+  ];
+
+  const labeledMatches = labeledSections
+    .map(([key, regex]) => {
+      const match = regex.exec(normalizedCx);
+
+      return match
+        ? {
+          key,
+          index: match.index,
+          contentStart: match.index + match[0].length,
+        }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.index - b.index);
+
+  if (labeledMatches.length > 0) {
+    const result = { ...emptyResult };
+
+    labeledMatches.forEach((match, index) => {
+      const next = labeledMatches[index + 1];
+
+      result[match.key] = normalizedCx
+        .slice(match.contentStart, next ? next.index : normalizedCx.length)
+        .trim();
+    });
+
+    return result;
+  }
+
+  const numberedRegex = /(?:^|\n)\s*([1-4])\s*[.)-]\s*/g;
+  const numberedMatches = [];
+  let match;
+
+  while ((match = numberedRegex.exec(normalizedCx)) !== null) {
+    numberedMatches.push({
+      number: Number(match[1]),
+      index: match.index,
+      contentStart: numberedRegex.lastIndex,
+    });
+  }
+
+  if (numberedMatches.length > 0) {
+    const result = { ...emptyResult };
+    const keyByNumber = {
+      1: "preoperatorio",
+      2: "posoperatorio",
+      3: "procedimientoqx",
+      4: "hallazgos",
+    };
+
+    numberedMatches.forEach((item, index) => {
+      const next = numberedMatches[index + 1];
+      const key = keyByNumber[item.number];
+
+      result[key] = normalizedCx
+        .slice(item.contentStart, next ? next.index : normalizedCx.length)
+        .trim();
+    });
+
+    return result;
+  }
+
+  return {
+    ...emptyResult,
+    procedimientoqx: normalizedCx,
+  };
+};
+
+const normalizeRegistro = (raw = {}, id = raw.id, dbPath = raw._dbPath || `fojaqx/${id}`) => {
+  const paciente = raw.paciente || {};
+  const equipo = raw.equipo || {};
+  const fecha = raw.fecha || {};
+  const horario = raw.horario || {};
+  const descripcion = raw.descripcion || raw.templateData || {};
+  const cxFields = parseCx(raw.cx);
+
+  const professional = splitProfessionalName(
+    equipo.cirujano || raw.cirujano,
+    raw.cirujanoTitulo || equipo.cirujanoTitulo || "Dr.",
+  );
+
+  return {
+    ...raw,
+    id,
+    _dbPath: dbPath,
+    _type: "record",
+    apelidoynombre: cleanValue(raw.apelidoynombre || paciente.apelidoynombre),
+    edad: cleanValue(raw.edad || paciente.edad),
+    cirujanoTitulo: raw.cirujanoTitulo || equipo.cirujanoTitulo || professional.titulo,
+    cirujanoNombre: cleanValue(raw.cirujanoNombre || professional.nombre),
+    cirujano: professional.completo,
+    primerayudante: cleanValue(raw.primerayudante || equipo.primerayudante),
+    segundoayudante: cleanValue(raw.segundoayudante || equipo.segundoayudante),
+    anestesista: cleanValue(raw.anestesista || equipo.anestesista),
+    dia: cleanValue(raw.dia || fecha.dia),
+    mes: cleanValue(raw.mes || fecha.mes),
+    anio: cleanValue(raw.anio || fecha.anio),
+    inichsinicio: cleanValue(raw.inichsinicio || horario.inicio),
+    hsfin: cleanValue(raw.hsfin || horario.fin),
+    preoperatorio: cleanValue(
+      raw.preoperatorio || descripcion.preoperatorio || cxFields.preoperatorio,
+    ),
+    posoperatorio: cleanValue(
+      raw.posoperatorio || descripcion.posoperatorio || cxFields.posoperatorio,
+    ),
+    procedimientoqx: cleanValue(
+      raw.procedimientoqx || descripcion.procedimientoqx || cxFields.procedimientoqx,
+    ),
+    hallazgos: cleanValue(
+      raw.hallazgos || descripcion.hallazgos || cxFields.hallazgos,
+    ),
+  };
+};
+
+const normalizeTemplate = (
+  raw = {},
+  id = raw.id,
+  dbPath = raw._dbPath || `fojaqx/plantillas/${id}`,
+) => {
+  const source = raw.templateData || raw.formData || raw || {};
+  const professional = splitProfessionalName(
+    source.cirujano || raw.cirujano,
+    source.cirujanoTitulo || raw.cirujanoTitulo || "Dr.",
+  );
+
+  return {
+    ...raw,
+    ...source,
+    id,
+    _dbPath: dbPath,
+    _type: "template",
+    templateName: cleanValue(raw.name || raw.nombre || source.name || "Plantilla sin nombre"),
+    apelidoynombre: "",
+    edad: "",
+    cirujanoTitulo: professional.titulo,
+    cirujanoNombre: professional.nombre,
+    cirujano: professional.completo,
+    primerayudante: "",
+    segundoayudante: "",
+    anestesista: "",
+    dia: "",
+    mes: "",
+    anio: "",
+    inichsinicio: "",
+    hsfin: "",
+    preoperatorio: cleanValue(source.preoperatorio || raw.preoperatorio),
+    posoperatorio: cleanValue(source.posoperatorio || raw.posoperatorio),
+    procedimientoqx: cleanValue(
+      source.procedimientoqx || raw.procedimientoqx,
+    ),
+    hallazgos: cleanValue(source.hallazgos || raw.hallazgos),
+    timestamp: raw.timestamp || raw.createdAt || raw.updatedAt || 0,
+  };
+};
+
 const formatDate = (dia, mes, anio) =>
   dia && mes && anio ? `${dia} ${mes} ${anio}` : "Sin fecha";
 
@@ -18,34 +224,60 @@ const formatTime = (inicio, fin) => {
   return [inicio, fin].filter(Boolean).join(" – ");
 };
 
-// Reconstruye el texto unificado de la descripción quirúrgica.
-// Si el registro ya trae `cx` (nuevo formato), lo usa tal cual.
-// Si no, lo arma desde los 4 campos sueltos (registros viejos).
 const buildCx = (reg) => {
-  if (typeof reg.cx === "string" && reg.cx.trim() !== "") return reg.cx;
-  const campos = [reg.preoperatorio, reg.posoperatorio, reg.procedimientoqx, reg.hallazgos];
-  return campos.map((c, i) => `${i + 1}- ${(c || "").trim()}`).join("\n");
+  const normalized = normalizeRegistro(reg);
+  return [
+    `1. Diagnóstico Preoperatorio: ${normalized.preoperatorio}`,
+    `2. Diagnóstico Posoperatorio: ${normalized.posoperatorio}`,
+    `3. Procedimiento Quirúrgico: ${normalized.procedimientoqx}`,
+    `4. Operación y Hallazgos: ${normalized.hallazgos}`,
+  ].join("\n\n");
 };
 
-// Arma el payload que espera /api/fojaqx/pdf (mismo formato que el alta).
-const buildPdfPayload = (reg) => ({
-  paciente: { apelidoynombre: reg.apelidoynombre, edad: reg.edad },
-  equipo: {
-    cirujano: reg.cirujano,
-    primerayudante: reg.primerayudante,
-    segundoayudante: reg.segundoayudante,
-    anestesista: reg.anestesista,
-  },
-  fecha: { dia: reg.dia, mes: reg.mes, anio: reg.anio },
-  horario: { inicio: reg.inichsinicio, fin: reg.hsfin },
-  cx: buildCx(reg),
-});
+const buildPdfPayload = (reg) => {
+  const normalized = normalizeRegistro(reg);
+
+  return {
+    paciente: {
+      apelidoynombre: normalized.apelidoynombre,
+      edad: normalized.edad,
+    },
+    equipo: {
+      cirujano: normalized.cirujano,
+      primerayudante: normalized.primerayudante,
+      segundoayudante: normalized.segundoayudante,
+      anestesista: normalized.anestesista,
+    },
+    fecha: {
+      dia: normalized.dia,
+      mes: normalized.mes,
+      anio: normalized.anio,
+    },
+    horario: {
+      inicio: normalized.inichsinicio,
+      fin: normalized.hsfin,
+    },
+    descripcion: {
+      preoperatorio: normalized.preoperatorio,
+      posoperatorio: normalized.posoperatorio,
+      procedimientoqx: normalized.procedimientoqx,
+      hallazgos: normalized.hallazgos,
+    },
+    cx: buildCx(normalized),
+  };
+};
 
 const buildFileName = (reg) => {
-  const apellido = reg.apelidoynombre
-    ? reg.apelidoynombre.split(",")[0].trim().replace(/\s+/g, "_")
+  const normalized = normalizeRegistro(reg);
+  const apellido = normalized.apelidoynombre
+    ? normalized.apelidoynombre.split(",")[0].trim().replace(/\s+/g, "_")
     : "foja";
-  return `FojaQX_${apellido}_${reg.dia}-${reg.mes}-${reg.anio}.pdf`;
+
+  const fecha = [normalized.dia, normalized.mes, normalized.anio]
+    .filter(Boolean)
+    .join("-");
+
+  return `FojaQX_${apellido}${fecha ? `_${fecha}` : ""}.pdf`;
 };
 
 // ─── Iconos SVG ─────────────────────────────────────────────
@@ -59,6 +291,13 @@ const EditIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
@@ -119,36 +358,186 @@ function FilterTag({ label, onRemove }) {
   );
 }
 
+function TemplateCard({ template, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const hasDescription = Boolean(
+    template.preoperatorio ||
+    template.posoperatorio ||
+    template.procedimientoqx ||
+    template.hallazgos
+  );
+
+  return (
+    <article className={`${styles.card} ${styles.templateCard}`}>
+      <div className={styles.templateStripe} />
+      <div className={styles.cardInner}>
+        <div className={styles.templateTop}>
+          <div className={styles.templateIcon} aria-hidden="true">📋</div>
+          <div className={styles.templateHeading}>
+            <span className={styles.templateBadge}>Plantilla quirúrgica</span>
+            <h3 className={styles.templateName}>{template.templateName}</h3>
+            <p className={styles.templateSubtitle}>
+              Datos reutilizables para completar una nueva foja
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.cardPills}>
+          {template.cirujano && (
+            <span className={styles.pill}>
+              <span className={styles.pillDot} />
+              {template.cirujano}
+            </span>
+          )}
+          <span className={`${styles.pill} ${styles.templatePill}`}>
+            Sin datos de paciente
+          </span>
+        </div>
+
+        {!expanded && (
+          <div className={styles.templateSummary}>
+            <span className={styles.templateSummaryLabel}>Procedimiento</span>
+            <p className={styles.cardCollapsed}>
+              {template.procedimientoqx ||
+                template.preoperatorio ||
+                "Esta plantilla todavía no tiene una descripción cargada."}
+            </p>
+          </div>
+        )}
+
+        {expanded && (
+          <div className={styles.expandedRow}>
+            {template.preoperatorio && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Preoperatorio</span>
+                <span className={styles.expandedValue}>{template.preoperatorio}</span>
+              </div>
+            )}
+            {template.posoperatorio && (
+              <div className={styles.expandedField}>
+                <span className={styles.expandedLabel}>Posoperatorio</span>
+                <span className={styles.expandedValue}>{template.posoperatorio}</span>
+              </div>
+            )}
+            {template.procedimientoqx && (
+              <div className={`${styles.expandedField} ${styles.expandedFieldFull}`}>
+                <span className={styles.expandedLabel}>Procedimiento quirúrgico</span>
+                <span className={styles.expandedValue}>{template.procedimientoqx}</span>
+              </div>
+            )}
+            {template.hallazgos && (
+              <div className={`${styles.expandedField} ${styles.expandedFieldFull}`}>
+                <span className={styles.expandedLabel}>Hallazgos</span>
+                <span className={styles.expandedValue}>{template.hallazgos}</span>
+              </div>
+            )}
+            {!hasDescription && (
+              <div className={styles.templateEmptyState}>
+                No hay datos de descripción quirúrgica en esta plantilla.
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={styles.cardFooter}>
+          <button
+            type="button"
+            className={styles.btnToggle}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "Ocultar datos" : "Ver contenido"}
+            <ChevronIcon open={expanded} />
+          </button>
+
+          <div className={styles.cardActions}>
+            <button
+              type="button"
+              className={styles.btnDelete}
+              onClick={() => onDelete(template)}
+            >
+              <TrashIcon /> Eliminar plantilla
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function RegistroCard({ reg, onEdit, onDelete, onToast }) {
+  const registro = normalizeRegistro(reg);
   const [expanded, setExpanded] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [viewing, setViewing] = useState(false);
+
+  const requestPdf = async () => {
+    const payload = buildPdfPayload(reg);
+    const fileName = buildFileName(reg);
+
+    const res = await fetch("/api/fojaqx/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload, fileName }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    return { blob: await res.blob(), fileName };
+  };
+
+  const handleView = async () => {
+    // Se abre inmediatamente para evitar que el navegador bloquee la pestaña.
+    const previewWindow = window.open("", "_blank");
+
+    if (!previewWindow) {
+      onToast?.("✕ Permití las ventanas emergentes para ver el PDF");
+      return;
+    }
+
+    previewWindow.document.title = "Generando vista previa…";
+    previewWindow.document.body.innerHTML = `
+      <div style="font-family:system-ui,sans-serif;padding:32px;text-align:center;color:#44534d">
+        Generando vista previa del PDF…
+      </div>
+    `;
+
+    setViewing(true);
+
+    try {
+      const { blob } = await requestPdf();
+      const url = URL.createObjectURL(blob);
+
+      previewWindow.location.replace(url);
+
+      // El visor ya cargó el recurso; se libera más tarde para evitar fugas.
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      previewWindow.close();
+      onToast?.("✕ No se pudo abrir la vista previa");
+    } finally {
+      setViewing(false);
+    }
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
+
     try {
-      const payload = buildPdfPayload(reg);
-      const fileName = buildFileName(reg);
-
-      const res = await fetch("/api/fojaqx/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, fileName }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
+      const { blob, fileName } = await requestPdf();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
+
       a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
       onToast?.("✓ Foja descargada");
     } catch (err) {
       onToast?.("✕ No se pudo generar el PDF");
@@ -164,67 +553,70 @@ function RegistroCard({ reg, onEdit, onDelete, onToast }) {
         {/* Top */}
         <div className={styles.cardTop}>
           <div>
-            <h3 className={styles.patientName}>{reg.apelidoynombre}</h3>
-            <p className={styles.cardDate}>{formatDate(reg.dia, reg.mes, reg.anio)}</p>
+            <h3 className={styles.patientName}>{registro.apelidoynombre}</h3>
+            <p className={styles.cardDate}>{formatDate(registro.dia, registro.mes, registro.anio)}</p>
           </div>
-          {reg.edad && <span className={styles.ageTag}>{reg.edad} años</span>}
+          {registro.edad && <span className={styles.ageTag}>{registro.edad} años</span>}
         </div>
 
         {/* Pills */}
         <div className={styles.cardPills}>
-          {reg.cirujano && (
+          {registro.cirujano && (
             <span className={styles.pill}>
               <span className={styles.pillDot} />
-              {reg.cirujano}
+              {registro.cirujano}
             </span>
           )}
-          {reg.anestesista && (
+          {registro.anestesista && (
             <span className={styles.pill}>
               <span className={`${styles.pillDot} ${styles.pillDotGold}`} />
-              {reg.anestesista}
+              {registro.anestesista}
             </span>
           )}
-          {formatTime(reg.inichsinicio, reg.hsfin) && (
+          {formatTime(registro.inichsinicio, registro.hsfin) && (
             <span className={styles.pill}>
-              🕐 {formatTime(reg.inichsinicio, reg.hsfin)}
+              🕐 {formatTime(registro.inichsinicio, registro.hsfin)}
             </span>
           )}
         </div>
 
         {/* Procedimiento (resumen) */}
-        {reg.procedimientoqx && (
-          <p className={expanded ? undefined : styles.cardCollapsed}
-            style={expanded ? { fontSize: "0.83rem", color: "#3d4f4a", lineHeight: 1.6, marginBottom: "0.85rem" } : undefined}>
-            {reg.procedimientoqx}
-          </p>
+        {!expanded && registro.procedimientoqx && (
+          <p className={styles.cardCollapsed}>{registro.procedimientoqx}</p>
         )}
 
-        {/* Detalles expandidos */}
+        {/* Descripción quirúrgica completa */}
         {expanded && (
           <div className={styles.expandedRow}>
-            {reg.preoperatorio && (
+            {registro.preoperatorio && (
               <div className={styles.expandedField}>
                 <span className={styles.expandedLabel}>Preoperatorio</span>
-                <span className={styles.expandedValue}>{reg.preoperatorio}</span>
+                <span className={styles.expandedValue}>{registro.preoperatorio}</span>
               </div>
             )}
-            {reg.posoperatorio && (
+            {registro.posoperatorio && (
               <div className={styles.expandedField}>
                 <span className={styles.expandedLabel}>Posoperatorio</span>
-                <span className={styles.expandedValue}>{reg.posoperatorio}</span>
+                <span className={styles.expandedValue}>{registro.posoperatorio}</span>
               </div>
             )}
-            {reg.hallazgos && (
-              <div className={styles.expandedField}>
+            {registro.procedimientoqx && (
+              <div className={`${styles.expandedField} ${styles.expandedFieldFull}`}>
+                <span className={styles.expandedLabel}>Procedimiento quirúrgico</span>
+                <span className={styles.expandedValue}>{registro.procedimientoqx}</span>
+              </div>
+            )}
+            {registro.hallazgos && (
+              <div className={`${styles.expandedField} ${styles.expandedFieldFull}`}>
                 <span className={styles.expandedLabel}>Hallazgos</span>
-                <span className={styles.expandedValue}>{reg.hallazgos}</span>
+                <span className={styles.expandedValue}>{registro.hallazgos}</span>
               </div>
             )}
-            {(reg.primerayudante || reg.segundoayudante) && (
+            {(registro.primerayudante || registro.segundoayudante) && (
               <div className={styles.expandedField}>
                 <span className={styles.expandedLabel}>Ayudantes</span>
                 <span className={styles.expandedValue}>
-                  {[reg.primerayudante, reg.segundoayudante].filter(Boolean).join(", ")}
+                  {[registro.primerayudante, registro.segundoayudante].filter(Boolean).join(", ")}
                 </span>
               </div>
             )}
@@ -238,6 +630,16 @@ function RegistroCard({ reg, onEdit, onDelete, onToast }) {
             <ChevronIcon open={expanded} />
           </button>
           <div className={styles.cardActions}>
+            <button
+              className={styles.btnDownload}
+              onClick={handleView}
+              disabled={viewing || downloading}
+              aria-label={`Ver foja de ${registro.apelidoynombre || "paciente"}`}
+            >
+              {viewing
+                ? <><span className={styles.btnSpinnerDark} /> Abriendo…</>
+                : <><EyeIcon /> Ver</>}
+            </button>
             <button className={styles.btnDownload} onClick={handleDownload} disabled={downloading}>
               {downloading
                 ? <><span className={styles.btnSpinnerDark} /> Generando…</>
@@ -272,10 +674,16 @@ function ConfirmDeleteModal({ registro, onClose, onConfirm }) {
         <div className={styles.confirmIcon}>
           <TrashIcon />
         </div>
-        <h3 className={styles.confirmTitle}>Eliminar foja</h3>
+        <h3 className={styles.confirmTitle}>
+          {registro._type === "template" ? "Eliminar plantilla" : "Eliminar foja"}
+        </h3>
         <p className={styles.confirmText}>
-          ¿Seguro que querés eliminar la foja de{" "}
-          <strong>{registro.apelidoynombre || "este paciente"}</strong>?
+          ¿Seguro que querés eliminar{" "}
+          <strong>
+            {registro._type === "template"
+              ? `la plantilla "${registro.templateName}"`
+              : `la foja de ${registro.apelidoynombre || "este paciente"}`}
+          </strong>?
           Esta acción no se puede deshacer.
         </p>
         <div className={styles.confirmActions}>
@@ -295,7 +703,11 @@ function ConfirmDeleteModal({ registro, onClose, onConfirm }) {
 
 // ─── Modal de edición ────────────────────────────────────────
 function EditModal({ registro, onClose, onSaved }) {
-  const [form, setForm] = useState({ ...registro });
+  const initialRegistro = normalizeRegistro(registro);
+  const [form, setForm] = useState({
+    ...initialRegistro,
+    cirujano: initialRegistro.cirujanoNombre,
+  });
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showPlantillas, setShowPlantillas] = useState(false);
@@ -312,13 +724,35 @@ function EditModal({ registro, onClose, onSaved }) {
     setSaving(true);
     setErrorMsg("");
     try {
-      const registroRef = ref(db, `fojaqx/${registro.id}`);
-      const { id, timestamp, ...datosActualizados } = form;
-      // Mantenemos `cx` sincronizado con los campos editados.
-      const cx = buildCx(datosActualizados);
+      const registroRef = ref(db, registro._dbPath || `fojaqx/${registro.id}`);
+      const { id, timestamp, cirujanoNombre, ...rest } = form;
+      const cirujanoCompleto = joinProfessionalName(
+        form.cirujanoTitulo,
+        form.cirujano,
+      );
+
+      const datosActualizados = {
+        ...rest,
+        cirujano: cirujanoCompleto,
+        cirujanoTitulo: form.cirujanoTitulo || "Dr.",
+      };
+
       await update(registroRef, {
         ...datosActualizados,
-        cx,
+        equipo: {
+          cirujano: cirujanoCompleto,
+          cirujanoTitulo: form.cirujanoTitulo || "Dr.",
+          anestesista: form.anestesista || "",
+          primerayudante: form.primerayudante || "",
+          segundoayudante: form.segundoayudante || "",
+        },
+        descripcion: {
+          preoperatorio: form.preoperatorio || "",
+          posoperatorio: form.posoperatorio || "",
+          procedimientoqx: form.procedimientoqx || "",
+          hallazgos: form.hallazgos || "",
+        },
+        cx: buildCx(datosActualizados),
         updatedAt: new Date().toISOString(),
       });
       onSaved();
@@ -369,8 +803,27 @@ function EditModal({ registro, onClose, onSaved }) {
             <p className={styles.modalSectionTitle}>Equipo Quirúrgico</p>
             <div className={styles.modalGrid2}>
               <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Tratamiento</label>
+                <select
+                  name="cirujanoTitulo"
+                  value={form.cirujanoTitulo || "Dr."}
+                  onChange={handleChange}
+                  className={styles.modalSelect}
+                >
+                  <option value="Dr.">Dr.</option>
+                  <option value="Dra.">Dra.</option>
+                </select>
+              </div>
+              <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Cirujano</label>
-                <input name="cirujano" value={form.cirujano || ""} onChange={handleChange} className={styles.modalInput} />
+                <input
+                  name="cirujano"
+                  value={form.cirujano || ""}
+                  onChange={handleChange}
+                  className={styles.modalInput}
+                  autoComplete="name"
+                  placeholder="Apellido y nombre"
+                />
               </div>
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>Anestesista</label>
@@ -521,9 +974,62 @@ export default function MedicosPage() {
     const unsubscribe = onValue(fojaRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const lista = Object.entries(data)
-          .map(([id, value]) => ({ id, ...value }))
-          .sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+        const reservedNodes = new Set(["plantilla", "plantillas", "registros"]);
+
+        const legacyRecords = Object.entries(data)
+          .filter(([id, value]) => {
+            if (reservedNodes.has(id)) return false;
+            if (!value || typeof value !== "object") return false;
+
+            return Boolean(
+              value.paciente ||
+              value.apelidoynombre ||
+              value.cx ||
+              value.descripcion ||
+              value.equipo
+            );
+          })
+          .map(([id, value]) =>
+            normalizeRegistro(value, id, `fojaqx/${id}`),
+          );
+
+        const nestedRecords =
+          data.registros && typeof data.registros === "object"
+            ? Object.entries(data.registros).map(([id, value]) =>
+              normalizeRegistro(value, id, `fojaqx/registros/${id}`),
+            )
+            : [];
+
+        const oldTemplates =
+          data.plantilla && typeof data.plantilla === "object"
+            ? Object.entries(data.plantilla).map(([id, value]) =>
+              normalizeTemplate(value, id, `fojaqx/plantilla/${id}`),
+            )
+            : [];
+
+        const templates =
+          data.plantillas && typeof data.plantillas === "object"
+            ? Object.entries(data.plantillas).map(([id, value]) =>
+              normalizeTemplate(value, id, `fojaqx/plantillas/${id}`),
+            )
+            : [];
+
+        const lista = [
+          ...legacyRecords,
+          ...nestedRecords,
+          ...oldTemplates,
+          ...templates,
+        ].sort((a, b) => {
+          const dateA = new Date(
+            a.updatedAt || a.timestamp || a.createdAt || 0,
+          ).getTime();
+          const dateB = new Date(
+            b.updatedAt || b.timestamp || b.createdAt || 0,
+          ).getTime();
+
+          return dateB - dateA;
+        });
+
         setRegistros(lista);
         setFilteredRegistros(lista);
       } else {
@@ -543,7 +1049,11 @@ export default function MedicosPage() {
     let results = [...registros];
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      results = results.filter(r => r.apelidoynombre?.toLowerCase().includes(term));
+      results = results.filter((r) =>
+        [r.apelidoynombre, r.templateName, r.cirujano, r.procedimientoqx]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(term)),
+      );
     }
     if (filterCirujano) results = results.filter(r => r.cirujano === filterCirujano);
     if (filterAnestesista) results = results.filter(r => r.anestesista === filterAnestesista);
@@ -554,17 +1064,27 @@ export default function MedicosPage() {
   const handleDelete = async () => {
     if (!deletingRegistro) return;
     try {
-      await remove(ref(db, `fojaqx/${deletingRegistro.id}`));
-      showToast("✓ Foja eliminada");
+      await remove(ref(db, deletingRegistro._dbPath || `fojaqx/${deletingRegistro.id}`));
+      showToast(
+        deletingRegistro._type === "template"
+          ? "✓ Plantilla eliminada"
+          : "✓ Foja eliminada",
+      );
     } catch (err) {
-      showToast("✕ No se pudo eliminar la foja");
+      showToast(
+        deletingRegistro._type === "template"
+          ? "✕ No se pudo eliminar la plantilla"
+          : "✕ No se pudo eliminar la foja",
+      );
     } finally {
       setDeletingRegistro(null);
     }
   };
 
-  const cirujanosUnicos = [...new Set(registros.map(r => r.cirujano).filter(Boolean))];
-  const anestesistasUnicos = [...new Set(registros.map(r => r.anestesista).filter(Boolean))];
+  const fojas = registros.filter((item) => item._type !== "template");
+  const plantillas = registros.filter((item) => item._type === "template");
+  const cirujanosUnicos = [...new Set(fojas.map(r => r.cirujano).filter(Boolean))];
+  const anestesistasUnicos = [...new Set(fojas.map(r => r.anestesista).filter(Boolean))];
 
   const hasActiveFilters = filterCirujano || filterAnestesista;
 
@@ -608,10 +1128,10 @@ export default function MedicosPage() {
 
           {/* Stats */}
           <div className={styles.statsBar}>
-            <StatChip num={registros.length} label="Total" />
-            <StatChip num={filteredRegistros.length} label="Filtrados" />
+            <StatChip num={fojas.length} label="Fojas" />
+            <StatChip num={plantillas.length} label="Plantillas" />
+            <StatChip num={filteredRegistros.length} label="Visibles" />
             <StatChip num={cirujanosUnicos.length} label="Cirujanos" />
-            <StatChip num={anestesistasUnicos.length} label="Anestesistas" />
           </div>
 
           {/* Filtros */}
@@ -620,7 +1140,9 @@ export default function MedicosPage() {
               <span className={styles.searchIcon}><SearchIcon /></span>
               <input
                 type="search"
-                placeholder="Buscar paciente…"
+                name="buscarFoja"
+                autoComplete="off"
+                placeholder="Buscar paciente, plantilla, cirujano o procedimiento…"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className={styles.searchInput}
@@ -672,13 +1194,20 @@ export default function MedicosPage() {
           ) : (
             <div className={styles.grid}>
               {filteredRegistros.map((reg, i) => (
-                <div key={reg.id} style={{ animationDelay: `${Math.min(i * 40, 300)}ms` }}>
-                  <RegistroCard
-                    reg={reg}
-                    onEdit={setEditingRegistro}
-                    onDelete={setDeletingRegistro}
-                    onToast={showToast}
-                  />
+                <div key={`${reg._type}-${reg.id}`} style={{ animationDelay: `${Math.min(i * 40, 300)}ms` }}>
+                  {reg._type === "template" ? (
+                    <TemplateCard
+                      template={reg}
+                      onDelete={setDeletingRegistro}
+                    />
+                  ) : (
+                    <RegistroCard
+                      reg={reg}
+                      onEdit={setEditingRegistro}
+                      onDelete={setDeletingRegistro}
+                      onToast={showToast}
+                    />
+                  )}
                 </div>
               ))}
             </div>

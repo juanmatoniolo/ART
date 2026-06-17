@@ -1014,3 +1014,312 @@
     max-width: 1100px;
   }
 }
+
+/* ─── DESCRIPCIÓN QUIRÚRGICA COMPATIBLE ─────────────── */
+.expandedFieldFull {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.expandedValue {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cardCollapsed {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.modalSelect {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath fill='none' stroke='%23887766' stroke-width='1.5' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.4rem;
+}
+
+@media (max-width: 599px) {
+
+  .modalGrid2,
+  .modalGrid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .cardActions {
+    width: 100%;
+  }
+
+  .btnDownload,
+  .btnEdit,
+  .btnDelete {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .card,
+  .modal,
+  .confirmModal,
+  .toast {
+    animation: none;
+  }
+
+  .card,
+  .btnEdit,
+  .btnDownload,
+  .btnDelete {
+    transition: none;
+  }
+}
+
+/* ─── TARJETAS DE PLANTILLAS ─────────────────────────── */
+.templateCard {
+  border: 1px solid rgba(98, 82, 145, 0.18);
+  background:
+    linear-gradient(145deg, rgba(248, 246, 255, 0.72), #ffffff 42%);
+}
+
+.templateStripe {
+  height: 4px;
+  background: linear-gradient(90deg, #67558f, #9b87c4, #d4b87a);
+}
+
+.templateTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 0.9rem;
+}
+
+.templateIcon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 0.9rem;
+  background: #f0ebfa;
+  border: 1px solid rgba(103, 85, 143, 0.2);
+  font-size: 1.25rem;
+}
+
+.templateHeading {
+  min-width: 0;
+  flex: 1;
+}
+
+.templateBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #67558f;
+  color: #ffffff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.templateName {
+  margin: 0;
+  color: #2d2640;
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.05rem, 3vw, 1.25rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.templateSubtitle {
+  margin: 0.25rem 0 0;
+  color: #756d86;
+  font-size: 0.77rem;
+  line-height: 1.4;
+}
+
+.templatePill {
+  border-color: rgba(103, 85, 143, 0.2);
+  background: #f6f2fc;
+  color: #67558f;
+}
+
+.templateSummary {
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 0.85rem;
+  border-radius: 0.85rem;
+  background: rgba(103, 85, 143, 0.06);
+  border: 1px solid rgba(103, 85, 143, 0.12);
+}
+
+.templateSummaryLabel {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #67558f;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.templateSummary .cardCollapsed {
+  margin: 0;
+  color: #514a60;
+}
+
+.templateEmptyState {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: #faf7f2;
+  color: #756d66;
+  font-size: 0.82rem;
+  text-align: center;
+  border: 1px dashed #d8cec1;
+}
+
+@media (max-width: 599px) {
+  .templateTop {
+    gap: 0.7rem;
+  }
+
+  .templateIcon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .templateCard .cardActions,
+  .templateCard .btnDelete {
+    width: 100%;
+  }
+}
+
+
+/* ─── PLANTILLAS DIFERENCIADAS ───────────────────────── */
+.templateCard {
+  background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+  border: 1.5px solid rgba(183, 145, 62, 0.28);
+}
+
+.templateStripe {
+  height: 4px;
+  background: linear-gradient(90deg, #b78f3e, #d4b87a);
+}
+
+.templateTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 0.9rem;
+}
+
+.templateIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 0.85rem;
+  background: #f5eed8;
+  font-size: 1.25rem;
+}
+
+.templateHeading {
+  min-width: 0;
+}
+
+.templateBadge {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #f5eed8;
+  color: #7b6126;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.templateName {
+  margin: 0;
+  color: #2b2b25;
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.templateSubtitle {
+  margin: 0.2rem 0 0;
+  color: #746f63;
+  font-size: 0.78rem;
+}
+
+.templatePill {
+  background: #fff8e5;
+  border-color: rgba(183, 145, 62, 0.25);
+  color: #6f571f;
+}
+
+.templateSummary {
+  padding: 0.8rem;
+  border-radius: 0.85rem;
+  background: #fffaf0;
+  border: 1px solid rgba(183, 145, 62, 0.16);
+  margin-bottom: 0.85rem;
+}
+
+.templateSummaryLabel {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #7b6126;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Botón visible al comienzo del contenido expandido. */
+.collapseTop {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1.5px solid rgba(44, 122, 94, 0.28);
+  border-radius: 0.8rem;
+  background: #f0f7f4;
+  color: #245f4b;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.collapseTop:hover {
+  background: #e3f1eb;
+}
+
+.collapseTop:focus-visible,
+.btnToggle:focus-visible,
+.btnDownload:focus-visible,
+.btnEdit:focus-visible,
+.btnDelete:focus-visible {
+  outline: 3px solid rgba(44, 122, 94, 0.25);
+  outline-offset: 2px;
+}
+
+.expandedFieldFull {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.expandedValue {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
