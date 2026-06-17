@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { ref, push, remove, onValue } from "firebase/database";
+import { ref, push, update, remove, onValue } from "firebase/database";
 
 /**
  * Plantillas de procedimiento quirúrgico (guardar/reutilizar).
@@ -45,7 +45,7 @@ export default function PlantillasProcedimientoModal({ form = {}, onAplicar, onC
     const [busqueda, setBusqueda] = useState("");
 
     useEffect(() => {
-        const r = ref(db, "fojaqx/plantillas");
+        const r = ref(db, "plantillas_qx");
         return onValue(r, (snap) => {
             const v = snap.val() || {};
             setPlantillas(
@@ -70,7 +70,7 @@ export default function PlantillasProcedimientoModal({ form = {}, onAplicar, onC
         if (!nombre.trim() || !hayDatos) return;
         setGuardando(true);
         try {
-            await push(ref(db, "fojaqx/plantillas"), {
+            await push(ref(db, "plantillas_qx"), {
                 nombre: nombre.trim(),
                 ...pick(form, incluirEquipo),
                 createdAt: Date.now(),
@@ -89,7 +89,7 @@ export default function PlantillasProcedimientoModal({ form = {}, onAplicar, onC
 
     const eliminar = async (p) => {
         if (!confirm(`¿Eliminar la plantilla "${p.nombre}"?`)) return;
-        try { await remove(ref(db, `fojaqx/plantillas/${p.id}`)); } catch (e) { console.error(e); }
+        try { await remove(ref(db, `plantillas_qx/${p.id}`)); } catch (e) { console.error(e); }
     };
 
     return (

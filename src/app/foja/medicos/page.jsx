@@ -450,15 +450,7 @@ function TemplateCard({ template, onDelete }) {
             <ChevronIcon open={expanded} />
           </button>
 
-          <div className={styles.cardActions}>
-            <button
-              type="button"
-              className={styles.btnDelete}
-              onClick={() => onDelete(template)}
-            >
-              <TrashIcon /> Eliminar plantilla
-            </button>
-          </div>
+
         </div>
       </div>
     </article>
@@ -648,9 +640,7 @@ function RegistroCard({ reg, onEdit, onDelete, onToast }) {
             <button className={styles.btnEdit} onClick={() => onEdit(reg)}>
               <EditIcon /> Editar
             </button>
-            <button className={styles.btnDelete} onClick={() => onDelete(reg)}>
-              <TrashIcon /> Eliminar
-            </button>
+
           </div>
         </div>
       </div>
