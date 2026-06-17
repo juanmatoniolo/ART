@@ -84,16 +84,16 @@ Puede concurrir con:
 
 • *Kinesióloga Rivas Daniela*
 📍 9 de Julio 1870
-👉 Escribirle: https://wa.me/5493456440878
+👉 Escribirle: https://wa.me/+5493456440878
 
 • *Kinesióloga Avancini Natalia*
 📍 Rivadavia 2665
-👉 Escribirle: https://wa.me/54933456513866
+👉 Escribirle: https://wa.me/+5493456513866
 
 
 
-*Iportante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia"
-`;
+*Importante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia*`
+;
 
     }
 
