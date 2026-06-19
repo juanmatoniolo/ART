@@ -3,15 +3,12 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import MedyDescartablesPage from "@/components/medicacion/page";
 import { db } from "@/lib/firebase";
-import {
-    ref,
-    onValue,
-    set,
-    remove,
-    update,
-    get,
-} from "firebase/database";
+import { ref, onValue, set, remove, update, get } from "firebase/database";
 import styles from "./insumosAdmin.module.css";
+
+/* ===========================================================
+   Helpers
+   =========================================================== */
 
 /** Sanitiza claves para Firebase */
 const limpiarKey = (str) =>
@@ -21,6 +18,10 @@ const limpiarKey = (str) =>
         .replace(/_+/g, "_")
         .replace(/^_+|_+$/g, "")
         .trim();
+
+/** Nombre legible (espacios, sin guiones bajos) */
+const limpiarNombre = (str) =>
+    String(str ?? "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
 /** Normaliza para búsqueda */
 const normalizeText = (input) =>
@@ -37,9 +38,46 @@ const matchesAllTerms = (texto, busqueda) => {
     const t = normalizeText(texto);
     const q = normalizeText(busqueda);
     if (!q) return true;
-    const terms = q.split(" ").filter(Boolean);
-    return terms.every((term) => t.includes(term));
+    return q.split(" ").filter(Boolean).every((term) => t.includes(term));
 };
+
+/** Presentaciones por tipo (única fuente de verdad, sin repetir en el JSX) */
+const PRESENTACIONES = {
+    medicamentos: [
+        ["ampolla", "Ampolla"], ["vial", "Vial"], ["tabletas", "Tabletas"],
+        ["frasco", "Frasco"], ["bolsa", "Bolsa"], ["jeringa", "Jeringa"],
+        ["gasas", "Gasas"], ["tubo", "Tubo"], ["tiras", "Tiras"],
+    ],
+    descartables: [
+        ["unidad", "Unidad"], ["rollo", "Rollo"], ["juego", "Juego"],
+        ["bolsa", "Bolsa"], ["frasco", "Frasco"], ["kit", "Kit"],
+        ["set", "Set"], ["tubo", "Tubo"],
+    ],
+};
+
+const OpcionesPresentacion = ({ tipo }) =>
+    PRESENTACIONES[tipo].map(([v, label]) => (
+        <option key={v} value={v}>{label}</option>
+    ));
+
+const tipoSingular = (tipo) => (tipo === "medicamentos" ? "medicamento" : "descartable");
+
+/** Detecta nombres que colisionan en una misma key */
+const duplicadosPorKey = (lista) => {
+    const seen = new Set();
+    const dup = new Set();
+    for (const it of lista) {
+        const k = limpiarKey(it.nombre);
+        if (!k) continue;
+        if (seen.has(k)) dup.add(limpiarNombre(it.nombre));
+        else seen.add(k);
+    }
+    return [...dup];
+};
+
+/* ===========================================================
+   Componente
+   =========================================================== */
 
 export default function InsumosAdmin() {
     const [tab, setTab] = useState("ver");
@@ -53,8 +91,31 @@ export default function InsumosAdmin() {
     const [modificados, setModificados] = useState({});
     const [archivoPreview, setArchivoPreview] = useState([]);
     const [archivo, setArchivo] = useState(null);
+    const [tema, setTema] = useState("claro");
 
-    /* === Escuchar Firebase - FIXED === */
+    /* === Tema: leer y persistir preferencia === */
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const guardado = localStorage.getItem("insumos-tema");
+        if (guardado === "claro" || guardado === "oscuro") setTema(guardado);
+    }, []);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") localStorage.setItem("insumos-tema", tema);
+    }, [tema]);
+
+    /* === Reset de presentación al cambiar de tipo === */
+    useEffect(() => {
+        setNuevaPresentacion(PRESENTACIONES[tipo][0][0]);
+    }, [tipo]);
+
+    /* === Helper único para mensajes (evita setTimeout repetidos) === */
+    const mostrarMensaje = (texto, ms = 2500) => {
+        setMensaje(texto);
+        if (ms) setTimeout(() => setMensaje(""), ms);
+    };
+
+    /* === Escuchar Firebase === */
     useEffect(() => {
         if (tab !== "admin") return;
 
@@ -63,13 +124,17 @@ export default function InsumosAdmin() {
             if (!snap.exists()) return setItems([]);
 
             const data = snap.val();
-            const lista = Object.entries(data).map(([key, itemData]) => ({
-                key, // Guardamos la key original
-                nombre: itemData.nombre || key,
-                precio: typeof itemData.precioReferencia === 'number' ? itemData.precioReferencia : 
-                       typeof itemData.precio === 'number' ? itemData.precio : 0,
-                presentacion: itemData.presentacion || "unidad",
-                tipo: itemData.tipo || (tipo === "medicamentos" ? "medicamento" : "descartable")
+            const lista = Object.entries(data).map(([key, d]) => ({
+                key,
+                nombre: d.nombre || limpiarNombre(key),
+                precio:
+                    typeof d.precioReferencia === "number" ? d.precioReferencia :
+                        typeof d.precio === "number" ? d.precio : 0,
+                presentacion: d.presentacion || "unidad",
+                tipo: d.tipo || tipoSingular(tipo),
+                // Conservamos el stock para no resetearlo al editar
+                stockActual: typeof d.stockActual === "number" ? d.stockActual : 0,
+                stockMinimo: typeof d.stockMinimo === "number" ? d.stockMinimo : 10,
             }));
 
             setItems(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
@@ -78,143 +143,146 @@ export default function InsumosAdmin() {
         return () => unsub();
     }, [tab, tipo]);
 
-    /* === Agregar - FIXED === */
+    /* === Agregar === */
     const handleAgregar = async () => {
-        if (!nuevoNombre.trim() || !String(nuevoPrecio).trim()) {
-            setMensaje("⚠️ Completá nombre y precio.");
-            return;
-        }
-
-        const key = limpiarKey(nuevoNombre);
+        const nombre = limpiarNombre(nuevoNombre);
+        const key = limpiarKey(nombre);
         const price = parseFloat(nuevoPrecio);
 
-        if (!key) {
-            setMensaje("⚠️ El nombre no es válido.");
-            return;
+        if (!nombre || !String(nuevoPrecio).trim()) {
+            return mostrarMensaje("⚠️ Completá nombre y precio.");
         }
-        if (isNaN(price) || price < 0) {
-            setMensaje("⚠️ El precio no es válido.");
-            return;
-        }
-
-        const itemData = {
-            nombre: nuevoNombre,
-            tipo: tipo === "medicamentos" ? "medicamento" : "descartable",
-            presentacion: nuevaPresentacion,
-            stockActual: 0,
-            stockMinimo: 10,
-            precioReferencia: price,
-            activo: true
-        };
+        if (!key) return mostrarMensaje("⚠️ El nombre no es válido.");
+        if (isNaN(price) || price < 0) return mostrarMensaje("⚠️ El precio no es válido.");
 
         try {
-            await set(ref(db, `medydescartables/${tipo}/${key}`), itemData);
+            await set(ref(db, `medydescartables/${tipo}/${key}`), {
+                nombre,
+                tipo: tipoSingular(tipo),
+                presentacion: nuevaPresentacion,
+                stockActual: 0,
+                stockMinimo: 10,
+                precioReferencia: price,
+                activo: true,
+            });
             setNuevoNombre("");
             setNuevoPrecio("");
-            setNuevaPresentacion("ampolla");
-            setMensaje("✅ Producto agregado correctamente.");
-            setTimeout(() => setMensaje(""), 2500);
+            setNuevaPresentacion(PRESENTACIONES[tipo][0][0]);
+            mostrarMensaje("✅ Producto agregado correctamente.");
         } catch (error) {
             console.error("Error al agregar:", error);
-            setMensaje("❌ Error al agregar producto.");
-            setTimeout(() => setMensaje(""), 2500);
+            mostrarMensaje("❌ Error al agregar producto.");
         }
     };
 
     /* === Eliminar === */
     const handleEliminar = async (key) => {
-        const nombreMostrar = items.find(item => item.key === key)?.nombre || key;
-        if (!confirm(`¿Eliminar "${nombreMostrar.replace(/_/g, " ")}"?`)) return;
+        const nombre = items.find((i) => i.key === key)?.nombre || limpiarNombre(key);
+        if (!confirm(`¿Eliminar "${nombre}"?`)) return;
 
         try {
             await remove(ref(db, `medydescartables/${tipo}/${key}`));
-            setMensaje("🗑️ Producto eliminado.");
-            setTimeout(() => setMensaje(""), 2500);
+            mostrarMensaje("🗑️ Producto eliminado.");
         } catch (error) {
             console.error("Error al eliminar:", error);
-            setMensaje("❌ Error al eliminar producto.");
-            setTimeout(() => setMensaje(""), 2500);
+            mostrarMensaje("❌ Error al eliminar producto.");
         }
     };
 
-    /* === Editar - FIXED === */
-    const handleEditar = (key, campo, nuevoValor) => {
+    /* === Editar (en memoria) === */
+    const handleEditar = (key, campo, valor) => {
         setModificados((prev) => ({
             ...prev,
             [key]: {
                 ...prev[key],
-                [campo]: campo === 'precio' ?
-                    (isNaN(parseFloat(nuevoValor)) ? 0 : parseFloat(nuevoValor)) :
-                    nuevoValor
-            }
+                [campo]:
+                    campo === "precio"
+                        ? (isNaN(parseFloat(valor)) ? 0 : parseFloat(valor))
+                        : valor,
+            },
         }));
     };
 
-    /* === Guardar modificaciones - FIXED === */
+    /* === Guardar modificaciones (incluye renombrar con migración de key) === */
     const guardarModificaciones = async () => {
-        if (Object.keys(modificados).length === 0) return;
+        const keys = Object.keys(modificados);
+        if (keys.length === 0) return;
 
-        try {
-            const updates = {};
-            for (const [key, cambios] of Object.entries(modificados)) {
-                const itemOriginal = items.find(item => item.key === key);
-                if (!itemOriginal) continue;
+        const updates = {};
+        const keysExistentes = new Set(items.map((i) => i.key));
 
-                // Construir objeto actualizado
-                const itemActualizado = {
-                    nombre: itemOriginal.nombre,
-                    tipo: itemOriginal.tipo,
-                    presentacion: cambios.presentacion !== undefined ? cambios.presentacion : itemOriginal.presentacion,
-                    stockActual: itemOriginal.stockActual || 0,
-                    stockMinimo: itemOriginal.stockMinimo || 10,
-                    precioReferencia: cambios.precio !== undefined ? Number(cambios.precio) : itemOriginal.precio,
-                    activo: true
-                };
+        for (const key of keys) {
+            const cambios = modificados[key];
+            const original = items.find((i) => i.key === key);
+            if (!original) continue;
 
-                updates[`medydescartables/${tipo}/${key}`] = itemActualizado;
+            const nombreFinal = limpiarNombre(cambios.nombre ?? original.nombre);
+            const nuevoKey = limpiarKey(nombreFinal);
+
+            if (!nuevoKey) {
+                return mostrarMensaje("⚠️ Hay un nombre vacío o inválido.", 3000);
+            }
+            // Colisión: el nuevo nombre ya existe en otro registro
+            if (nuevoKey !== key && keysExistentes.has(nuevoKey)) {
+                return mostrarMensaje(`⚠️ Ya existe un producto llamado "${nombreFinal}".`, 4000);
             }
 
+            const itemActualizado = {
+                nombre: nombreFinal,
+                tipo: original.tipo,
+                presentacion: cambios.presentacion ?? original.presentacion,
+                stockActual: original.stockActual,
+                stockMinimo: original.stockMinimo,
+                precioReferencia:
+                    cambios.precio !== undefined ? Number(cambios.precio) : Number(original.precio),
+                activo: true,
+            };
+
+            if (nuevoKey !== key) {
+                updates[`medydescartables/${tipo}/${key}`] = null; // elimina el registro anterior
+                keysExistentes.delete(key);
+                keysExistentes.add(nuevoKey);
+            }
+            updates[`medydescartables/${tipo}/${nuevoKey}`] = itemActualizado;
+        }
+
+        try {
             await update(ref(db), updates);
-            setMensaje("💾 Cambios guardados correctamente ✅");
             setModificados({});
-            setTimeout(() => setMensaje(""), 3000);
+            mostrarMensaje("💾 Cambios guardados correctamente ✅", 3000);
         } catch (error) {
             console.error("Error al guardar modificaciones:", error);
-            setMensaje("❌ Error al guardar cambios.");
-            setTimeout(() => setMensaje(""), 3000);
+            mostrarMensaje("❌ Error al guardar cambios.", 3000);
         }
     };
 
-    const filtrados = useMemo(() => {
-        return items.filter((item) => matchesAllTerms(item.nombre, busqueda));
-    }, [items, busqueda]);
+    const filtrados = useMemo(
+        () => items.filter((item) => matchesAllTerms(item.nombre, busqueda)),
+        [items, busqueda]
+    );
 
     /* === Descargar plantilla === */
     const descargarPlantilla = () => {
         const wb = XLSX.utils.book_new();
-        const datos = [["Nombre", "Precio", "Presentacion"]];
-        const ws = XLSX.utils.aoa_to_sheet(datos);
+        const ws = XLSX.utils.aoa_to_sheet([["Nombre", "Precio", "Presentacion"]]);
         XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
         XLSX.writeFile(wb, "plantilla_insumos.xlsx");
     };
 
-    /* === Descargar lista - FIXED === */
+    /* === Exportar a Excel === */
     const exportarExcel = (rows, filenameBase) => {
         const wb = XLSX.utils.book_new();
-
         const sheetData = [
             ["Tipo", "Nombre", "Presentacion", "Precio"],
             ...rows.map((r) => [
                 r.tipo === "medicamento" ? "Medicación" : "Descartable",
-                String(r.nombre).replace(/_/g, " "),
+                limpiarNombre(r.nombre),
                 r.presentacion,
                 Number(r.precio ?? 0),
             ]),
         ];
-
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
         ws["!cols"] = [{ wch: 16 }, { wch: 40 }, { wch: 20 }, { wch: 14 }];
-
         XLSX.utils.book_append_sheet(wb, ws, "Lista");
 
         const fecha = new Date().toISOString().slice(0, 10);
@@ -223,52 +291,38 @@ export default function InsumosAdmin() {
 
     const descargarLista = async (scope) => {
         try {
-            setMensaje("📥 Generando Excel...");
-
+            mostrarMensaje("📥 Generando Excel...", 0);
             const rows = [];
 
-            const fetchCategoria = async (cat, label) => {
+            const fetchCategoria = async (cat) => {
                 const snap = await get(ref(db, `medydescartables/${cat}`));
                 if (!snap.exists()) return;
-
-                const data = snap.val() || {};
-                for (const [key, itemData] of Object.entries(data)) {
+                for (const [key, d] of Object.entries(snap.val() || {})) {
                     rows.push({
-                        tipo: itemData.tipo || (cat === "medicamentos" ? "medicamento" : "descartable"),
-                        nombre: itemData.nombre || key,
-                        presentacion: itemData.presentacion || "unidad",
-                        precio: itemData.precioReferencia || itemData.precio || 0
+                        tipo: d.tipo || tipoSingular(cat),
+                        nombre: d.nombre || limpiarNombre(key),
+                        presentacion: d.presentacion || "unidad",
+                        precio: d.precioReferencia || d.precio || 0,
                     });
                 }
             };
 
-            if (scope === "medicamentos") {
-                await fetchCategoria("medicamentos", "Medicacion");
-                rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                exportarExcel(rows, "lista_medicacion");
-                setMensaje("✅ Excel de medicación descargado.");
-            }
+            const planes = {
+                medicamentos: { cats: ["medicamentos"], file: "lista_medicacion", msg: "✅ Excel de medicación descargado." },
+                descartables: { cats: ["descartables"], file: "lista_descartables", msg: "✅ Excel de descartables descargado." },
+                ambos: { cats: ["medicamentos", "descartables"], file: "lista_medicacion_y_descartables", msg: "✅ Excel completo descargado." },
+            };
 
-            if (scope === "descartables") {
-                await fetchCategoria("descartables", "Descartable");
-                rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                exportarExcel(rows, "lista_descartables");
-                setMensaje("✅ Excel de descartables descargado.");
-            }
+            const plan = planes[scope];
+            if (!plan) return;
 
-            if (scope === "ambos") {
-                await fetchCategoria("medicamentos", "Medicacion");
-                await fetchCategoria("descartables", "Descartable");
-                rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                exportarExcel(rows, "lista_medicacion_y_descartables");
-                setMensaje("✅ Excel completo descargado.");
-            }
-
-            setTimeout(() => setMensaje(""), 3000);
+            for (const cat of plan.cats) await fetchCategoria(cat);
+            rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            exportarExcel(rows, plan.file);
+            mostrarMensaje(plan.msg, 3000);
         } catch (err) {
             console.error(err);
-            setMensaje("❌ Error al generar el Excel.");
-            setTimeout(() => setMensaje(""), 3500);
+            mostrarMensaje("❌ Error al generar el Excel.", 3500);
         }
     };
 
@@ -276,122 +330,100 @@ export default function InsumosAdmin() {
     const handleExcelUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         setArchivo(file);
 
         const reader = new FileReader();
         reader.onload = (evt) => {
-            const bstr = evt.target.result;
-            const wb = XLSX.read(bstr, { type: "binary" });
-
-            const wsname = wb.SheetNames[0];
-            const ws = wb.Sheets[wsname];
-
+            const wb = XLSX.read(evt.target.result, { type: "binary" });
+            const ws = wb.Sheets[wb.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
             const rows = data
                 .slice(1)
                 .filter((r) => r[0] && r[1])
                 .map(([nombre, precio, presentacion]) => ({
-                    nombre: limpiarKey(nombre),
+                    nombre: limpiarNombre(nombre),
                     precio: parseFloat(precio) || 0,
-                    presentacion: presentacion || (tipo === "medicamentos" ? "ampolla" : "unidad")
+                    presentacion: presentacion || PRESENTACIONES[tipo][0][0],
                 }))
-                .filter((r) => r.nombre);
+                .filter((r) => limpiarKey(r.nombre));
 
-            const seen = new Set();
-            const duplicates = new Set();
-
-            rows.forEach((item) => {
-                if (seen.has(item.nombre)) duplicates.add(item.nombre);
-                else seen.add(item.nombre);
-            });
-
-            if (duplicates.size > 0) {
+            const dups = duplicadosPorKey(rows);
+            if (dups.length) {
                 setArchivoPreview([]);
-                setMensaje(
-                    "⚠️ Existen productos duplicados en el Excel: " +
-                    Array.from(duplicates).join(", ")
-                );
-                setTimeout(() => setMensaje(""), 5000);
-                return;
+                return mostrarMensaje("⚠️ Productos duplicados en el Excel: " + dups.join(", "), 5000);
             }
-
             setArchivoPreview(rows);
         };
-
         reader.readAsBinaryString(file);
     };
 
     /* === Cargar a Firebase === */
     const confirmarCargaExcel = async () => {
-        if (!archivoPreview.length) {
-            setMensaje("⚠️ No hay datos para cargar.");
-            return;
-        }
+        if (!archivoPreview.length) return mostrarMensaje("⚠️ No hay datos para cargar.");
 
-        const seen = new Set();
-        const duplicates = new Set();
-        for (const it of archivoPreview) {
-            const k = limpiarKey(it.nombre);
-            if (!k) continue;
-            if (seen.has(k)) duplicates.add(k);
-            else seen.add(k);
-        }
-        if (duplicates.size > 0) {
-            setMensaje(
-                "⚠️ Hay duplicados en la previsualización: " +
-                Array.from(duplicates).join(", ")
-            );
-            setTimeout(() => setMensaje(""), 5000);
-            return;
+        const dups = duplicadosPorKey(archivoPreview);
+        if (dups.length) {
+            return mostrarMensaje("⚠️ Hay duplicados en la previsualización: " + dups.join(", "), 5000);
         }
 
         try {
             const updates = {};
             archivoPreview.forEach((item) => {
                 const key = limpiarKey(item.nombre);
-                const price = parseFloat(item.precio) || 0;
                 if (!key) return;
-
                 updates[`medydescartables/${tipo}/${key}`] = {
-                    nombre: item.nombre.replace(/_/g, " "),
-                    tipo: tipo === "medicamentos" ? "medicamento" : "descartable",
-                    presentacion: item.presentacion || (tipo === "medicamentos" ? "ampolla" : "unidad"),
+                    nombre: limpiarNombre(item.nombre),
+                    tipo: tipoSingular(tipo),
+                    presentacion: item.presentacion || PRESENTACIONES[tipo][0][0],
                     stockActual: 0,
                     stockMinimo: 10,
-                    precioReferencia: price,
-                    activo: true
+                    precioReferencia: parseFloat(item.precio) || 0,
+                    activo: true,
                 };
             });
 
             await update(ref(db), updates);
-
             setArchivoPreview([]);
             setArchivo(null);
-            setMensaje("✅ Archivo Excel cargado correctamente.");
-            setTimeout(() => setMensaje(""), 3000);
+            mostrarMensaje("✅ Archivo Excel cargado correctamente.", 3000);
         } catch (error) {
             console.error("Error al cargar Excel:", error);
-            setMensaje("❌ Error al cargar archivo Excel.");
-            setTimeout(() => setMensaje(""), 3000);
+            mostrarMensaje("❌ Error al cargar archivo Excel.", 3000);
         }
     };
 
-    return (
-        <div className={styles.wrapper}>
-            <h2 className={styles.title}>🧪 Insumos: Medicación y Descartables</h2>
+    /* === Editar fila de la previsualización === */
+    const editarPreview = (i, campo, valor) => {
+        setArchivoPreview((prev) => {
+            const copy = [...prev];
+            copy[i] = { ...copy[i], [campo]: valor };
+            return copy;
+        });
+    };
 
-            {mensaje && (
-                <div
-                    className={`${styles.toast} ${mensaje.includes("✅") || mensaje.includes("💾")
-                        ? styles.toastSuccess
-                        : styles.toastInfo
-                        }`}
+    /* === Clases dinámicas === */
+    const toastVariant = mensaje.includes("❌")
+        ? styles.toastError
+        : mensaje.includes("✅") || mensaje.includes("💾")
+            ? styles.toastSuccess
+            : styles.toastInfo;
+
+    return (
+        <div className={`${styles.wrapper} ${tema === "oscuro" ? styles.dark : ""}`}>
+            <div className={styles.headerBar}>
+                <h2 className={styles.title}>🧪 Insumos: Medicación y Descartables</h2>
+                <button
+                    className={styles.themeToggle}
+                    onClick={() => setTema((t) => (t === "oscuro" ? "claro" : "oscuro"))}
+                    aria-label="Cambiar tema"
+                    title="Cambiar tema"
                 >
-                    {mensaje}
-                </div>
-            )}
+                    {tema === "oscuro" ? "☀️ Claro" : "🌙 Oscuro"}
+                </button>
+            </div>
+
+            {mensaje && <div className={`${styles.toast} ${toastVariant}`}>{mensaje}</div>}
 
             {/* Tabs */}
             <div className={styles.tabs}>
@@ -401,14 +433,12 @@ export default function InsumosAdmin() {
                 >
                     💊 Med + 🧷 Descartables
                 </button>
-
                 <button
                     className={`${styles.tab} ${tab === "admin" ? styles.active : ""}`}
                     onClick={() => setTab("admin")}
                 >
                     ⚙️ Administración
                 </button>
-
                 <button
                     className={`${styles.tab} ${tab === "masiva" ? styles.active : ""}`}
                     onClick={() => setTab("masiva")}
@@ -417,7 +447,7 @@ export default function InsumosAdmin() {
                 </button>
             </div>
 
-            {/* ✅ Dropdown único: Descargar lista */}
+            {/* Descargar lista */}
             <div className={styles.content} style={{ paddingTop: 0, marginBottom: "1.5rem" }}>
                 <select
                     className={styles.selectTipo}
@@ -426,12 +456,10 @@ export default function InsumosAdmin() {
                         const value = e.target.value;
                         if (!value) return;
                         descargarLista(value);
-                        e.target.value = ""; // vuelve al placeholder
+                        e.target.value = "";
                     }}
                 >
-                    <option value="" disabled>
-                        📥 Descargar lista
-                    </option>
+                    <option value="" disabled>📥 Descargar lista</option>
                     <option value="medicamentos">💊 Medicación</option>
                     <option value="descartables">🧷 Descartables</option>
                     <option value="ambos">📦 Medicación + Descartables</option>
@@ -491,30 +519,7 @@ export default function InsumosAdmin() {
                                 value={nuevaPresentacion}
                                 onChange={(e) => setNuevaPresentacion(e.target.value)}
                             >
-                                {tipo === "medicamentos" ? (
-                                    <>
-                                        <option value="ampolla">Ampolla</option>
-                                        <option value="vial">Vial</option>
-                                        <option value="tabletas">Tabletas</option>
-                                        <option value="frasco">Frasco</option>
-                                        <option value="bolsa">Bolsa</option>
-                                        <option value="jeringa">Jeringa</option>
-                                        <option value="gasas">Gasas</option>
-                                        <option value="tubo">Tubo</option>
-                                        <option value="tiras">Tiras</option>
-                                    </>
-                                ) : (
-                                    <>
-                                        <option value="unidad">Unidad</option>
-                                        <option value="rollo">Rollo</option>
-                                        <option value="juego">Juego</option>
-                                        <option value="bolsa">Bolsa</option>
-                                        <option value="frasco">Frasco</option>
-                                        <option value="kit">Kit</option>
-                                        <option value="set">Set</option>
-                                        <option value="tubo">Tubo</option>
-                                    </>
-                                )}
+                                <OpcionesPresentacion tipo={tipo} />
                             </select>
                             <button className={styles.btnPrimary} onClick={handleAgregar}>
                                 💾 Guardar
@@ -532,7 +537,6 @@ export default function InsumosAdmin() {
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             {filtrados.length === 0 ? (
                                 <tr>
@@ -541,39 +545,25 @@ export default function InsumosAdmin() {
                             ) : (
                                 filtrados.map((item) => (
                                     <tr key={`${tipo}_${item.key}`}>
-                                        <td>{item.nombre.replace(/_/g, " ")}</td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                className={styles.inputPrecio}
+                                                defaultValue={limpiarNombre(item.nombre)}
+                                                onChange={(e) =>
+                                                    handleEditar(item.key, "nombre", e.target.value)
+                                                }
+                                            />
+                                        </td>
                                         <td>
                                             <select
                                                 className={styles.inputPrecio}
                                                 defaultValue={item.presentacion}
                                                 onChange={(e) =>
-                                                    handleEditar(item.key, 'presentacion', e.target.value)
+                                                    handleEditar(item.key, "presentacion", e.target.value)
                                                 }
                                             >
-                                                {tipo === "medicamentos" ? (
-                                                    <>
-                                                        <option value="ampolla">Ampolla</option>
-                                                        <option value="vial">Vial</option>
-                                                        <option value="tabletas">Tabletas</option>
-                                                        <option value="frasco">Frasco</option>
-                                                        <option value="bolsa">Bolsa</option>
-                                                        <option value="jeringa">Jeringa</option>
-                                                        <option value="gasas">Gasas</option>
-                                                        <option value="tubo">Tubo</option>
-                                                        <option value="tiras">Tiras</option>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <option value="unidad">Unidad</option>
-                                                        <option value="rollo">Rollo</option>
-                                                        <option value="juego">Juego</option>
-                                                        <option value="bolsa">Bolsa</option>
-                                                        <option value="frasco">Frasco</option>
-                                                        <option value="kit">Kit</option>
-                                                        <option value="set">Set</option>
-                                                        <option value="tubo">Tubo</option>
-                                                    </>
-                                                )}
+                                                <OpcionesPresentacion tipo={tipo} />
                                             </select>
                                         </td>
                                         <td>
@@ -583,7 +573,7 @@ export default function InsumosAdmin() {
                                                 defaultValue={item.precio}
                                                 className={styles.inputPrecio}
                                                 onChange={(e) =>
-                                                    handleEditar(item.key, 'precio', e.target.value)
+                                                    handleEditar(item.key, "precio", e.target.value)
                                                 }
                                             />
                                         </td>
@@ -644,11 +634,9 @@ export default function InsumosAdmin() {
                                 className={styles.fileInput}
                                 onChange={handleExcelUpload}
                             />
-
                             <label htmlFor="fileExcel" className={styles.fileInputLabel}>
                                 📤 Seleccionar archivo
                             </label>
-
                             {archivo && <span className={styles.fileName}>{archivo.name}</span>}
                         </div>
                     </div>
@@ -666,7 +654,6 @@ export default function InsumosAdmin() {
                                         <th>Precio</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
                                     {archivoPreview.map((item, i) => (
                                         <tr key={`${item.nombre}_${i}`}>
@@ -674,47 +661,16 @@ export default function InsumosAdmin() {
                                                 <input
                                                     className={styles.input}
                                                     value={item.nombre}
-                                                    onChange={(e) => {
-                                                        const copy = [...archivoPreview];
-                                                        copy[i].nombre = limpiarKey(e.target.value);
-                                                        setArchivoPreview(copy);
-                                                    }}
+                                                    onChange={(e) => editarPreview(i, "nombre", e.target.value)}
                                                 />
                                             </td>
                                             <td>
                                                 <select
                                                     className={styles.input}
                                                     value={item.presentacion}
-                                                    onChange={(e) => {
-                                                        const copy = [...archivoPreview];
-                                                        copy[i].presentacion = e.target.value;
-                                                        setArchivoPreview(copy);
-                                                    }}
+                                                    onChange={(e) => editarPreview(i, "presentacion", e.target.value)}
                                                 >
-                                                    {tipo === "medicamentos" ? (
-                                                        <>
-                                                            <option value="ampolla">Ampolla</option>
-                                                            <option value="vial">Vial</option>
-                                                            <option value="tabletas">Tabletas</option>
-                                                            <option value="frasco">Frasco</option>
-                                                            <option value="bolsa">Bolsa</option>
-                                                            <option value="jeringa">Jeringa</option>
-                                                            <option value="gasas">Gasas</option>
-                                                            <option value="tubo">Tubo</option>
-                                                            <option value="tiras">Tiras</option>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <option value="unidad">Unidad</option>
-                                                            <option value="rollo">Rollo</option>
-                                                            <option value="juego">Juego</option>
-                                                            <option value="bolsa">Bolsa</option>
-                                                            <option value="frasco">Frasco</option>
-                                                            <option value="kit">Kit</option>
-                                                            <option value="set">Set</option>
-                                                            <option value="tubo">Tubo</option>
-                                                        </>
-                                                    )}
+                                                    <OpcionesPresentacion tipo={tipo} />
                                                 </select>
                                             </td>
                                             <td>
@@ -723,11 +679,7 @@ export default function InsumosAdmin() {
                                                     step="0.01"
                                                     className={styles.input}
                                                     value={item.precio}
-                                                    onChange={(e) => {
-                                                        const copy = [...archivoPreview];
-                                                        copy[i].precio = e.target.value;
-                                                        setArchivoPreview(copy);
-                                                    }}
+                                                    onChange={(e) => editarPreview(i, "precio", e.target.value)}
                                                 />
                                             </td>
                                         </tr>
@@ -735,10 +687,7 @@ export default function InsumosAdmin() {
                                 </tbody>
                             </table>
 
-                            <button
-                                className={styles.btnSaveChanges}
-                                onClick={confirmarCargaExcel}
-                            >
+                            <button className={styles.btnSaveChanges} onClick={confirmarCargaExcel}>
                                 ✅ Confirmar carga a Firebase
                             </button>
                         </div>
