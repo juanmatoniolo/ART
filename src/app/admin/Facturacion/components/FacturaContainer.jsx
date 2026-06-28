@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ref, push, set, update, get, runTransaction } from 'firebase/database';
+import { ref, push, set, update, get } from 'firebase/database';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
@@ -29,6 +29,8 @@ import {
 import styles from './facturacion.module.css';
 
 const todayISO = () => new Date().toISOString().split('T')[0];
+
+const onlyDigits = (s) => String(s ?? '').replace(/\D/g, '');
 
 const safeNum = (v) => {
   const n = typeof v === 'number' ? v : Number(v);
@@ -102,6 +104,7 @@ export default function FacturaContainer() {
   const router = useRouter();
 
   const draftFromUrl = searchParams.get('draft') || '';
+  const newFromUrl = searchParams.get('new') === '1';
 
   const [isClient, setIsClient] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(true);
@@ -127,6 +130,13 @@ export default function FacturaContainer() {
 
   const [draftId, setDraftId] = useState('');
   const [lockMsg, setLockMsg] = useState('');
+
+  const resetStoredDraftId = useCallback(() => {
+    setDraftId('');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('FACTURACION_DRAFT_ID');
+    }
+  }, []);
 
   const totalItems = useMemo(
     () => practicas.length + cirugias.length + laboratorios.length + medicamentos.length + descartables.length,
@@ -160,7 +170,18 @@ export default function FacturaContainer() {
   useEffect(() => {
     if (!isClient) return;
 
-    if (!draftFromUrl) {
+    if (newFromUrl) {
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+      localStorage.removeItem('FACTURACION_DRAFT_ID');
+      setPaciente({ pacienteId: '', nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
+      setPracticas([]);
+      setCirugias([]);
+      setLaboratorios([]);
+      setMedicamentos([]);
+      setDescartables([]);
+      setActiveTab('datos');
+      setDraftId('');
+    } else if (!draftFromUrl) {
       setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
       setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
       setCirugias(getStorageItem(STORAGE_KEYS.CIRUGIAS, []));
@@ -173,7 +194,7 @@ export default function FacturaContainer() {
 
     setLoadingStorage(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient]);
+  }, [isClient, newFromUrl, draftFromUrl]);
 
   // ========== CARGA DEL DRAFT (ULTRA TOLERANTE - AHORA PERMITE CERRADOS) ==========
   useEffect(() => {
@@ -306,51 +327,78 @@ export default function FacturaContainer() {
   }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
 
   // =========================
-  // 🔒 Lock de siniestro (evita duplicados) - MODIFICADO PARA PERMITIR REABRIR CERRADOS
+  // 🔎 Detección de duplicados (NO bloqueante)
+  // Busca otros registros del mismo paciente (por DNI o por ART+Siniestro)
+  // para avisar con un cartel. Nunca impide guardar.
   // =========================
-  const acquireSiniestroLock = useCallback(async ({ siniestroKey, desiredEstado, idCandidate }) => {
-    const lockRef = ref(db, `Facturacion/siniestros/${siniestroKey}`);
+  const [existentes, setExistentes] = useState([]);
 
-    const res = await runTransaction(lockRef, (curr) => {
-      if (!curr) {
-        return { status: desiredEstado, id: idCandidate || null, updatedAt: Date.now() };
+  const findExisting = useCallback(async ({ excludeId } = {}) => {
+    const dniDigits = onlyDigits(paciente?.dni);
+    const artNombre = paciente?.artSeguro || '';
+    const nroSiniestro = paciente?.nroSiniestro || '';
+    const key = normalizeSiniestroKey(artNombre, nroSiniestro);
+
+    // Si no hay con qué identificar al paciente, no buscamos.
+    const tieneSiniestro = String(nroSiniestro).trim() !== '';
+    if (!dniDigits && !tieneSiniestro) return [];
+
+    const snap = await get(ref(db, 'Facturacion'));
+    if (!snap.exists()) return [];
+    const all = snap.val();
+
+    return Object.entries(all)
+      // ⚠️ 'siniestros' es un nodo hermano dentro de /Facturacion, hay que excluirlo
+      .filter(([id]) => id !== 'siniestros' && id !== excludeId)
+      .map(([id, v]) => ({ id, ...v }))
+      .filter((v) => {
+        const vDni = onlyDigits(v?.paciente?.dni || v?.dni || '');
+        const vKey =
+          v?.siniestroKey ||
+          normalizeSiniestroKey(
+            v?.paciente?.artSeguro || v?.artSeguro || '',
+            v?.paciente?.nroSiniestro || v?.nroSiniestro || ''
+          );
+        const matchDni = dniDigits && vDni && vDni === dniDigits;
+        const matchSiniestro = tieneSiniestro && vKey === key;
+        return matchDni || matchSiniestro;
+      })
+      .map((v) => ({
+        id: v.id,
+        nombre: v?.paciente?.nombreCompleto || v?.nombre || 'Sin nombre',
+        dni: v?.paciente?.dni || v?.dni || '',
+        nroSiniestro: v?.paciente?.nroSiniestro || v?.nroSiniestro || '',
+        estado: v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador'),
+        updatedAt: v?.updatedAt || v?.createdAt || 0,
+        facturaNro: v?.facturaNro || '',
+      }))
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }, [paciente]);
+
+  // Reviso duplicados cuando cambian DNI / ART / Siniestro (con un pequeño debounce)
+  useEffect(() => {
+    if (!isClient) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const found = await findExisting({ excludeId: draftId });
+        if (alive) setExistentes(found);
+      } catch (e) {
+        console.error('Error buscando duplicados:', e);
+        if (alive) setExistentes([]);
       }
-
-      // Permitir reabrir un cerrado como borrador
-      if (curr.status === 'cerrado' && desiredEstado === 'borrador') {
-        return { ...curr, status: 'borrador', updatedAt: Date.now() };
-      }
-
-      // Permitir actualizar un cerrado (por ejemplo, volver a cerrarlo)
-      if (curr.status === 'cerrado' && desiredEstado === 'cerrado') {
-        return { ...curr, updatedAt: Date.now() };
-      }
-
-      // Si está cerrado y cualquier otro caso, abortar
-      if (curr.status === 'cerrado') {
-        return; // abort
-      }
-
-      if (curr.status === 'borrador') {
-        return { ...curr, updatedAt: Date.now() };
-      }
-
-      return { status: desiredEstado, id: idCandidate || curr.id || null, updatedAt: Date.now() };
-    });
-
-    if (!res.committed) {
-      return { ok: false, reason: 'closed' };
-    }
-
-    const lock = res.snapshot.val();
-    return { ok: true, lock };
-  }, []);
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [isClient, paciente?.dni, paciente?.artSeguro, paciente?.nroSiniestro, draftId, findExisting]);
 
   // =========================
   // Firebase: guardar detalle en /Facturacion/{id}
   // =========================
   const guardarEnRTDB = useCallback(
-    async ({ estado, nombre }) => {
+    async ({ estado, nombre, forceNew = false }) => {
       setLockMsg('');
 
       const convenioNombre = convenios?.[convenioSel]?.nombre || convenioSel;
@@ -359,29 +407,23 @@ export default function FacturaContainer() {
       const nroSiniestro = paciente?.nroSiniestro || '';
       const siniestroKey = normalizeSiniestroKey(artNombre, nroSiniestro);
 
-      if (!String(nroSiniestro).trim()) {
-        throw new Error('Falta N° de siniestro. No se puede guardar siniestro sin identificador.');
-      }
+      // ✅ El N° de siniestro YA NO es obligatorio para guardar borrador.
+      // (si cerrás sin número, se guarda igual)
 
-      let id = draftId;
-
+      // 🔑 CLAVE DEL ARREGLO:
+      // - Si estás editando (draftId) y NO pediste "uno nuevo", usás ese mismo ID.
+      // - En cualquier otro caso, se crea un ID propio y nuevo.
+      //   => Nunca se adopta el ID de otro borrador, así NO se sobrescriben.
+      let id = forceNew ? '' : draftId;
       if (!id) {
         const newRef = push(ref(db, 'Facturacion'));
         id = newRef.key;
       }
 
-      const lockAttempt = await acquireSiniestroLock({ siniestroKey, desiredEstado: estado, idCandidate: id });
-      if (!lockAttempt.ok && lockAttempt.reason === 'closed') {
-        setLockMsg('Este siniestro ya está CERRADO y no se puede modificar.');
-        throw new Error('Siniestro cerrado (lock)');
-      }
-
-      const lockedId = lockAttempt.lock?.id;
-      if (lockedId && lockedId !== id && estado === 'borrador') {
-        id = lockedId;
-      }
-
       const now = Date.now();
+
+      const prevSnap = await get(ref(db, `Facturacion/${id}`));
+      const prev = prevSnap.exists() ? prevSnap.val() : null;
 
       const payload = {
         estado,
@@ -405,12 +447,9 @@ export default function FacturaContainer() {
           gastos: safeNum(totalesFactura.gasto),
           total: safeNum(totalesFactura.total),
         },
+
+        createdAt: prev?.createdAt ? prev.createdAt : now,
       };
-
-      const prevSnap = await get(ref(db, `Facturacion/${id}`));
-      const prev = prevSnap.exists() ? prevSnap.val() : null;
-
-      payload.createdAt = prev?.createdAt ? prev.createdAt : now;
 
       if (estado === 'cerrado') {
         payload.facturaNro = prev?.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
@@ -419,6 +458,7 @@ export default function FacturaContainer() {
 
       await set(ref(db, `Facturacion/${id}`), { id, ...(prev || {}), ...payload });
 
+      // Nodo informativo (ya NO se usa para bloquear ni para fusionar borradores)
       await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
         status: estado,
         id,
@@ -443,7 +483,6 @@ export default function FacturaContainer() {
       convenioSel,
       convenios,
       draftId,
-      acquireSiniestroLock,
     ]
   );
 
@@ -591,6 +630,12 @@ export default function FacturaContainer() {
     setDescartables((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
+  const marcarCargaIndependiente = useCallback(() => {
+    if (draftFromUrl) return;
+    resetStoredDraftId();
+    setLockMsg('Carga nueva: al guardar se creara un borrador independiente.');
+  }, [draftFromUrl, resetStoredDraftId]);
+
   const limpiarFactura = useCallback(() => {
     if (!isClient || !window.confirm('¿Limpiar toda la factura?')) return;
 
@@ -622,6 +667,24 @@ export default function FacturaContainer() {
       alert(lockMsg || e?.message || '❌ Error al guardar. Revisá permisos/ruta.');
     }
   }, [isClient, paciente, guardarEnRTDB, lockMsg]);
+
+  const guardarSiniestroNuevo = useCallback(async () => {
+    if (!isClient) return;
+
+    const nombre = prompt('Nombre del nuevo borrador:', paciente.nombreCompleto || 'Siniestro');
+    if (!nombre) return;
+
+    try {
+      const saved = await guardarEnRTDB({ estado: 'borrador', nombre, forceNew: true });
+      alert(
+        `Borrador nuevo guardado\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`
+      );
+      router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
+    } catch (e) {
+      console.error(e);
+      alert(lockMsg || e?.message || 'Error al guardar el nuevo borrador.');
+    }
+  }, [isClient, paciente, guardarEnRTDB, lockMsg, router]);
 
   const cerrarSiniestro = useCallback(async () => {
     if (!isClient) return;
@@ -674,10 +737,10 @@ export default function FacturaContainer() {
       <header className={styles.header}>
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/borradores">
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados?estado=borrador">
               📝 Borradores
             </Link>
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados/cerrados">
+            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados?estado=cerrado">
               ✅ Cerrados
             </Link>
             <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Facturados">
@@ -686,7 +749,7 @@ export default function FacturaContainer() {
           </div>
 
           <div className={styles.quickActions}>
-            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Nuevo">
+            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Nuevo?new=1">
               ➕ Nuevo
             </Link>
 
@@ -777,6 +840,58 @@ export default function FacturaContainer() {
         )}
       </header>
 
+      {existentes.length > 0 && (
+        <div
+          style={{
+            margin: '12px 0',
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: '1px solid #f0c36d',
+            background: '#fff8e6',
+            color: '#7a5b00',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{ fontWeight: 700 }}>
+            ⚠️ Este paciente ya tiene {existentes.length}{' '}
+            {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
+          </div>
+          <div style={{ fontSize: 13, opacity: 0.85 }}>
+            Podés abrir uno para editarlo, o seguir cargando este como{' '}
+            <b>uno nuevo e independiente</b> (no se pisa con los anteriores).
+          </div>
+          <button className={styles.btnPrimario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
+            Guardar como borrador nuevo
+          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+            {existentes.slice(0, 6).map((ex) => (
+              <Link
+                key={ex.id}
+                href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  padding: '6px 10px',
+                  borderRadius: 999,
+                  border: '1px solid #e0b34d',
+                  background: ex.estado === 'cerrado' ? '#e8f5e9' : '#fff',
+                  color: ex.estado === 'cerrado' ? '#1b5e20' : '#7a5b00',
+                }}
+                title={`Abrir y editar (${ex.estado})`}
+              >
+                {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
+                {ex.nroSiniestro ? ` · Stro ${ex.nroSiniestro}` : ''}
+                {' · '}
+                {new Date(ex.updatedAt || Date.now()).toLocaleDateString('es-AR')}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className={styles.tabs}>
         {tabs.map((tab) => (
           <button
@@ -794,7 +909,12 @@ export default function FacturaContainer() {
         <AnimatePresence mode="wait">
           {activeTab === 'datos' && (
             <motion.div key="datos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <DatosPaciente paciente={paciente} setPaciente={setPaciente} onSiguiente={() => setActiveTab('practicas')} />
+              <DatosPaciente
+                paciente={paciente}
+                setPaciente={setPaciente}
+                onSiguiente={() => setActiveTab('practicas')}
+                onPacienteSeleccionado={marcarCargaIndependiente}
+              />
             </motion.div>
           )}
 
@@ -869,6 +989,11 @@ export default function FacturaContainer() {
 
       <div className={styles.footerBar}>
         <div className={styles.footerActions}>
+          {draftId ? (
+            <button className={styles.btnSecundario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
+              Guardar copia nueva
+            </button>
+          ) : null}
           <button className={styles.btnSecundario} onClick={guardarSiniestro}>
             💾 Guardar borrador
           </button>

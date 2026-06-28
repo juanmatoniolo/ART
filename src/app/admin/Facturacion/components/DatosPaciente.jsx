@@ -36,7 +36,7 @@ function formatDocument(value) {
   return digits; // devuelve los dígitos sin formato si no coincide
 }
 
-export default function DatosPaciente({ paciente, setPaciente, onSiguiente }) {
+export default function DatosPaciente({ paciente, setPaciente, onSiguiente, onPacienteSeleccionado }) {
   const [seguroCustom, setSeguroCustom] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [errors, setErrors] = useState({});
@@ -115,6 +115,7 @@ export default function DatosPaciente({ paciente, setPaciente, onSiguiente }) {
       nroSiniestro: art.nroSiniestro || '',
     }));
 
+    onPacienteSeleccionado?.(pac);
     setBusqueda('');
     setMostrarResultados(false);
     nombreRef.current?.focus();

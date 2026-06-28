@@ -44,7 +44,14 @@ export default function LoginPage() {
             }
 
             const [id, userData] = found;
+
+            // Guardamos la sesión con todos los datos del usuario.
+            // Si en la base tiene root:true o TipoEmpleado:'ROOT',
+            // queda en la sesión y hasAccess() lo deja entrar a todo.
             setSession({ ...userData, id });
+
+            // ¿Es root? -> entra siempre, y lo mandamos a /admin
+            const esRoot = userData.root === true || userData.TipoEmpleado === 'ROOT';
 
             const routes = {
                 ADM: '/admin',
@@ -52,10 +59,12 @@ export default function LoginPage() {
                 MDE: '/mesa-de-entrada',
                 FARM: '/farmacia',
                 UTI: '/uti/admin',
-                MEDICO:`/foja/medicos`
+                MEDICO: '/foja/medicos',
+                ROOT: '/admin', // o un panel propio
             };
 
-            router.push(routes[userData.TipoEmpleado] || '/admin');
+            const destino = esRoot ? '/admin' : (routes[userData.TipoEmpleado] || '/admin');
+            router.push(destino);
         } catch (err) {
             console.error('Error en login:', err);
             setError('Error al conectarse al servidor');

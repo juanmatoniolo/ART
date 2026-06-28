@@ -539,6 +539,118 @@ const exportCompleto = () => {
 
   XLSX.writeFile(wb, `siniestros_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
+
+const getDescripcion = (item) =>
+  item?.descripcion || item?.nombre || item?.practica || item?.detalle || item?.producto || '';
+
+const getCodigoOriginal = (item) =>
+  item?.codigo || item?.code || item?.cod || item?.codigoPractica || '';
+
+const getPrestador = (item) =>
+  item?.doctorNombre || item?.doctor || item?.medico || item?.prestadorNombre || item?.prestador || '';
+
+const getCantidad = (item) => safeNum(item?.cantidad ?? item?.unidades ?? 1) || 1;
+
+const makeGastosPrestador = (codigoOriginal, descripcion) => {
+  const code = String(codigoOriginal || '').trim();
+  const desc = String(descripcion || '').trim().slice(0, 16);
+  return `GTOS. SAN.- ${code}${code && desc ? ' ' : ''}${desc}`.trim();
+};
+
+const downloadJsonFile = (data, filename) => {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const exportJson = () => {
+  const selected = Array.from(selectedIds);
+  if (selected.length === 0) {
+    alert('Seleccione al menos un siniestro.');
+    return;
+  }
+
+  const ivacodicio = window.prompt('Ingrese ivacodicio para el JSON:', '');
+  if (ivacodicio === null) return;
+
+  const buildLine = (item, tipo, importe, categoria) => {
+    const codigoOriginal = getCodigoOriginal(item);
+    const descripcion = getDescripcion(item);
+    const cantidad = getCantidad(item);
+
+    return {
+      codigo: tipo === 'honorario' ? 2 : 7,
+      prestador:
+        tipo === 'honorario'
+          ? getPrestador(item)
+          : makeGastosPrestador(codigoOriginal, descripcion),
+      ivacodicio,
+      codigoPractica: codigoOriginal,
+      descripcion,
+      categoria,
+      cantidad,
+      importe: safeNum(importe),
+    };
+  };
+
+  const facturas = selected
+    .map((id) => {
+      const item = raw[id];
+      if (!item) return null;
+
+      const paciente = item.paciente || {};
+      const practicas = [];
+
+      const addPrestacion = (prestacion, categoria) => {
+        const honorario = safeNum(prestacion?.honorarioMedico);
+        const gasto = safeNum(prestacion?.gastoSanatorial);
+
+        if (honorario > 0) {
+          practicas.push(buildLine(prestacion, 'honorario', honorario, categoria));
+        }
+        if (gasto > 0) {
+          practicas.push(buildLine(prestacion, 'gasto', gasto, categoria));
+        }
+      };
+
+      (item.practicas || []).forEach((p) => addPrestacion(p, 'Practica'));
+      (item.cirugias || []).forEach((c) => addPrestacion(c, 'Cirugia'));
+      (item.laboratorios || []).forEach((l) => addPrestacion(l, 'Laboratorio'));
+
+      (item.medicamentos || []).forEach((m) => {
+        const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
+        if (gasto > 0) practicas.push(buildLine(m, 'gasto', gasto, 'Medicacion'));
+      });
+
+      (item.descartables || []).forEach((d) => {
+        const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
+        if (gasto > 0) practicas.push(buildLine(d, 'gasto', gasto, 'Descartable'));
+      });
+
+      return {
+        id,
+        facturaNro: item.facturaNro || '',
+        estado: item.estado || (item.cerradoAt ? 'cerrado' : 'borrador'),
+        fecha: item.cerradoAt || item.updatedAt || item.createdAt || null,
+        paciente: paciente.nombreCompleto || paciente.nombre || item.pacienteNombre || '',
+        dni: paciente.dni || item.dni || '',
+        nroSiniestro: paciente.nroSiniestro || item.nroSiniestro || '',
+        art: paciente.artSeguro || item.artNombre || item.artSeguro || 'SIN ART',
+        ivacodicio,
+        practicas,
+      };
+    })
+    .filter(Boolean);
+
+  downloadJsonFile(facturas, `facturas_${new Date().toISOString().slice(0, 10)}.json`);
+};
   // Imprimir reporte ART
   const printART = (id) => {
     const item = raw[id];
@@ -811,6 +923,7 @@ const exportCompleto = () => {
     deleting,
     deleteSelected,
     exportCompleto,
+    exportJson,
     printART,
     items,
     counts,

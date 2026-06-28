@@ -47,10 +47,26 @@ export function clearSession() {
 	}
 }
 
-// ✅ NUEVA FUNCIÓN AÑADIDA
 export function isAuthenticated() {
 	if (typeof window === "undefined") return false; // ✅ Previene errores SSR
 
 	const session = getSession();
 	return session !== null && session !== undefined;
+}
+
+// ✅ ¿Es el usuario root? (acceso total)
+// Funciona si lo marcás con root:true o con TipoEmpleado:'ROOT'
+export function isRoot() {
+	const session = getSession();
+	if (!session) return false;
+	return session.root === true || session.TipoEmpleado === "ROOT";
+}
+
+// ✅ ¿Puede acceder a una ruta según su rol?
+// El root pasa SIEMPRE, sin importar los roles permitidos.
+export function hasAccess(rolesPermitidos = []) {
+	const session = getSession();
+	if (!session) return false; // no logueado
+	if (isRoot()) return true; // 👈 acceso total
+	return rolesPermitidos.includes(session.TipoEmpleado);
 }

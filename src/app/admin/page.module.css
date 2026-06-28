@@ -306,8 +306,22 @@
 .sectionTitle {
   font-size: 1.2rem;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   color: #e5e7eb;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionSubtitle {
+  margin-top: 0.35rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
 .recentGrid {
@@ -326,10 +340,75 @@
 .recentCard h4 {
   font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
   color: #d1d5db;
+}
+
+.recentCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-bottom: 0.5rem;
+}
+
+.miniLink {
+  color: #bfdbfe;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.miniLink:hover {
+  color: #ffffff;
+}
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.recentItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.recentItem:hover {
+  transform: translateY(-1px);
+  background: rgba(111, 161, 123, 0.12);
+  border-color: rgba(111, 161, 123, 0.35);
+}
+
+.recentTitle {
+  grid-column: 1 / -1;
+  color: #f0f9ff;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.recentMeta {
+  color: #9ca3af;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.recentDate {
+  color: #6fa17b;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-align: right;
 }
 
 .placeholder {
