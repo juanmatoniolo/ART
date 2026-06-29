@@ -59,7 +59,6 @@ const prettyLabel = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-// ========== Funciones de cálculo auxiliares ==========
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
   const honor = safeNum(calculoBase?.honorarioMedico);
   const gasto = safeNum(calculoBase?.gastoSanatorial);
@@ -89,9 +88,10 @@ function normalizarMedDesc(item) {
     valorUnitario: unit,
     honorarioMedico: 0,
     gastoSanatorial: total,
-    total
+    total,
   };
 }
+
 const patchEsSoloTexto = (patch) => {
   if (!patch || typeof patch !== 'object') return true;
   const numericKeys = new Set(['cantidad', 'valorUnitario', 'precio', 'total', 'honorarioMedico', 'gastoSanatorial']);
@@ -139,7 +139,12 @@ export default function FacturaContainer() {
   }, []);
 
   const totalItems = useMemo(
-    () => practicas.length + cirugias.length + laboratorios.length + medicamentos.length + descartables.length,
+    () =>
+      practicas.length +
+      cirugias.length +
+      laboratorios.length +
+      medicamentos.length +
+      descartables.length,
     [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
@@ -166,7 +171,6 @@ export default function FacturaContainer() {
     return { honor, gasto, total: honor + gasto };
   }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
-  // ===== Load localStorage (solo si no hay draft) =====
   useEffect(() => {
     if (!isClient) return;
 
@@ -196,7 +200,6 @@ export default function FacturaContainer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, newFromUrl, draftFromUrl]);
 
-  // ========== CARGA DEL DRAFT (ULTRA TOLERANTE - AHORA PERMITE CERRADOS) ==========
   useEffect(() => {
     if (!isClient) return;
     if (!draftFromUrl) return;
@@ -217,16 +220,12 @@ export default function FacturaContainer() {
         }
 
         const v = snap.val();
-        console.log('📦 Datos crudos desde Firebase:', v); // <- Para depurar
-
         const estado = v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador');
 
-        // ✅ AHORA PERMITIMOS CARGAR CERRADOS, solo mostramos advertencia
         if (estado === 'cerrado') {
           setLockMsg('⚠️ Este siniestro está CERRADO. Podés editarlo, pero al guardar pasará a borrador.');
         }
 
-        // --- Normalización EXTREMA de paciente ---
         const pacienteData = v?.paciente || {};
 
         const findValue = (sources, ...keys) => {
@@ -244,28 +243,27 @@ export default function FacturaContainer() {
 
         const nombre = findValue(
           [pacienteData, v],
-          'nombreCompleto', 'nombre', 'apellido', 'fullName', 'pacienteNombre', 'nombrePaciente'
+          'nombreCompleto',
+          'nombre',
+          'apellido',
+          'fullName',
+          'pacienteNombre',
+          'nombrePaciente'
         );
 
-        const dni = findValue(
-          [pacienteData, v],
-          'dni', 'documento', 'DNI', 'Documento'
-        );
+        const dni = findValue([pacienteData, v], 'dni', 'documento', 'DNI', 'Documento');
 
-        const art = findValue(
-          [pacienteData, v],
-          'artSeguro', 'art', 'seguro', 'artNombre', 'ART'
-        );
+        const art = findValue([pacienteData, v], 'artSeguro', 'art', 'seguro', 'artNombre', 'ART');
 
         const siniestro = findValue(
           [pacienteData, v],
-          'nroSiniestro', 'siniestro', 'numeroSiniestro', 'NroSiniestro'
+          'nroSiniestro',
+          'siniestro',
+          'numeroSiniestro',
+          'NroSiniestro'
         );
 
-        const fecha = findValue(
-          [pacienteData, v],
-          'fechaAtencion', 'fecha', 'atencion', 'fecha_atencion'
-        ) || todayISO();
+        const fecha = findValue([pacienteData, v], 'fechaAtencion', 'fecha', 'atencion', 'fecha_atencion') || todayISO();
 
         setPaciente({
           pacienteId: pacienteData.pacienteId || v?.pacienteId || '',
@@ -276,21 +274,19 @@ export default function FacturaContainer() {
           fechaAtencion: fecha,
         });
 
-        // --- Normalizar arrays ---
         setPracticas(Array.isArray(v?.practicas) ? v.practicas : []);
         setCirugias(Array.isArray(v?.cirugias) ? v.cirugias : []);
         setLaboratorios(Array.isArray(v?.laboratorios) ? v.laboratorios : []);
         setMedicamentos(Array.isArray(v?.medicamentos) ? v.medicamentos : []);
         setDescartables(Array.isArray(v?.descartables) ? v.descartables : []);
 
-        // --- Establecer el convenio de forma segura ---
         if (v?.convenio) {
           if (convenios && convenios[v.convenio]) {
             cambiarConvenio(v.convenio);
           }
         } else if (v?.convenioNombre) {
           const claveEncontrada = Object.keys(convenios || {}).find(
-            key => convenios[key]?.nombre === v.convenioNombre
+            (key) => convenios[key]?.nombre === v.convenioNombre
           );
           if (claveEncontrada) {
             cambiarConvenio(claveEncontrada);
@@ -312,7 +308,6 @@ export default function FacturaContainer() {
     };
   }, [draftFromUrl, isClient, convenios]);
 
-  // ===== Auto save (local) =====
   useEffect(() => {
     if (!isClient || loadingStorage) return;
 
@@ -324,58 +319,64 @@ export default function FacturaContainer() {
     setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
     setStorageItem('FACTURACION_DRAFT_ID', draftId);
-  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
+  }, [
+    paciente,
+    practicas,
+    cirugias,
+    laboratorios,
+    medicamentos,
+    descartables,
+    activeTab,
+    isClient,
+    loadingStorage,
+    draftId,
+  ]);
 
-  // =========================
-  // 🔎 Detección de duplicados (NO bloqueante)
-  // Busca otros registros del mismo paciente (por DNI o por ART+Siniestro)
-  // para avisar con un cartel. Nunca impide guardar.
-  // =========================
   const [existentes, setExistentes] = useState([]);
 
-  const findExisting = useCallback(async ({ excludeId } = {}) => {
-    const dniDigits = onlyDigits(paciente?.dni);
-    const artNombre = paciente?.artSeguro || '';
-    const nroSiniestro = paciente?.nroSiniestro || '';
-    const key = normalizeSiniestroKey(artNombre, nroSiniestro);
+  const findExisting = useCallback(
+    async ({ excludeId } = {}) => {
+      const dniDigits = onlyDigits(paciente?.dni);
+      const artNombre = paciente?.artSeguro || '';
+      const nroSiniestro = paciente?.nroSiniestro || '';
+      const key = normalizeSiniestroKey(artNombre, nroSiniestro);
 
-    // Si no hay con qué identificar al paciente, no buscamos.
-    const tieneSiniestro = String(nroSiniestro).trim() !== '';
-    if (!dniDigits && !tieneSiniestro) return [];
+      const tieneSiniestro = String(nroSiniestro).trim() !== '';
+      if (!dniDigits && !tieneSiniestro) return [];
 
-    const snap = await get(ref(db, 'Facturacion'));
-    if (!snap.exists()) return [];
-    const all = snap.val();
+      const snap = await get(ref(db, 'Facturacion'));
+      if (!snap.exists()) return [];
+      const all = snap.val();
 
-    return Object.entries(all)
-      // ⚠️ 'siniestros' es un nodo hermano dentro de /Facturacion, hay que excluirlo
-      .filter(([id]) => id !== 'siniestros' && id !== excludeId)
-      .map(([id, v]) => ({ id, ...v }))
-      .filter((v) => {
-        const vDni = onlyDigits(v?.paciente?.dni || v?.dni || '');
-        const vKey =
-          v?.siniestroKey ||
-          normalizeSiniestroKey(
-            v?.paciente?.artSeguro || v?.artSeguro || '',
-            v?.paciente?.nroSiniestro || v?.nroSiniestro || ''
-          );
-        const matchDni = dniDigits && vDni && vDni === dniDigits;
-        const matchSiniestro = tieneSiniestro && vKey === key;
-        return matchDni || matchSiniestro;
-      })
-      .map((v) => ({
-        id: v.id,
-        nombre: v?.paciente?.nombreCompleto || v?.nombre || 'Sin nombre',
-        dni: v?.paciente?.dni || v?.dni || '',
-        nroSiniestro: v?.paciente?.nroSiniestro || v?.nroSiniestro || '',
-        estado: v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador'),
-        updatedAt: v?.updatedAt || v?.createdAt || 0,
-        facturaNro: v?.facturaNro || '',
-      }))
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }, [paciente]);
+      return Object.entries(all)
+        .filter(([id]) => id !== 'siniestros' && id !== excludeId)
+        .map(([id, v]) => ({ id, ...v }))
+        .filter((v) => {
+          const vDni = onlyDigits(v?.paciente?.dni || v?.dni || '');
+          const vKey =
+            v?.siniestroKey ||
+            normalizeSiniestroKey(
+              v?.paciente?.artSeguro || v?.artSeguro || '',
+              v?.paciente?.nroSiniestro || v?.nroSiniestro || ''
+            );
+          const matchDni = dniDigits && vDni && vDni === dniDigits;
+          const matchSiniestro = tieneSiniestro && vKey === key;
+          return matchDni || matchSiniestro;
+        })
+        .map((v) => ({
+          id: v.id,
+          nombre: v?.paciente?.nombreCompleto || v?.nombre || 'Sin nombre',
+          dni: v?.paciente?.dni || v?.dni || '',
+          nroSiniestro: v?.paciente?.nroSiniestro || v?.nroSiniestro || '',
+          estado: v?.estado || (v?.cerradoAt ? 'cerrado' : 'borrador'),
+          updatedAt: v?.updatedAt || v?.createdAt || 0,
+          facturaNro: v?.facturaNro || '',
+        }))
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    },
+    [paciente]
+  );
 
-  // Reviso duplicados cuando cambian DNI / ART / Siniestro (con un pequeño debounce)
   useEffect(() => {
     if (!isClient) return;
     let alive = true;
@@ -394,9 +395,6 @@ export default function FacturaContainer() {
     };
   }, [isClient, paciente?.dni, paciente?.artSeguro, paciente?.nroSiniestro, draftId, findExisting]);
 
-  // =========================
-  // Firebase: guardar detalle en /Facturacion/{id}
-  // =========================
   const guardarEnRTDB = useCallback(
     async ({ estado, nombre, forceNew = false }) => {
       setLockMsg('');
@@ -407,13 +405,6 @@ export default function FacturaContainer() {
       const nroSiniestro = paciente?.nroSiniestro || '';
       const siniestroKey = normalizeSiniestroKey(artNombre, nroSiniestro);
 
-      // ✅ El N° de siniestro YA NO es obligatorio para guardar borrador.
-      // (si cerrás sin número, se guarda igual)
-
-      // 🔑 CLAVE DEL ARREGLO:
-      // - Si estás editando (draftId) y NO pediste "uno nuevo", usás ese mismo ID.
-      // - En cualquier otro caso, se crea un ID propio y nuevo.
-      //   => Nunca se adopta el ID de otro borrador, así NO se sobrescriben.
       let id = forceNew ? '' : draftId;
       if (!id) {
         const newRef = push(ref(db, 'Facturacion'));
@@ -458,12 +449,12 @@ export default function FacturaContainer() {
 
       await set(ref(db, `Facturacion/${id}`), { id, ...(prev || {}), ...payload });
 
-      // Nodo informativo (ya NO se usa para bloquear ni para fusionar borradores)
-      await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
-        status: estado,
-        id,
-        updatedAt: now,
-      });
+   await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
+  status: estado,
+  id,
+  updatedAt: now,
+  dni: paciente?.dni || '', // <-- LÍNEA OBLIGATORIA
+});
 
       await cerrarPacientePorFactura({ id, ...payload }, id);
 
@@ -486,9 +477,6 @@ export default function FacturaContainer() {
     ]
   );
 
-  // =========================
-  // Handlers
-  // =========================
   const RX_DOCTOR = 'Retamoso';
   const forceRxDoctor = (p) => {
     if (!isRadiografia?.(p)) return p;
@@ -497,7 +485,6 @@ export default function FacturaContainer() {
 
   const agregarPractica = useCallback((nueva) => setPracticas((prev) => [...prev, forceRxDoctor(nueva)]), []);
   const agregarCirugia = useCallback((nueva) => setCirugias((prev) => [...prev, nueva]), []);
-
   const agregarLaboratorio = useCallback(
     (nuevo) => {
       const normal = valoresConvenio ? normalizarLab(nuevo, valoresConvenio) : nuevo;
@@ -505,7 +492,6 @@ export default function FacturaContainer() {
     },
     [valoresConvenio]
   );
-
   const agregarMedicamento = useCallback((nuevo) => setMedicamentos((prev) => [...prev, normalizarMedDesc(nuevo)]), []);
   const agregarDescartable = useCallback((nuevo) => setDescartables((prev) => [...prev, normalizarMedDesc(nuevo)]), []);
 
@@ -644,7 +630,14 @@ export default function FacturaContainer() {
     setLaboratorios([]);
     setMedicamentos([]);
     setDescartables([]);
-    setPaciente({ pacienteId: '', nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '', fechaAtencion: todayISO() });
+    setPaciente({
+      pacienteId: '',
+      nombreCompleto: '',
+      dni: '',
+      artSeguro: '',
+      nroSiniestro: '',
+      fechaAtencion: todayISO(),
+    });
     setActiveTab('datos');
     setDraftId('');
     localStorage.removeItem('FACTURACION_DRAFT_ID');
@@ -840,58 +833,43 @@ export default function FacturaContainer() {
         )}
       </header>
 
-      {existentes.length > 0 && (
-        <div
-          style={{
-            margin: '12px 0',
-            padding: '12px 14px',
-            borderRadius: 12,
-            border: '1px solid #f0c36d',
-            background: '#fff8e6',
-            color: '#7a5b00',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
-          <div style={{ fontWeight: 700 }}>
-            ⚠️ Este paciente ya tiene {existentes.length}{' '}
-            {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
-          </div>
-          <div style={{ fontSize: 13, opacity: 0.85 }}>
-            Podés abrir uno para editarlo, o seguir cargando este como{' '}
-            <b>uno nuevo e independiente</b> (no se pisa con los anteriores).
-          </div>
-          <button className={styles.btnPrimario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
-            Guardar como borrador nuevo
-          </button>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-            {existentes.slice(0, 6).map((ex) => (
-              <Link
-                key={ex.id}
-                href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
-                style={{
-                  textDecoration: 'none',
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  padding: '6px 10px',
-                  borderRadius: 999,
-                  border: '1px solid #e0b34d',
-                  background: ex.estado === 'cerrado' ? '#e8f5e9' : '#fff',
-                  color: ex.estado === 'cerrado' ? '#1b5e20' : '#7a5b00',
-                }}
-                title={`Abrir y editar (${ex.estado})`}
-              >
-                {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
-                {ex.nroSiniestro ? ` · Stro ${ex.nroSiniestro}` : ''}
-                {' · '}
-                {new Date(ex.updatedAt || Date.now()).toLocaleDateString('es-AR')}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
+     {existentes.length > 0 && (
+  <div className={styles.duplicateAlert}>
+    <div className={styles.duplicateHeader}>
+      ⚠️ Este paciente ya tiene {existentes.length}{' '}
+      {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
+    </div>
+    <div className={styles.duplicateBody}>
+      <p>
+        Podés abrir uno para editarlo, o seguir cargando este como{' '}
+        <b>uno nuevo e independiente</b> (no se pisa con los anteriores).
+      </p>
+      <div className={styles.duplicateLinks}>
+        {existentes.slice(0, 6).map((ex) => (
+          <Link
+            key={ex.id}
+            href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
+            className={styles.duplicateLink}
+          >
+            {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
+            {ex.nroSiniestro ? ` · Stro ${ex.nroSiniestro}` : ''}
+            {' · '}
+            {new Date(ex.updatedAt || Date.now()).toLocaleDateString('es-AR')}
+          </Link>
+        ))}
+      </div>
+    </div>
+    <div className={styles.duplicateFooter}>
+      <button
+        className={styles.btnPrimario}
+        onClick={guardarSiniestroNuevo}
+        disabled={!puedeNavegar}
+      >
+        Guardar como borrador nuevo
+      </button>
+    </div>
+  </div>
+)}
       <div className={styles.tabs}>
         {tabs.map((tab) => (
           <button
@@ -908,7 +886,12 @@ export default function FacturaContainer() {
       <div className={styles.content}>
         <AnimatePresence mode="wait">
           {activeTab === 'datos' && (
-            <motion.div key="datos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="datos"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <DatosPaciente
                 paciente={paciente}
                 setPaciente={setPaciente}
@@ -919,7 +902,12 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'practicas' && (
-            <motion.div key="practicas" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="practicas"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <PracticasModule
                 practicasAgregadas={practicas}
                 agregarPractica={agregarPractica}
@@ -930,7 +918,12 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'cirugias' && (
-            <motion.div key="cirugias" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="cirugias"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <CirugiasModule
                 cirugiasAgregadas={cirugias}
                 practicasAgregadas={practicas}
@@ -943,7 +936,12 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'laboratorios' && (
-            <motion.div key="laboratorios" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="laboratorios"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <LaboratoriosModule
                 laboratoriosAgregados={laboratorios}
                 agregarLaboratorio={agregarLaboratorio}
@@ -954,7 +952,12 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'medicamentos' && (
-            <motion.div key="medicamentos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="medicamentos"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <MedicamentosModule
                 medicamentosAgregados={medicamentos}
                 descartablesAgregados={descartables}
@@ -968,7 +971,12 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'resumen' && (
-            <motion.div key="resumen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div
+              key="resumen"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
               <ResumenFactura
                 paciente={paciente}
                 practicas={practicas}

@@ -32,6 +32,20 @@ export default function useFacturados() {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  // 👇 NUEVO: Nomencladores (valores generales y honorarios)
+  const [nomencladores, setNomencladores] = useState({ valores_generales: {}, honorarios_medicos: [] });
+
+  // Cargar nomencladores desde Firebase
+  useEffect(() => {
+    const nomencladoresRef = ref(db, 'nomencladores');
+    const unsub = onValue(nomencladoresRef, (snap) => {
+      if (snap.exists()) {
+        setNomencladores(snap.val());
+      }
+    });
+    return () => unsub();
+  }, []);
+
   // Sincronizar estado desde URL
   useEffect(() => {
     const e = sp.get('estado');
@@ -40,7 +54,7 @@ export default function useFacturados() {
     }
   }, [sp]);
 
-  // Cargar datos desde Firebase
+  // Cargar datos de Facturación desde Firebase
   useEffect(() => {
     const r = ref(db, 'Facturacion');
     return onValue(
@@ -57,7 +71,45 @@ export default function useFacturados() {
     );
   }, []);
 
-  // Procesar items (mapeo y ordenamiento)
+  // ------------------------------------------------------------
+  //  CÁLCULO DE UTI
+  // ------------------------------------------------------------
+  const calcularUTI = (item) => {
+    // Buscar campos de UTI en el item (pueden estar en item.uti o directamente)
+    const uti = item?.uti || {};
+    const dias = safeNum(uti.dias || 0);
+    const unidadPension = safeNum(uti.unidadPension || 0);
+    const galenoPractica = safeNum(uti.galenoPractica || 0);
+
+    if (dias === 0) return { honorario: 0, gasto: 0, total: 0 };
+
+    // Fórmula: 196 * unidadPension + 37.75 * galenoPractica + 10 * unidadPension
+    const base = (196 * unidadPension) + (37.75 * galenoPractica) + (10 * unidadPension);
+    const totalUTI = base * dias;
+
+    // Según la lógica del usuario, esto va a gastos clínicos (gastoSanatorial)
+    return {
+      honorario: 0,
+      gasto: totalUTI,
+      total: totalUTI,
+      descripcion: `Día en UTI (${dias} días)`,
+      codigo: 'UTI',
+      cantidad: dias,
+      unit: base,
+    };
+  };
+
+  // ------------------------------------------------------------
+  //  OBTENER VALOR DE PRÁCTICA COMÚN DESDE NOMENCLADORES
+  // ------------------------------------------------------------
+  const getValorPractica = (nombre) => {
+    const valores = nomencladores?.valores_generales || {};
+    return valores[nombre] || 0;
+  };
+
+  // ------------------------------------------------------------
+  //  PROCESAR ITEMS (mapeo y ordenamiento)
+  // ------------------------------------------------------------
   const items = useMemo(() => {
     const obj = raw || {};
     const arr = Object.entries(obj).map(([id, v]) => {
@@ -102,6 +154,8 @@ export default function useFacturados() {
         facturaNro,
         total,
         fecha: estadoVal === 'cerrado' ? (closedAt || createdAt) : (updatedAt || createdAt),
+        // Guardamos el objeto completo para procesar UTI y prácticas comunes en exportaciones
+        raw: v,
       };
     });
 
@@ -164,8 +218,6 @@ export default function useFacturados() {
   // Filtrado
   const filtered = useMemo(() => {
     const qq = norm(q);
-
-    // Convertir fechas a timestamps (si están definidas)
     const desdeTs = fechaDesde ? new Date(fechaDesde).setHours(0, 0, 0, 0) : null;
     const hastaTs = fechaHasta ? new Date(fechaHasta).setHours(23, 59, 59, 999) : null;
 
@@ -178,12 +230,8 @@ export default function useFacturados() {
         );
         if (!blob.includes(qq)) return false;
       }
-
-      // 👇 NUEVO FILTRO POR RANGO DE FECHAS
-      const fechaItem = it.fecha; // timestamp
-      if (desdeTs !== null && fechaItem < desdeTs) return false;
-      if (hastaTs !== null && fechaItem > hastaTs) return false;
-
+      if (desdeTs !== null && it.fecha < desdeTs) return false;
+      if (hastaTs !== null && it.fecha > hastaTs) return false;
       return true;
     });
   }, [items, q, estado, art, fechaDesde, fechaHasta]);
@@ -260,398 +308,441 @@ export default function useFacturados() {
     }
   };
 
-// Exportar Excel completo
-const exportCompleto = () => {
-  const selected = Array.from(selectedIds);
-  if (selected.length === 0) {
-    alert('Seleccione al menos un siniestro.');
-    return;
-  }
-
-  const wb = XLSX.utils.book_new();
-
-  // --- HOJA 1: CARÁTULA (resumen) ---
-  const caratulaHeaders = ['PRESTADOR', 'PACIENTE', 'DNI', 'STRO', 'GASTOS', 'HONORARIOS', 'TOTAL'];
-  const caratulaRows = [caratulaHeaders];
-
-  selected.forEach(id => {
-    const item = raw[id];
-    if (!item) return;
-
-    const paciente = item.paciente || {};
-    const nombre = paciente.nombreCompleto || paciente.nombre || '';
-    const dni = paciente.dni || '';
-    const nroSiniestro = paciente.nroSiniestro || '';
-
-    // Calcular gastos y honorarios
-    const sumItems = (arr, field) => {
-      if (!arr) return 0;
-      return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
-    };
-
-    let gastos = 0;
-    let honorarios = 0;
-
-    gastos += sumItems(item.practicas, 'gastoSanatorial');
-    honorarios += sumItems(item.practicas, 'honorarioMedico');
-    gastos += sumItems(item.cirugias, 'gastoSanatorial');
-    honorarios += sumItems(item.cirugias, 'honorarioMedico');
-    gastos += sumItems(item.laboratorios, 'gastoSanatorial');
-    honorarios += sumItems(item.laboratorios, 'honorarioMedico');
-
-    if (item.medicamentos) {
-      item.medicamentos.forEach(m => {
-        gastos += safeNum(m.gastoSanatorial || m.total);
-      });
-    }
-    if (item.descartables) {
-      item.descartables.forEach(d => {
-        gastos += safeNum(d.gastoSanatorial || d.total);
-      });
+  // ------------------------------------------------------------
+  //  EXPORTAR EXCEL COMPLETO
+  // ------------------------------------------------------------
+  const exportCompleto = () => {
+    const selected = Array.from(selectedIds);
+    if (selected.length === 0) {
+      alert('Seleccione al menos un siniestro.');
+      return;
     }
 
-    const total = gastos + honorarios;
+    const wb = XLSX.utils.book_new();
 
-    caratulaRows.push([
-      'Clínica de la Unión',
-      nombre,
-      dni,
-      nroSiniestro || '—',
-      gastos,
-      honorarios,
-      total
-    ]);
-  });
+    // --- HOJA 1: CARÁTULA (resumen) ---
+    const caratulaHeaders = ['PRESTADOR', 'PACIENTE', 'DNI', 'STRO', 'GASTOS', 'HONORARIOS', 'TOTAL'];
+    const caratulaRows = [caratulaHeaders];
 
-  const lastDataRow = caratulaRows.length;
-  const totalRow = [
-    'TOTALES',
-    '',
-    '',
-    '',
-    { t: 'n', f: `=SUM(E3:E${lastDataRow})` },
-    { t: 'n', f: `=SUM(F3:F${lastDataRow})` },
-    { t: 'n', f: `=SUM(G3:G${lastDataRow})` }
-  ];
-  caratulaRows.push(totalRow);
+    selected.forEach(id => {
+      const item = raw[id];
+      if (!item) return;
 
-  const wsCaratula = XLSX.utils.aoa_to_sheet(caratulaRows);
-  wsCaratula['!cols'] = [
-    { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
-    { wch: 12 }, { wch: 12 }, { wch: 12 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsCaratula, 'Carátula');
+      const paciente = item.paciente || {};
+      const nombre = paciente.nombreCompleto || paciente.nombre || '';
+      const dni = paciente.dni || '';
+      const nroSiniestro = paciente.nroSiniestro || '';
 
-  // --- HOJA 2: DETALLE ---
-  const detalleHeaders = [
-    'CdU', 'Nombre completo', 'DNI', 'N° Stro', 'TOTAL STRO',
-    'Tipo', 'Categoría', 'Código', 'Descripción',
-    'Cant.', 'Val. U', 'Total', 'Origen',
-    'Subtotal Honorarios', 'Subtotal Gastos', 'Total Siniestro'
-  ];
-  const detalleRows = [detalleHeaders];
-  let globalCdU = 1;
+      // Calcular gastos y honorarios (incluyendo UTI)
+      const sumItems = (arr, field) => {
+        if (!arr) return 0;
+        return arr.reduce((acc, x) => acc + safeNum(x[field]), 0);
+      };
 
-  selected.forEach((id, index) => {
-    const item = raw[id];
-    if (!item) return;
+      let gastos = 0;
+      let honorarios = 0;
 
-    const paciente = item.paciente || {};
-    const nombre = paciente.nombreCompleto || paciente.nombre || '';
-    const dni = paciente.dni || '';
-    const nroSiniestro = paciente.nroSiniestro || '';
-    const estadoItem = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
+      gastos += sumItems(item.practicas, 'gastoSanatorial');
+      honorarios += sumItems(item.practicas, 'honorarioMedico');
+      gastos += sumItems(item.cirugias, 'gastoSanatorial');
+      honorarios += sumItems(item.cirugias, 'honorarioMedico');
+      gastos += sumItems(item.laboratorios, 'gastoSanatorial');
+      honorarios += sumItems(item.laboratorios, 'honorarioMedico');
 
-    // --- NUEVA ESTRUCTURA: separamos honorarios y gastos para ordenarlos ---
-    const honorariosRows = [];
-    const gastosRows = [];
-
-    // Función auxiliar para extraer datos de un ítem
-    const extractRow = (x, categoria, tipoForzado = null) => {
-      const honorario = safeNum(x?.honorarioMedico);
-      const gasto = safeNum(x?.gastoSanatorial);
-      const cantidad = safeNum(x?.cantidad ?? x?.unidades ?? 1) || 1;
-      const totalItem = safeNum(x?.total);
-      const unit = cantidad > 0 ? totalItem / cantidad : 0;
-
-      const desc = x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
-      const codigo = x?.codigo || x?.code || x?.cod || '';
-      const origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
-
-      // Honorario (si existe y no está forzado a gasto)
-      if (honorario > 0 && tipoForzado !== 'GASTO') {
-        honorariosRows.push({
-          tipo: 'HONORARIO',
-          categoria,
-          codigo,
-          desc,
-          cantidad,
-          unit,
-          total: honorario,
-          origen: origen || ''
+      if (item.medicamentos) {
+        item.medicamentos.forEach(m => {
+          gastos += safeNum(m.gastoSanatorial || m.total);
+        });
+      }
+      if (item.descartables) {
+        item.descartables.forEach(d => {
+          gastos += safeNum(d.gastoSanatorial || d.total);
         });
       }
 
-      // Gasto (si existe y no está forzado a honorario)
-      if (gasto > 0 && tipoForzado !== 'HONORARIO') {
+      // 👇 NUEVO: Agregar UTI a gastos
+      const utiData = calcularUTI(item);
+      gastos += utiData.gasto;
+
+      const total = gastos + honorarios;
+
+      caratulaRows.push([
+        'Clínica de la Unión',
+        nombre,
+        dni,
+        nroSiniestro || '—',
+        gastos,
+        honorarios,
+        total
+      ]);
+    });
+
+    const lastDataRow = caratulaRows.length;
+    const totalRow = [
+      'TOTALES',
+      '',
+      '',
+      '',
+      { t: 'n', f: `=SUM(E3:E${lastDataRow})` },
+      { t: 'n', f: `=SUM(F3:F${lastDataRow})` },
+      { t: 'n', f: `=SUM(G3:G${lastDataRow})` }
+    ];
+    caratulaRows.push(totalRow);
+
+    const wsCaratula = XLSX.utils.aoa_to_sheet(caratulaRows);
+    wsCaratula['!cols'] = [
+      { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsCaratula, 'Carátula');
+
+    // --- HOJA 2: DETALLE ---
+    const detalleHeaders = [
+      'CdU', 'Nombre completo', 'DNI', 'N° Stro', 'TOTAL STRO',
+      'Tipo', 'Categoría', 'Código', 'Descripción',
+      'Cant.', 'Val. U', 'Total', 'Origen',
+      'Subtotal Honorarios', 'Subtotal Gastos', 'Total Siniestro'
+    ];
+    const detalleRows = [detalleHeaders];
+    let globalCdU = 1;
+
+    selected.forEach((id, index) => {
+      const item = raw[id];
+      if (!item) return;
+
+      const paciente = item.paciente || {};
+      const nombre = paciente.nombreCompleto || paciente.nombre || '';
+      const dni = paciente.dni || '';
+      const nroSiniestro = paciente.nroSiniestro || '';
+      const estadoItem = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
+
+      // --- NUEVA ESTRUCTURA: separamos honorarios y gastos para ordenarlos ---
+      const honorariosRows = [];
+      const gastosRows = [];
+
+      // Función auxiliar para extraer datos de un ítem
+      const extractRow = (x, categoria, tipoForzado = null) => {
+        const honorario = safeNum(x?.honorarioMedico);
+        const gasto = safeNum(x?.gastoSanatorial);
+        const cantidad = safeNum(x?.cantidad ?? x?.unidades ?? 1) || 1;
+        const totalItem = safeNum(x?.total);
+        const unit = cantidad > 0 ? totalItem / cantidad : 0;
+
+        const desc = x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+        const codigo = x?.codigo || x?.code || x?.cod || '';
+        const origen = x?.doctorNombre || x?.doctor || x?.medico || x?.prestadorNombre || x?.prestador || '';
+
+        if (honorario > 0 && tipoForzado !== 'GASTO') {
+          honorariosRows.push({
+            tipo: 'HONORARIO',
+            categoria,
+            codigo,
+            desc,
+            cantidad,
+            unit,
+            total: honorario,
+            origen: origen || ''
+          });
+        }
+
+        if (gasto > 0 && tipoForzado !== 'HONORARIO') {
+          gastosRows.push({
+            tipo: 'GASTO',
+            categoria,
+            codigo,
+            desc,
+            cantidad,
+            unit,
+            total: gasto,
+            origen: 'Clínica de la Unión'
+          });
+        }
+      };
+
+      // Procesar prácticas, cirugías y laboratorios
+      (item.practicas || []).forEach(p => extractRow(p, 'Práctica'));
+      (item.cirugias || []).forEach(c => extractRow(c, 'Cirugía'));
+      (item.laboratorios || []).forEach(l => extractRow(l, 'Laboratorio'));
+
+      // Medicamentos y descartables solo gasto
+      if (item.medicamentos) {
+        item.medicamentos.forEach(m => {
+          const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
+          if (gasto > 0) {
+            const cantidad = safeNum(m?.cantidad ?? m?.unidades ?? 1) || 1;
+            const unit = cantidad > 0 ? gasto / cantidad : 0;
+            gastosRows.push({
+              tipo: 'GASTO',
+              categoria: 'Medicación',
+              codigo: '',
+              desc: m?.nombre || '',
+              cantidad,
+              unit,
+              total: gasto,
+              origen: 'Clínica de la Unión'
+            });
+          }
+        });
+      }
+
+      if (item.descartables) {
+        item.descartables.forEach(d => {
+          const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
+          if (gasto > 0) {
+            const cantidad = safeNum(d?.cantidad ?? d?.unidades ?? 1) || 1;
+            const unit = cantidad > 0 ? gasto / cantidad : 0;
+            gastosRows.push({
+              tipo: 'GASTO',
+              categoria: 'Descartable',
+              codigo: '',
+              desc: d?.nombre || '',
+              cantidad,
+              unit,
+              total: gasto,
+              origen: 'Clínica de la Unión'
+            });
+          }
+        });
+      }
+
+      // 👇 NUEVO: Agregar UTI como una línea de gasto
+      const utiData = calcularUTI(item);
+      if (utiData.gasto > 0) {
         gastosRows.push({
           tipo: 'GASTO',
-          categoria,
-          codigo,
-          desc,
-          cantidad,
-          unit,
-          total: gasto,
+          categoria: 'UTI',
+          codigo: 'UTI',
+          desc: utiData.descripcion,
+          cantidad: utiData.cantidad,
+          unit: utiData.unit,
+          total: utiData.gasto,
           origen: 'Clínica de la Unión'
         });
       }
-    };
 
-    // Procesar prácticas, cirugías y laboratorios (pueden tener honorario y gasto)
-    (item.practicas || []).forEach(p => extractRow(p, 'Práctica'));
-    (item.cirugias || []).forEach(c => extractRow(c, 'Cirugía'));
-    (item.laboratorios || []).forEach(l => extractRow(l, 'Laboratorio'));
+      // Unir: primero honorarios, luego gastos
+      const lineRows = [...honorariosRows, ...gastosRows];
 
-    // Medicamentos y descartables solo tienen gasto
-    if (item.medicamentos) {
-      item.medicamentos.forEach(m => {
-        const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
-        if (gasto > 0) {
-          const cantidad = safeNum(m?.cantidad ?? m?.unidades ?? 1) || 1;
-          const unit = cantidad > 0 ? gasto / cantidad : 0;
-          gastosRows.push({
-            tipo: 'GASTO',
-            categoria: 'Medicación',
-            codigo: '',
-            desc: m?.nombre || '',
-            cantidad,
-            unit,
-            total: gasto,
-            origen: 'Clínica de la Unión'
-          });
-        }
-      });
-    }
+      const totalHonor = honorariosRows.reduce((acc, r) => acc + r.total, 0);
+      const totalGasto = gastosRows.reduce((acc, r) => acc + r.total, 0);
+      const totalSiniestro = totalHonor + totalGasto;
 
-    if (item.descartables) {
-      item.descartables.forEach(d => {
-        const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
-        if (gasto > 0) {
-          const cantidad = safeNum(d?.cantidad ?? d?.unidades ?? 1) || 1;
-          const unit = cantidad > 0 ? gasto / cantidad : 0;
-          gastosRows.push({
-            tipo: 'GASTO',
-            categoria: 'Descartable',
-            codigo: '',
-            desc: d?.nombre || '',
-            cantidad,
-            unit,
-            total: gasto,
-            origen: 'Clínica de la Unión'
-          });
-        }
-      });
-    }
+      if (lineRows.length === 0) return;
 
-    // Unir: primero honorarios, luego gastos
-    const lineRows = [...honorariosRows, ...gastosRows];
+      const startRow = detalleRows.length + 1;
 
-    const totalHonor = honorariosRows.reduce((acc, r) => acc + r.total, 0);
-    const totalGasto = gastosRows.reduce((acc, r) => acc + r.total, 0);
-    const totalSiniestro = totalHonor + totalGasto;
-
-    if (lineRows.length === 0) return;
-
-    const startRow = detalleRows.length + 1;
-
-    // Fila de cabecera del siniestro
-    const headerRow = [
-      globalCdU,
-      nombre,
-      dni,
-      nroSiniestro,
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      totalHonor,
-      totalGasto,
-      { t: 'n', f: `=N${startRow}+O${startRow}` }
-    ];
-    detalleRows.push(headerRow);
-    globalCdU++;
-
-    // Filas de detalle (ya ordenadas: honorarios primero, luego gastos)
-    lineRows.forEach(row => {
-      const detailRow = [
+      // Fila de cabecera del siniestro
+      const headerRow = [
         globalCdU,
+        nombre,
+        dni,
+        nroSiniestro,
         '',
         '',
         '',
         '',
-        row.tipo,
-        row.categoria,
-        row.codigo,
-        row.desc,
-        row.cantidad,
-        row.unit,
-        row.total,
-        row.origen,
         '',
         '',
-        ''
+        '',
+        '',
+        '',
+        totalHonor,
+        totalGasto,
+        { t: 'n', f: `=N${startRow}+O${startRow}` }
       ];
-      detalleRows.push(detailRow);
+      detalleRows.push(headerRow);
       globalCdU++;
+
+      // Filas de detalle
+      lineRows.forEach(row => {
+        const detailRow = [
+          globalCdU,
+          '',
+          '',
+          '',
+          '',
+          row.tipo,
+          row.categoria,
+          row.codigo,
+          row.desc,
+          row.cantidad,
+          row.unit,
+          row.total,
+          row.origen,
+          '',
+          '',
+          ''
+        ];
+        detalleRows.push(detailRow);
+        globalCdU++;
+      });
+
+      // Línea en blanco entre siniestros
+      if (index < selected.length - 1) {
+        const blankRow = Array(detalleHeaders.length).fill('');
+        detalleRows.push(blankRow);
+      }
     });
 
-    // Línea en blanco entre siniestros
-    if (index < selected.length - 1) {
-      const blankRow = Array(detalleHeaders.length).fill('');
-      detalleRows.push(blankRow);
-    }
-  });
+    const lastRow = detalleRows.length;
+    const totalDetalleRow = [
+      '',
+      'TOTALES GENERALES',
+      '', '', '', '', '', '', '', '', '', '', '',
+      { t: 'n', f: `=SUM(N2:N${lastRow})` },
+      { t: 'n', f: `=SUM(O2:O${lastRow})` },
+      { t: 'n', f: `=SUM(P2:P${lastRow})` }
+    ];
+    detalleRows.push(totalDetalleRow);
 
-  const lastRow = detalleRows.length;
-  const totalDetalleRow = [
-    '',
-    'TOTALES GENERALES',
-    '', '', '', '', '', '', '', '', '', '', '',
-    { t: 'n', f: `=SUM(N2:N${lastRow})` },
-    { t: 'n', f: `=SUM(O2:O${lastRow})` },
-    { t: 'n', f: `=SUM(P2:P${lastRow})` }
-  ];
-  detalleRows.push(totalDetalleRow);
+    const wsDetalle = XLSX.utils.aoa_to_sheet(detalleRows);
+    wsDetalle['!cols'] = [
+      { wch: 6 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 12 },
+      { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 50 }, { wch: 8 },
+      { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
 
-  const wsDetalle = XLSX.utils.aoa_to_sheet(detalleRows);
-  wsDetalle['!cols'] = [
-    { wch: 6 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 12 },
-    { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 50 }, { wch: 8 },
-    { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
-    { wch: 15 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
-
-  XLSX.writeFile(wb, `siniestros_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
-};
-
-const getDescripcion = (item) =>
-  item?.descripcion || item?.nombre || item?.practica || item?.detalle || item?.producto || '';
-
-const getCodigoOriginal = (item) =>
-  item?.codigo || item?.code || item?.cod || item?.codigoPractica || '';
-
-const getPrestador = (item) =>
-  item?.doctorNombre || item?.doctor || item?.medico || item?.prestadorNombre || item?.prestador || '';
-
-const getCantidad = (item) => safeNum(item?.cantidad ?? item?.unidades ?? 1) || 1;
-
-const makeGastosPrestador = (codigoOriginal, descripcion) => {
-  const code = String(codigoOriginal || '').trim();
-  const desc = String(descripcion || '').trim().slice(0, 16);
-  return `GTOS. SAN.- ${code}${code && desc ? ' ' : ''}${desc}`.trim();
-};
-
-const downloadJsonFile = (data, filename) => {
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-};
-
-const exportJson = () => {
-  const selected = Array.from(selectedIds);
-  if (selected.length === 0) {
-    alert('Seleccione al menos un siniestro.');
-    return;
-  }
-
-  const ivacodicio = window.prompt('Ingrese ivacodicio para el JSON:', '');
-  if (ivacodicio === null) return;
-
-  const buildLine = (item, tipo, importe, categoria) => {
-    const codigoOriginal = getCodigoOriginal(item);
-    const descripcion = getDescripcion(item);
-    const cantidad = getCantidad(item);
-
-    return {
-      codigo: tipo === 'honorario' ? 2 : 7,
-      prestador:
-        tipo === 'honorario'
-          ? getPrestador(item)
-          : makeGastosPrestador(codigoOriginal, descripcion),
-      ivacodicio,
-      codigoPractica: codigoOriginal,
-      descripcion,
-      categoria,
-      cantidad,
-      importe: safeNum(importe),
-    };
+    XLSX.writeFile(wb, `siniestros_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  const facturas = selected
-    .map((id) => {
-      const item = raw[id];
-      if (!item) return null;
+  // ------------------------------------------------------------
+  //  FUNCIONES AUXILIARES PARA JSON
+  // ------------------------------------------------------------
+  const getDescripcion = (item) =>
+    item?.descripcion || item?.nombre || item?.practica || item?.detalle || item?.producto || '';
 
-      const paciente = item.paciente || {};
-      const practicas = [];
+  const getCodigoOriginal = (item) =>
+    item?.codigo || item?.code || item?.cod || item?.codigoPractica || '';
 
-      const addPrestacion = (prestacion, categoria) => {
-        const honorario = safeNum(prestacion?.honorarioMedico);
-        const gasto = safeNum(prestacion?.gastoSanatorial);
+  const getPrestador = (item) =>
+    item?.doctorNombre || item?.doctor || item?.medico || item?.prestadorNombre || item?.prestador || '';
 
-        if (honorario > 0) {
-          practicas.push(buildLine(prestacion, 'honorario', honorario, categoria));
-        }
-        if (gasto > 0) {
-          practicas.push(buildLine(prestacion, 'gasto', gasto, categoria));
-        }
-      };
+  const getCantidad = (item) => safeNum(item?.cantidad ?? item?.unidades ?? 1) || 1;
 
-      (item.practicas || []).forEach((p) => addPrestacion(p, 'Practica'));
-      (item.cirugias || []).forEach((c) => addPrestacion(c, 'Cirugia'));
-      (item.laboratorios || []).forEach((l) => addPrestacion(l, 'Laboratorio'));
+  const makeGastosPrestador = (codigoOriginal, descripcion) => {
+    const code = String(codigoOriginal || '').trim();
+    const desc = String(descripcion || '').trim().slice(0, 16);
+    return `GTOS. SAN.- ${code}${code && desc ? ' ' : ''}${desc}`.trim();
+  };
 
-      (item.medicamentos || []).forEach((m) => {
-        const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
-        if (gasto > 0) practicas.push(buildLine(m, 'gasto', gasto, 'Medicacion'));
-      });
+  const downloadJsonFile = (data, filename) => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
-      (item.descartables || []).forEach((d) => {
-        const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
-        if (gasto > 0) practicas.push(buildLine(d, 'gasto', gasto, 'Descartable'));
-      });
+  // ------------------------------------------------------------
+  //  EXPORTAR JSON
+  // ------------------------------------------------------------
+  const exportJson = () => {
+    const selected = Array.from(selectedIds);
+    if (selected.length === 0) {
+      alert('Seleccione al menos un siniestro.');
+      return;
+    }
+
+    const ivacodicio = window.prompt('Ingrese ivacodicio para el JSON:', '');
+    if (ivacodicio === null) return;
+
+    const buildLine = (item, tipo, importe, categoria) => {
+      const codigoOriginal = getCodigoOriginal(item);
+      const descripcion = getDescripcion(item);
+      const cantidad = getCantidad(item);
 
       return {
-        id,
-        facturaNro: item.facturaNro || '',
-        estado: item.estado || (item.cerradoAt ? 'cerrado' : 'borrador'),
-        fecha: item.cerradoAt || item.updatedAt || item.createdAt || null,
-        paciente: paciente.nombreCompleto || paciente.nombre || item.pacienteNombre || '',
-        dni: paciente.dni || item.dni || '',
-        nroSiniestro: paciente.nroSiniestro || item.nroSiniestro || '',
-        art: paciente.artSeguro || item.artNombre || item.artSeguro || 'SIN ART',
+        codigo: tipo === 'honorario' ? 2 : 7,
+        prestador:
+          tipo === 'honorario'
+            ? getPrestador(item)
+            : makeGastosPrestador(codigoOriginal, descripcion),
         ivacodicio,
-        practicas,
+        codigoPractica: codigoOriginal,
+        descripcion,
+        categoria,
+        cantidad,
+        importe: safeNum(importe),
       };
-    })
-    .filter(Boolean);
+    };
 
-  downloadJsonFile(facturas, `facturas_${new Date().toISOString().slice(0, 10)}.json`);
-};
-  // Imprimir reporte ART
+    const facturas = selected
+      .map((id) => {
+        const item = raw[id];
+        if (!item) return null;
+
+        const paciente = item.paciente || {};
+        const practicas = [];
+
+        const addPrestacion = (prestacion, categoria) => {
+          const honorario = safeNum(prestacion?.honorarioMedico);
+          const gasto = safeNum(prestacion?.gastoSanatorial);
+
+          if (honorario > 0) {
+            practicas.push(buildLine(prestacion, 'honorario', honorario, categoria));
+          }
+          if (gasto > 0) {
+            practicas.push(buildLine(prestacion, 'gasto', gasto, categoria));
+          }
+        };
+
+        (item.practicas || []).forEach((p) => addPrestacion(p, 'Practica'));
+        (item.cirugias || []).forEach((c) => addPrestacion(c, 'Cirugia'));
+        (item.laboratorios || []).forEach((l) => addPrestacion(l, 'Laboratorio'));
+
+        (item.medicamentos || []).forEach((m) => {
+          const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
+          if (gasto > 0) practicas.push(buildLine(m, 'gasto', gasto, 'Medicacion'));
+        });
+
+        (item.descartables || []).forEach((d) => {
+          const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
+          if (gasto > 0) practicas.push(buildLine(d, 'gasto', gasto, 'Descartable'));
+        });
+
+        // 👇 NUEVO: Agregar UTI como una línea de gasto
+        const utiData = calcularUTI(item);
+        if (utiData.gasto > 0) {
+          practicas.push({
+            codigo: 7, // gasto
+            prestador: 'GTOS. SAN.- UTI',
+            ivacodicio,
+            codigoPractica: 'UTI',
+            descripcion: utiData.descripcion,
+            categoria: 'UTI',
+            cantidad: utiData.cantidad,
+            importe: utiData.gasto,
+          });
+        }
+
+        return {
+          id,
+          facturaNro: item.facturaNro || '',
+          estado: item.estado || (item.cerradoAt ? 'cerrado' : 'borrador'),
+          fecha: item.cerradoAt || item.updatedAt || item.createdAt || null,
+          paciente: paciente.nombreCompleto || paciente.nombre || item.pacienteNombre || '',
+          dni: paciente.dni || item.dni || '',
+          nroSiniestro: paciente.nroSiniestro || item.nroSiniestro || '',
+          art: paciente.artSeguro || item.artNombre || item.artSeguro || 'SIN ART',
+          ivacodicio,
+          practicas,
+        };
+      })
+      .filter(Boolean);
+
+    downloadJsonFile(facturas, `facturas_${new Date().toISOString().slice(0, 10)}.json`);
+  };
+
+  // ------------------------------------------------------------
+  //  IMPRIMIR REPORTE ART
+  // ------------------------------------------------------------
   const printART = (id) => {
     const item = raw[id];
     if (!item) return;
@@ -677,7 +768,9 @@ const exportJson = () => {
     const totalLab = (item.laboratorios || []).reduce((acc, it) => acc + safeNum(it.total), 0);
     const totalMed = (item.medicamentos || []).reduce((acc, it) => acc + safeNum(it.total), 0);
     const totalDesc = (item.descartables || []).reduce((acc, it) => acc + safeNum(it.total), 0);
-    const totalGeneral = totalLab + totalMed + totalDesc;
+    const utiData = calcularUTI(item);
+    const totalUTI = utiData.gasto;
+    const totalGeneral = totalLab + totalMed + totalDesc + totalUTI;
 
     const camposLab = [
       { label: 'Código', field: 'codigo' },
@@ -868,12 +961,23 @@ const exportJson = () => {
       html += `<div class="subtotal">Subtotal Desc: $ ${money(totalDesc)}</div>`;
     }
 
+    // 👇 NUEVO: Mostrar UTI
+    if (totalUTI > 0) {
+      html += `<h2>UTI</h2>`;
+      html += `<table><thead><tr><th>Descripción</th><th>Cant. días</th><th>V. Unit.</th><th>Total</th></tr></thead>`;
+      html += `<tbody>`;
+      html += `<tr><td>${utiData.descripcion}</td><td>${utiData.cantidad}</td><td>$ ${money(utiData.unit)}</td><td>$ ${money(utiData.gasto)}</td></tr>`;
+      html += `</tbody></table>`;
+      html += `<div class="subtotal">Subtotal UTI: $ ${money(totalUTI)}</div>`;
+    }
+
     html += `
       <div class="totales">
         <div class="totals-summary">
           <p>Total Laboratorios: $ ${money(totalLab)}</p>
           <p>Total Medicamentos: $ ${money(totalMed)}</p>
           <p>Total Descartables: $ ${money(totalDesc)}</p>
+          ${totalUTI > 0 ? `<p>Total UTI: $ ${money(totalUTI)}</p>` : ''}
           <p class="total-general"><strong>TOTAL GENERAL: $ ${money(totalGeneral)}</strong></p>
         </div>
 
@@ -902,6 +1006,9 @@ const exportJson = () => {
     printWindow.print();
   };
 
+  // ------------------------------------------------------------
+  //  RETORNAR TODOS LOS ESTADOS Y FUNCIONES
+  // ------------------------------------------------------------
   return {
     raw,
     loading,
@@ -913,10 +1020,10 @@ const exportJson = () => {
     setArt,
     orden,
     setOrden,
-    fechaDesde,        // 👈 NUEVO
-    setFechaDesde,     // 👈 NUEVO
-    fechaHasta,        // 👈 NUEVO
-    setFechaHasta,     // 👈 NUEVO
+    fechaDesde,
+    setFechaDesde,
+    fechaHasta,
+    setFechaHasta,
     selectedIds,
     toggleSelect,
     toggleSelectAll,
@@ -929,5 +1036,8 @@ const exportJson = () => {
     counts,
     arts,
     filtered,
+    // 👇 NUEVO: exponer nomencladores y función para obtener valores
+    nomencladores,
+    getValorPractica,
   };
 }
