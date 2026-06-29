@@ -449,12 +449,12 @@ export default function FacturaContainer() {
 
       await set(ref(db, `Facturacion/${id}`), { id, ...(prev || {}), ...payload });
 
-   await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
-  status: estado,
-  id,
-  updatedAt: now,
-  dni: paciente?.dni || '', // <-- LÍNEA OBLIGATORIA
-});
+      await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
+        status: estado,
+        id,
+        updatedAt: now,
+        dni: paciente?.dni || '',
+      });
 
       await cerrarPacientePorFactura({ id, ...payload }, id);
 
@@ -833,43 +833,36 @@ export default function FacturaContainer() {
         )}
       </header>
 
-     {existentes.length > 0 && (
-  <div className={styles.duplicateAlert}>
-    <div className={styles.duplicateHeader}>
-      ⚠️ Este paciente ya tiene {existentes.length}{' '}
-      {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
-    </div>
-    <div className={styles.duplicateBody}>
-      <p>
-        Podés abrir uno para editarlo, o seguir cargando este como{' '}
-        <b>uno nuevo e independiente</b> (no se pisa con los anteriores).
-      </p>
-      <div className={styles.duplicateLinks}>
-        {existentes.slice(0, 6).map((ex) => (
-          <Link
-            key={ex.id}
-            href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
-            className={styles.duplicateLink}
-          >
-            {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
-            {ex.nroSiniestro ? ` · Stro ${ex.nroSiniestro}` : ''}
-            {' · '}
-            {new Date(ex.updatedAt || Date.now()).toLocaleDateString('es-AR')}
-          </Link>
-        ))}
-      </div>
-    </div>
-    <div className={styles.duplicateFooter}>
-      <button
-        className={styles.btnPrimario}
-        onClick={guardarSiniestroNuevo}
-        disabled={!puedeNavegar}
-      >
-        Guardar como borrador nuevo
-      </button>
-    </div>
-  </div>
-)}
+      {/* ===== CARTEL DE DUPLICADOS (sin botón) ===== */}
+      {existentes.length > 0 && (
+        <div className={styles.duplicateAlert}>
+          <div className={styles.duplicateHeader}>
+            ⚠️ Este paciente ya tiene {existentes.length}{' '}
+            {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
+          </div>
+          <div className={styles.duplicateBody}>
+            <p>
+              Podés abrir uno para editarlo, o seguir cargando este como{' '}
+              <b>uno nuevo e independiente</b> (no se pisa con los anteriores).
+            </p>
+            <div className={styles.duplicateLinks}>
+              {existentes.slice(0, 6).map((ex) => (
+                <Link
+                  key={ex.id}
+                  href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
+                  className={styles.duplicateLink}
+                >
+                  {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
+                  {ex.nroSiniestro ? ` · Stro ${ex.nroSiniestro}` : ''}
+                  {' · '}
+                  {new Date(ex.updatedAt || Date.now()).toLocaleDateString('es-AR')}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.tabs}>
         {tabs.map((tab) => (
           <button
@@ -995,6 +988,7 @@ export default function FacturaContainer() {
         </AnimatePresence>
       </div>
 
+      {/* ===== BARRA INFERIOR ===== */}
       <div className={styles.footerBar}>
         <div className={styles.footerActions}>
           {draftId ? (
@@ -1002,8 +996,16 @@ export default function FacturaContainer() {
               Guardar copia nueva
             </button>
           ) : null}
-          <button className={styles.btnSecundario} onClick={guardarSiniestro}>
-            💾 Guardar borrador
+
+          {/* Si hay duplicados y no estamos editando, mostramos "Guardar como nuevo" */}
+          {existentes.length > 0 && !draftId && (
+            <button className={styles.btnPrimario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
+              Guardar como nuevo
+            </button>
+          )}
+
+          <button className={styles.btnSecundario} onClick={guardarSiniestro} disabled={!puedeNavegar}>
+            {draftId ? 'Actualizar borrador' : 'Guardar borrador'}
           </button>
         </div>
       </div>
