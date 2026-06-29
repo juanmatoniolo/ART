@@ -92,9 +92,7 @@ Puede concurrir con:
 
 
 
-*Importante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia*`
-;
-
+*Importante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia*`;
     }
 
     // Resonancia
@@ -158,11 +156,10 @@ Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
-          ? `Dr. Percara
-
+          ? `🩺 Dr. Percara
 
 📍 Bolívar 1695 (esquina 9 de Julio)`
-          : `Dr. Capovilla
+          : `🩺 Dr. Capovilla
 📍 Bolívar 1645`;
 
       return `Buen día, *${name}*.
@@ -176,7 +173,7 @@ Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
 • Traer DNI físico
 • Llegar 15 minutos antes
 
-👨‍⚕️ Profesional:
+🩺 Profesional:
 ${profesional}`;
     }
 
@@ -184,14 +181,13 @@ ${profesional}`;
     if (mensaje === "5") {
       const profesional =
         bioquimico === "confalonieri"
-          ? `Bioquímica Confalonieri
-
+          ? `🧪 Bioquímica Confalonieri
 
 📍 Belgrano y Corrientes (frente a Pepos)`
           : bioquimico === "marmol"
-            ? `Bioquímico Mármol
+            ? `🧪 Bioquímico Mármol
 📍 Sarmiento 2610`
-            : `Bioquímica Tabeni
+            : `🧪 Bioquímica Tabeni
 📍 Jaime Tabeni 1101`;
 
       return `Buen día, *${name}*.
@@ -231,7 +227,7 @@ Al ingresar puede consultar en Mesa de Entrada.
 
     // Cirugía
     if (mensaje === "7") {
-      return `CLÍNICA DE LA UNIÓN
+      return `🏥 CLÍNICA DE LA UNIÓN
 
 
 Buen día, *${name}*.
