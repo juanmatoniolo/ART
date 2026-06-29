@@ -7,7 +7,9 @@
   background: #0b1220;
   color: #fff;
   min-height: 100vh;
-  overflow-x: hidden; /* ← Elimina scroll lateral */
+  min-height: 100dvh;
+  overflow-x: hidden;
+  /* ← Elimina scroll lateral */
   box-sizing: border-box;
 }
 
@@ -21,7 +23,8 @@
   backdrop-filter: blur(4px);
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden; /* Evita desbordamientos internos */
+  overflow: hidden;
+  /* Evita desbordamientos internos */
 }
 
 .title {

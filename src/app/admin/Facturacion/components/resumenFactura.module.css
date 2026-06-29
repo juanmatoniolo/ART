@@ -3,6 +3,40 @@
 ========================= */
 
 .tabContent {
+    /* ── Design tokens ── */
+    --color-bg-primary:    #0b1220;
+    --color-bg-secondary:  #111827;
+    --color-bg-tertiary:   #1f2937;
+
+    --color-border:        rgba(255, 255, 255, 0.10);
+
+    --color-text-primary:  #f9fafb;
+    --color-text-secondary:#cbd5e1;
+    --color-text-tertiary: #64748b;
+
+    --color-primary:       #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-primary-dark:  #1d4ed8;
+
+    --color-success:       #22c55e;
+    --color-warning:       #f59e0b;
+    --color-danger:        #ef4444;
+
+    --border-radius-sm:    6px;
+    --border-radius-md:    10px;
+    --border-radius-lg:    14px;
+
+    --spacing-xs:  4px;
+    --spacing-sm:  8px;
+    --spacing-md:  12px;
+    --spacing-lg:  16px;
+    --spacing-xl:  20px;
+    --spacing-2xl: 24px;
+    --spacing-3xl: 32px;
+
+    --transition-base: 200ms ease;
+    --transition-fast: 140ms ease;
+
     width: 100%;
     color: var(--color-text-primary);
 }
@@ -528,52 +562,55 @@
     gap: var(--spacing-sm);
 }
 
+.btnLimpiar,
+.btnAtras,
+.btnDescargar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font: 900 0.9rem/1 inherit;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btnLimpiar:hover,
+.btnAtras:hover,
+.btnDescargar:hover {
+    transform: translateY(-1px);
+}
+
 .btnLimpiar {
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.35);
     color: #fecaca;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .btnLimpiar:hover {
-    transform: translateY(-1px);
-    background: rgba(239, 68, 68, 0.18);
+    background: rgba(239, 68, 68, 0.20);
 }
 
 .btnAtras {
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .btnAtras:hover {
-    transform: translateY(-1px);
-    border-color: rgba(59, 130, 246, 0.35);
+    border-color: rgba(59, 130, 246, 0.45);
 }
 
 .btnDescargar {
     background: rgba(34, 197, 94, 0.12);
     border: 1px solid rgba(34, 197, 94, 0.35);
     color: #bbf7d0;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .btnDescargar:hover {
-    transform: translateY(-1px);
-    background: rgba(34, 197, 94, 0.18);
+    background: rgba(34, 197, 94, 0.20);
 }
 
 /* Responsive */
@@ -600,6 +637,26 @@
     .columnaValor {
         width: 180px;
     }
+}
+
+/* ===== Badge artroscopia ===== */
+.artroBadge {
+    display: inline-flex;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    color: #c4b5fd;
+    vertical-align: middle;
+}
+
+/* ===== Fila RX destacada ===== */
+.rxRow {
+    background: rgba(59, 130, 246, 0.06);
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
 }
 
 /* ===== Dr que realiza ===== */
@@ -725,32 +782,33 @@
 
 /* ===== Sección manual: info banner ===== */
 .manualInfo {
-    font-size: 0.82rem;
-    color: var(--color-text-muted, #6b7280);
-    background: var(--color-bg-note, #fef9c3);
-    border-left: 3px solid var(--color-warning, #f59e0b);
-    padding: 0.5rem 0.75rem;
-    border-radius: 4px;
-    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: #fde047;
+    background: rgba(234, 179, 8, 0.12);
+    border-left: 4px solid #eab308;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 500;
 }
 
-/* Inputs manuales (heredan estilo de la tabla) */
+/* Inputs manuales */
 .manualInput {
     width: 100%;
     padding: 0.3rem 0.45rem;
-    border: 1px solid var(--color-border, #d1d5db);
+    border: 1px solid var(--color-border);
     border-radius: 5px;
     font-size: 0.83rem;
-    background: var(--color-bg-input, #fff);
-    color: var(--color-text-primary, #111827);
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--color-text-primary);
     transition: border-color 0.15s;
     box-sizing: border-box;
 }
 
 .manualInput:focus {
     outline: none;
-    border-color: var(--color-primary, #6366f1);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.20);
 }
 
 .manualInputNum {
@@ -759,29 +817,29 @@
 }
 
 .manualTotal {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-primary, #6366f1);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #60a5fa;
     white-space: nowrap;
 }
 
 .manualFooterRow td {
     padding: 0.45rem 0.4rem;
-    background: var(--color-bg-subtle, #f3f4f6);
-    border-top: 2px solid var(--color-border, #d1d5db);
+    background: rgba(30, 41, 59, 0.8);
+    border-top: 2px solid rgba(71, 85, 105, 0.6);
     font-size: 0.84rem;
 }
 
 .manualFooterLabel {
-    font-weight: 600;
-    color: var(--color-text-secondary, #374151);
+    font-weight: 700;
+    color: #e2e8f0;
 }
 
 .manualFooterNum {
     text-align: right;
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: var(--color-text-primary, #111827);
+    font-weight: 700;
+    color: #f1f5f9;
 }
 
 .manualAddRow {
@@ -815,7 +873,7 @@
 }
 
 .thDescMed {
-    width: 22%;
+    width: 25%;
     text-align: left;
 }
 
@@ -942,134 +1000,25 @@
     }
 }
 
-/* ===== MEJORAS PARA LA SECCIÓN MANUAL / ESPECIALES ===== */
-/* Garantiza legibilidad de textos, inputs y etiquetas */
-
-.manualInfo {
-    font-size: 0.85rem;
-    color: #334155; /* color oscuro legible sobre fondo claro */
-    background: #fef9c3;
-    border-left: 4px solid #eab308;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    font-weight: 500;
-}
-
-/* Tabla manual: forzar colores de texto oscuros en modo claro */
+/* ===== Inputs dentro de tabla manual ===== */
 .table tbody td .manualInput,
 .table tbody td .manualInputNum {
-    background-color: #ffffff;
-    color: #1e293b;
-    border: 1px solid #cbd5e1;
+    background-color: rgba(30, 41, 59, 0.6);
+    color: #f1f5f9;
+    border: 1px solid rgba(71, 85, 105, 0.6);
     font-weight: 500;
 }
 
 .table tbody td .manualInput::placeholder,
 .table tbody td .manualInputNum::placeholder {
-    color: #64748b;
+    color: #94a3b8;
     font-weight: normal;
 }
 
-/* Select de tipo (Honorario/Gasto) dentro de tabla manual */
 .table tbody td .selectPrestador {
-    background-color: #ffffff;
-    color: #1e293b;
-    border: 1px solid #cbd5e1;
-    font-weight: 500;
+    background-color: rgba(30, 41, 59, 0.6);
+    color: #f1f5f9;
+    border: 1px solid rgba(71, 85, 105, 0.6);
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
 }
-
-/* Total de fila manual */
-.manualTotal {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #2563eb;
-    background: transparent;
-    padding: 0.2rem 0.4rem;
-    border-radius: 6px;
-}
-
-/* Footer de totales manuales */
-.manualFooterRow td {
-    background: #f1f5f9;
-    color: #0f172a;
-    font-weight: 600;
-    border-top: 2px solid #cbd5e1;
-}
-
-.manualFooterLabel {
-    color: #0f172a;
-    font-weight: 700;
-}
-
-.manualFooterNum {
-    color: #0f172a;
-    font-weight: 700;
-}
-
-/* Botón agregar ítem manual */
-.btnAgregarManual {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btnAgregarManual:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-}
-
-/* Ajuste de ancho de columnas en tabla manual para que no se aprieten */
-.thDescMed {
-    width: 25%;
-}
-
-/* Para modo oscuro general (si el tema es oscuro, se adapta) */
-@media (prefers-color-scheme: dark) {
-    .manualInfo {
-        background: #2d2a1e;
-        color: #fde047;
-        border-left-color: #facc15;
-    }
-    
-    .table tbody td .manualInput,
-    .table tbody td .manualInputNum,
-    .table tbody td .selectPrestador {
-        background-color: #1e293b;
-        color: #f1f5f9;
-        border-color: #475569;
-    }
-    
-    .table tbody td .manualInput::placeholder {
-        color: #94a3b8;
-    }
-    
-    .manualTotal {
-        color: #60a5fa;
-    }
-    
-    .manualFooterRow td {
-        background: #1e293b;
-        color: #e2e8f0;
-    }
-    
-    .manualFooterLabel,
-    .manualFooterNum {
-        color: #f1f5f9;
-    }
-}
-
-/* Mejora adicional: texto de cabecera de tabla manual */
-.table thead th {
-    color: #f8fafc; /* para modo oscuro, si tu fondo es oscuro */
-    background: rgba(0, 0, 0, 0.4);
-}
-
-/* En modo claro, las cabeceras se ven bien con el color por defecto */
