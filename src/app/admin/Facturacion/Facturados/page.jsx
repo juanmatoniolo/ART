@@ -35,6 +35,8 @@ export default function FacturadosPage() {
 
   const [showMore, setShowMore] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [showIapsModal, setShowIapsModal] = useState(false);
+  const [cmdScript, setCmdScript] = useState('');
 
   const allSelected = selectedIds.size === filtered.length && filtered.length > 0;
   const haySeleccion = selectedIds.size > 0;
@@ -73,7 +75,6 @@ export default function FacturadosPage() {
       const prev = snap.exists() ? snap.val() : null;
       await remove(ref(db, `Facturacion/${id}`));
       if (prev?.siniestroKey) {
-        // limpieza informativa (el nodo puede no existir)
         await remove(ref(db, `Facturacion/siniestros/${prev.siniestroKey}`)).catch(() => { });
       }
       alert('🗑️ Registro eliminado.');
@@ -85,11 +86,77 @@ export default function FacturadosPage() {
     }
   }, []);
 
+  // ----- Acciones masivas -----
+  const facturarSeleccionados = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    const borradores = filtered.filter(it => ids.includes(it.id) && it.estado !== 'cerrado');
+    if (borradores.length === 0) {
+      alert('Seleccioná al menos un borrador (no cerrado).');
+      return;
+    }
+    if (!window.confirm(`¿Facturar ${borradores.length} registro(s)?`)) return;
+
+    setBusyId('bulk');
+    try {
+      let count = 0;
+      for (const it of borradores) {
+        const now = Date.now();
+        const facturaNro = it.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
+        await update(ref(db, `Facturacion/${it.id}`), {
+          estado: 'cerrado',
+          cerradoAt: now,
+          updatedAt: now,
+          facturaNro,
+        });
+        await cerrarPacientePorFactura(
+          { ...it, estado: 'cerrado', cerradoAt: now, facturaNro },
+          it.id
+        );
+        count++;
+      }
+      alert(`✅ ${count} registro(s) facturados correctamente.`);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || 'Error al facturar seleccionados.');
+    } finally {
+      setBusyId('');
+    }
+  }, [selectedIds, filtered]);
+
+  const generarCarpetasIAPS = useCallback(() => {
+    let items = filtered.filter(it => selectedIds.has(it.id) || selectedIds.size === 0);
+    if (items.length === 0) {
+      alert('No hay registros para generar carpetas.');
+      return;
+    }
+    // Ordenar por nombre
+    items = items.sort((a, b) => (a.pacienteNombre || '').localeCompare(b.pacienteNombre || ''));
+
+    // Generar script CMD (compatible con Windows)
+    const lines = items.map(it => {
+      const nombre = (it.pacienteNombre || 'SIN_NOMBRE').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '');
+      const dni = it.dni || 'SIN_DNI';
+      const siniestro = it.nroSiniestro || 'SIN_SINIESTRO';
+      const folderName = `${nombre} - ${dni} - ${siniestro}`;
+      return `mkdir "${folderName}"`;
+    });
+
+    const script = `@echo off\nREM Crear carpetas para IAPS\n${lines.join('\n')}\npause`;
+    setCmdScript(script);
+    setShowIapsModal(true);
+  }, [selectedIds, filtered]);
+
+  // --- Render ---
   const tabs = [
     { key: 'todos', label: 'Todos', count: counts.total },
     { key: 'borrador', label: 'Borradores', count: counts.borradores },
     { key: 'cerrado', label: 'Cerrados', count: counts.cerrados },
   ];
+
+  const hayBorradoresSeleccionados = Array.from(selectedIds).some(id => {
+    const item = filtered.find(f => f.id === id);
+    return item && item.estado !== 'cerrado';
+  });
 
   return (
     <div className={styles.container}>
@@ -169,6 +236,16 @@ export default function FacturadosPage() {
             <div className={styles.bulkActions}>
               <button className={styles.btnInfo} onClick={exportCompleto}>📊 Exportar Excel</button>
               <button className={styles.btnJson} onClick={exportJson}>JSON</button>
+              <button
+                className={`${styles.btn} ${styles.btnSuccess}`}
+                onClick={facturarSeleccionados}
+                disabled={!hayBorradoresSeleccionados || deleting}
+              >
+                ✅ Facturar seleccionados
+              </button>
+              <button className={`${styles.btn} ${styles.btnIaps}`} onClick={generarCarpetasIAPS}>
+                📁 Carpetas IAPS
+              </button>
               <button className={styles.btnDanger} onClick={deleteSelected} disabled={deleting}>
                 {deleting ? 'Eliminando…' : '🗑️ Eliminar'}
               </button>
@@ -186,7 +263,7 @@ export default function FacturadosPage() {
         ) : (
           <div className={styles.grid}>
             {filtered.map((it) => {
-              const busy = busyId === it.id;
+              const busy = busyId === it.id || busyId === 'bulk';
               const esCerrado = it.estado === 'cerrado';
               return (
                 <article key={it.id} className={`${styles.card} ${esCerrado ? styles.cardClosed : ''}`}>
@@ -242,6 +319,23 @@ export default function FacturadosPage() {
           </div>
         )}
       </main>
+
+      {/* MODAL CARPETAS IAPS */}
+      {showIapsModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowIapsModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>📁 Carpetas IAPS</h2>
+            <p>Copiá el siguiente código en un archivo <code>.bat</code> y ejecutalo en Windows para crear las carpetas.</p>
+            <pre className={styles.cmdScript}>{cmdScript}</pre>
+            <div className={styles.modalActions}>
+              <button className={styles.btnGhost} onClick={() => navigator.clipboard.writeText(cmdScript)}>
+                📋 Copiar
+              </button>
+              <button className={styles.btnPrimary} onClick={() => setShowIapsModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

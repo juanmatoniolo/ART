@@ -463,7 +463,7 @@ export default function Page() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Clave</th>
+                    
                       <th>Nombre</th>
                       <th>Usuario</th>
                       <th>Contraseña</th>
@@ -472,10 +472,9 @@ export default function Page() {
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody className="w-90">
                     {filteredUsers.map((item) => (
                       <tr key={item.key}>
-                        <td>{item.key}</td>
                         <td>{item.nombre}</td>
                         <td>{item.user}</td>
                         <td>

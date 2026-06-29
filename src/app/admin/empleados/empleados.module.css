@@ -1,538 +1,613 @@
+/* ===== Contenedor principal ===== */
 .container {
-    --bg: #0b1220;
-    --bgSoft: #111827;
-    --card: #0f172a;
-    --cardStrong: #111c31;
-    --cardHover: #16233d;
-    --text: #e5e7eb;
-    --textSoft: #cbd5e1;
-    --muted: #94a3b8;
-    --border: #243244;
-    --borderStrong: #334155;
-    --primary: #22c55e;
-    --primaryStrong: #16a34a;
-    --primarySoft: rgba(34, 197, 94, 0.14);
-    --danger: #ef4444;
-    --dangerStrong: #dc2626;
-    --warning: #f59e0b;
-    --info: #38bdf8;
-    --shadowSm: 0 10px 24px rgba(0, 0, 0, 0.28);
-    --shadowMd: 0 18px 40px rgba(0, 0, 0, 0.36);
-    --radiusLg: 24px;
-    --radiusMd: 18px;
-    --radiusSm: 14px;
-    --transition: 180ms ease;
+  --bg: #0b1220;
+  --bgSoft: #111827;
+  --card: #0f172a;
+  --cardStrong: #111c31;
+  --cardHover: #16233d;
+  --text: #e5e7eb;
+  --textSoft: #cbd5e1;
+  --muted: #94a3b8;
+  --border: #243244;
+  --borderStrong: #334155;
+  --primary: #22c55e;
+  --primaryStrong: #16a34a;
+  --primarySoft: rgba(34, 197, 94, 0.14);
+  --danger: #ef4444;
+  --dangerStrong: #dc2626;
+  --warning: #f59e0b;
+  --info: #38bdf8;
+  --shadowSm: 0 10px 24px rgba(0, 0, 0, 0.28);
+  --shadowMd: 0 18px 40px rgba(0, 0, 0, 0.36);
+  --radiusLg: 24px;
+  --radiusMd: 18px;
+  --radiusSm: 14px;
+  --transition: 180ms ease;
 
-    width: min(100%, 1320px);
-    min-height: 100dvh;
-    margin-inline: auto;
-    padding:
-        calc(env(safe-area-inset-top, 0px) + 0.9rem) 0.8rem calc(env(safe-area-inset-bottom, 0px) + 1rem);
-    background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 22%),
-        radial-gradient(circle at top right, rgba(34, 197, 94, 0.06), transparent 20%),
-        linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
-    color: var(--text);
+  width: min(100%, 1320px);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: 0.8rem 0.6rem 1rem;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 22%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.06), transparent 20%),
+    linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+  color: var(--text);
 }
 
+/* ===== Cabecera ===== */
 .headerBlock {
-    display: grid;
-    gap: 0.85rem;
-    margin-bottom: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .headerActions {
-    display: grid;
-    gap: 0.65rem;
+  display: grid;
+  gap: 0.65rem;
 }
 
 .title {
-    margin: 0;
-    font-size: clamp(1.6rem, 5vw, 2.35rem);
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    font-weight: 900;
-    color: var(--text);
+  margin: 0;
+  font-size: clamp(1.4rem, 5vw, 2.35rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+  color: var(--text);
 }
 
 .subtitle {
-    margin: 0.35rem 0 0;
-    color: var(--muted);
-    font-size: clamp(0.9rem, 2.8vw, 0.98rem);
-    line-height: 1.45;
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: clamp(0.85rem, 2.8vw, 0.98rem);
+  line-height: 1.45;
 }
 
 .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    max-width: 100%;
-    min-height: 42px;
-    padding: 0.7rem 1rem;
-    border-radius: 999px;
-    background: rgba(56, 189, 248, 0.12);
-    color: #7dd3fc;
-    border: 1px solid rgba(56, 189, 248, 0.24);
-    font-weight: 800;
-    font-size: 0.88rem;
-    text-align: center;
-    word-break: break-word;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-align: center;
+  word-break: break-word;
 }
 
+/* ===== Grid principal ===== */
 .grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
+/* ===== Tarjetas (formulario y tabla) ===== */
 .formCard,
 .tableCard {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 28, 49, 0.98) 100%);
-    border: 1px solid var(--border);
-    border-radius: var(--radiusLg);
-    box-shadow: var(--shadowSm);
-    padding: 0.95rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 28, 49, 0.98) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radiusLg);
+  box-shadow: var(--shadowSm);
+  padding: 0.95rem 0.85rem;
 }
 
+/* ===== Encabezado de tarjeta ===== */
 .cardHeader {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .cardTitle {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--text);
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .counter {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    min-width: 34px;
-    min-height: 34px;
-    padding: 0.35rem 0.65rem;
-    border-radius: 999px;
-    background: rgba(34, 197, 94, 0.14);
-    color: #86efac;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    font-weight: 800;
-    font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--primarySoft);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  font-weight: 800;
+  font-size: 0.88rem;
 }
 
+/* ===== Formulario ===== */
 .form {
-    display: grid;
-    gap: 0.9rem;
+  display: grid;
+  gap: 0.9rem;
 }
 
 .field {
-    display: grid;
-    gap: 0.42rem;
+  display: grid;
+  gap: 0.4rem;
 }
 
 .label {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--textSoft);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--textSoft);
 }
 
 .input,
 .select {
-    width: 100%;
-    min-height: 48px;
-    border: 1px solid var(--border);
-    border-radius: var(--radiusSm);
-    padding: 0.9rem 1rem;
-    background: #0b1220;
-    color: var(--text);
-    font-size: 16px;
-    line-height: 1.2;
-    transition:
-        border-color var(--transition),
-        box-shadow var(--transition),
-        background var(--transition),
-        transform var(--transition);
-    appearance: none;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radiusSm);
+  padding: 0.7rem 0.9rem;
+  background: #0b1220;
+  color: var(--text);
+  font-size: 16px; /* Evita zoom en iOS */
+  line-height: 1.2;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition),
+    background var(--transition);
+  appearance: none;
 }
 
 .input::placeholder {
-    color: #64748b;
+  color: #64748b;
 }
 
 .input:hover,
 .select:hover {
-    border-color: var(--borderStrong);
-    background: #101827;
+  border-color: var(--borderStrong);
+  background: #101827;
 }
 
 .input:focus,
 .select:focus {
-    outline: none;
-    border-color: rgba(34, 197, 94, 0.6);
-    background: #0f172a;
-    box-shadow:
-        0 0 0 4px rgba(34, 197, 94, 0.12),
-        0 10px 22px rgba(0, 0, 0, 0.28);
+  outline: none;
+  border-color: rgba(34, 197, 94, 0.6);
+  background: #0f172a;
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, 0.12),
+    0 10px 22px rgba(0, 0, 0, 0.28);
 }
 
+/* ===== Botones ===== */
 .primaryButton,
 .secondaryButton,
 .editButton,
 .deleteButton {
-    appearance: none;
-    border: none;
-    min-height: 46px;
-    border-radius: var(--radiusSm);
-    padding: 0.85rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 800;
-    line-height: 1.1;
-    cursor: pointer;
-    transition:
-        transform var(--transition),
-        box-shadow var(--transition),
-        opacity var(--transition),
-        filter var(--transition),
-        background var(--transition);
+  appearance: none;
+  border: none;
+  min-height: 46px;
+  border-radius: var(--radiusSm);
+  padding: 0.7rem 1rem;
+  font-size: clamp(0.9rem, 2.5vw, 0.95rem);
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    opacity var(--transition),
+    filter var(--transition),
+    background var(--transition);
 }
 
 .primaryButton {
-    color: #052e16;
-    background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
-    box-shadow: 0 14px 28px rgba(34, 197, 94, 0.18);
+  color: #052e16;
+  background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+  box-shadow: 0 14px 28px rgba(34, 197, 94, 0.18);
+  width: 100%;
 }
 
 .primaryButton:hover,
 .primaryButton:focus-visible {
-    transform: translateY(-1px);
-    filter: brightness(1.03);
-    outline: none;
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  outline: none;
+}
+
+.primaryButton:active {
+  transform: scale(0.97);
 }
 
 .secondaryButton {
-    color: var(--textSoft);
-    background: #162033;
-    border: 1px solid var(--border);
+  color: var(--textSoft);
+  background: #162033;
+  border: 1px solid var(--border);
 }
 
 .secondaryButton:hover,
 .secondaryButton:focus-visible {
-    background: #1a2740;
-    outline: none;
+  background: #1a2740;
+  outline: none;
+}
+
+.editButton,
+.deleteButton {
+  min-height: 44px;
+  padding: 0.5rem 0.8rem;
+  flex: 1 1 auto;
 }
 
 .editButton {
-    min-height: 38px;
-    padding: 0.55rem 0.8rem;
-    color: #082f49;
-    background: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 100%);
+  color: #082f49;
+  background: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 100%);
 }
 
 .deleteButton {
-    min-height: 38px;
-    padding: 0.55rem 0.8rem;
-    color: #fff;
-    background: linear-gradient(135deg, var(--danger) 0%, #f87171 100%);
+  color: #fff;
+  background: linear-gradient(135deg, var(--danger) 0%, #f87171 100%);
 }
 
 .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
+/* ===== Búsqueda ===== */
 .searchBox {
-    margin-bottom: 0.85rem;
+  margin-bottom: 0.85rem;
 }
 
-/* Cards mobile-first */
-
+/* ===== Tarjetas de usuario (mobile-first) ===== */
 .mobileCards {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.85rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
 }
 
 .userCard {
-    display: grid;
-    gap: 0.9rem;
-    padding: 0.95rem;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: linear-gradient(180deg, #0f172a 0%, #111c31 100%);
-    box-shadow: var(--shadowSm);
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #0f172a 0%, #111c31 100%);
+  box-shadow: var(--shadowSm);
 }
 
 .userCardTop {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .userCardTitle {
-    margin: 0;
-    color: var(--text);
-    font-size: 1rem;
-    font-weight: 900;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .userCardKey {
-    margin: 0.2rem 0 0;
-    color: var(--muted);
-    font-size: 0.8rem;
-    font-weight: 700;
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .userCardBody {
-    display: grid;
-    gap: 0.6rem;
+  display: grid;
+  gap: 0.6rem;
 }
 
 .userCardRow {
-    display: flex;
-    flex-direction: column;
-    gap: 0.22rem;
-    padding: 0.7rem 0.8rem;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(36, 50, 68, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(36, 50, 68, 0.9);
 }
 
 .userCardLabel {
-    color: var(--muted);
-    font-size: 0.74rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .userCardValue {
-    color: var(--text);
-    font-size: 0.95rem;
-    font-weight: 700;
-    word-break: break-word;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  word-break: break-word;
 }
 
 .userCardActions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .userCardActions .editButton,
 .userCardActions .deleteButton {
-    flex: 1 1 140px;
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  align-items: center;
 }
 
+/* ===== Tabla (solo en pantallas grandes) ===== */
 .tableWrapper {
-    display: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 18px;
+  display: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 18px;
 }
 
 .table {
-    width: 100%;
-    min-width: 760px;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: #0b1220;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    overflow: hidden;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .table thead tr {
-    background: linear-gradient(180deg, #162033 0%, #1b2942 100%);
+  background: linear-gradient(180deg, #162033 0%, #1b2942 100%);
 }
 
 .table th {
-    padding: 0.95rem 0.8rem;
-    text-align: left;
-    font-size: 0.82rem;
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    color: #93c5fd;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
+  padding: 0.95rem 0.8rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #93c5fd;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .table td {
-    padding: 0.9rem 0.8rem;
-    font-size: 0.92rem;
-    color: var(--text);
-    border-bottom: 1px solid rgba(36, 50, 68, 0.85);
-    vertical-align: middle;
+  padding: 0.9rem 0.8rem;
+  font-size: 0.92rem;
+  color: var(--text);
+  border-bottom: 1px solid rgba(36, 50, 68, 0.85);
+  vertical-align: middle;
 }
 
+/* Eliminamos la clase w-90 y usamos estilos directos */
 .table tbody tr {
-    background: #0f172a;
-    transition: background var(--transition);
+  background: #0f172a;
+  transition: background var(--transition);
 }
 
 .table tbody tr:nth-child(even) {
-    background: #111c31;
+  background: #111c31;
 }
 
 .table tbody tr:hover {
-    background: #16233d;
+  background: #16233d;
 }
 
 .roleBadge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 30px;
-    padding: 0.35rem 0.7rem;
-    border-radius: 999px;
-    background: rgba(34, 197, 94, 0.12);
-    color: #86efac;
-    border: 1px solid rgba(34, 197, 94, 0.18);
-    font-size: 0.78rem;
-    font-weight: 800;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--primarySoft);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .emptyState {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 220px;
-    padding: 1rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radiusLg);
-    background: linear-gradient(180deg, #0f172a 0%, #111c31 100%);
-    box-shadow: var(--shadowSm);
-    text-align: center;
-    font-weight: 700;
-    color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radiusLg);
+  background: linear-gradient(180deg, #0f172a 0%, #111c31 100%);
+  box-shadow: var(--shadowSm);
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
 }
 
+/* ========================================== */
+/* ========== MEDIA QUERIES ================ */
+/* ========================================== */
+
+/* Móviles grandes (≥480px) */
 @media (min-width: 480px) {
-    .container {
-        padding-inline: 1rem;
-    }
+  .container {
+    padding-inline: 1rem;
+  }
 
-    .cardHeader {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
+  .cardHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-    .headerActions {
-        justify-items: start;
-    }
+  .headerActions {
+    justify-items: start;
+  }
+
+  .userCardActions {
+    flex-direction: row;
+  }
+
+  .userCardActions .editButton,
+  .userCardActions .deleteButton {
+    width: auto;
+    flex: 1 1 120px;
+  }
 }
 
+/* Tablets pequeñas (≥640px) */
 @media (min-width: 640px) {
-    .container {
-        padding-inline: 1.1rem;
-    }
+  .container {
+    padding-inline: 1.1rem;
+  }
 
-    .formCard,
-    .tableCard {
-        padding: 1rem;
-    }
+  .formCard,
+  .tableCard {
+    padding: 1rem 1.1rem;
+  }
 
-    .actions {
-        flex-wrap: nowrap;
-    }
+  .actions {
+    flex-wrap: nowrap;
+  }
 
-    .headerActions {
-        grid-template-columns: auto auto;
-        align-items: center;
-        justify-content: space-between;
-    }
+  .headerActions {
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
+/* Tablets grandes (≥768px) – aquí mostramos la tabla */
 @media (min-width: 768px) {
-    .container {
-        padding: 1.1rem 1.15rem 1.25rem;
-    }
+  .container {
+    padding: 1.1rem 1.15rem 1.25rem;
+  }
 
-    .headerBlock {
-        margin-bottom: 1.1rem;
-    }
+  .headerBlock {
+    margin-bottom: 1.1rem;
+  }
 
-    .formCard,
-    .tableCard {
-        padding: 1.1rem;
-    }
+  .formCard,
+  .tableCard {
+    padding: 1.1rem;
+  }
 
-    .title {
-        font-size: clamp(1.9rem, 4vw, 2.35rem);
-    }
+  .title {
+    font-size: clamp(1.9rem, 4vw, 2.35rem);
+  }
 
-    .badge {
-        font-size: 0.9rem;
-    }
+  .badge {
+    font-size: 0.9rem;
+  }
 
-    .mobileCards {
-        display: none;
-    }
+  .mobileCards {
+    display: none;
+  }
 
-    .tableWrapper {
-        display: block;
-    }
+  .tableWrapper {
+    display: block;
+  }
 
-    .table th,
-    .table td {
-        padding-inline: 0.9rem;
-    }
+  .table th,
+  .table td {
+    padding-inline: 0.9rem;
+  }
 }
 
+/* Escritorio (≥1024px) – grid de 2 columnas */
 @media (min-width: 1024px) {
-    .container {
-        padding: 1.25rem;
-    }
+  .container {
+    padding: 1.25rem;
+  }
 
-    .grid {
-        grid-template-columns: 400px minmax(0, 1fr);
-        align-items: start;
-    }
+  .grid {
+    grid-template-columns: 380px minmax(0, 1fr);
+    align-items: start;
+    gap: 1.25rem;
+  }
 
-    .formCard {
-        position: sticky;
-        top: 1rem;
-    }
+  .formCard {
+    position: sticky;
+    top: 1.25rem;
+    align-self: start;
+    max-height: calc(100vh - 2.5rem);
+    overflow-y: auto;
+    padding: 1.15rem;
+  }
 
-    .formCard,
-    .tableCard {
-        padding: 1.15rem;
-    }
+  .formCard,
+  .tableCard {
+    padding: 1.15rem;
+  }
+
+  /* Ajustes de fuente en PC */
+  .title {
+    font-size: 2rem;
+  }
+
+  .cardTitle {
+    font-size: 1.15rem;
+  }
+
+  .table th {
+    font-size: 0.9rem;
+    padding: 1rem 1rem;
+  }
+
+  .table td {
+    font-size: 1rem;
+    padding: 0.95rem 1rem;
+  }
+
+  .input,
+  .select {
+    font-size: 0.95rem;
+  }
+
+  .primaryButton {
+    font-size: 1rem;
+    padding: 0.85rem;
+  }
 }
 
+/* Pantallas grandes (≥1280px) */
 @media (min-width: 1280px) {
-    .grid {
-        grid-template-columns: 430px minmax(0, 1fr);
-        gap: 1.15rem;
-    }
+  .grid {
+    grid-template-columns: 420px minmax(0, 1fr);
+    gap: 1.5rem;
+  }
 
-    .formCard,
-    .tableCard {
-        padding: 1.2rem;
-    }
+  .formCard,
+  .tableCard {
+    padding: 1.25rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 1rem 1.25rem;
+  }
 }
 
+/* ===== Preferencia de movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
-
-    .input,
-    .select,
-    .primaryButton,
-    .secondaryButton,
-    .editButton,
-    .deleteButton,
-    .table tbody tr {
-        transition: none;
-    }
+  .input,
+  .select,
+  .primaryButton,
+  .secondaryButton,
+  .editButton,
+  .deleteButton,
+  .table tbody tr {
+    transition: none;
+  }
 }

@@ -63,58 +63,48 @@ export default function WhatsAppSender() {
   };
 
   const buildMessage = () => {
-    // Kinesiología
     if (mensaje === "1") {
       return `Buen día, *${name}*.
 
-
-✅ Su sesión de kinesiología fue APROBADA.
-
+*Sesión de kinesiología APROBADA*
 
 Puede retirar la orden por Mesa de Entrada.
 
-📍 Ingreso por Roque Sáenz Peña.
+*Ingreso:* Roque Sáenz Peña.
 
-🕒 Horarios:
+*Horarios:*
 • Lunes a viernes: 8 a 12 hs y 16 a 20 hs
 • Sábados: 8 a 12 hs
 
-
 Puede concurrir con:
 
-• *Kinesióloga Rivas Daniela*
-📍 9 de Julio 1870
-👉 Escribirle: https://wa.me/+5493456440878
+*Kinesióloga Rivas Daniela*
+• 9 de Julio 1870
+• Contacto: https://wa.me/+5493456440878
 
-• *Kinesióloga Avancini Natalia*
-📍 Rivadavia 2665
-👉 Escribirle: https://wa.me/+5493456513866
+*Kinesióloga Avancini Natalia*
+• Rivadavia 2665
+• Contacto: https://wa.me/+5493456513866
 
-
-
-*Importante: Puede consultar con su ART o Seg Personal la cartilla de todos sus prestadores de kinesiologia*`;
+*Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.`;
     }
 
-    // Resonancia
     if (mensaje === "2") {
       return `Buen día, *${name}*.
 
+*Resonancia APROBADA*
 
-✅ Su resonancia fue APROBADA.
+*Fecha del turno:* ${dia} a las ${hora}
 
-📅 Turno: *${dia} a las ${hora}*
+*Lugar:* Imágenes Médicas - Av. Siburu 1085
 
-📍 Lugar:
-Imágenes Médicas
-Av. Siburu 1085
-
-⚠️ Importante:
+*Importante:*
 • Traer DNI físico
 • Llegar 15 minutos antes
 • Asistir con ropa cómoda
 • Peso máximo permitido: 140 kg
 
-❗Avisar a las chicas de Imagenes Medicas si posee:
+*Aviso:* Informar al personal si posee:
 • Marcapasos
 • Prótesis metálicas
 • Implantes
@@ -122,167 +112,137 @@ Av. Siburu 1085
 • Cirugías recientes`;
     }
 
-    // Medicamentos
     if (mensaje === "3") {
       return `Buen día, *${name}*.
 
-
-✅ Sus medicamentos fueron APROBADOS.
+*Medicamentos APROBADOS*
 
 Puede retirar la orden por Mesa de Entrada.
 
-📍 Ingreso por Roque Sáenz Peña.
+*Ingreso:* Roque Sáenz Peña.
 
-🕒 Horarios:
+*Horarios:*
 • Lunes a viernes: 8 a 12 hs y 16 a 20 hs
 • Sábados: 8 a 12 hs
 
-⚠️ Cómo retirar según ART:
+*Cómo retirar según ART:*
 
-• *IAPS*:
-Orden en Farmacia Zordan o Farmacia de la Unión.
+*IAPS:* Orden en Farmacia Zordan o Farmacia de la Unión.
 
-• *Federación Patronal*:
-Orden + denuncia → Farmacia Del Pueblo.
+*Federación Patronal:* Orden + denuncia → Farmacia Del Pueblo.
 
-• *La Segunda*:
-Orden + copia de denuncia → Farmacia de la Unión.
+*La Segunda:* Orden + copia de denuncia → Farmacia de la Unión.
 
-• *Otras ART*:
-Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
+*Otras ART:* Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.`;
     }
 
-    // Electrocardiograma
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
-          ? `🩺 Dr. Percara
-
-📍 Bolívar 1695 (esquina 9 de Julio)`
-          : `🩺 Dr. Capovilla
-📍 Bolívar 1645`;
+          ? `*Médico:* Dr. Percara\n• Bolívar 1695 (esquina 9 de Julio)`
+          : `*Médico:* Dr. Capovilla\n• Bolívar 1645`;
 
       return `Buen día, *${name}*.
 
+*Electrocardiograma APROBADO*
 
-✅ Su electrocardiograma fue APROBADO.
+*Fecha del turno:* ${dia} a las ${hora}
 
-📅 Turno: *${dia} a las ${hora}*
-
-⚠️ Importante:
+*Importante:*
 • Traer DNI físico
 • Llegar 15 minutos antes
 
-🩺 Profesional:
 ${profesional}`;
     }
 
-    // Laboratorio
     if (mensaje === "5") {
-      const profesional =
-        bioquimico === "confalonieri"
-          ? `🧪 Bioquímica Confalonieri
-
-📍 Belgrano y Corrientes (frente a Pepos)`
-          : bioquimico === "marmol"
-            ? `🧪 Bioquímico Mármol
-📍 Sarmiento 2610`
-            : `🧪 Bioquímica Tabeni
-📍 Jaime Tabeni 1101`;
+      let profesional = "";
+      if (bioquimico === "confalonieri") {
+        profesional = `*Bioquímica Confalonieri*\n• Belgrano y Corrientes (frente a Pepos)`;
+      } else if (bioquimico === "marmol") {
+        profesional = `*Bioquímico Mármol*\n• Sarmiento 2610`;
+      } else {
+        profesional = `*Bioquímica Tabeni*\n• Jaime Tabeni 1101`;
+      }
 
       return `Buen día, *${name}*.
 
+*Estudio de laboratorio APROBADO*
 
-✅ Su estudio de laboratorio fue APROBADO.
+*Fecha del turno:* ${dia} a las ${hora}
 
-📅 Turno: *${dia} a las ${hora}*
-
-⚠️ IMPORTANTE:
+*Importante:*
 • Debe asistir con 8 horas de AYUNO
 • Traer DNI físico
 • Llegar 10 minutos antes
 
-📍 Lugar:
-${profesional}`;
+*Lugar:* ${profesional}`;
     }
 
-    // Ecografía
     if (mensaje === "6") {
       return `Buen día, *${name}*.
 
+*Ecografía APROBADA*
 
-✅ Su ecografía fue APROBADA.
+*Fecha del turno:* ${dia} a las ${hora}
 
-📅 Turno: *${dia} a las ${hora}*
+*Lugar:* Sector BioImagen dentro de Clínica de la Unión.
+Al ingresar, consultar en Mesa de Entrada.
 
-📍 Lugar:
-Sector BioImagen dentro de Clínica de la Unión.
-
-Al ingresar puede consultar en Mesa de Entrada.
-
-⚠️ Importante:
+*Importante:*
 • Traer DNI físico
 • Llegar 10 minutos antes`;
     }
 
-    // Cirugía
     if (mensaje === "7") {
-      return `🏥 CLÍNICA DE LA UNIÓN
-
+      return `*CLÍNICA DE LA UNIÓN*
 
 Buen día, *${name}*.
 
-✅ Su cirugía fue APROBADA por la ART.
+*Cirugía APROBADA por la ART*
 
-📅 La cirugía será el día *${dia} a las ${hora}*.
+*Fecha de la cirugía:* ${dia} a las ${hora}
 
-⚠️ IMPORTANTE:
+*Importante:*
 • Debe venir en AYUNAS
-• Debe asistir en el horario indicado
+• Asistir en el horario indicado
 • Ese día ya se realiza la cirugía
 • Traer DNI físico original
 • Traer fotocopia del DNI (frente y dorso)
 
-📍 Al ingresar a la clínica, presentarse en Mesa de Entrada.
+*Ingreso:* Presentarse en Mesa de Entrada.
 
-Antes de la cirugía necesitamos que complete este formulario:
-
+Antes de la cirugía complete este formulario:
 https://art-xi-six.vercel.app/cx
 
-Por favor responder:
-*CONFIRMO ASISTENCIA*
+Por favor responder: *CONFIRMO ASISTENCIA*
 
-Ante cualquier duda puede responder este mensaje.`;
+Ante cualquier duda, responder este mensaje.`;
     }
 
-    // Ortopedia
     if (mensaje === "8") {
       return `Buen día, *${name}*.
 
+*Ortopedia APROBADA*
 
-✅ Su ortopedia fue APROBADA.
+*Pasos a seguir:*
 
-📌 Pasos a seguir:
+1) Retirar autorización
+   *Lugar:* Mesa de Entrada de Clínica de la Unión
+   *Ingreso:* Roque Sáenz Peña.
+   *Horarios:*
+   • Lunes a viernes: 8 a 12 hs y 16 a 20 hs
+   • Sábados: 8 a 12 hs
 
-1️⃣ Retirar autorización
-📍 Mesa de Entrada de Clínica de la Unión
-Ingreso por Roque Sáenz Peña.
+2) Presentarse en *Distrimed*
+   • 9 de Julio 3240 (frente a Farmacia Barbieri)
+   *Documentación requerida:*
+   - Copia de la denuncia
+   - Autorización ortopédica
 
-🕒 Horarios:
-• Lunes a viernes: 8 a 12 hs y 16 a 20 hs
-• Sábados: 8 a 12 hs
-
-2️⃣ Presentarse en Distrimed
-📍 9 de Julio 3240
-(frente a Farmacia Barbieri)
-
-Debe llevar:
-• Copia de la denuncia
-• Autorización ortopédica
-
-3️⃣ Consultar cobertura
-• Si la ART cubre el 100%, retira sin costo
-• Si debe pagar, luego puede solicitar reintegro a la ART guardando la factura`;
+3) Consultar cobertura
+   • Si la ART cubre el 100%, retira sin costo.
+   • Si debe pagar, guarde la factura para solicitar reintegro a la ART.`;
     }
 
     return "";
@@ -305,8 +265,7 @@ Debe llevar:
         <h1 className={styles.title}>Envío rápido WhatsApp</h1>
 
         <div className={styles.formGrid}>
-          {/* Buscar paciente */}
-          <div className={styles.field} style={{ gridColumn: "span 2" }}>
+          <div className={styles.field}>
             <label className={styles.label}>Buscar paciente (opcional)</label>
             <div className={styles.searchContainer}>
               <input
@@ -340,7 +299,6 @@ Debe llevar:
             </div>
           </div>
 
-          {/* Teléfono */}
           <div className={styles.field}>
             <label htmlFor="phone" className={styles.label}>
               Número de teléfono <span className={styles.required}>*</span>
@@ -355,7 +313,6 @@ Debe llevar:
             />
           </div>
 
-          {/* Nombre */}
           <div className={styles.field}>
             <label htmlFor="name" className={styles.label}>
               Nombre del paciente <span className={styles.required}>*</span>
@@ -370,7 +327,6 @@ Debe llevar:
             />
           </div>
 
-          {/* Fecha y hora */}
           {requiresDateTime && (
             <>
               <div className={styles.field}>
@@ -402,7 +358,6 @@ Debe llevar:
             </>
           )}
 
-          {/* Tipo mensaje */}
           <div className={styles.field}>
             <label htmlFor="mensaje" className={styles.label}>
               Tipo de mensaje
@@ -424,7 +379,6 @@ Debe llevar:
             </select>
           </div>
 
-          {/* Bioquímico */}
           {mensaje === "5" && (
             <div className={styles.field}>
               <label htmlFor="bioquimico" className={styles.label}>
@@ -443,7 +397,6 @@ Debe llevar:
             </div>
           )}
 
-          {/* Cardiólogo */}
           {mensaje === "4" && (
             <div className={styles.field}>
               <label htmlFor="cardiologo" className={styles.label}>
@@ -462,7 +415,6 @@ Debe llevar:
           )}
         </div>
 
-        {/* Vista previa */}
         <div className={styles.previewBox}>
           <label htmlFor="preview" className={styles.label}>
             Vista previa del mensaje
@@ -475,7 +427,6 @@ Debe llevar:
           />
         </div>
 
-        {/* Botón enviar */}
         <a
           href={canSend ? createWaLink() : "#"}
           target="_blank"

@@ -1,6 +1,6 @@
 /* ===== Contenedor principal ===== */
 .container {
-  min-height: calc(100vh - 70px); /* altura del header superior */
+  min-height: calc(100vh - 70px);
   background: #0f172a;
   display: flex;
   justify-content: center;
@@ -29,7 +29,7 @@
   letter-spacing: -0.02em;
 }
 
-/* ===== Grid de formulario ===== */
+/* ===== Grid del formulario ===== */
 .formGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -37,14 +37,15 @@
   margin-bottom: 24px;
 }
 
-/* Cada campo */
+/* ===== Cada campo ===== */
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
 }
 
-/* Etiquetas */
+/* ===== Etiquetas ===== */
 .label {
   font-size: 14px;
   font-weight: 600;
@@ -59,7 +60,7 @@
   font-size: 16px;
 }
 
-/* Inputs, selects, textarea */
+/* ===== Inputs, selects, textarea ===== */
 .input {
   width: 100%;
   background: #1f2937;
@@ -69,6 +70,8 @@
   padding: 12px 14px;
   font-size: 15px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0; /* permite que se encoja en flex */
+  box-sizing: border-box;
 }
 
 .input::placeholder {
@@ -81,7 +84,7 @@
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* Select */
+/* Select con flecha personalizada */
 select.input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -91,7 +94,7 @@ select.input {
   padding-right: 40px;
 }
 
-/* Área de preview */
+/* ===== Área de preview ===== */
 .previewBox {
   margin: 24px 0;
 }
@@ -108,6 +111,8 @@ select.input {
   line-height: 1.5;
   resize: vertical;
   white-space: pre-wrap;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .textarea:focus {
@@ -116,7 +121,7 @@ select.input {
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* ===== Botón WhatsApp ===== */
+/* ===== Botón ===== */
 .button {
   display: flex;
   align-items: center;
@@ -132,6 +137,7 @@ select.input {
   transition: background-color 0.2s, transform 0.1s;
   border: none;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .button:hover {
@@ -146,43 +152,6 @@ select.input {
   opacity: 0.5;
   pointer-events: none;
   background: #4b5563;
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 640px) {
-  .container {
-    padding: 12px;
-    align-items: flex-start;
-  }
-
-  .card {
-    padding: 20px 16px;
-    border-radius: 20px;
-  }
-
-  .title {
-    font-size: 24px;
-    margin-bottom: 20px;
-  }
-
-  .formGrid {
-    gap: 16px;
-  }
-
-  .button {
-    padding: 14px;
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .card {
-    padding: 16px 12px;
-  }
-
-  .input {
-    padding: 10px 12px;
-  }
 }
 
 /* ===== Búsqueda de pacientes ===== */
@@ -214,6 +183,7 @@ select.input {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .suggestionItem:hover {
@@ -224,10 +194,171 @@ select.input {
   font-weight: 600;
   color: #f3f4f6;
   font-size: 0.9rem;
+  word-break: break-word;
 }
 
 .suggestionPhone {
   font-size: 0.75rem;
   color: #9ca3af;
   font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* ========================================== */
+/* ========== MEDIA QUERIES ================ */
+/* ========================================== */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 24px 20px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 26px;
+    margin-bottom: 24px;
+  }
+
+  .formGrid {
+    gap: 18px;
+  }
+
+  .input {
+    padding: 11px 13px;
+    font-size: 14px;
+  }
+
+  .textarea {
+    min-height: 180px;
+    font-size: 13px;
+  }
+
+  .button {
+    padding: 15px;
+    font-size: 17px;
+  }
+
+  .suggestionItem {
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 12px;
+    align-items: flex-start;
+    min-height: 100vh;
+  }
+
+  .card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 22px;
+    margin-bottom: 18px;
+  }
+
+  .formGrid {
+    gap: 14px;
+  }
+
+  .input {
+    padding: 12px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .label {
+    font-size: 13px;
+  }
+
+  .textarea {
+    min-height: 160px;
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  .button {
+    padding: 16px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+
+  .suggestionItem {
+    padding: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .suggestionName {
+    font-size: 1rem;
+  }
+
+  .suggestionPhone {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .container {
+    padding: 8px;
+  }
+
+  .card {
+    padding: 16px 12px;
+    border-radius: 16px;
+  }
+
+  .title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .formGrid {
+    gap: 12px;
+  }
+
+  .input {
+    padding: 10px 12px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+
+  .textarea {
+    min-height: 140px;
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .button {
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  .suggestionItem {
+    padding: 0.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .suggestionPhone {
+    font-size: 0.7rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card {
+    padding: 32px 36px;
+  }
 }
