@@ -17,18 +17,24 @@
   --btn-primary-hover: #477a46;
   --btn-ghost-bg: #1e293b;
   --btn-ghost-hover: #334155;
-  --badge-activo-bg: #14532d;
-  --badge-activo-text: #86efac;
-  --badge-cerrado-bg: #334155;
-  --badge-cerrado-text: #cbd5e1;
+  --badge-abierto-bg: #14532d;
+  --badge-abierto-text: #86efac;
+  --badge-cerrado-bg: #7f1d1d;
+  --badge-cerrado-text: #fca5a5;
+  --badge-total-bg: #1e293b;
+  --badge-total-text: #cbd5e1;
+  --badge-incompleto-bg: #78350f;
+  --badge-incompleto-text: #fcd34d;
   --art-tag-bg: #1e3a8a;
   --art-tag-text: #bfdbfe;
   --row-hover: #1e293b;
   --empty-color: #64748b;
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --bolita-verde: #22c55e;
+  --bolita-roja: #ef4444;
 }
 
-/* Modo claro (activar con clase lightMode en el body o contenedor) */
+/* Modo claro */
 :global(.lightMode) .container,
 .container.lightMode {
   --bg-page: #f8fafc;
@@ -48,15 +54,21 @@
   --btn-primary-hover: #477a46;
   --btn-ghost-bg: #ffffff;
   --btn-ghost-hover: #f1f5f9;
-  --badge-activo-bg: #dcfce7;
-  --badge-activo-text: #166534;
-  --badge-cerrado-bg: #f1f5f9;
-  --badge-cerrado-text: #475569;
+  --badge-abierto-bg: #dcfce7;
+  --badge-abierto-text: #166534;
+  --badge-cerrado-bg: #fee2e2;
+  --badge-cerrado-text: #991b1b;
+  --badge-total-bg: #f1f5f9;
+  --badge-total-text: #334155;
+  --badge-incompleto-bg: #fef3c7;
+  --badge-incompleto-text: #92400e;
   --art-tag-bg: #dbeafe;
   --art-tag-text: #1e40af;
   --row-hover: #f8fafc;
   --empty-color: #94a3b8;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --bolita-verde: #16a34a;
+  --bolita-roja: #dc2626;
 }
 
 /* ===== Contenedor principal ===== */
@@ -131,6 +143,7 @@
 .statsRow {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .statBadge {
@@ -138,13 +151,26 @@
   font-weight: 600;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
+}
+
+.statBadge[data-type="abierto"] {
+  background: var(--badge-abierto-bg);
+  color: var(--badge-abierto-text);
+}
+
+.statBadge[data-type="cerrado"] {
   background: var(--badge-cerrado-bg);
   color: var(--badge-cerrado-text);
 }
 
-.statBadge[data-type="activo"] {
-  background: var(--badge-activo-bg);
-  color: var(--badge-activo-text);
+.statBadge[data-type="total"] {
+  background: var(--badge-total-bg);
+  color: var(--badge-total-text);
+}
+
+.statBadge[data-type="incompleto"] {
+  background: var(--badge-incompleto-bg);
+  color: var(--badge-incompleto-text);
 }
 
 .newBtn {
@@ -176,6 +202,34 @@
   line-height: 1;
 }
 
+/* ===== View Tabs ===== */
+.viewTabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.viewTab {
+  padding: 0.65rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-color);
+  background: var(--btn-ghost-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+.viewTab:hover {
+  background: var(--btn-ghost-hover);
+}
+
+.viewTabActive {
+  border-color: var(--input-focus);
+  background: var(--tab-active-bg);
+}
+
 /* ===== Filter Bar ===== */
 .filterBar {
   display: flex;
@@ -184,6 +238,13 @@
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .tabGroup {
@@ -213,6 +274,23 @@
   box-shadow: var(--shadow);
 }
 
+.selectInput {
+  padding: 0.5rem 0.9rem;
+  min-width: 220px;
+  border: 1px solid var(--input-border);
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 2px rgba(91, 140, 90, 0.2);
+}
+
 .searchInput {
   padding: 0.5rem 1rem;
   border: 1px solid var(--input-border);
@@ -232,6 +310,23 @@
   outline: none;
   border-color: var(--input-focus);
   box-shadow: 0 0 0 2px rgba(91, 140, 90, 0.2);
+}
+
+.duplicadosBtn {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  background: var(--btn-ghost-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.duplicadosBtn:hover {
+  background: var(--btn-ghost-hover);
+  border-color: var(--input-focus);
 }
 
 /* ===== Empty state ===== */
@@ -293,10 +388,17 @@
   opacity: 0.7;
 }
 
-/* Celda de nombre (sin avatar) */
 .cellName {
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.incompletoIcon {
+  font-size: 1rem;
+  cursor: help;
 }
 
 .mono {
@@ -314,11 +416,53 @@
   white-space: nowrap;
 }
 
-/* Actions */
+/* ===== Bolitas de estado ===== */
+.bolitaVerde {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bolita-verde);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.bolitaRoja {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bolita-roja);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+/* ===== Ordenamiento ===== */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.sortable:hover {
+  background: var(--btn-ghost-hover);
+}
+
+.sortable:active {
+  opacity: 0.7;
+}
+
+.accionesHeader {
+  text-align: right;
+  min-width: 200px;
+}
+
+/* ===== Actions ===== */
 .actionsCell {
   display: flex;
   gap: 0.35rem;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .iconBtn {
@@ -333,6 +477,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 2rem;
 }
 
 .iconBtn:hover:not(:disabled) {
@@ -373,57 +518,7 @@
   cursor: not-allowed;
 }
 
-.viewTabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.viewTab {
-  padding: 0.65rem 1rem;
-  border-radius: 0.65rem;
-  border: 1px solid var(--border-color);
-  background: var(--btn-ghost-bg);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.1s;
-}
-
-.viewTab:hover {
-  background: var(--btn-ghost-hover);
-}
-
-.viewTabActive {
-  border-color: var(--input-focus);
-  background: var(--tab-active-bg);
-}
-
-.filterGroup {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.selectInput {
-  padding: 0.5rem 0.9rem;
-  min-width: 220px;
-  border: 1px solid var(--input-border);
-  border-radius: 0.6rem;
-  font-size: 0.9rem;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  transition: border 0.2s, box-shadow 0.2s;
-}
-
-.selectInput:focus {
-  outline: none;
-  border-color: var(--input-focus);
-  box-shadow: 0 0 0 2px rgba(91, 140, 90, 0.2);
-}
-
+/* ===== Estadísticas ===== */
 .statsLayout {
   display: flex;
   flex-direction: column;
@@ -514,6 +609,109 @@
   padding: 1rem 0;
 }
 
+/* ===== Modal de unión ===== */
+.unionOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  padding: 1rem;
+}
+
+.unionPanel {
+  background: var(--bg-card);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+}
+
+.unionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.unionHeader h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.unionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.unionItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.15s;
+  color: var(--text-primary);
+}
+
+.unionItem:hover {
+  background: var(--btn-ghost-hover);
+}
+
+.unionItem input[type="radio"] {
+  accent-color: var(--btn-primary);
+}
+
+.unionActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.cancelBtn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveBtn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--btn-primary);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.saveBtn:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* ===== Responsive Mobile First ===== */
 @media (max-width: 1100px) {
   .statsCards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -540,5 +738,88 @@
 
   .statsCards {
     grid-template-columns: 1fr;
+  }
+
+  .statsPanels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Tabla como tarjetas */
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-card);
+  }
+
+  .table td {
+    border: none;
+    padding: 0.4rem 0;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .table td:last-child {
+    border-bottom: none;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.5rem;
+  }
+
+  .lightMode .table tr {
+    border-color: #e5e7eb;
+    background: #ffffff;
+  }
+
+  .lightMode .table td {
+    border-bottom-color: #e5e7eb;
+  }
+
+  .lightMode .table td::before {
+    color: #6b7280;
+  }
+
+  .actionsCell {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .accionesHeader {
+    text-align: right;
+    min-width: auto;
+  }
+
+  .unionPanel {
+    padding: 1rem;
+    max-width: 95%;
   }
 }

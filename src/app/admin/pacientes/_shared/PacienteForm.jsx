@@ -37,7 +37,6 @@ const ART_OPTIONS = [
   "Reconquista ART",
 ];
 
-// Fechas por defecto: hoy
 const today = new Date();
 const defaultDay = String(today.getDate()).padStart(2, "0");
 const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
@@ -94,7 +93,6 @@ export const emptyFormData = () => ({
   trabajadorProvincia: "",
   trabajadorCP: "",
   trabajadorTelefono: "",
-  consultaTipo: "",
   diaIngreso: defaultDay,
   mesIngreso: defaultMonth,
   anioIngreso: defaultYear,
@@ -102,6 +100,7 @@ export const emptyFormData = () => ({
   mesDenuncia: defaultMonth,
   anioDenuncia: defaultYear,
   trabajadorEdad: "",
+  estado: "abierto",
 });
 
 function validate(f) {
@@ -122,7 +121,6 @@ function validate(f) {
   }
 
   const validarFecha = (dia, mes, anio, prefix) => {
-    // Si los tres campos están vacíos, no se valida (sin error)
     if (!dia && !mes && !anio) return;
     const d = Number(dia), m = Number(mes), a = Number(anio);
     if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
@@ -138,7 +136,7 @@ function cx(...cls) {
   return cls.filter(Boolean).join(" ");
 }
 
-// --- Subcomponentes ---
+// Subcomponentes
 function Field({ label, children, error, full }) {
   return (
     <div className={cx(styles.field, full && styles.fieldFull)}>
@@ -178,7 +176,7 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error, 
   );
 }
 
-// --- Componente principal ---
+// Componente principal
 export default function PacienteForm({ mode = "nuevo", initialData = null, pacienteId = null }) {
   const router = useRouter();
   const isEdit = mode === "editar";
@@ -191,7 +189,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
       const art = initialData.ART || {};
       const fi = initialData.fechaIngreso || {};
       const fd = initialData.fechaDenuncia || {};
-      const consulta = initialData.consulta?.tipo || "";
       return {
         ART: art.nombre || "",
         nroSiniestro: art.nroSiniestro || "",
@@ -210,7 +207,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
         trabajadorProvincia: t.provincia || "",
         trabajadorCP: t.cp || "",
         trabajadorTelefono: t.telefono || "",
-        consultaTipo: consulta,
         diaIngreso: fi.dia || defaultDay,
         mesIngreso: fi.mes || defaultMonth,
         anioIngreso: fi.anio || defaultYear,
@@ -218,12 +214,13 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
         mesDenuncia: fd.mes || defaultMonth,
         anioDenuncia: fd.anio || defaultYear,
         trabajadorEdad: t.edad || "",
+        estado: initialData.estado || "abierto",
       };
     }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return { ...emptyFormData(), ...JSON.parse(raw) };
-    } catch {}
+    } catch { }
     return emptyFormData();
   });
 
@@ -243,7 +240,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
 
   const submittingRef = useRef(false);
 
-  // --- Tema ---
+  // Tema
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
     setTheme(savedTheme);
@@ -257,12 +254,12 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
     document.body.classList.toggle("light-mode", newTheme === "light");
   };
 
-  // --- Persistencia local ---
+  // Persistencia local
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-      } catch {}
+      } catch { }
     }, 250);
     return () => clearTimeout(timer);
   }, [form]);
@@ -337,7 +334,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
     const art = paciente.ART || {};
     const fi = paciente.fechaIngreso || {};
     const fd = paciente.fechaDenuncia || {};
-    const consulta = paciente.consulta?.tipo || "";
 
     setForm({
       ART: art.nombre || "",
@@ -357,7 +353,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
       trabajadorProvincia: t.provincia || "",
       trabajadorCP: t.cp || "",
       trabajadorTelefono: t.telefono || "",
-      consultaTipo: consulta,
       diaIngreso: fi.dia || defaultDay,
       mesIngreso: fi.mes || defaultMonth,
       anioIngreso: fi.anio || defaultYear,
@@ -365,6 +360,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
       mesDenuncia: fd.mes || defaultMonth,
       anioDenuncia: fd.anio || defaultYear,
       trabajadorEdad: t.edad || "",
+      estado: paciente.estado || "abierto",
     });
     setEditingId(paciente.id);
     setActiveTab("nuevo");
@@ -474,7 +470,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
           cp: onlyDigits(form.trabajadorCP) || "",
           telefono: onlyDigits(form.trabajadorTelefono) || "",
         },
-        consulta: { tipo: form.consultaTipo || "" },
         fechaIngreso: {
           dia: form.diaIngreso,
           mes: form.mesIngreso,
@@ -492,6 +487,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
             : "",
         },
         prestador: PRESTADOR_CONST,
+        estado: form.estado || "abierto",
         updatedAt: Date.now(),
       };
 
@@ -549,12 +545,10 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
     return fullName.includes(term) || dni.includes(term);
   });
 
-  // --- AQUÍ CONTINÚA EL JSX (RETURN) ---
-
   return (
     <div className={cx(styles.page, theme === "light" && styles.lightMode)}>
       <div className={styles.container}>
-        {/* Breadcrumb y header con pestañas */}
+        {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
           <button className={styles.backLink} onClick={() => router.push("/admin/pacientes")}>
             ← Pacientes
@@ -639,7 +633,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
             {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
 
             <form onSubmit={onSubmit} className={styles.form} noValidate>
-              <Section title="ART + Motivo" subtitle="Todos los campos son opcionales">
+              <Section title="ART + Siniestro" subtitle="Todos los campos son opcionales">
                 <div className={styles.grid}>
                   <Field label="ART">
                     <select
@@ -662,32 +656,6 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                       inputMode="numeric"
                       placeholder="Opcional"
                     />
-                  </Field>
-                  <Field label="Motivo de consulta" full>
-                    <div className={styles.chips}>
-                      {[
-                        ["AT", "Accidente de trabajo"],
-                        ["AIT", "Acc. In Itinere"],
-                        ["EP", "Enf. Profesional"],
-                        ["INT", "Intercurrencia"],
-                      ].map(([val, label]) => (
-                        <label
-                          key={val}
-                          className={cx(styles.chip, form.consultaTipo === val && styles.chipActive)}
-                          htmlFor={`motivo_${val}`}
-                        >
-                          <input
-                            id={`motivo_${val}`}
-                            type="radio"
-                            name="motivo"
-                            value={val}
-                            checked={form.consultaTipo === val}
-                            onChange={onChange("consultaTipo")}
-                          />
-                          {label}
-                        </label>
-                      ))}
-                    </div>
                   </Field>
                 </div>
               </Section>
@@ -914,6 +882,27 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                 </div>
               </Section>
 
+              {/* Estado */}
+              <Section title="Estado del paciente" subtitle="Abierto (en tratamiento) o Cerrado (alta laboral)">
+                <div className={styles.chips}>
+                  {["abierto", "cerrado"].map((val) => (
+                    <label
+                      key={val}
+                      className={cx(styles.chip, form.estado === val && styles.chipActive)}
+                    >
+                      <input
+                        type="radio"
+                        name="estado"
+                        value={val}
+                        checked={form.estado === val}
+                        onChange={onChange("estado")}
+                      />
+                      {val === "abierto" ? "🟢 Abierto" : "🔴 Cerrado"}
+                    </label>
+                  ))}
+                </div>
+              </Section>
+
               <div className={styles.formActions}>
                 <button type="button" className={styles.cancelBtn} onClick={() => router.push("/admin/pacientes")}>
                   Cancelar
@@ -922,8 +911,8 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                   {saving
                     ? "Guardando y generando..."
                     : editingId
-                    ? "Actualizar y generar PDF"
-                    : "Guardar y generar PDF"}
+                      ? "Actualizar y generar PDF"
+                      : "Guardar y generar PDF"}
                 </button>
               </div>
 
@@ -987,6 +976,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                       <th>ART</th>
                       <th>N° Siniestro</th>
                       <th>Fecha Ingreso</th>
+                      <th>Estado</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -995,20 +985,24 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                       const t = p.trabajador || {};
                       const art = p.ART || {};
                       const fi = p.fechaIngreso || {};
+                      const estado = p.estado || "abierto";
                       return (
                         <tr key={p.id}>
-                          <td>
+                          <td data-label="Paciente">
                             {t.apellido} {t.nombre}
                           </td>
-                          <td>{t.dni || "—"}</td>
-                          <td>{art.nombre || "—"}</td>
-                          <td>{art.nroSiniestro || "—"}</td>
-                          <td>
+                          <td data-label="DNI">{t.dni || "—"}</td>
+                          <td data-label="ART">{art.nombre || "—"}</td>
+                          <td data-label="N° Siniestro">{art.nroSiniestro || "—"}</td>
+                          <td data-label="Ingreso">
                             {fi.dia && fi.mes && fi.anio
                               ? `${fi.dia}/${fi.mes}/${fi.anio}`
                               : "—"}
                           </td>
-                          <td className={styles.actionsCell}>
+                          <td data-label="Estado">
+                            <span className={estado === "abierto" ? styles.bolitaVerde : styles.bolitaRoja} title={estado === "abierto" ? "Abierto" : "Cerrado"} />
+                          </td>
+                          <td data-label="Acciones" className={styles.actionsCell}>
                             <button
                               className={styles.iconBtn}
                               title="Editar"
