@@ -945,20 +945,13 @@ export default function useFacturados() {
       html += `<div class="subtotal">Subtotal Lab: $ ${money(totalLab)}</div>`;
     }
 
-    if (item.medicamentos && item.medicamentos.length > 0) {
-      html += `<h2>Medicamentos</h2>`;
+    const allMedDesc = [...(item.medicamentos || []), ...(item.descartables || [])];
+    if (allMedDesc.length > 0) {
+      html += `<h2>Medicación y Descartables</h2>`;
       html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
-      html += `<tbody>${generarFilas(item.medicamentos, camposMedDesc)}</tbody>`;
+      html += `<tbody>${generarFilas(allMedDesc, camposMedDesc)}</tbody>`;
       html += `</table>`;
-      html += `<div class="subtotal">Subtotal Med: $ ${money(totalMed)}</div>`;
-    }
-
-    if (item.descartables && item.descartables.length > 0) {
-      html += `<h2>Descartables</h2>`;
-      html += `<table><thead><tr>${camposMedDesc.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>`;
-      html += `<tbody>${generarFilas(item.descartables, camposMedDesc)}</tbody>`;
-      html += `</table>`;
-      html += `<div class="subtotal">Subtotal Desc: $ ${money(totalDesc)}</div>`;
+      html += `<div class="subtotal">Subtotal Med y Desc: $ ${money(totalMed + totalDesc)}</div>`;
     }
 
     // 👇 NUEVO: Mostrar UTI
@@ -974,9 +967,8 @@ export default function useFacturados() {
     html += `
       <div class="totales">
         <div class="totals-summary">
-          <p>Total Laboratorios: $ ${money(totalLab)}</p>
-          <p>Total Medicamentos: $ ${money(totalMed)}</p>
-          <p>Total Descartables: $ ${money(totalDesc)}</p>
+          ${totalLab > 0 ? `<p>Total Laboratorios: $ ${money(totalLab)}</p>` : ''}
+          ${(totalMed + totalDesc) > 0 ? `<p>Total Medicación y Descartables: $ ${money(totalMed + totalDesc)}</p>` : ''}
           ${totalUTI > 0 ? `<p>Total UTI: $ ${money(totalUTI)}</p>` : ''}
           <p class="total-general"><strong>TOTAL GENERAL: $ ${money(totalGeneral)}</strong></p>
         </div>

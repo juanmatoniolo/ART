@@ -34,7 +34,6 @@ const formatDNI = (dni) => {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Mapa unificado de imágenes de ART (claves normalizadas sin espacios ni tildes)
 // ─────────────────────────────────────────────────────────────────────────────
-// Por esto
 const getArtImage = (artName) => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -114,15 +113,6 @@ const getArtImage = (artName) => {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Funciones auxiliares
 // ─────────────────────────────────────────────────────────────────────────────
-const fmtDate = (ms) => {
-  if (!ms) return '—';
-  try {
-    return new Date(ms).toLocaleString('es-AR');
-  } catch {
-    return '—';
-  }
-};
-
 const safeNum = (v) => {
   const n = typeof v === 'number' ? v : parseNumber(v);
   return Number.isFinite(n) ? n : 0;
@@ -309,16 +299,10 @@ function ScreenView({
             {renderTable(gastoPracticas, gastoPracticasColumns)}
           </div>
         )}
-        {gastoMedicamentos.length > 0 && (
+        {(gastoMedicamentos.length > 0 || gastoDescartables.length > 0) && (
           <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Medicación</h4>
-            {renderTable(gastoMedicamentos, medDescColumns)}
-          </div>
-        )}
-        {gastoDescartables.length > 0 && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Descartables</h4>
-            {renderTable(gastoDescartables, medDescColumns)}
+            <h4 className={styles.subsectionTitle}>Medicación y Descartables</h4>
+            {renderTable([...gastoMedicamentos, ...gastoDescartables], medDescColumns)}
           </div>
         )}
         {gastoPracticas.length === 0 && gastoMedicamentos.length === 0 && gastoDescartables.length === 0 && (
@@ -335,7 +319,7 @@ function ScreenView({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Vista de impresión (PrintView) – DNI formateado y SIN firma
+//  Vista de impresión principal (PrintView)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrintView = React.forwardRef(({
   paciente,
@@ -422,7 +406,9 @@ const PrintView = React.forwardRef(({
       <div className={styles.printHeaderRow}>
         <div className={styles.printPatientData}>
           <div className={styles.printPatientName}>{nombreCompleto}</div>
-          <div className={styles.printPatientDni}>DNI {dniFormateado}</div>
+          <div className={styles.printPatientDni} style={{ fontSize: '13pt', fontWeight: 'bold' }}>
+            DNI {dniFormateado}
+          </div>
         </div>
         <div className={styles.printArtBlock}>
           <img src={artImageUrl} alt={artNombre} className={styles.printArtLogo} onError={(e) => e.target.src = '/img-art/default.webp'} />
@@ -446,7 +432,7 @@ const PrintView = React.forwardRef(({
         {honorCirugias.length > 0 && (
           <>
             <div className={styles.printSubsectionTitle}>
-              CX — $ {money(subtotalHonorCirugias)}
+              Cx y/o Prácticas médicas nomecladas — $ {money(subtotalHonorCirugias)}
             </div>
             {renderCompactTable(honorCirugias, honorColumns)}
           </>
@@ -474,20 +460,12 @@ const PrintView = React.forwardRef(({
             {renderCompactTable(gastoPracticas, gastoPracticasColumns)}
           </>
         )}
-        {gastoMedicamentos.length > 0 && (
+        {(gastoMedicamentos.length > 0 || gastoDescartables.length > 0) && (
           <>
             <div className={styles.printSubsectionTitle}>
-              Medicación — $ {money(subtotalGastoMedicamentos)}
+              Medicación y Descartables — $ {money(subtotalGastoMedicamentos + subtotalGastoDescartables)}
             </div>
-            {renderCompactTable(gastoMedicamentos, medDescColumns)}
-          </>
-        )}
-        {gastoDescartables.length > 0 && (
-          <>
-            <div className={styles.printSubsectionTitle}>
-              Descartables — $ {money(subtotalGastoDescartables)}
-            </div>
-            {renderCompactTable(gastoDescartables, medDescColumns)}
+            {renderCompactTable([...gastoMedicamentos, ...gastoDescartables], medDescColumns)}
           </>
         )}
       </div>
@@ -515,6 +493,194 @@ const PrintView = React.forwardRef(({
 PrintView.displayName = 'PrintView';
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Vista de impresión solo Medicamentos + Descartables + Laboratorio
+// ─────────────────────────────────────────────────────────────────────────────
+const PrintMedDescLabView = React.forwardRef(({
+  paciente,
+  medicamentos,
+  descartables,
+  laboratorios,
+  artNombre,
+}, ref) => {
+  const artImageUrl = getArtImage(artNombre);
+
+  const apellido = paciente?.apellido || '';
+  const nombrePaciente = paciente?.nombre || paciente?.nombreCompleto || '';
+  const nombreCompleto = (apellido && nombrePaciente)
+    ? `${apellido}, ${nombrePaciente}`
+    : (paciente?.nombreCompleto || '—');
+  const dniFormateado = formatDNI(paciente?.dni);
+  const siniestro = paciente?.nroSiniestro || '—';
+
+  // Unimos medicamentos y descartables
+  const medDesc = [
+    ...(Array.isArray(medicamentos) ? medicamentos : []),
+    ...(Array.isArray(descartables) ? descartables : []),
+  ];
+
+  const medDescColumns = [
+    { label: 'Descripción', field: 'desc' },
+    { label: 'Cant.', field: 'unidades', className: styles.printNumber },
+    { label: 'Valor unit.', field: 'unit', className: styles.printNumber },
+    { label: 'Total', field: 'total', className: styles.printNumber }
+  ];
+
+  const labColumns = [
+    { label: 'Código – Estudio', field: 'desc' },
+    { label: 'Bioquímico/a', field: 'origen' },
+    { label: 'Cant.', field: 'unidades', className: styles.printNumber },
+    { label: 'UB', field: 'ub', className: styles.printNumber },
+    { label: 'Total', field: 'total', className: styles.printNumber }
+  ];
+
+  const labRows = (Array.isArray(laboratorios) ? laboratorios : []).map(l => {
+    const codigo = l.codigo || l.code || '';
+    const nombre = l.nombre || l.descripcion || l.practica || '—';
+    return {
+      desc: codigo ? `${codigo} — ${nombre}` : nombre,
+      origen: l.doctor || l.bioquimico || l.prestador || '—',
+      unidades: l.cantidad ?? 1,
+      ub: l.unidadBioquimica ?? l.ub ?? 0,
+      total: l.honorarioMedico ?? l.total ?? 0,
+    };
+  });
+
+  const totalMedDesc = medDesc.reduce(
+    (sum, m) => sum + safeNum(m.gastoSanatorial ?? m.total ?? 0),
+    0
+  );
+  const totalLab = labRows.reduce((sum, l) => sum + safeNum(l.total), 0);
+  const totalGeneral = totalMedDesc + totalLab;
+
+  return (
+    <div ref={ref} className={styles.printRoot}>
+      <div className={styles.printHeaderRow}>
+        <div className={styles.printPatientData}>
+          <div className={styles.printPatientName}>{nombreCompleto}</div>
+          {/* DNI más grande y en negrita */}
+          <div className={styles.printPatientDni} style={{ fontSize: '12pt', fontWeight: 'bold' }}>
+            DNI {dniFormateado}
+          </div>
+        </div>
+        <div className={styles.printArtBlock}>
+          <img
+            src={artImageUrl}
+            alt={artNombre}
+            className={styles.printArtLogo}
+            onError={(e) => e.target.src = '/img-art/default.webp'}
+          />
+          <div className={styles.printSiniestro}>N° Siniestro: {siniestro}</div>
+        </div>
+      </div>
+
+      {/* Medicamentos y Descartables */}
+      {medDesc.length > 0 && (
+        <div className={styles.printSectionCompact}>
+          <div className={styles.printSectionTitle}>
+            MEDICACIÓN Y DESCARTABLES — Total: $ {money(totalMedDesc)}
+          </div>
+          <table className={styles.printTableCompact}>
+            <thead>
+              <tr>
+                {medDescColumns.map((col, i) => (
+                  <th key={i}>{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {medDesc.map((item, idx) => {
+                const qty = item.cantidad ?? 1;
+                // ✅ Se evita el error separando ?? y ||
+                const rawUnit = item.valorUnitario ?? (qty > 0 ? item.total / qty : 0);
+                const unit = rawUnit || 0;
+                const total = item.gastoSanatorial ?? item.total ?? 0;
+                const descripcion =
+                  (item.nombre || item.descripcion || '—') +
+                  (item.presentacion ? ` (${item.presentacion})` : '');
+                return (
+                  <tr key={idx}>
+                    <td>{descripcion}</td>
+                    <td className={styles.printNumber}>{qty}</td>
+                    <td className={styles.printNumber}>$ {money(unit)}</td>
+                    <td className={styles.printNumber}>$ {money(total)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Laboratorio */}
+      {labRows.length > 0 && (
+        <div className={styles.printSectionCompact}>
+          <div className={styles.printSectionTitle}>
+            LABORATORIO — Total: $ {money(totalLab)}
+          </div>
+          <table className={styles.printTableCompact}>
+            <thead>
+              <tr>
+                {labColumns.map((col, i) => (
+                  <th key={i}>{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {labRows.map((lab, idx) => (
+                <tr key={idx}>
+                  <td>{lab.desc}</td>
+                  <td>{lab.origen}</td>
+                  <td className={styles.printNumber}>{lab.unidades}</td>
+                  <td className={styles.printNumber}>$ {money(lab.ub)}</td>
+                  <td className={styles.printNumber}>$ {money(lab.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Totales */}
+      <div className={styles.printTotalesCompact}>
+        <hr style={{ margin: '8px 0', borderColor: '#ccc' }} />
+        <div className={styles.printTotalLine}>
+          <span>Subtotal Medicación y Descartables:</span>
+          <span>$ {money(totalMedDesc)}</span>
+        </div>
+        {labRows.length > 0 && (
+          <div className={styles.printTotalLine}>
+            <span>Subtotal Laboratorio:</span>
+            <span>$ {money(totalLab)}</span>
+          </div>
+        )}
+        <div className={styles.printTotalLineFinal}>
+          <span>TOTAL GENERAL:</span>
+          <span>$ {money(totalGeneral)}</span>
+        </div>
+      </div>
+
+
+      {/* Firma */}
+      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 40 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              borderBottom: '1.5px solid #1e293b',
+              width: 200,
+              marginBottom: 6,
+              height: 40,
+            }}
+          />
+          <span>Firma y sello – Administración</span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+PrintMedDescLabView.displayName = 'PrintMedDescLabView';
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Componente principal
 // ─────────────────────────────────────────────────────────────────────────────
 export default function FacturadoDetallePage() {
@@ -522,6 +688,7 @@ export default function FacturadoDetallePage() {
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState(null);
   const printRef = useRef(null);
+  const printMedDescRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -566,11 +733,12 @@ export default function FacturadoDetallePage() {
       subtotalGastoPracticas: 0, subtotalGastoMedicamentos: 0, subtotalGastoDescartables: 0,
     };
 
-    const practicas = Array.isArray(item.practicas) ? item.practicas : [];
-    const cirugias = Array.isArray(item.cirugias) ? item.cirugias : [];
-    const laboratorios = Array.isArray(item.laboratorios) ? item.laboratorios : [];
-    const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
-    const descartables = Array.isArray(item.descartables) ? item.descartables : [];
+    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const practicas = toArr(item.practicas);
+    const cirugias = toArr(item.cirugias);
+    const laboratorios = toArr(item.laboratorios);
+    const medicamentos = toArr(item.medicamentos);
+    const descartables = toArr(item.descartables);
 
     const pickName = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '—';
     const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
@@ -637,16 +805,18 @@ export default function FacturadoDetallePage() {
       const gasto = safeNum(m?.gastoSanatorial ?? m?.total);
       const qty = pickQty(m);
       const unit = pickUnit(m);
-      const desc = m?.nombre || '—';
-      if (gasto > 0) gastoMedicamentosArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
+      const nombre = m?.nombre || '—';
+      const desc = m?.presentacion ? `${nombre} (${m.presentacion})` : nombre;
+      gastoMedicamentosArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
     });
 
     descartables.forEach(d => {
       const gasto = safeNum(d?.gastoSanatorial ?? d?.total);
       const qty = pickQty(d);
       const unit = pickUnit(d);
-      const desc = d?.nombre || '—';
-      if (gasto > 0) gastoDescartablesArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
+      const nombre = d?.nombre || '—';
+      const desc = d?.presentacion ? `${nombre} (${d.presentacion})` : nombre;
+      gastoDescartablesArr.push({ desc, origen: 'Clínica de la Unión', unidades: qty, unit, total: gasto });
     });
 
     const subtotalHonorPracticas = honorPracticasArr.reduce((a, r) => a + r.total, 0);
@@ -678,347 +848,22 @@ export default function FacturadoDetallePage() {
     };
   }, [item]);
 
-  // ── Impresión de Medicamentos + Descartables + Laboratorio (SIN firma) ──
-  const printMedDescLab = () => {
-    if (!item) return;
-
-    const paciente = item.paciente || {};
-    const apellido = paciente.apellido || '';
-    const nombrePaciente = paciente.nombre || paciente.nombreCompleto || '';
-    const nombreCompleto = apellido && nombrePaciente ? `${apellido}, ${nombrePaciente}` : (paciente.nombreCompleto || '—');
-    const dniFormateado = formatDNI(paciente.dni);
-    const siniestro = paciente.nroSiniestro || item.nroSiniestro || '—';
-    const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
-
-    const artImageUrl = getArtImage(artNombre);
-
-    const medicamentos = Array.isArray(item.medicamentos) ? item.medicamentos : [];
-    const descartables = Array.isArray(item.descartables) ? item.descartables : [];
-    const laboratorios = Array.isArray(item.laboratorios) ? item.laboratorios : [];
-
-    const safeNumLocal = (v) => {
-      const n = typeof v === 'number' ? v : Number(v);
-      return Number.isFinite(n) ? n : 0;
-    };
-    const pickName = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '—';
-    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
-    const pickDoctor = (x) => x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional || x?.prestadorNombre || x?.prestador || '—';
-    const pickQty = (x) => {
-      const c = x?.cantidad ?? x?.unidades ?? 1;
-      const n = safeNumLocal(c);
-      return n > 0 ? n : 1;
-    };
-    const pickUnit = (x) => {
-      const unit = x?.valorUnitario ?? x?.unitario ?? x?.precio ?? null;
-      if (unit != null && unit !== '') return safeNumLocal(unit);
-      const qty = pickQty(x);
-      const tot = safeNumLocal(x?.total);
-      return qty > 0 ? tot / qty : 0;
-    };
-    const formatCodeName = (x) => {
-      const code = String(pickCode(x) || '').trim();
-      const name = String(pickName(x) || '').trim();
-      return code ? `${code} — ${name}` : name;
-    };
-
-    const rowsMedDesc = (arr) =>
-      arr.map((x) => {
-        const qty = pickQty(x);
-        const unit = pickUnit(x);
-        const tot = safeNumLocal(x?.gastoSanatorial ?? x?.total);
-        const desc = x?.nombre || x?.descripcion || '—';
-        const pres = x?.presentacion ? ` (${x.presentacion})` : '';
-        return `
-          <tr>
-            <td>${desc}${pres}</td>
-            <td class="num">${qty}</td>
-            <td class="num">$ ${money(unit)}</td>
-            <td class="num">$ ${money(tot)}</td>
-          </tr>
-        `;
-      }).join('');
-
-    const rowsLab = laboratorios.map((l) => {
-      const qty = pickQty(l);
-      const ub = safeNumLocal(l?.unidadBioquimica ?? l?.ub ?? pickUnit(l));
-      const total = safeNumLocal(l?.honorarioMedico ?? l?.total);
-      const desc = formatCodeName(l);
-      const doctor = pickDoctor(l);
-      return `
-        <tr>
-          <td>${desc}</td>
-          <td>${doctor !== '—' ? doctor : ''}</td>
-          <td class="num">${qty}</td>
-          <td class="num">${money(ub)}</td>
-          <td class="num">$ ${money(total)}</td>
-        </tr>
-      `;
-    }).join('');
-
-    const totalMed = medicamentos.reduce((a, x) => a + safeNumLocal(x?.gastoSanatorial ?? x?.total), 0);
-    const totalDesc = descartables.reduce((a, x) => a + safeNumLocal(x?.gastoSanatorial ?? x?.total), 0);
-    const totalLab = laboratorios.reduce((a, x) => a + safeNumLocal(x?.honorarioMedico ?? x?.total), 0);
-    const totalGen = totalMed + totalDesc + totalLab;
-
-    const secMed = medicamentos.length === 0 ? '' : `
-      <div class="section">
-        <div class="section-title">MEDICAMENTOS — $ ${money(totalMed)}</div>
-        <table class="compact-table">
-          <thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Valor unit.</th><th class="num">Total</th></tr></thead>
-          <tbody>${rowsMedDesc(medicamentos)}</tbody>
-        </table>
-      </div>
-    `;
-    const secDesc = descartables.length === 0 ? '' : `
-      <div class="section">
-        <div class="section-title">DESCARTABLES — $ ${money(totalDesc)}</div>
-        <table class="compact-table">
-          <thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Valor unit.</th><th class="num">Total</th></tr></thead>
-          <tbody>${rowsMedDesc(descartables)}</tbody>
-        </table>
-      </div>
-    `;
-    const secLab = laboratorios.length === 0 ? '' : `
-      <div class="section">
-        <div class="section-title">LABORATORIO — $ ${money(totalLab)}</div>
-        <table class="compact-table">
-          <thead><tr><th>Código — Estudio</th><th>Bioquímico/a</th><th class="num">Cant.</th><th class="num">UB</th><th class="num">Total</th></tr></thead>
-          <tbody>${rowsLab}</tbody>
-        </table>
-      </div>
-    `;
-
-    const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Medicamentos, Descartables y Laboratorio — ${siniestro}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-      font-size: 9pt;
-      margin: 0.8cm;
-      color: #1e293b;
-      background: white;
-      position: relative;
-    }
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.12;
-      z-index: -1;
-      pointer-events: none;
-    }
-    .watermark img {
-      width: 280px;
-      height: auto;
-    }
-    .header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #aaa;
-      flex-wrap: wrap;
-    }
-    .patient-info {
-      text-align: left;
-    }
-    .patient-name {
-      font-size: 12pt;
-      font-weight: bold;
-    }
-    .patient-dni {
-      font-size: 11pt;
-      color: #2c3e66;
-      font-weight: 500;
-    }
-    .art-block {
-      text-align: right;
-    }
-    .art-logo {
-      max-height: 50px;
-      max-width: 140px;
-      object-fit: contain;
-    }
-    .siniestro-num {
-      font-size: 10pt;
-      font-weight: bold;
-      color: #1e3a8a;
-      margin-top: 4px;
-    }
-    .section {
-      margin-top: 16px;
-      page-break-inside: avoid;
-    }
-    .section-title {
-      font-size: 10pt;
-      font-weight: bold;
-      background: #eef2ff;
-      padding: 5px 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      color: #1e3a8a;
-    }
-    .compact-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 8.5pt;
-      margin-bottom: 12px;
-    }
-    .compact-table th {
-      background: #e2e8f0;
-      text-align: left;
-      padding: 4px 6px;
-      border: 1px solid #cbd5e1;
-      font-weight: 600;
-    }
-    .compact-table td {
-      padding: 4px 6px;
-      border: 1px solid #e2e8f0;
-    }
-    .num {
-      text-align: right;
-    }
-    .total-row {
-      margin-top: 16px;
-      text-align: right;
-      font-size: 11pt;
-      font-weight: bold;
-      border-top: 1px solid #cbd5e1;
-      padding-top: 8px;
-    }
-    @media print {
-      body { margin: 0.5cm; }
-    }
-
-    .clinic-footer {
-      margin-top: 28px;
-      padding-top: 10px;
-      border-top: 1px solid #cbd5e1;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .clinic-name {
-      font-size: 10.5pt;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 3px;
-    }
-    .clinic-detail {
-      font-size: 8pt;
-      color: #334155;
-      line-height: 1.5;
-    }
-    .clinic-date {
-      font-size: 9pt;
-      color: #334155;
-      font-style: italic;
-      white-space: nowrap;
-    }
-    .sign-block {
-      margin-top: 40px;
-      display: flex;
-      justify-content: space-around;
-      gap: 40px;
-      page-break-inside: avoid;
-    }
-    .sign-col {
-      flex: 1;
-      text-align: center;
-      max-width: 220px;
-    }
-    .sign-line {
-      border-bottom: 1.5px solid #1e293b;
-      width: 100%;
-      margin-bottom: 6px;
-      height: 36px;
-    }
-    .sign-label {
-      font-size: 8pt;
-      color: #475569;
-    }
-  </style>
-</head>
-<body>
-  <div class="header-row">
-    <div class="patient-info">
-      <div class="patient-name">${nombreCompleto}</div>
-      <div class="patient-dni">DNI ${dniFormateado}</div>
-    </div>
-    <div class="art-block">
-      <img src="${artImageUrl}" alt="${artNombre}" class="art-logo" onerror="this.src='/img-art/default.webp'">
-      <div class="siniestro-num">N° Siniestro: ${siniestro}</div>
-    </div>
-  </div>
-
-  ${secMed}
-  ${secDesc}
-  ${secLab}
-
-  <div class="total-row">
-    TOTAL GENERAL: $ ${money(totalGen)}
-  </div>
-
-  <!-- Datos institucionales + firma -->
-  <div class="clinic-footer">
-    <div class="clinic-info">
-      <div class="clinic-name">Clínica de la Unión S.A.</div>
-      <div class="clinic-detail">Av. Siburu 1085 — Chajarí, Entre Ríos (C.P. 3228)</div>
-      <div class="clinic-detail">Tel.: (03456) 441580 &nbsp;|&nbsp; clinicadelaunionart@gmail.com</div>
-      <div class="clinic-detail">CUIT: 30‑70754530-1</div>
-    </div>
-  </div>
-
-  <div class="sign-block">
-    <div class="sign-col">
-      <div class="sign-line"></div>
-      <div class="sign-label">Firma y sello — Administración</div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-
-    // Prevenir doble impresión
-    let printed = false;
-    win.onload = () => {
-      if (!printed) {
-        printed = true;
-        win.print();
-      }
-    };
-    setTimeout(() => {
-      try {
-        if (!printed) {
-          printed = true;
-          win.print();
-        }
-      } catch (e) { }
-    }, 1200);
-  };
-
-  const onDownloadCsv = () => {
-    alert('Función CSV no implementada aún.');
-  };
-
+  // ── Handlers de impresión ─────────────────────────────────────────────────
   const onPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Factura_${id}_${item?.paciente?.dni || 'sin_dni'}`,
   });
 
+  const onPrintMedDescLab = useReactToPrint({
+    contentRef: printMedDescRef,
+    documentTitle: `Med_Desc_Lab_${id}_${item?.paciente?.dni || 'sin_dni'}`,
+  });
+
+  const onDownloadCsv = () => {
+    alert('Función CSV no implementada aún.');
+  };
+
+  // ── Renderizado condicional ───────────────────────────────────────────────
   if (loading) {
     return (
       <div className={styles.container}>
@@ -1045,6 +890,8 @@ export default function FacturadoDetallePage() {
   const estado = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
   const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
+  const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+
   return (
     <div className={styles.container}>
       <div className={styles.screenView}>
@@ -1064,9 +911,11 @@ export default function FacturadoDetallePage() {
           convenio={item.convenioNombre || item.convenio}
           onPrint={onPrint}
           onDownloadCsv={onDownloadCsv}
-          onPrintMedDescLab={printMedDescLab}
+          onPrintMedDescLab={onPrintMedDescLab}
         />
       </div>
+
+      {/* Vista impresión principal */}
       <PrintView
         ref={printRef}
         paciente={paciente}
@@ -1085,6 +934,16 @@ export default function FacturadoDetallePage() {
         subtotalGastoPracticas={subtotalGastoPracticas}
         subtotalGastoMedicamentos={subtotalGastoMedicamentos}
         subtotalGastoDescartables={subtotalGastoDescartables}
+        artNombre={artNombre}
+      />
+
+      {/* Vista impresión Med+Desc+Lab (oculta en pantalla) */}
+      <PrintMedDescLabView
+        ref={printMedDescRef}
+        paciente={paciente}
+        medicamentos={toArr(item.medicamentos)}
+        descartables={toArr(item.descartables)}
+        laboratorios={toArr(item.laboratorios)}
         artNombre={artNombre}
       />
     </div>

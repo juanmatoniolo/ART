@@ -446,6 +446,35 @@ export default function ResumenFactura({
   };
 
   // ─── Print helpers ────────────────────────────────────────────────────────────
+  const renderTablaLaboratorios = (items) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className={styles.printSection}>
+        <h4>Laboratorios</h4>
+        <table className={styles.printTable}>
+          <thead>
+            <tr><th>Código</th><th>Descripción</th><th>Bioquímico/a</th><th>Cantidad</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const cantidad = clampDecimalQty(item.cantidad);
+              const total = parseNumber(item.total) || parseNumber(item.honorarioMedico) || 0;
+              return (
+                <tr key={item.id}>
+                  <td>{item.codigo || '—'}</td>
+                  <td>{item.descripcion || item.nombre || '—'}</td>
+                  <td>{item.prestadorNombre || '—'}</td>
+                  <td className={styles.printNumber}>{fmtQtyInput(cantidad)}</td>
+                  <td className={styles.printNumber}>$ {money(total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const renderTablaHonorarios = (items, tipo) => {
     if (items.length === 0) return null;
     return (
@@ -601,8 +630,8 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Cirugías ─────────────────────────────────────────────────────────── */}
-        <Acordeon k="cirugias" title="🩺 Cirugías" count={cirugias.length} amount={totalSeccion(cirugias)} open={open} setOpen={setOpen}>
+        {/* ── Cirugía / Prácticas Médicas ──────────────────────────────────────── */}
+        <Acordeon k="cirugias" title="🩺 Cirugía / Prácticas Médicas" count={cirugias.length} amount={totalSeccion(cirugias)} open={open} setOpen={setOpen}>
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
           ) : (
@@ -712,97 +741,57 @@ export default function ResumenFactura({
           )}
         </Acordeon>
 
-        {/* ── Medicación + Descartables ─────────────────────────────────────────── */}
-        <Acordeon k="medDesc" title="💊 Medicación + 🧷 Descartables" count={medicamentos.length + descartables.length} amount={totalSeccion(medicamentos) + totalSeccion(descartables)} open={open} setOpen={setOpen}>
-          <SubAcordeon k="med" title="💊 Medicación" count={medicamentos.length} amount={totalSeccion(medicamentos)} open={open} setOpen={setOpen}>
-            {medicamentos.length === 0 ? (
-              <div className={styles.emptyBlock}>Sin medicación.</div>
-            ) : (
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th className={styles.thDesc}>Descripción</th>
-                      <th className={styles.thQty}>Cantidad</th>
-                      <th className={styles.thUnit}>Unidad</th>
-                      <th className={styles.thNum}>Total</th>
-                      <th className={styles.thAction}>Acc.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medicamentos.map((m) => (
-                      <tr key={m.id}>
-                        <td className={styles.columnaDescripcion}>
-                          <div className={styles.descPrincipal}><strong>{m.nombre}</strong></div>
-                          <div className={styles.metaText}>{m.presentacion}</div>
-                        </td>
-                        <td className={styles.columnaCantidad}>
-                          <CantidadControl item={m} onUpdate={actualizarCantidad} />
-                        </td>
-                        <td className={styles.columnaUnidad}>$ {money(m.valorUnitario)}</td>
-                        <td className={styles.columnaValor}>
-                          <div className={styles.valorStack}>
-                            <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
-                              <span className={styles.valorLabel}>Total</span>
-                              <span className={styles.valorNumber}>{money(m.total)}</span>
-                            </div>
+        {/* ── Medicación y Descartables ─────────────────────────────────────────── */}
+        <Acordeon
+          k="medDesc"
+          title="💊 Medicación y Descartables"
+          count={medicamentos.length + descartables.length}
+          amount={totalSeccion(medicamentos) + totalSeccion(descartables)}
+          open={open}
+          setOpen={setOpen}
+        >
+          {(medicamentos.length + descartables.length) === 0 ? (
+            <div className={styles.emptyBlock}>Sin medicación ni descartables.</div>
+          ) : (
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th className={styles.thDesc}>Descripción</th>
+                    <th className={styles.thQty}>Cantidad</th>
+                    <th className={styles.thUnit}>Unidad</th>
+                    <th className={styles.thNum}>Total</th>
+                    <th className={styles.thAction}>Acc.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...medicamentos, ...descartables].map((item) => (
+                    <tr key={item.id}>
+                      <td className={styles.columnaDescripcion}>
+                        <div className={styles.descPrincipal}><strong>{item.nombre}</strong></div>
+                        <div className={styles.metaText}>{item.presentacion}</div>
+                      </td>
+                      <td className={styles.columnaCantidad}>
+                        <CantidadControl item={item} onUpdate={actualizarCantidad} />
+                      </td>
+                      <td className={styles.columnaUnidad}>$ {money(item.valorUnitario)}</td>
+                      <td className={styles.columnaValor}>
+                        <div className={styles.valorStack}>
+                          <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
+                            <span className={styles.valorLabel}>Total</span>
+                            <span className={styles.valorNumber}>{money(item.total)}</span>
                           </div>
-                        </td>
-                        <td className={styles.columnaAcciones}>
-                          <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(m.id)}>🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </SubAcordeon>
-
-          <SubAcordeon k="desc" title="🧷 Descartables" count={descartables.length} amount={totalSeccion(descartables)} open={open} setOpen={setOpen}>
-            {descartables.length === 0 ? (
-              <div className={styles.emptyBlock}>Sin descartables.</div>
-            ) : (
-              <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th className={styles.thDesc}>Descripción</th>
-                      <th className={styles.thQty}>Cantidad</th>
-                      <th className={styles.thUnit}>Unidad</th>
-                      <th className={styles.thNum}>Total</th>
-                      <th className={styles.thAction}>Acc.</th>
+                        </div>
+                      </td>
+                      <td className={styles.columnaAcciones}>
+                        <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(item.id)}>🗑️</button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {descartables.map((d) => (
-                      <tr key={d.id}>
-                        <td className={styles.columnaDescripcion}>
-                          <div className={styles.descPrincipal}><strong>{d.nombre}</strong></div>
-                          <div className={styles.metaText}>{d.presentacion}</div>
-                        </td>
-                        <td className={styles.columnaCantidad}>
-                          <CantidadControl item={d} onUpdate={actualizarCantidad} />
-                        </td>
-                        <td className={styles.columnaUnidad}>$ {money(d.valorUnitario)}</td>
-                        <td className={styles.columnaValor}>
-                          <div className={styles.valorStack}>
-                            <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
-                              <span className={styles.valorLabel}>Total</span>
-                              <span className={styles.valorNumber}>{money(d.total)}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className={styles.columnaAcciones}>
-                          <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(d.id)}>🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </SubAcordeon>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Acordeon>
 
         {/* ── Botones ───────────────────────────────────────────────────────────── */}
@@ -829,23 +818,32 @@ export default function ResumenFactura({
         </div>
 
         <div className={styles.printHonorarios}>
-          <h3>Honorarios Médicos</h3>
-          {renderTablaHonorarios(practicasHonorarios, 'Prácticas')}
-          {totalPracticasHonorarios > 0 && <div className={styles.printSubtotal}>Subtotal Prácticas: $ {money(totalPracticasHonorarios)}</div>}
+          <h3>Honorarios - Prácticas Médicas y/o Cirugías</h3>
+          {renderTablaHonorarios(practicasHonorarios, 'Prácticas Médicas')}
           {renderTablaHonorarios(cirugias, 'Cirugías')}
-          {totalCirugias > 0 && <div className={styles.printSubtotal}>Subtotal Cirugías: $ {money(totalCirugias)}</div>}
-          {renderTablaHonorarios(laboratorios, 'Laboratorio')}
-          {totalLaboratorios > 0 && <div className={styles.printSubtotal}>Subtotal Laboratorio: $ {money(totalLaboratorios)}</div>}
+          {(totalPracticasHonorarios + totalCirugias) > 0 && (
+            <div className={styles.printSubtotal}>
+              Subtotal Honorarios: $ {money(totalPracticasHonorarios + totalCirugias)}
+            </div>
+          )}
         </div>
 
         <div className={styles.printGastos}>
           <h3>Gastos Sanatoriales</h3>
           {renderTablaGastosClinica(practicasGastos, 'Gastos Clínica')}
-          {totalPracticasGastos > 0 && <div className={styles.printSubtotal}>Subtotal Gastos Prácticas: $ {money(totalPracticasGastos)}</div>}
-          {renderTablaMedicamentos(medicamentos, 'Medicación')}
-          {totalMedicamentos > 0 && <div className={styles.printSubtotal}>Subtotal Medicación: $ {money(totalMedicamentos)}</div>}
-          {renderTablaMedicamentos(descartables, 'Descartables')}
-          {totalDescartables > 0 && <div className={styles.printSubtotal}>Subtotal Descartables: $ {money(totalDescartables)}</div>}
+          {totalPracticasGastos > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Gastos Clínica: $ {money(totalPracticasGastos)}</div>
+          )}
+          {renderTablaLaboratorios(laboratorios)}
+          {totalLaboratorios > 0 && (
+            <div className={styles.printSubtotal}>Subtotal Laboratorios: $ {money(totalLaboratorios)}</div>
+          )}
+          {renderTablaMedicamentos([...medicamentos, ...descartables], 'Medicación y Descartables')}
+          {(totalMedicamentos + totalDescartables) > 0 && (
+            <div className={styles.printSubtotal}>
+              Subtotal Medicación y Descartables: $ {money(totalMedicamentos + totalDescartables)}
+            </div>
+          )}
         </div>
 
         <div className={styles.printTotales}>
