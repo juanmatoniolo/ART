@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useDoctors from '../hooks/useDoctors';
 import DoctorForm from '../components/DoctorForm';
-import styles from '../medicos.module.css';
+import styles from './page.module.css'; // <-- nuevo CSS propio
 
 export default function MedicoEditPage() {
   const params = useParams();
@@ -22,7 +22,6 @@ export default function MedicoEditPage() {
   useEffect(() => {
     if (isNew) return;
     if (loading) return;
-
     if (!initialData) {
       router.replace('/admin/medicos');
     }
@@ -45,7 +44,6 @@ export default function MedicoEditPage() {
   if (!isNew && loading) {
     return <div className={styles.loading}>Cargando...</div>;
   }
-
   if (!isNew && !initialData) {
     return <div className={styles.loading}>Redirigiendo...</div>;
   }
