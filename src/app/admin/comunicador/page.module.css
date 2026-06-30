@@ -1,39 +1,67 @@
 /* ===== Contenedor principal ===== */
 .container {
   min-height: calc(100vh - 70px);
-  background: #0f172a;
+  background:
+    radial-gradient(circle at top left, rgba(37, 211, 102, 0.08), transparent 34%),
+    #0f172a;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 20px;
+  align-items: flex-start;
+  padding: clamp(16px, 3vw, 32px);
 }
 
 /* ===== Tarjeta principal ===== */
 .card {
   background: #111827;
   width: 100%;
-  max-width: 700px;
-  padding: 28px 24px;
+  max-width: 760px;
+  padding: clamp(20px, 3vw, 36px);
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
 }
 
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.iconCircle {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(37, 211, 102, 0.14);
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  font-size: 24px;
+}
+
 /* ===== Título ===== */
 .title {
   color: #f0f9ff;
-  text-align: center;
-  font-size: 28px;
-  font-weight: 800;
-  margin-bottom: 28px;
-  letter-spacing: -0.02em;
+  font-size: clamp(24px, 4vw, 30px);
+  font-weight: 850;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* ===== Grid del formulario ===== */
 .formGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 18px;
   margin-bottom: 24px;
 }
 
@@ -48,7 +76,7 @@
 /* ===== Etiquetas ===== */
 .label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: #d1d5db;
   display: flex;
   align-items: center;
@@ -60,6 +88,12 @@
   font-size: 16px;
 }
 
+.helpText {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 /* ===== Inputs, selects, textarea ===== */
 .input {
   width: 100%;
@@ -69,13 +103,20 @@
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  min-width: 0; /* permite que se encoja en flex */
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+  min-width: 0;
   box-sizing: border-box;
 }
 
 .input::placeholder {
   color: #6b7280;
+}
+
+.input:hover {
+  border-color: #4b5563;
 }
 
 .input:focus {
@@ -96,19 +137,48 @@ select.input {
 
 /* ===== Área de preview ===== */
 .previewBox {
-  margin: 24px 0;
+  margin: 24px 0 0;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 10px;
+}
+
+.previewSubtitle {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.previewBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, 0.14);
+  color: #86efac;
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .textarea {
   width: 100%;
-  min-height: 220px;
+  min-height: 260px;
   background: #1f2937;
   color: #f0f9ff;
   border: 1px solid #374151;
-  border-radius: 12px;
-  padding: 14px;
-  font-size: 14px;
-  line-height: 1.5;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 15px;
+  line-height: 1.65;
   resize: vertical;
   white-space: pre-wrap;
   font-family: inherit;
@@ -121,37 +191,84 @@ select.input {
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* ===== Botón ===== */
-.button {
+/* ===== Botones ===== */
+.actionsRow {
   display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.button,
+.secondaryButton {
+  flex: 1 1 240px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 16px;
-  background: #25d366;
-  color: #ffffff;
+  gap: 8px;
+  min-height: 54px;
+  padding: 14px 18px;
   border-radius: 16px;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 850;
   text-decoration: none;
-  transition: background-color 0.2s, transform 0.1s;
-  border: none;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    transform 0.1s,
+    box-shadow 0.2s;
   cursor: pointer;
   box-sizing: border-box;
 }
 
-.button:hover {
-  background: #20bd5a;
+.button {
+  background: #25d366;
+  color: #ffffff;
+  border: 1px solid #25d366;
+  box-shadow: 0 12px 24px rgba(37, 211, 102, 0.18);
 }
 
-.button:active {
+.button:hover {
+  background: #20bd5a;
+  border-color: #20bd5a;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  background: #1f2937;
+  color: #f0f9ff;
+  border: 1px solid #374151;
+}
+
+.secondaryButton:hover {
+  background: #273449;
+  border-color: #6fa17b;
+  transform: translateY(-1px);
+}
+
+.button:active,
+.secondaryButton:active {
   transform: scale(0.98);
+}
+
+.buttonIcon {
+  font-size: 17px;
 }
 
 .buttonDisabled {
   opacity: 0.5;
   pointer-events: none;
   background: #4b5563;
+  border-color: #4b5563;
+  box-shadow: none;
+}
+
+.warningText {
+  margin: 12px 0 0;
+  color: #fcd34d;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
 }
 
 /* ===== Búsqueda de pacientes ===== */
@@ -162,51 +279,68 @@ select.input {
 
 .suggestions {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   background: #1f2937;
   border: 1px solid #374151;
-  border-radius: 0.5rem;
-  margin-top: 0.25rem;
-  max-height: 240px;
+  border-radius: 12px;
+  max-height: 260px;
   overflow-y: auto;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
 }
 
 .suggestionItem {
-  padding: 0.6rem 0.8rem;
+  width: 100%;
+  padding: 12px 14px;
   cursor: pointer;
   transition: background 0.15s;
+  border: 0;
   border-bottom: 1px solid #374151;
+  background: transparent;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  text-align: left;
 }
 
-.suggestionItem:hover {
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover,
+.suggestionItem:focus-visible {
+  outline: none;
   background: #374151;
 }
 
 .suggestionName {
-  font-weight: 600;
+  font-weight: 700;
   color: #f3f4f6;
-  font-size: 0.9rem;
+  font-size: 14px;
   word-break: break-word;
 }
 
 .suggestionPhone {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: #9ca3af;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   flex-shrink: 0;
 }
 
-/* ========================================== */
-/* ========== MEDIA QUERIES ================ */
-/* ========================================== */
+/* ===== Responsive ===== */
+@media (min-width: 760px) {
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field:first-child,
+  .field:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}
 
 @media (max-width: 768px) {
   .container {
@@ -214,43 +348,21 @@ select.input {
   }
 
   .card {
-    padding: 24px 20px;
     border-radius: 20px;
   }
 
-  .title {
-    font-size: 26px;
-    margin-bottom: 24px;
-  }
-
-  .formGrid {
-    gap: 18px;
-  }
-
-  .input {
-    padding: 11px 13px;
-    font-size: 14px;
+  .header {
+    align-items: flex-start;
   }
 
   .textarea {
-    min-height: 180px;
-    font-size: 13px;
-  }
-
-  .button {
-    padding: 15px;
-    font-size: 17px;
-  }
-
-  .suggestionItem {
-    padding: 0.5rem 0.7rem;
+    min-height: 220px;
   }
 }
 
 @media (max-width: 640px) {
   .container {
     padding: 12px;
-    align-items: flex-start;
     min-height: 100vh;
   }
 
@@ -259,13 +371,23 @@ select.input {
     border-radius: 20px;
   }
 
-  .title {
-    font-size: 22px;
-    margin-bottom: 18px;
+  .header {
+    flex-direction: column;
+    margin-bottom: 22px;
   }
 
-  .formGrid {
-    gap: 14px;
+  .iconCircle {
+    width: 48px;
+    height: 48px;
+  }
+
+  .previewHeader {
+    flex-direction: column;
+  }
+
+  .previewBadge {
+    width: 100%;
+    justify-content: center;
   }
 
   .input {
@@ -274,33 +396,34 @@ select.input {
     border-radius: 10px;
   }
 
-  .label {
-    font-size: 13px;
-  }
-
   .textarea {
-    min-height: 160px;
+    min-height: 200px;
     font-size: 14px;
     padding: 12px;
   }
 
-  .button {
-    padding: 16px;
-    font-size: 18px;
-    border-radius: 14px;
+  .actionsRow {
+    flex-direction: column;
+  }
+
+  .button,
+  .secondaryButton {
+    width: 100%;
+    flex-basis: auto;
+    font-size: 16px;
   }
 
   .suggestionItem {
-    padding: 0.8rem;
+    padding: 12px;
     flex-wrap: wrap;
   }
 
   .suggestionName {
-    font-size: 1rem;
+    font-size: 15px;
   }
 
   .suggestionPhone {
-    font-size: 0.8rem;
+    font-size: 12px;
   }
 }
 
@@ -315,12 +438,15 @@ select.input {
   }
 
   .title {
-    font-size: 20px;
-    margin-bottom: 16px;
+    font-size: 21px;
+  }
+
+  .subtitle {
+    font-size: 13px;
   }
 
   .formGrid {
-    gap: 12px;
+    gap: 14px;
   }
 
   .input {
@@ -334,31 +460,25 @@ select.input {
   }
 
   .textarea {
-    min-height: 140px;
+    min-height: 180px;
     font-size: 13px;
     padding: 10px;
   }
 
-  .button {
-    padding: 14px;
-    font-size: 16px;
+  .button,
+  .secondaryButton {
+    min-height: 50px;
+    padding: 13px;
     border-radius: 12px;
   }
 
   .suggestionItem {
-    padding: 0.6rem;
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
 
   .suggestionPhone {
-    font-size: 0.7rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .card {
-    padding: 32px 36px;
+    font-size: 11px;
   }
 }

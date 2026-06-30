@@ -201,6 +201,7 @@ export default function PacientesPage() {
     ).length;
 
     const incompletos = pacientes.filter((p) => pacienteIncompleto(p)).length;
+    const completos = total - incompletos;
 
     const edades = pacientes
       .map((p) => Number(p.trabajador?.edad))
@@ -214,6 +215,7 @@ export default function PacientesPage() {
     const edadMax = edades.length ? Math.max(...edades) : "—";
 
     const rangos = {
+      "0-17": 0,
       "18-30": 0,
       "31-45": 0,
       "46-60": 0,
@@ -221,28 +223,31 @@ export default function PacientesPage() {
     };
 
     edades.forEach((edad) => {
-      if (edad >= 18 && edad <= 30) rangos["18-30"] += 1;
-      else if (edad >= 31 && edad <= 45) rangos["31-45"] += 1;
-      else if (edad >= 46 && edad <= 60) rangos["46-60"] += 1;
-      else if (edad > 60) rangos["60+"] += 1;
+      if (edad <= 17) rangos["0-17"] += 1;
+      else if (edad <= 30) rangos["18-30"] += 1;
+      else if (edad <= 45) rangos["31-45"] += 1;
+      else if (edad <= 60) rangos["46-60"] += 1;
+      else rangos["60+"] += 1;
     });
 
     const sexos = pacientes.reduce(
       (acc, p) => {
-        const sexo = p.trabajador?.sexo;
+        const sexo = String(p.trabajador?.sexo || "").toUpperCase();
 
-        if (sexo === "M") acc.m += 1;
-        if (sexo === "F") acc.f += 1;
+        if (sexo === "M" || sexo === "MASCULINO") acc.m += 1;
+        else if (sexo === "F" || sexo === "FEMENINO") acc.f += 1;
+        else acc.sinDato += 1;
 
         return acc;
       },
-      { m: 0, f: 0 }
+      { m: 0, f: 0, sinDato: 0 }
     );
 
     const porArt = pacientes.reduce((acc, p) => {
       const art = p.ART?.nombre?.trim() || "Sin ART";
       const estado = p.estado || "abierto";
       const edad = Number(p.trabajador?.edad);
+      const incompleto = pacienteIncompleto(p);
 
       if (!acc[art]) {
         acc[art] = {
@@ -250,6 +255,8 @@ export default function PacientesPage() {
           total: 0,
           abiertos: 0,
           cerrados: 0,
+          incompletos: 0,
+          completos: 0,
           edades: [],
         };
       }
@@ -258,6 +265,9 @@ export default function PacientesPage() {
 
       if (estado === "cerrado") acc[art].cerrados += 1;
       else acc[art].abiertos += 1;
+
+      if (incompleto) acc[art].incompletos += 1;
+      else acc[art].completos += 1;
 
       if (Number.isFinite(edad) && edad > 0) {
         acc[art].edades.push(edad);
@@ -269,6 +279,8 @@ export default function PacientesPage() {
     const porArtArray = Object.values(porArt)
       .map((item) => ({
         ...item,
+        porcentaje:
+          total > 0 ? ((item.total / total) * 100).toFixed(1) : "0.0",
         promedioEdad: item.edades.length
           ? (
             item.edades.reduce((acc, n) => acc + n, 0) / item.edades.length
@@ -277,70 +289,74 @@ export default function PacientesPage() {
       }))
       .sort((a, b) => b.total - a.total || a.art.localeCompare(b.art, "es"));
 
+    const topArts = porArtArray.slice(0, 5);
+
     const ingresosPorMes = pacientes.reduce((acc, p) => {
       const fi = p.fechaIngreso || {};
 
       if (fi.anio && fi.mes) {
         const key = `${fi.anio}-${String(fi.mes).padStart(2, "0")}`;
-        acc[key] = (acc[key] || 0) + 1;
+
+        if (!acc[key]) {
+          acc[key] = {
+            mes: key,
+            total: 0,
+            abiertos: 0,
+            cerrados: 0,
+          };
+        }
+
+        acc[key].total += 1;
+
+        if ((p.estado || "abierto") === "cerrado") acc[key].cerrados += 1;
+        else acc[key].abiertos += 1;
       }
 
       return acc;
     }, {});
 
-    const ingresosPorMesArray = Object.entries(ingresosPorMes)
-      .map(([mes, cantidad]) => ({ mes, cantidad }))
-      .sort((a, b) => b.mes.localeCompare(a.mes));
+    const ingresosPorMesArray = Object.values(ingresosPorMes)
+      .sort((a, b) => b.mes.localeCompare(a.mes))
+      .slice(0, 12);
 
-    const diffDias = pacientes
-      .filter((p) => p.fechaIngreso?.iso && p.fechaDenuncia?.iso)
-      .map((p) => {
-        const ingreso = new Date(p.fechaIngreso.iso);
-        const denuncia = new Date(p.fechaDenuncia.iso);
+    const conTelefono = pacientes.filter((p) =>
+      p.trabajador?.telefono?.trim()
+    ).length;
 
-        return Math.abs((denuncia - ingreso) / (1000 * 60 * 60 * 24));
-      })
-      .filter((dias) => Number.isFinite(dias) && dias >= 0);
+    const conSiniestro = pacientes.filter((p) =>
+      p.ART?.nroSiniestro?.trim()
+    ).length;
 
-    const promedioDias = diffDias.length
-      ? (diffDias.reduce((a, b) => a + b, 0) / diffDias.length).toFixed(1)
-      : "—";
+    const sinSiniestro = total - conSiniestro;
 
-    const diasEvolucion = pacientes
-      .filter(
-        (p) =>
-          (p.estado || "abierto") === "cerrado" &&
-          p.fechaIngreso?.iso &&
-          p.fechaDenuncia?.iso
-      )
-      .map((p) => {
-        const ingreso = new Date(p.fechaIngreso.iso);
-        const denuncia = new Date(p.fechaDenuncia.iso);
+    const tasaCierre = total > 0 ? ((cerrados / total) * 100).toFixed(1) : "0.0";
+    const tasaCompletitud =
+      total > 0 ? ((completos / total) * 100).toFixed(1) : "0.0";
 
-        return Math.abs((denuncia - ingreso) / (1000 * 60 * 60 * 24));
-      })
-      .filter((dias) => Number.isFinite(dias) && dias >= 0);
-
-    const promedioEvolucion = diasEvolucion.length
-      ? (
-        diasEvolucion.reduce((a, b) => a + b, 0) / diasEvolucion.length
-      ).toFixed(1)
-      : "—";
+    const artMasFrecuente = porArtArray[0]?.art || "—";
+    const artMasFrecuenteCantidad = porArtArray[0]?.total || 0;
 
     return {
       total,
       abiertos,
       cerrados,
+      incompletos,
+      completos,
       promedioEdad,
       edadMin,
       edadMax,
       rangos,
       sexos,
       porArtArray,
+      topArts,
       ingresosPorMesArray,
-      promedioDias,
-      promedioEvolucion,
-      incompletos,
+      conTelefono,
+      conSiniestro,
+      sinSiniestro,
+      tasaCierre,
+      tasaCompletitud,
+      artMasFrecuente,
+      artMasFrecuenteCantidad,
     };
   }, [pacientes]);
 
@@ -980,88 +996,130 @@ export default function PacientesPage() {
           )}
         </>
       ) : (
+
         <section className={styles.statsLayout}>
-          <div className={styles.statsCards}>
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Total siniestros</span>
-              <strong className={styles.metricValue}>{stats.total}</strong>
+          <div className={styles.statsHeader}>
+            <div>
+              <h2 className={styles.statsTitle}>Estadísticas generales</h2>
+              <p className={styles.statsSubtitle}>
+                Resumen operativo de pacientes, ART, estados y calidad de carga.
+              </p>
+            </div>
+
+            <span className={styles.statsTotalBadge}>
+              {stats.total} pacientes registrados
+            </span>
+          </div>
+
+          <div className={styles.kpiGrid}>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>👥</span>
+              <div>
+                <span className={styles.kpiLabel}>Total pacientes</span>
+                <strong className={styles.kpiValue}>{stats.total}</strong>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Abiertos</span>
-              <strong className={styles.metricValue}>{stats.abiertos}</strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>🟢</span>
+              <div>
+                <span className={styles.kpiLabel}>Abiertos</span>
+                <strong className={styles.kpiValue}>{stats.abiertos}</strong>
+                <small className={styles.kpiHint}>
+                  {stats.total ? ((stats.abiertos / stats.total) * 100).toFixed(1) : 0}%
+                </small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Cerrados</span>
-              <strong className={styles.metricValue}>{stats.cerrados}</strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>🔴</span>
+              <div>
+                <span className={styles.kpiLabel}>Cerrados</span>
+                <strong className={styles.kpiValue}>{stats.cerrados}</strong>
+                <small className={styles.kpiHint}>{stats.tasaCierre}% cierre</small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Promedio de edad</span>
-              <strong className={styles.metricValue}>
-                {stats.promedioEdad === "—"
-                  ? "—"
-                  : `${stats.promedioEdad} años`}
-              </strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>✅</span>
+              <div>
+                <span className={styles.kpiLabel}>Completitud</span>
+                <strong className={styles.kpiValue}>{stats.tasaCompletitud}%</strong>
+                <small className={styles.kpiHint}>
+                  {stats.completos} completos / {stats.incompletos} incompletos
+                </small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Edad mínima</span>
-              <strong className={styles.metricValue}>
-                {stats.edadMin === "—" ? "—" : `${stats.edadMin} años`}
-              </strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>🎂</span>
+              <div>
+                <span className={styles.kpiLabel}>Edad promedio</span>
+                <strong className={styles.kpiValue}>
+                  {stats.promedioEdad === "—" ? "—" : `${stats.promedioEdad}`}
+                </strong>
+                <small className={styles.kpiHint}>
+                  Min {stats.edadMin} / Max {stats.edadMax}
+                </small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Edad máxima</span>
-              <strong className={styles.metricValue}>
-                {stats.edadMax === "—" ? "—" : `${stats.edadMax} años`}
-              </strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>🏥</span>
+              <div>
+                <span className={styles.kpiLabel}>ART principal</span>
+                <strong className={styles.kpiValueSmall}>
+                  {stats.artMasFrecuente}
+                </strong>
+                <small className={styles.kpiHint}>
+                  {stats.artMasFrecuenteCantidad} pacientes
+                </small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>
-                Prom. días ingreso→denuncia
-              </span>
-              <strong className={styles.metricValue}>
-                {stats.promedioDias === "—"
-                  ? "—"
-                  : `${stats.promedioDias} días`}
-              </strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>📱</span>
+              <div>
+                <span className={styles.kpiLabel}>Con teléfono</span>
+                <strong className={styles.kpiValue}>{stats.conTelefono}</strong>
+                <small className={styles.kpiHint}>
+                  {stats.total ? ((stats.conTelefono / stats.total) * 100).toFixed(1) : 0}%
+                  contactables
+                </small>
+              </div>
             </article>
 
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>
-                Prom. evolución cerrados
-              </span>
-              <strong className={styles.metricValue}>
-                {stats.promedioEvolucion === "—"
-                  ? "—"
-                  : `${stats.promedioEvolucion} días`}
-              </strong>
-            </article>
-
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>Incompletos</span>
-              <strong className={styles.metricValue}>{stats.incompletos}</strong>
+            <article className={styles.kpiCard}>
+              <span className={styles.kpiIcon}>📄</span>
+              <div>
+                <span className={styles.kpiLabel}>Sin N° siniestro</span>
+                <strong className={styles.kpiValue}>{stats.sinSiniestro}</strong>
+                <small className={styles.kpiHint}>Revisar carga administrativa</small>
+              </div>
             </article>
           </div>
 
-          <div className={styles.statsPanels}>
-            <section className={styles.statsPanel}>
+          <div className={styles.statsGrid}>
+            <section className={`${styles.statsPanel} ${styles.statsPanelLarge}`}>
               <div className={styles.panelHeader}>
-                <h2 className={styles.panelTitle}>Resumen por ART</h2>
+                <div>
+                  <h3 className={styles.panelTitle}>Resumen por ART</h3>
+                  <p className={styles.panelSubtitle}>
+                    Cantidad, estado, completitud y promedio de edad.
+                  </p>
+                </div>
               </div>
 
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+              <div className={styles.statsTableScroll}>
+                <table className={styles.statsTable}>
                   <thead>
                     <tr>
                       <th>ART</th>
                       <th>Total</th>
+                      <th>%</th>
                       <th>Abiertos</th>
                       <th>Cerrados</th>
+                      <th>Incompletos</th>
                       <th>Prom. edad</th>
                     </tr>
                   </thead>
@@ -1069,15 +1127,37 @@ export default function PacientesPage() {
                   <tbody>
                     {stats.porArtArray.length === 0 ? (
                       <tr>
-                        <td colSpan={5}>No hay datos.</td>
+                        <td colSpan={7}>No hay datos.</td>
                       </tr>
                     ) : (
                       stats.porArtArray.map((item) => (
                         <tr key={item.art}>
-                          <td>{item.art}</td>
+                          <td>
+                            <strong>{item.art}</strong>
+                          </td>
                           <td>{item.total}</td>
-                          <td>{item.abiertos}</td>
-                          <td>{item.cerrados}</td>
+                          <td>{item.porcentaje}%</td>
+                          <td>
+                            <span className={styles.statusPillGreen}>
+                              {item.abiertos}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={styles.statusPillRed}>
+                              {item.cerrados}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={
+                                item.incompletos > 0
+                                  ? styles.statusPillYellow
+                                  : styles.statusPillNeutral
+                              }
+                            >
+                              {item.incompletos}
+                            </span>
+                          </td>
                           <td>
                             {item.promedioEdad === "—"
                               ? "—"
@@ -1093,21 +1173,64 @@ export default function PacientesPage() {
 
             <section className={styles.statsPanel}>
               <div className={styles.panelHeader}>
-                <h2 className={styles.panelTitle}>Distribución por sexo</h2>
+                <div>
+                  <h3 className={styles.panelTitle}>Top ART</h3>
+                  <p className={styles.panelSubtitle}>Mayor volumen de pacientes.</p>
+                </div>
               </div>
 
-              <div className={styles.simpleStatsList}>
-                <div className={styles.simpleStatsItem}>
+              <div className={styles.barList}>
+                {stats.topArts.length === 0 ? (
+                  <div className={styles.emptyMini}>No hay datos.</div>
+                ) : (
+                  stats.topArts.map((item) => (
+                    <div key={item.art} className={styles.barItem}>
+                      <div className={styles.barItemTop}>
+                        <span>{item.art}</span>
+                        <strong>{item.total}</strong>
+                      </div>
+
+                      <div className={styles.barTrack}>
+                        <div
+                          className={styles.barFill}
+                          style={{
+                            width: `${Math.min(Number(item.porcentaje), 100)}%`,
+                          }}
+                        />
+                      </div>
+
+                      <small>{item.porcentaje}% del total</small>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className={styles.statsPanel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <h3 className={styles.panelTitle}>Distribución por sexo</h3>
+                  <p className={styles.panelSubtitle}>Según ficha del trabajador.</p>
+                </div>
+              </div>
+
+              <div className={styles.compactList}>
+                <div className={styles.compactItem}>
                   <span>👨 Masculino</span>
                   <strong>{stats.sexos.m}</strong>
                 </div>
 
-                <div className={styles.simpleStatsItem}>
+                <div className={styles.compactItem}>
                   <span>👩 Femenino</span>
                   <strong>{stats.sexos.f}</strong>
                 </div>
 
-                <div className={styles.simpleStatsItem}>
+                <div className={styles.compactItem}>
+                  <span>❔ Sin dato</span>
+                  <strong>{stats.sexos.sinDato}</strong>
+                </div>
+
+                <div className={styles.compactItem}>
                   <span>📊 % Mujeres</span>
                   <strong>
                     {stats.total
@@ -1121,20 +1244,23 @@ export default function PacientesPage() {
 
             <section className={styles.statsPanel}>
               <div className={styles.panelHeader}>
-                <h2 className={styles.panelTitle}>Rango etario</h2>
+                <div>
+                  <h3 className={styles.panelTitle}>Rango etario</h3>
+                  <p className={styles.panelSubtitle}>Pacientes por edad.</p>
+                </div>
               </div>
 
-              <div className={styles.simpleStatsList}>
+              <div className={styles.compactList}>
                 {Object.entries(stats.rangos).map(([rango, count]) => {
                   const pct = stats.total
                     ? ((count / stats.total) * 100).toFixed(1)
                     : 0;
 
                   return (
-                    <div key={rango} className={styles.simpleStatsItem}>
+                    <div key={rango} className={styles.compactItem}>
                       <span>{rango} años</span>
                       <strong>
-                        {count} ({pct}%)
+                        {count} <small>({pct}%)</small>
                       </strong>
                     </div>
                   );
@@ -1144,25 +1270,60 @@ export default function PacientesPage() {
 
             <section className={styles.statsPanel}>
               <div className={styles.panelHeader}>
-                <h2 className={styles.panelTitle}>Ingresos por mes</h2>
+                <div>
+                  <h3 className={styles.panelTitle}>Últimos ingresos</h3>
+                  <p className={styles.panelSubtitle}>Agrupado por mes.</p>
+                </div>
               </div>
 
-              <div className={styles.simpleStatsList}>
+              <div className={styles.compactList}>
                 {stats.ingresosPorMesArray.length === 0 ? (
                   <div className={styles.emptyMini}>No hay datos.</div>
                 ) : (
                   stats.ingresosPorMesArray.map((item) => (
-                    <div key={item.mes} className={styles.simpleStatsItem}>
+                    <div key={item.mes} className={styles.compactItem}>
                       <span>{item.mes}</span>
-                      <strong>{item.cantidad}</strong>
+                      <strong>{item.total}</strong>
                     </div>
                   ))
                 )}
               </div>
             </section>
+
+            <section className={styles.statsPanel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <h3 className={styles.panelTitle}>Calidad de datos</h3>
+                  <p className={styles.panelSubtitle}>Campos importantes cargados.</p>
+                </div>
+              </div>
+
+              <div className={styles.compactList}>
+                <div className={styles.compactItem}>
+                  <span>✅ Completos</span>
+                  <strong>{stats.completos}</strong>
+                </div>
+
+                <div className={styles.compactItem}>
+                  <span>⚠️ Incompletos</span>
+                  <strong>{stats.incompletos}</strong>
+                </div>
+
+                <div className={styles.compactItem}>
+                  <span>📱 Con teléfono</span>
+                  <strong>{stats.conTelefono}</strong>
+                </div>
+
+                <div className={styles.compactItem}>
+                  <span>📄 Con siniestro</span>
+                  <strong>{stats.conSiniestro}</strong>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
-      )}
+      )
+      }
 
       {showUnionModal && (
         <div className={styles.unionOverlay}>
