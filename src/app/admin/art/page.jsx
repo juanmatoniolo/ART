@@ -304,7 +304,7 @@ const buildSolicitudes = (ids, medico) => {
 
   if (ids.includes("cirugia")) {
     solicitudes.push(
-      "Autorización para cirugía de ______\n- Laboratorio prequirúrgico\n- ECG prequirúrgico\n  #Materiales:\n"
+      "Autorización para cirugía de ______, laboratorio prequirúrgico, ECG prequirúrgico y materiales."
     );
   }
 
@@ -328,13 +328,56 @@ export default function ARTComunicador() {
   const [paciente, setPaciente] = useState(null);
   const [medico, setMedico] = useState("");
 
-  // Estados para edición manual
-  const [asuntoManual, setAsuntoManual] = useState("");
-  const [cuerpoManual, setCuerpoManual] = useState("");
-  const [editandoAsunto, setEditandoAsunto] = useState(false);
-  const [editandoCuerpo, setEditandoCuerpo] = useState(false);
-
   const [copiado, setCopiado] = useState(false);
+
+  // Estados para atajos personalizados
+  const [atajos, setAtajos] = useState([]);
+  const [loadingAtajos, setLoadingAtajos] = useState(true);
+  const [atajoActivo, setAtajoActivo] = useState(null);
+
+  // Estados para crear/editar atajo
+  const [mostrarFormAtajo, setMostrarFormAtajo] = useState(false);
+  const [editandoAtajo, setEditandoAtajo] = useState(null);
+  const [nuevoAtajoLabel, setNuevoAtajoLabel] = useState("");
+  const [nuevoAtajoAsunto, setNuevoAtajoAsunto] = useState("");
+  const [nuevoAtajoAcciones, setNuevoAtajoAcciones] = useState(["evolucion"]);
+  const [nuevoAtajoCuerpo, setNuevoAtajoCuerpo] = useState("");
+  const [guardandoAtajo, setGuardandoAtajo] = useState(false);
+  const [errorAtajo, setErrorAtajo] = useState("");
+
+  useEffect(() => {
+    cargarAtajos();
+  }, []);
+
+  const cargarAtajos = () => {
+    const controller = new AbortController();
+
+    fetch(`${FIREBASE_URL}/ART-MAILS/atajos.json`, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error("No se pudieron cargar los atajos");
+        return r.json();
+      })
+      .then((data) => {
+        if (!data) {
+          setAtajos([]);
+          return;
+        }
+
+        const listaAtajos = Object.entries(data).map(([id, valor]) => ({
+          id,
+          label: valor.label || "Sin nombre",
+          asunto: valor.asunto || "",
+          cuerpo: valor.cuerpo || "",
+          acciones: Array.isArray(valor.acciones) ? valor.acciones : [],
+        }));
+
+        setAtajos(listaAtajos);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") console.error("Error cargando atajos:", err);
+      })
+      .finally(() => setLoadingAtajos(false));
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -392,19 +435,36 @@ export default function ARTComunicador() {
     return { nombre, dni, stro, artPaciente };
   }, [paciente]);
 
-  // Generar asunto automático
-  const asuntoAuto = useMemo(() => {
+  const asunto = useMemo(() => {
     if (!paciente) return "";
+
+    if (atajoActivo?.asunto) {
+      return atajoActivo.asunto
+        .replace(/\{nombre\}/g, pacienteData.nombre)
+        .replace(/\{dni\}/g, pacienteData.dni || "—")
+        .replace(/\{stro\}/g, pacienteData.stro || "—")
+        .replace(/\{art\}/g, pacienteData.artPaciente || "—")
+        .replace(/\{medico\}/g, medico.trim() || "______");
+    }
 
     return `SE ENVÍA ${labels || "DOCUMENTACIÓN"} PTE ${pacienteData.nombre} - DNI ${pacienteData.dni || "—"
       } - STRO ${pacienteData.stro || "—"}`;
-  }, [paciente, labels, pacienteData]);
+  }, [paciente, labels, pacienteData, atajoActivo, medico]);
 
-  // Generar cuerpo automático
-  const cuerpoAuto = useMemo(() => {
+  const cuerpo = useMemo(() => {
     if (!paciente) return "";
 
     const medicoTexto = medico.trim() || "______";
+
+    if (atajoActivo?.cuerpo) {
+      return atajoActivo.cuerpo
+        .replace(/\{nombre\}/g, pacienteData.nombre)
+        .replace(/\{dni\}/g, pacienteData.dni || "—")
+        .replace(/\{stro\}/g, pacienteData.stro || "—")
+        .replace(/\{art\}/g, pacienteData.artPaciente || "—")
+        .replace(/\{medico\}/g, medicoTexto)
+        .replace(/\{firma\}/g, FIRMA);
+    }
 
     if (tab === "facturacion") {
       return `Buen día,
@@ -440,24 +500,7 @@ Solicito autorización a la brevedad de las siguientes prácticas:
 ${solicitudes || "- ______"}
 
 ${FIRMA}`;
-  }, [paciente, tab, pacienteData, accionesSeleccionadas, labels, medico]);
-
-  // Actualizar estados manuales cuando cambia el automático (si no está editando)
-  useEffect(() => {
-    if (!editandoAsunto) {
-      setAsuntoManual(asuntoAuto);
-    }
-  }, [asuntoAuto, editandoAsunto]);
-
-  useEffect(() => {
-    if (!editandoCuerpo) {
-      setCuerpoManual(cuerpoAuto);
-    }
-  }, [cuerpoAuto, editandoCuerpo]);
-
-  // Usar versión manual o automática según corresponda
-  const asunto = editandoAsunto ? asuntoManual : asuntoAuto;
-  const cuerpo = editandoCuerpo ? cuerpoManual : cuerpoAuto;
+  }, [paciente, tab, pacienteData, accionesSeleccionadas, labels, medico, atajoActivo]);
 
   const filteredPacientes = useMemo(() => {
     const term = normalize(searchTerm.trim());
@@ -480,7 +523,7 @@ ${FIRMA}`;
 
   const emailsActivos = useMemo(
     () => contactos.filter((_, i) => isDestinatarioActivo(i)).map((c) => c.email),
-    [contactos, destinatariosOff, artId, tab]
+    [contactos, destinatariosOff, artId, tab, isDestinatarioActivo]
   );
 
   const gmailUrl = useMemo(() => {
@@ -511,9 +554,6 @@ ${FIRMA}`;
     setPaciente(p);
     setSearchTerm(p.fullName || p.trabajador?.dni || "");
     setShowSuggestions(false);
-    // Resetear edición al cambiar de paciente
-    setEditandoAsunto(false);
-    setEditandoCuerpo(false);
   };
 
   const toggleAccion = (id) => {
@@ -525,15 +565,27 @@ ${FIRMA}`;
 
       return [...prev, id];
     });
-    // Resetear edición al cambiar prácticas
-    setEditandoAsunto(false);
-    setEditandoCuerpo(false);
+    setAtajoActivo(null);
   };
 
   const seleccionarCombo = (ids) => {
     setAccionesSeleccionadas(ids);
-    setEditandoAsunto(false);
-    setEditandoCuerpo(false);
+    setAtajoActivo(null);
+  };
+
+  const toggleNuevoAtajoAccion = (id) => {
+    setNuevoAtajoAcciones((prev) =>
+      prev.includes(id) ? prev.filter((accion) => accion !== id) : [...prev, id]
+    );
+  };
+
+  const seleccionarAtajo = (atajo) => {
+    setAtajoActivo(atajo);
+    if (atajo.acciones?.length) {
+      setAccionesSeleccionadas(atajo.acciones);
+    } else {
+      setAccionesSeleccionadas(["evolucion"]);
+    }
   };
 
   const toggleDestinatario = (i) => {
@@ -566,6 +618,106 @@ ${FIRMA}`;
       setTimeout(() => setCopiado(false), 1600);
     } catch {
       setCopiado(false);
+    }
+  };
+
+  const eliminarAtajo = async (atajoId) => {
+    if (!confirm("¿Estás seguro de que querés eliminar este atajo?")) return;
+
+    try {
+      const response = await fetch(`${FIREBASE_URL}/ART-MAILS/atajos/${atajoId}.json`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("No se pudo eliminar el atajo");
+
+      if (atajoActivo?.id === atajoId) {
+        setAtajoActivo(null);
+      }
+
+      cargarAtajos();
+    } catch (err) {
+      console.error("Error eliminando atajo:", err);
+      alert("Error al eliminar el atajo");
+    }
+  };
+
+  const abrirFormNuevoAtajo = () => {
+    setEditandoAtajo(null);
+    setNuevoAtajoLabel("");
+    setNuevoAtajoAsunto("");
+    setNuevoAtajoAcciones(["evolucion"]);
+    setNuevoAtajoCuerpo("");
+    setErrorAtajo("");
+    setMostrarFormAtajo(true);
+  };
+
+  const abrirFormEditarAtajo = (atajo) => {
+    setEditandoAtajo(atajo);
+    setNuevoAtajoLabel(atajo.label);
+    setNuevoAtajoAsunto(atajo.asunto || "");
+    setNuevoAtajoAcciones(atajo.acciones?.length ? atajo.acciones : ["evolucion"]);
+    setNuevoAtajoCuerpo(atajo.cuerpo || "");
+    setErrorAtajo("");
+    setMostrarFormAtajo(true);
+  };
+
+  const guardarAtajo = async () => {
+    setErrorAtajo("");
+
+    if (!nuevoAtajoLabel.trim()) {
+      setErrorAtajo("El nombre del atajo es obligatorio");
+      return;
+    }
+
+    if (!nuevoAtajoAsunto.trim() && !nuevoAtajoCuerpo.trim()) {
+      setErrorAtajo("Debés completar al menos el asunto o el cuerpo");
+      return;
+    }
+
+    setGuardandoAtajo(true);
+
+    try {
+      const nuevoAtajo = {
+        label: nuevoAtajoLabel.trim(),
+        asunto: nuevoAtajoAsunto.trim(),
+        acciones: nuevoAtajoAcciones,
+        cuerpo: nuevoAtajoCuerpo.trim(),
+      };
+
+      let response;
+
+      if (editandoAtajo) {
+        response = await fetch(`${FIREBASE_URL}/ART-MAILS/atajos/${editandoAtajo.id}.json`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(nuevoAtajo),
+        });
+      } else {
+        response = await fetch(`${FIREBASE_URL}/ART-MAILS/atajos.json`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(nuevoAtajo),
+        });
+      }
+
+      if (!response.ok) throw new Error("No se pudo guardar el atajo");
+
+      setNuevoAtajoLabel("");
+      setNuevoAtajoAsunto("");
+      setNuevoAtajoCuerpo("");
+      setMostrarFormAtajo(false);
+      setEditandoAtajo(null);
+      cargarAtajos();
+    } catch (err) {
+      console.error("Error guardando atajo:", err);
+      setErrorAtajo("Error al guardar el atajo");
+    } finally {
+      setGuardandoAtajo(false);
     }
   };
 
@@ -703,10 +855,197 @@ ${FIRMA}`;
             )}
           </div>
 
+          {/* Sección de Atajos Personalizados (con wrapper) */}
+          <div className={styles.block}>
+            <div className={styles.blockTop}>
+              <p className={styles.blockLabel}>⚡ Atajos de Mail</p>
+              <span className={styles.blockHint}>Asunto + Cuerpo personalizado</span>
+            </div>
+
+            <div className={styles.atajosWrapper}>
+              {loadingAtajos ? (
+                <p className={styles.emptyMsg}>Cargando atajos...</p>
+              ) : atajos.length > 0 ? (
+                <div className={styles.atajosList}>
+                  {atajos.map((atajo) => (
+                    <div
+                      key={atajo.id}
+                      className={`${styles.atajoCard} ${atajoActivo?.id === atajo.id ? styles.atajoCardActive : ""}`}
+                    >
+                      <div className={styles.atajoCardHeader}>
+                        <button
+                          type="button"
+                          className={styles.atajoCardBtn}
+                          onClick={() => seleccionarAtajo(atajo)}
+                        >
+                          {atajo.label}
+                        </button>
+                        <div className={styles.atajoCardActions}>
+                          <button
+                            type="button"
+                            className={styles.atajoEdit}
+                            onClick={() => abrirFormEditarAtajo(atajo)}
+                            title="Editar atajo"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.atajoDelete}
+                            onClick={() => eliminarAtajo(atajo.id)}
+                            title="Eliminar atajo"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                      {atajoActivo?.id === atajo.id && (
+                        <div className={styles.atajoCardPreview}>
+                          <p className={styles.atajoPreviewLabel}>✅ Atajo activo</p>
+                          {atajo.asunto && (
+                            <p className={styles.atajoPreview}>
+                              <strong>Asunto:</strong> {atajo.asunto}
+                            </p>
+                          )}
+                          {atajo.cuerpo && (
+                            <p className={styles.atajoPreview}>
+                              <strong>Cuerpo:</strong> {atajo.cuerpo.substring(0, 80)}...
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={styles.emptyMsg}>
+                  No hay atajos creados. Podés crear uno con el botón de abajo.
+                </p>
+              )}
+
+              <button
+                type="button"
+                className={styles.crearAtajoBtn}
+                onClick={abrirFormNuevoAtajo}
+              >
+                ➕ Crear nuevo atajo
+              </button>
+            </div>
+
+            {mostrarFormAtajo && (
+              <div className={styles.formAtajoOverlay}>
+                <div className={styles.formAtajo}>
+                  <h3 className={styles.formAtajoTitle}>
+                    {editandoAtajo ? "Editar atajo" : "Nuevo atajo"}
+                  </h3>
+
+                  <div className={styles.formAtajoField}>
+                    <label className={styles.formAtajoLabel}>
+                      Nombre del atajo *
+                    </label>
+                    <input
+                      type="text"
+                      className={styles.inp}
+                      placeholder="Ej: Pedido de RMN urgente"
+                      value={nuevoAtajoLabel}
+                      onChange={(e) => setNuevoAtajoLabel(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className={styles.formAtajoField}>
+                    <label className={styles.formAtajoLabel}>
+                      Asunto del mail
+                    </label>
+                    <input
+                      type="text"
+                      className={styles.inp}
+                      placeholder="Ej: SOLICITUD RMN - {nombre} - DNI {dni}"
+                      value={nuevoAtajoAsunto}
+                      onChange={(e) => setNuevoAtajoAsunto(e.target.value)}
+                    />
+                    <p className={styles.formAtajoHint}>
+                      Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"}
+                    </p>
+                  </div>
+
+                  <div className={styles.formAtajoField}>
+                    <label className={styles.formAtajoLabel}>
+                      Acciones incluidas
+                    </label>
+                    <div className={styles.chips}>
+                      {ACCIONES.map((accion) => (
+                        <button
+                          key={accion.id}
+                          type="button"
+                          className={`${styles.chip} ${nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""}`}
+                          onClick={() => toggleNuevoAtajoAccion(accion.id)}
+                        >
+                          {accion.emoji} {accion.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={styles.formAtajoHint}>
+                      Estas acciones se seleccionan automáticamente cuando se aplica el atajo.
+                    </p>
+                  </div>
+
+                  <div className={styles.formAtajoField}>
+                    <label className={styles.formAtajoLabel}>
+                      Cuerpo del mail
+                    </label>
+                    <textarea
+                      className={styles.area}
+                      rows={8}
+                      placeholder={`Ej: Buen día,
+
+Se adjunta documentación del paciente {nombre}, DNI {dni}.
+
+Solicito autorización para:
+- Práctica solicitada
+
+{firma}`}
+                      value={nuevoAtajoCuerpo}
+                      onChange={(e) => setNuevoAtajoCuerpo(e.target.value)}
+                    />
+                    <p className={styles.formAtajoHint}>
+                      Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"}, {"{firma}"}
+                    </p>
+                  </div>
+
+                  {errorAtajo && <p className={styles.errorMsg}>{errorAtajo}</p>}
+
+                  <div className={styles.formAtajoBtns}>
+                    <button
+                      type="button"
+                      className={styles.tinyBtn}
+                      onClick={guardarAtajo}
+                      disabled={guardandoAtajo}
+                    >
+                      {guardandoAtajo ? "Guardando..." : "✅ Guardar atajo"}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.tinyBtn}
+                      onClick={() => {
+                        setMostrarFormAtajo(false);
+                        setEditandoAtajo(null);
+                        setErrorAtajo("");
+                      }}
+                      disabled={guardandoAtajo}
+                    >
+                      ❌ Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {tab === "siniestros" && (
             <div className={styles.block}>
               <div className={styles.blockTop}>
-                <p className={styles.blockLabel}>3. Qué se envía</p>
+                <p className={styles.blockLabel}>3. Qué se envía (acciones)</p>
                 <span className={styles.blockHint}>Multiselección</span>
               </div>
 
@@ -730,7 +1069,7 @@ ${FIRMA}`;
                 <button
                   type="button"
                   className={styles.tinyBtn}
-                  onClick={() => seleccionarCombo(["evolucion", "fkt"])}
+                  onClick={() => seleccionarCombo(["evolucion", "fkt", "mgt"])}
                 >
                   Evolución + FKT
                 </button>
@@ -785,81 +1124,37 @@ ${FIRMA}`;
 
           <div className={styles.block}>
             <div className={styles.blockTop}>
-              <p className={styles.blockLabel}>
-                Asunto {editandoAsunto ? "(editando)" : "(automático)"}
-              </p>
-              <button
-                type="button"
-                className={styles.tinyBtn}
-                onClick={() => {
-                  if (editandoAsunto) {
-                    // Volver a automático
-                    setAsuntoManual(asuntoAuto);
-                    setEditandoAsunto(false);
-                  } else {
-                    // Empezar a editar
-                    setAsuntoManual(asuntoAuto);
-                    setEditandoAsunto(true);
-                  }
-                }}
-              >
-                {editandoAsunto ? "Auto" : "Editar"}
-              </button>
+              <p className={styles.blockLabel}>Asunto generado</p>
+              {atajoActivo && <span className={styles.badge}>Atajo: {atajoActivo.label}</span>}
             </div>
 
             <input
               type="text"
               className={styles.inp}
               value={asunto}
-              onChange={(e) => {
-                setAsuntoManual(e.target.value);
-                setEditandoAsunto(true);
-              }}
+              readOnly
               placeholder="Se genera al seleccionar paciente..."
             />
           </div>
 
           <div className={styles.block}>
             <div className={styles.blockTop}>
-              <p className={styles.blockLabel}>
-                Cuerpo del mail {editandoCuerpo ? "(editando)" : "(automático)"}
-              </p>
-              <div style={{ display: "flex", gap: "7px" }}>
-                <button
-                  type="button"
-                  className={styles.tinyBtn}
-                  onClick={() => {
-                    if (editandoCuerpo) {
-                      // Volver a automático
-                      setCuerpoManual(cuerpoAuto);
-                      setEditandoCuerpo(false);
-                    } else {
-                      // Empezar a editar
-                      setCuerpoManual(cuerpoAuto);
-                      setEditandoCuerpo(true);
-                    }
-                  }}
-                >
-                  {editandoCuerpo ? "Auto" : "Editar"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.tinyBtn}
-                  onClick={copiarCuerpo}
-                  disabled={!cuerpo}
-                >
-                  {copiado ? "Copiado ✓" : "Copiar"}
-                </button>
-              </div>
+              <p className={styles.blockLabel}>Cuerpo del mail</p>
+
+              <button
+                type="button"
+                className={styles.tinyBtn}
+                onClick={copiarCuerpo}
+                disabled={!cuerpo}
+              >
+                {copiado ? "Copiado ✓" : "Copiar"}
+              </button>
             </div>
 
             <textarea
               className={styles.area}
               value={cuerpo}
-              onChange={(e) => {
-                setCuerpoManual(e.target.value);
-                setEditandoCuerpo(true);
-              }}
+              readOnly
               placeholder="Se genera al seleccionar paciente..."
             />
           </div>

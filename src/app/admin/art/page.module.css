@@ -1,6 +1,9 @@
 /* ===== Base ===== */
 .page {
-  min-height: calc(100vh - 70px);
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   padding: clamp(14px, 3vw, 32px);
   color: #e5e7eb;
 }
@@ -113,13 +116,11 @@
   gap: 16px;
 }
 
-.rightPanel {
-  position: sticky;
-  top: 18px;
+.leftPanel {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-/* ===== Cards ===== */
-.block,
 .recipientsCard,
 .readyBox {
   border-radius: 20px;
@@ -127,6 +128,9 @@
   background: rgba(17, 24, 39, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.13);
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .blockTop,
@@ -135,7 +139,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  /* ya se maneja con gap del .block */
 }
 
 .blockLabel {
@@ -638,27 +643,323 @@
   font-size: 14px;
 }
 
-/* ===== Scrollbar ===== */
+/* ===== Atajos Personalizados (CORREGIDO) ===== */
+.atajosWrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.atajosList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.atajosList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.atajosList::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 999px;
+}
+
+.atajosList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.atajoCard {
+  border: 2px solid rgba(71, 85, 105, 0.6);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.atajoCard:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.atajoCardActive {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.2);
+}
+
+.atajoCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+}
+
+.atajoCardBtn {
+  flex: 1;
+  text-align: left;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.atajoCardBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.atajoCardActions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.atajoCard:hover .atajoCardActions {
+  opacity: 1;
+}
+
+.atajoEdit,
+.atajoDelete {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  background: rgba(15, 23, 42, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.atajoEdit {
+  color: #e2e8f0;
+}
+
+.atajoEdit:hover {
+  background: rgba(22, 163, 74, 0.2);
+  border-color: #16a34a;
+  color: #4ade80;
+}
+
+.atajoDelete {
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.atajoDelete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.atajoCardPreview {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(71, 85, 105, 0.4);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.atajoPreviewLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 0.5rem;
+}
+
+.atajoPreview {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.atajoPreview strong {
+  color: #cbd5e1;
+}
+
+/* Botón “Crear nuevo atajo” – sticky al final del bloque */
+.crearAtajoBtn {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(22, 163, 74, 0.1);
+  color: #4ade80;
+  border: 1px dashed rgba(22, 163, 74, 0.4);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-top: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  backdrop-filter: blur(4px);
+  background: rgba(17, 24, 39, 0.95);
+}
+
+.crearAtajoBtn:hover {
+  background: rgba(22, 163, 74, 0.25);
+  border-style: solid;
+  border-color: #16a34a;
+}
+
+/* ===== Overlay del formulario de atajo ===== */
+.formAtajoOverlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2147483647 !important;
+  padding: 1rem !important;
+  isolation: isolate !important;
+}
+
+.formAtajo {
+  position: relative !important;
+  z-index: 2147483648 !important;
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+}
+
+.formAtajoTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 1.5rem;
+}
+
+.formAtajoField {
+  margin-bottom: 1.25rem;
+}
+
+.formAtajoLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin-bottom: 0.5rem;
+}
+
+.formAtajoHint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.375rem;
+  font-style: italic;
+}
+
+.formAtajo .inp,
+.formAtajo .area {
+  background: #0f172a;
+  border-color: rgba(71, 85, 105, 0.8);
+  color: #f8fafc;
+}
+
+.formAtajo .inp:focus,
+.formAtajo .area:focus {
+  border-color: #60a5fa;
+  background: #0f172a;
+}
+
+.formAtajoBtns {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.formAtajoBtns .tinyBtn {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.formAtajoBtns .tinyBtn:first-child {
+  background: rgba(22, 163, 74, 0.2);
+  color: #4ade80;
+  border-color: rgba(22, 163, 74, 0.4);
+}
+
+.formAtajoBtns .tinyBtn:first-child:hover:not(:disabled) {
+  background: rgba(22, 163, 74, 0.3);
+  border-color: #16a34a;
+}
+
+.formAtajoBtns .tinyBtn:last-child {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.formAtajoBtns .tinyBtn:last-child:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+}
+
+.errorMsg {
+  color: #fca5a5;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ===== Scrollbar global ===== */
 .dropdown::-webkit-scrollbar,
-.area::-webkit-scrollbar {
+.area::-webkit-scrollbar,
+.formAtajo::-webkit-scrollbar {
   width: 10px;
 }
 
 .dropdown::-webkit-scrollbar-track,
-.area::-webkit-scrollbar-track {
+.area::-webkit-scrollbar-track,
+.formAtajo::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.5);
   border-radius: 999px;
 }
 
 .dropdown::-webkit-scrollbar-thumb,
-.area::-webkit-scrollbar-thumb {
+.area::-webkit-scrollbar-thumb,
+.formAtajo::-webkit-scrollbar-thumb {
   background: #475569;
   border-radius: 999px;
   border: 2px solid rgba(15, 23, 42, 0.8);
 }
 
 .dropdown::-webkit-scrollbar-thumb:hover,
-.area::-webkit-scrollbar-thumb:hover {
+.area::-webkit-scrollbar-thumb:hover,
+.formAtajo::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
@@ -723,6 +1024,11 @@
   .area {
     min-height: 230px;
   }
+
+  .formAtajo {
+    margin: 1rem;
+    max-height: 85vh;
+  }
 }
 
 @media (max-width: 520px) {
@@ -770,6 +1076,14 @@
     flex-direction: column;
     gap: 6px;
   }
+
+  .formAtajo {
+    padding: 1rem;
+  }
+
+  .formAtajoBtns {
+    flex-direction: column;
+  }
 }
 
 /* ===== Reduce motion ===== */
@@ -783,7 +1097,11 @@
   .sendBtn,
   .inp,
   .area,
-  .dropItem {
+  .dropItem,
+  .atajoCard,
+  .atajoCardBtn,
+  .atajoEdit,
+  .atajoDelete {
     transition: none;
   }
 }
