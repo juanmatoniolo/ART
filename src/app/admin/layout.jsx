@@ -17,6 +17,7 @@ import {
   BookOpen,
   FolderTree,
   Stethoscope,   // <-- agregar
+  HardHat,       // <-- icono para ART (riesgos del trabajo)
   Settings,
   LogOut,
   Menu,
@@ -57,16 +58,17 @@ export default function AdminLayout({ children }) {
     return <div className={styles.loading}>Cargando...</div>;
   }
 
-// Dentro del componente, en la definición de navItems
-const navItems = [
-  { href: "/admin", label: "", icon: Home, showLabel: false },
-  { href: "/admin/comunicador", label: "Comunicador", icon: Users },
-  { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
-  { href: "/admin/med-descartables", label: "Med + Descartables", icon: Pill },
-  { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
-  { href: "/admin/cx", label: "CX", icon: FolderTree },
-  { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },  // <-- NUEVA LÍNEA
-];
+  // Dentro del componente, en la definición de navItems
+  const navItems = [
+    { href: "/admin", label: "", icon: Home, showLabel: false },
+    { href: "/admin/comunicador", label: "Comunicador", icon: Users },
+    { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
+    { href: "/admin/med-descartables", label: "Farmacia", icon: Pill },
+    { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
+    { href: "/admin/cx", label: "CX", icon: FolderTree },
+    { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },  // <-- NUEVA LÍNEA
+    { href: "/admin/art", label: "ART", icon: HardHat },  // <-- NUEVA LÍNEA
+  ];
 
   return (
     <div className={styles.layout}>
