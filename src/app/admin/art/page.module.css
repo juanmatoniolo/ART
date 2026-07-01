@@ -1,11 +1,25 @@
-/* ===== Base ===== */
+/* ===== Base (mismas variables que antes) ===== */
 .page {
+  --verde: #44794d;
+  --verde-osc: #2c5d36;
+  --gold: #d97706;
+  --rojo: #ef4444;
+  --tinta: #e5e7eb;
+  --gris: #9ca3af;
+  --linea: rgba(255, 255, 255, 0.07);
+  --bg: #0b1220;
+  --card-bg: #111827;
+  --input-bg: #1a2335;
+  --input-border: #253348;
+  --radio: 16px;
+  --sombra: 0 1px 3px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.2);
+
   min-height: 100vh;
-  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: clamp(14px, 3vw, 32px);
   color: #e5e7eb;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ===== Header ===== */
@@ -60,7 +74,6 @@
   display: flex;
   gap: 8px;
   padding: 6px;
-  width: fit-content;
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -85,14 +98,7 @@
   background: rgba(38, 87, 164, 0.9);
 }
 
-.modeTab:active {
-  transform: scale(0.98);
-}
-
-.modeTab:focus-visible {
-  outline: 3px solid rgba(96, 165, 250, 0.45);
-  outline-offset: 2px;
-}
+.modeTab:active { transform: scale(0.98); }
 
 .modeTabOn {
   color: #ffffff;
@@ -121,26 +127,22 @@
   min-height: 0;
 }
 
-.recipientsCard,
-.readyBox {
-  border-radius: 20px;
-  padding: clamp(15px, 2vw, 20px);
+/* ===== Bloque genérico ===== */
+.block {
+  border-radius: var(--radio);
   background: rgba(17, 24, 39, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.13);
+  padding: clamp(15px, 2vw, 20px);
   backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
-.blockTop,
-.recipientsTop {
+.blockTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 0;
-  /* ya se maneja con gap del .block */
+  flex-wrap: wrap;
 }
 
 .blockLabel {
@@ -152,8 +154,7 @@
   letter-spacing: 0.08em;
 }
 
-.blockTop .blockLabel,
-.recipientsTop .blockLabel {
+.blockTop .blockLabel {
   margin: 0;
 }
 
@@ -177,7 +178,7 @@
   white-space: nowrap;
 }
 
-/* ===== ART ===== */
+/* ===== ART Grid ===== */
 .artGrid {
   display: flex;
   flex-wrap: wrap;
@@ -197,35 +198,20 @@
   font-size: 13px;
   font-weight: 850;
   cursor: pointer;
-  white-space: nowrap;
-  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
 }
 
-.artChip:hover:not(:disabled) {
+.artChip:hover {
   transform: translateY(-1px);
   color: #ffffff;
   border-color: rgba(148, 163, 184, 0.45);
   background: rgba(51, 65, 85, 0.9);
 }
 
-.artChip:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.artChip:focus-visible {
-  outline: 3px solid rgba(96, 165, 250, 0.45);
-  outline-offset: 2px;
-}
-
 .artChipOn {
   color: #ffffff;
   border-color: var(--c, #3b82f6);
   background: color-mix(in srgb, var(--c, #3b82f6) 22%, #111827);
-}
-
-.artChipOff {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 
 .artDot {
@@ -235,7 +221,12 @@
   flex: 0 0 auto;
 }
 
-/* ===== Inputs ===== */
+/* ===== Search + Dropdown (con z-index alto) ===== */
+.searchBlock {
+  position: relative;
+  z-index: 200; /* por encima de los demás bloques */
+}
+
 .searchWrap {
   position: relative;
   z-index: 100;
@@ -279,7 +270,6 @@
   background: rgba(15, 23, 42, 0.96);
 }
 
-/* ===== Dropdown pacientes ===== */
 .dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -308,25 +298,13 @@
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
-  position: relative;
 }
 
-.dropItem:last-child {
-  border-bottom: 0;
-}
+.dropItem:last-child { border-bottom: 0; }
 
 .dropItem:hover {
   background: rgba(37, 99, 235, 0.25);
   transform: translateX(2px);
-}
-
-.dropItem:active {
-  background: rgba(37, 99, 235, 0.35);
-}
-
-.dropItem:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: -2px;
 }
 
 .dropName {
@@ -397,15 +375,9 @@
   gap: 7px;
 }
 
-.quickRow {
-  margin-bottom: 12px;
-}
+.quickRow { margin-bottom: 12px; }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .chip,
 .tinyBtn {
@@ -444,15 +416,7 @@
 }
 
 .chip:active,
-.tinyBtn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.chip:focus-visible,
-.tinyBtn:focus-visible {
-  outline: 3px solid rgba(96, 165, 250, 0.45);
-  outline-offset: 2px;
-}
+.tinyBtn:active:not(:disabled) { transform: scale(0.98); }
 
 .chipOn {
   color: #ffffff;
@@ -460,10 +424,7 @@
   border-color: rgba(147, 197, 253, 0.55);
 }
 
-.tinyBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.tinyBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ===== Destinatarios ===== */
 .recipientsList {
@@ -547,7 +508,7 @@
   line-height: 1.45;
 }
 
-/* ===== Enviar ===== */
+/* ===== Botón enviar ===== */
 .sendBtn {
   display: flex;
   align-items: center;
@@ -570,14 +531,7 @@
   filter: brightness(1.05);
 }
 
-.sendBtn:active {
-  transform: scale(0.98);
-}
-
-.sendBtn:focus-visible {
-  outline: 3px solid rgba(74, 222, 128, 0.45);
-  outline-offset: 3px;
-}
+.sendBtn:active { transform: scale(0.98); }
 
 .sendBtnOff {
   pointer-events: none;
@@ -597,10 +551,6 @@
 .readyBox {
   background: rgba(22, 163, 74, 0.08);
   border-color: rgba(74, 222, 128, 0.24);
-}
-
-.readyBox .adjuntosTitle {
-  color: #86efac;
 }
 
 .adjuntosBox {
@@ -643,7 +593,7 @@
   font-size: 14px;
 }
 
-/* ===== Atajos Personalizados (CORREGIDO) ===== */
+/* ===== Atajos ===== */
 .atajosWrapper {
   display: flex;
   flex-direction: column;
@@ -663,18 +613,9 @@
   margin: 0;
 }
 
-.atajosList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.atajosList::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 999px;
-}
-
-.atajosList::-webkit-scrollbar-track {
-  background: transparent;
-}
+.atajosList::-webkit-scrollbar { width: 6px; }
+.atajosList::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+.atajosList::-webkit-scrollbar-track { background: transparent; }
 
 .atajoCard {
   border: 2px solid rgba(71, 85, 105, 0.6);
@@ -728,9 +669,7 @@
   transition: opacity 0.2s;
 }
 
-.atajoCard:hover .atajoCardActions {
-  opacity: 1;
-}
+.atajoCard:hover .atajoCardActions { opacity: 1; }
 
 .atajoEdit,
 .atajoDelete {
@@ -748,27 +687,10 @@
   transition: all 0.2s;
 }
 
-.atajoEdit {
-  color: #e2e8f0;
-}
-
-.atajoEdit:hover {
-  background: rgba(22, 163, 74, 0.2);
-  border-color: #16a34a;
-  color: #4ade80;
-}
-
-.atajoDelete {
-  color: #ef4444;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.atajoDelete:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
-  color: #fca5a5;
-}
+.atajoEdit { color: #e2e8f0; }
+.atajoEdit:hover { background: rgba(22, 163, 74, 0.2); border-color: #16a34a; color: #4ade80; }
+.atajoDelete { color: #ef4444; font-weight: bold; font-size: 18px; }
+.atajoDelete:hover { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #fca5a5; }
 
 .atajoCardPreview {
   padding: 0.75rem;
@@ -791,11 +713,8 @@
   word-break: break-word;
 }
 
-.atajoPreview strong {
-  color: #cbd5e1;
-}
+.atajoPreview strong { color: #cbd5e1; }
 
-/* Botón “Crear nuevo atajo” – sticky al final del bloque */
 .crearAtajoBtn {
   width: 100%;
   padding: 0.75rem;
@@ -822,7 +741,7 @@
   border-color: #16a34a;
 }
 
-/* ===== Overlay del formulario de atajo ===== */
+/* ===== Overlay formulario (atajo / gestión de prácticas) ===== */
 .formAtajoOverlay {
   position: fixed !important;
   inset: 0 !important;
@@ -858,9 +777,7 @@
   margin-bottom: 1.5rem;
 }
 
-.formAtajoField {
-  margin-bottom: 1.25rem;
-}
+.formAtajoField { margin-bottom: 1.25rem; }
 
 .formAtajoLabel {
   display: block;
@@ -936,12 +853,10 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* ===== Scrollbar global ===== */
+/* ===== Scrollbars para elementos con overflow ===== */
 .dropdown::-webkit-scrollbar,
 .area::-webkit-scrollbar,
-.formAtajo::-webkit-scrollbar {
-  width: 10px;
-}
+.formAtajo::-webkit-scrollbar { width: 10px; }
 
 .dropdown::-webkit-scrollbar-track,
 .area::-webkit-scrollbar-track,
@@ -964,145 +879,35 @@
   background: #64748b;
 }
 
-/* ===== Asegurar que los bloques no oculten el dropdown ===== */
-.block {
-  position: relative;
-  z-index: auto;
-}
-
-.block:has(.searchWrap) {
-  z-index: 200;
-  position: relative;
-}
-
 /* ===== Responsive ===== */
 @media (max-width: 980px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .rightPanel {
-    position: static;
-  }
+  .grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
-  .topBar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .topLeft {
-    width: 100%;
-  }
-
-  .topIcon {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-  }
-
-  .modeTabs {
-    width: 100%;
-  }
-
-  .modeTab {
-    flex: 1;
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .dropItem {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .dropMeta {
-    max-width: 100%;
-    text-align: left;
-  }
-
-  .area {
-    min-height: 230px;
-  }
-
-  .formAtajo {
-    margin: 1rem;
-    max-height: 85vh;
-  }
+  .topBar { flex-direction: column; align-items: flex-start; }
+  .topLeft { width: 100%; }
+  .topIcon { width: 48px; height: 48px; border-radius: 16px; }
+  .modeTabs { width: 100%; }
+  .modeTab { flex: 1; padding: 10px 12px; font-size: 13px; }
+  .dropItem { flex-direction: column; gap: 4px; }
+  .dropMeta { max-width: 100%; text-align: left; }
+  .area { min-height: 230px; }
+  .formAtajo { margin: 1rem; max-height: 85vh; }
 }
 
 @media (max-width: 520px) {
-  .page {
-    padding: 12px;
-  }
-
-  .topBar {
-    margin-bottom: 16px;
-  }
-
-  .modeTabs {
-    margin-bottom: 16px;
-  }
-
-  .grid,
-  .leftPanel,
-  .rightPanel {
-    gap: 12px;
-  }
-
-  .block,
-  .recipientsCard,
-  .readyBox,
-  .adjuntosBox {
-    border-radius: 16px;
-  }
-
-  .artChip,
-  .chip {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .quickRow .tinyBtn {
-    flex: 1 1 48%;
-  }
-
-  .sendBtn {
-    min-height: 54px;
-    font-size: 15px;
-  }
-
-  .pacienteMeta {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .formAtajo {
-    padding: 1rem;
-  }
-
-  .formAtajoBtns {
-    flex-direction: column;
-  }
+  .page { padding: 12px; }
+  .grid, .leftPanel, .rightPanel { gap: 12px; }
+  .block, .recipientsCard, .readyBox, .adjuntosBox { border-radius: 16px; }
+  .artChip, .chip { width: 100%; justify-content: center; }
+  .quickRow .tinyBtn { flex: 1 1 48%; }
+  .sendBtn { min-height: 54px; font-size: 15px; }
+  .pacienteMeta { flex-direction: column; gap: 6px; }
+  .formAtajo { padding: 1rem; }
+  .formAtajoBtns { flex-direction: column; }
 }
 
-/* ===== Reduce motion ===== */
 @media (prefers-reduced-motion: reduce) {
-
-  .modeTab,
-  .artChip,
-  .chip,
-  .tinyBtn,
-  .recipientRow,
-  .sendBtn,
-  .inp,
-  .area,
-  .dropItem,
-  .atajoCard,
-  .atajoCardBtn,
-  .atajoEdit,
-  .atajoDelete {
-    transition: none;
-  }
+  .modeTab, .artChip, .chip, .tinyBtn, .recipientRow, .sendBtn, .inp, .area, .dropItem, .atajoCard, .atajoCardBtn, .atajoEdit, .atajoDelete { transition: none; }
 }

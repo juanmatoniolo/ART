@@ -391,7 +391,7 @@
 }
 
 .table tbody td {
-  padding: 0.95rem 1rem;
+  padding: 0.5em ;
   color: var(--text-primary);
   background: transparent;
   border-bottom: 1px solid var(--border-color);
@@ -525,7 +525,7 @@
   min-height: 1.75rem;
   background: var(--art-tag-bg);
   color: var(--art-tag-text);
-  font-size: 0.75rem;
+  font-size: 0.8em;
   font-weight: 700;
   line-height: 1.2;
   padding: 0.28rem 0.6rem;
