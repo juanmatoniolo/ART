@@ -62,17 +62,19 @@ const getTemplateData = (template) => {
 };
 
 // Une los 4 campos de la descripción quirúrgica en un solo texto.
-// Formato: "1- <preoperatorio>\n2- <posoperatorio>\n3- <procedimientoqx>\n4- <hallazgos>"
+// Solo incluye los campos que tengan contenido.
 const buildCx = (form) => {
-    const campos = [
-        form.preoperatorio,
-        form.posoperatorio,
-        form.procedimientoqx,
-        form.hallazgos,
+    const secciones = [
+        { etiqueta: "1. Diagnóstico Preoperatorio", valor: form.preoperatorio },
+        { etiqueta: "2. Diagnóstico Posoperatorio", valor: form.posoperatorio },
+        { etiqueta: "3. Procedimiento Quirúrgico", valor: form.procedimientoqx },
+        { etiqueta: "4. Operación y Hallazgos", valor: form.hallazgos },
     ];
-    return campos
-        .map((contenido, i) => `${i + 1}- ${(contenido || "").trim()}`)
-        .join("\n");
+
+    return secciones
+        .filter((s) => (s.valor || "").trim() !== "")
+        .map((s) => `${s.etiqueta}: ${s.valor.trim()}`)
+        .join("\n\n");
 };
 
 const buildPayload = (form) => ({
@@ -85,7 +87,12 @@ const buildPayload = (form) => ({
     },
     fecha: { dia: form.dia, mes: form.mes, anio: form.anio },
     horario: { inicio: form.inichsinicio, fin: form.hsfin },
-    // Toda la descripción quirúrgica unificada en un único campo.
+    descripcion: {
+        preoperatorio: (form.preoperatorio || "").trim(),
+        posoperatorio: (form.posoperatorio || "").trim(),
+        procedimientoqx: (form.procedimientoqx || "").trim(),
+        hallazgos: (form.hallazgos || "").trim(),
+    },
     cx: buildCx(form),
 });
 
@@ -403,7 +410,6 @@ export default function Foja() {
 
     return (
         <>
-            <Header />
             <div className={styles.page}>
                 <div className={styles.layout}>
                     {/* Barra lateral de progreso */}
@@ -637,7 +643,7 @@ export default function Foja() {
                             >
                                 <SectionHeader num="04" title="Descripción Quirúrgica" />
                                 <p className={styles.sectionNote}>
-                                    Estos cuatro campos se combinan automáticamente en un único texto (numerado 1 a 4) al guardar.
+                                    Solo los campos completados aparecerán en el PDF.
                                 </p>
                                 <Field label="1. Diagnóstico Preoperatorio *" htmlFor="preoperatorio" value={form.preoperatorio} onChange={handleChange} full tooltip="Diagnóstico con el que el paciente ingresa a cirugía">
                                     <textarea id="preoperatorio" name="preoperatorio" autoComplete="on" value={form.preoperatorio} onChange={handleChange} className={styles.textarea} rows={3} placeholder="Diagnóstico previo a la cirugía..." required />
