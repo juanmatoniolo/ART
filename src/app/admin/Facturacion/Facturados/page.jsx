@@ -328,7 +328,6 @@ export default function FacturadosPage() {
       </main>
 
       {/* MODAL CARPETAS IAPS */}
-   {/* MODAL CARPETAS IAPS */}
 {showIapsModal && (
   <div className={styles.modalOverlay} onClick={() => setShowIapsModal(false)}>
     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -336,7 +335,6 @@ export default function FacturadosPage() {
       <p>Copiá el siguiente código en un archivo <code>.bat</code> y ejecutalo en Windows para crear las carpetas.</p>
       <pre className={styles.cmdScript}>{cmdScript}</pre>
       <div className={styles.modalActions}>
-        {/* Envolvemos el botón en un contenedor relativo para el tooltip */}
         <div style={{ position: 'relative', display: 'inline-block' }}>
           <button
             className={styles.btnGhost}
