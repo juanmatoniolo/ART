@@ -37,6 +37,7 @@ export default function FacturadosPage() {
   const [busyId, setBusyId] = useState('');
   const [showIapsModal, setShowIapsModal] = useState(false);
   const [cmdScript, setCmdScript] = useState('');
+  const [copied, setCopied] = useState(false); // 🔹 AGREGADO
 
   const allSelected = selectedIds.size === filtered.length && filtered.length > 0;
   const haySeleccion = selectedIds.size > 0;
@@ -135,13 +136,13 @@ export default function FacturadosPage() {
     // PDF vacío mínimo en Base64
     const base64PDF = "JVBERi0xLjQKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQo+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTcgMDAwMDAgbiAKMDAwMDAwMDExMyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDQKL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjE5MAolJUVPRg==";
 
-    // ¡IMPORTANTE! Escapar los % para que CMD los pase intactos a PowerShell
+    // Escapar los % para que CMD los pase intactos a PowerShell
     const escapedBase64 = base64PDF.replace(/%/g, '%%');
 
     const lines = items.map(it => {
       const nombre = (it.pacienteNombre || 'SIN_NOMBRE').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '');
       const dni = it.dni || 'SIN_DNI';
-      const siniestro = it.nroSiniestro || 'SIN_SINIESTRO';
+      const siniestro = it.nroSiniestro || '';
       const folderName = `${nombre} - ${dni} - ${siniestro}`;
       const mkdir = `mkdir "${folderName}"`;
       const pdf = `powershell -Command "$pdfBase64='${escapedBase64}'; $bytes=[Convert]::FromBase64String($pdfBase64); [IO.File]::WriteAllBytes('${folderName}\\${folderName}.pdf',$bytes)"`;
@@ -152,6 +153,16 @@ export default function FacturadosPage() {
     setCmdScript(script);
     setShowIapsModal(true);
   }, [selectedIds, filtered]);
+
+  // 🔹 FUNCIÓN handleCopy AGREGADA
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(cmdScript)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      })
+      .catch(() => alert('No se pudo copiar el texto.'));
+  }, [cmdScript]);
 
   // --- Render ---
   const tabs = [
@@ -328,47 +339,47 @@ export default function FacturadosPage() {
       </main>
 
       {/* MODAL CARPETAS IAPS */}
-{showIapsModal && (
-  <div className={styles.modalOverlay} onClick={() => setShowIapsModal(false)}>
-    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-      <h2>📁 Carpetas IAPS</h2>
-      <p>Copiá el siguiente código en un archivo <code>.bat</code> y ejecutalo en Windows para crear las carpetas.</p>
-      <pre className={styles.cmdScript}>{cmdScript}</pre>
-      <div className={styles.modalActions}>
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <button
-            className={styles.btnGhost}
-            onClick={handleCopy}
-            disabled={copied}
-          >
-            {copied ? '✅ Copiado' : '📋 Copiar'}
-          </button>
-          {copied && (
-            <span style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              marginBottom: '8px',
-              backgroundColor: '#333',
-              color: '#fff',
-              padding: '4px 10px',
-              borderRadius: '4px',
-              fontSize: '0.8em',
-              whiteSpace: 'nowrap',
-              zIndex: 10,
-              opacity: 1,
-              transition: 'opacity 0.3s',
-            }}>
-              ✅ ¡Copiado al portapapeles!
-            </span>
-          )}
+      {showIapsModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowIapsModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>📁 Carpetas IAPS</h2>
+            <p>Copiá el siguiente código en un archivo <code>.bat</code> y ejecutalo en Windows para crear las carpetas.</p>
+            <pre className={styles.cmdScript}>{cmdScript}</pre>
+            <div className={styles.modalActions}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  className={styles.btnGhost}
+                  onClick={handleCopy}
+                  disabled={copied}
+                >
+                  {copied ? '✅ Copiado' : '📋 Copiar'}
+                </button>
+                {copied && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.8em',
+                    whiteSpace: 'nowrap',
+                    zIndex: 10,
+                    opacity: 1,
+                    transition: 'opacity 0.3s',
+                  }}>
+                    ✅ ¡Copiado al portapapeles!
+                  </span>
+                )}
+              </div>
+              <button className={styles.btnPrimary} onClick={() => setShowIapsModal(false)}>Cerrar</button>
+            </div>
+          </div>
         </div>
-        <button className={styles.btnPrimary} onClick={() => setShowIapsModal(false)}>Cerrar</button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
