@@ -48,7 +48,7 @@ import {
   parseFormattedNumber,
   isLikelyCheckbox,
 } from "./_utils/helpers";
-
+import { PDFDocument } from 'pdf-lib';
 // ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
 const TEMPLATE_FRENTE_URL = "/templates/FRENTE-CX.pdf";
