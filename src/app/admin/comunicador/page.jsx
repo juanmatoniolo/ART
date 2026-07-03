@@ -19,13 +19,8 @@ const messageTitles = {
 
 const normalizePhone = (value = "") => value.replace(/\D/g, "");
 
-const headerClinica = (name) => `Hola *${name}* 👋
-
-`;
-
-const footerClinica = `
-
-*Clínica de la Unión* 🏥`;
+const headerClinica = (name) => `Hola *${name}* 👋\n\n`;
+const footerClinica = `\n\n*Clínica de la Unión* 🏥`;
 
 export default function WhatsAppSender() {
   const searchParams = useSearchParams();
@@ -42,12 +37,17 @@ export default function WhatsAppSender() {
   const [cardiologo, setCardiologo] = useState("percara");
   const [preview, setPreview] = useState("");
 
+  // Estado para ART y siniestro
+  const [art, setArt] = useState("");
+  const [siniestro, setSiniestro] = useState("");
+
   const [pacientes, setPacientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
+  // Cargar pacientes desde Firebase
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
@@ -64,13 +64,14 @@ export default function WhatsAppSender() {
           return;
         }
 
-        const arr = Object.entries(data).map(([id, value]) => ({
-          id,
-          ...value,
-          fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""
-            }`.trim(),
-          phone: value.trabajador?.telefono || "",
-        }));
+const arr = Object.entries(data).map(([id, value]) => ({
+  id,
+  ...value,
+  fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+  phone: value.trabajador?.telefono || "",
+  art: value.ART?.nombre || "",          // ✅ CORRECTO
+  siniestro: value.ART?.nroSiniestro || "", // ✅ CORRECTO
+}));
 
         setPacientes(arr);
       } catch (error) {
@@ -81,6 +82,7 @@ export default function WhatsAppSender() {
     fetchPacientes();
   }, []);
 
+  // Filtro de pacientes por nombre o DNI
   const filteredPacientes = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
 
@@ -88,7 +90,6 @@ export default function WhatsAppSender() {
 
     return pacientes.filter((p) => {
       const dni = p.trabajador?.dni || "";
-
       return (
         p.fullName.toLowerCase().includes(term) ||
         dni.includes(searchTerm.trim())
@@ -96,14 +97,24 @@ export default function WhatsAppSender() {
     });
   }, [pacientes, searchTerm]);
 
+  // Seleccionar paciente y cargar datos
   const handleSelectPaciente = (paciente) => {
-    setName(paciente.fullName);
-    setPhone(paciente.phone);
-    setSearchTerm(paciente.fullName);
+    setName(paciente.fullName || "");
+    setPhone(paciente.phone || "");
+    setArt(paciente.art || "");
+    setSiniestro(paciente.siniestro || "");
+    setSearchTerm(paciente.fullName || "");
     setShowSuggestions(false);
   };
 
+  // Construcción del mensaje según el tipo seleccionado
   const buildMessage = () => {
+    // Bloque común con ART y siniestro (si existen)
+    const datosArtSiniestro =
+      art || siniestro
+        ? `\n\n📋 *Datos de la ART:*\n• ART: ${art || "No especificada"}\n• Nro. de Siniestro: ${siniestro || "No especificado"}`
+        : "";
+
     if (mensaje === "1") {
       return `${headerClinica(name)}✅ Sus *sesiones de kinesiología fueron aprobadas*.
 
@@ -117,15 +128,15 @@ export default function WhatsAppSender() {
 
 👩‍⚕️ Puede concurrir con:
 
-*Kinesióloga Rivas Daniela*
-📍 9 de Julio 1870
-📲 Contacto: https://wa.me/+5493456440878
-
 *Kinesióloga Avancini Natalia*
 📍 Rivadavia 2665
 📲 Contacto: https://wa.me/+5493456513866
 
-⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${footerClinica}`;
+*Kinesióloga Rivas Daniela*
+📍 9 de Julio 1870
+📲 Contacto: https://wa.me/+5493456440878
+
+⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "2") {
@@ -146,7 +157,7 @@ export default function WhatsAppSender() {
 • Prótesis metálicas
 • Implantes
 • Válvula cardíaca
-• Cirugías recientes${footerClinica}`;
+• Cirugías recientes${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "3") {
@@ -168,7 +179,8 @@ export default function WhatsAppSender() {
 
 🏥 *La Segunda:* Orden + copia de denuncia → Farmacia de la Unión.
 
-🏥 *Otras ART:* Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.${footerClinica}`;
+🏥 *Otras ART:* Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.
+${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "4") {
@@ -185,7 +197,7 @@ export default function WhatsAppSender() {
 🪪 Traer DNI físico
 ⏰ Llegar 15 minutos antes
 
-${profesional}${footerClinica}`;
+${profesional}${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "5") {
@@ -209,7 +221,7 @@ ${profesional}${footerClinica}`;
 ⏰ Llegar 10 minutos antes
 
 📍 *Lugar:* 
-${profesional}${footerClinica}`;
+${profesional}${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "6") {
@@ -222,7 +234,7 @@ ${profesional}${footerClinica}`;
 
 ⚠️ *Importante:*
 🪪 Traer DNI físico
-⏰ Llegar 10 minutos antes${footerClinica}`;
+⏰ Llegar 10 minutos antes${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "7") {
@@ -242,7 +254,7 @@ ${profesional}${footerClinica}`;
 📝 Antes de la cirugía complete este formulario:
 https://art-xi-six.vercel.app/cx
 
-✅ Por favor responder: *CONFIRMO ASISTENCIA*${footerClinica}`;
+✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${footerClinica}`;
     }
 
     if (mensaje === "8") {
@@ -266,15 +278,16 @@ https://art-xi-six.vercel.app/cx
 
 3️⃣ *Consultar cobertura*
 💰 Si la ART cubre el 100%, retira sin costo.
-🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${footerClinica}`;
+🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${datosArtSiniestro}${footerClinica}`;
     }
 
     return "";
   };
 
+  // Actualizar vista previa cuando cambian los datos
   useEffect(() => {
     setPreview(buildMessage());
-  }, [name, dia, hora, mensaje, bioquimico, cardiologo]);
+  }, [name, dia, hora, mensaje, bioquimico, cardiologo, art, siniestro]);
 
   const cleanPhone = normalizePhone(phone);
 
@@ -301,7 +314,6 @@ https://art-xi-six.vercel.app/cx
       <section className={styles.card}>
         <header className={styles.header}>
           <div className={styles.iconCircle}>💬</div>
-
           <div>
             <h1 className={styles.title}>Envío rápido WhatsApp</h1>
             <p className={styles.subtitle}>
@@ -311,9 +323,9 @@ https://art-xi-six.vercel.app/cx
         </header>
 
         <div className={styles.formGrid}>
-          <div className={styles.field}>
+          {/* Buscador de pacientes */}
+          <div className={`${styles.field} ${styles.fullWidth}`}>
             <label className={styles.label}>Buscar paciente</label>
-
             <div className={styles.searchContainer}>
               <input
                 type="text"
@@ -325,39 +337,45 @@ https://art-xi-six.vercel.app/cx
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
-
-              {showSuggestions &&
-                searchTerm &&
-                filteredPacientes.length > 0 && (
-                  <div className={styles.suggestions}>
-                    {filteredPacientes.slice(0, 8).map((p) => (
-                      <button
-                        type="button"
-                        key={p.id}
-                        className={styles.suggestionItem}
-                        onMouseDown={() => handleSelectPaciente(p)}
-                      >
+              {showSuggestions && searchTerm && filteredPacientes.length > 0 && (
+                <div className={styles.suggestions}>
+                  {filteredPacientes.slice(0, 8).map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={styles.suggestionItem}
+                      onClick={() => handleSelectPaciente(p)}
+                    >
+                      <div className={styles.suggestionMain}>
                         <span className={styles.suggestionName}>
                           {p.fullName || "Sin nombre"}
                         </span>
-
                         <span className={styles.suggestionPhone}>
                           {p.phone || "Sin teléfono"}
                         </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                      </div>
+                      <div className={styles.suggestionMeta}>
+                        <span className={styles.suggestionArt}>
+                          {p.art || "Sin ART"}
+                        </span>
+                        <span className={styles.suggestionSiniestro}>
+                          {p.siniestro || "Sin siniestro"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Teléfono */}
           <div className={styles.field}>
             <label htmlFor="phone" className={styles.label}>
               Número de teléfono <span className={styles.required}>*</span>
             </label>
-
             <input
               id="phone"
               type="tel"
@@ -366,17 +384,16 @@ https://art-xi-six.vercel.app/cx
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-
             <small className={styles.helpText}>
               Usar código país y característica. Ej: 5493456123456
             </small>
           </div>
 
+          {/* Nombre del paciente */}
           <div className={styles.field}>
             <label htmlFor="name" className={styles.label}>
               Nombre del paciente <span className={styles.required}>*</span>
             </label>
-
             <input
               id="name"
               type="text"
@@ -387,11 +404,37 @@ https://art-xi-six.vercel.app/cx
             />
           </div>
 
-          <div className={styles.field}>
+          {/* ART y Nro. de Siniestro juntos al 50% */}
+          <div className={`${styles.field} ${styles.fullWidth}`}>
+            <div className={styles.rowFields}>
+              <div className={styles.halfField}>
+                <label className={styles.label}>ART</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={art}
+                  onChange={(e) => setArt(e.target.value)}
+                  placeholder="Ej: IAPS ART"
+                />
+              </div>
+              <div className={styles.halfField}>
+                <label className={styles.label}>Nro. de Siniestro</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={siniestro}
+                  onChange={(e) => setSiniestro(e.target.value)}
+                  placeholder="Ej: 162398"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tipo de mensaje - ocupa todo el ancho */}
+          <div className={`${styles.field} ${styles.fullWidth}`}>
             <label htmlFor="mensaje" className={styles.label}>
               Tipo de mensaje
             </label>
-
             <select
               id="mensaje"
               className={styles.input}
@@ -409,13 +452,13 @@ https://art-xi-six.vercel.app/cx
             </select>
           </div>
 
+          {/* Campos de fecha/hora (según tipo) */}
           {requiresDateTime && (
             <>
               <div className={styles.field}>
                 <label htmlFor="dia" className={styles.label}>
                   Día del turno <span className={styles.required}>*</span>
                 </label>
-
                 <input
                   id="dia"
                   type="text"
@@ -425,12 +468,10 @@ https://art-xi-six.vercel.app/cx
                   onChange={(e) => setDia(e.target.value)}
                 />
               </div>
-
               <div className={styles.field}>
                 <label htmlFor="hora" className={styles.label}>
                   Hora del turno <span className={styles.required}>*</span>
                 </label>
-
                 <input
                   id="hora"
                   type="text"
@@ -443,12 +484,12 @@ https://art-xi-six.vercel.app/cx
             </>
           )}
 
+          {/* Selector de bioquímico (solo para Laboratorio) */}
           {mensaje === "5" && (
             <div className={styles.field}>
               <label htmlFor="bioquimico" className={styles.label}>
                 Bioquímico
               </label>
-
               <select
                 id="bioquimico"
                 className={styles.input}
@@ -462,12 +503,12 @@ https://art-xi-six.vercel.app/cx
             </div>
           )}
 
+          {/* Selector de cardiólogo (solo para Electro) */}
           {mensaje === "4" && (
             <div className={styles.field}>
               <label htmlFor="cardiologo" className={styles.label}>
                 Cardiólogo
               </label>
-
               <select
                 id="cardiologo"
                 className={styles.input}
@@ -481,21 +522,19 @@ https://art-xi-six.vercel.app/cx
           )}
         </div>
 
+        {/* Vista previa del mensaje */}
         <section className={styles.previewBox}>
           <div className={styles.previewHeader}>
             <div>
               <label htmlFor="preview" className={styles.label}>
                 Vista previa del mensaje
               </label>
-
               <p className={styles.previewSubtitle}>
                 {messageTitles[mensaje]} · Podés editar el texto antes de enviar.
               </p>
             </div>
-
             <span className={styles.previewBadge}>WhatsApp</span>
           </div>
-
           <textarea
             id="preview"
             className={styles.textarea}
@@ -504,13 +543,13 @@ https://art-xi-six.vercel.app/cx
           />
         </section>
 
+        {/* Botones de envío */}
         <div className={styles.actionsRow}>
           <a
             href={canSend ? createWaLink("app") : "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${styles.secondaryButton} ${!canSend ? styles.buttonDisabled : ""
-              }`}
+            className={`${styles.secondaryButton} ${!canSend ? styles.buttonDisabled : ""}`}
             onClick={(e) => {
               if (!canSend) e.preventDefault();
             }}
@@ -518,13 +557,11 @@ https://art-xi-six.vercel.app/cx
             <span className={styles.buttonIcon}>📱</span>
             Abrir en WhatsApp
           </a>
-
           <a
             href={canSend ? createWaLink("web") : "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${styles.button} ${!canSend ? styles.buttonDisabled : ""
-              }`}
+            className={`${styles.button} ${!canSend ? styles.buttonDisabled : ""}`}
             onClick={(e) => {
               if (!canSend) e.preventDefault();
             }}
