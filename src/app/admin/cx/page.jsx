@@ -48,13 +48,16 @@ import {
   parseFormattedNumber,
   isLikelyCheckbox,
 } from "./_utils/helpers";
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument } from "pdf-lib";
+
 // ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
 const TEMPLATE_FRENTE_URL = "/templates/FRENTE-CX.pdf";
 const TEMPLATE_DORSO_URL = "/templates/DORSO-CX.pdf";
-const CIRUGIAS_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
-const SOLICITUDES_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia";
+const CIRUGIAS_DB_URL =
+  "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
+const SOLICITUDES_DB_URL =
+  "https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia";
 
 export default function Page() {
   const router = useRouter();
@@ -69,6 +72,7 @@ export default function Page() {
   const [selectedPaciente, setSelectedPaciente] = useState(null);
   const [fechaEstimada, setFechaEstimada] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState("");
 
   // ── Estados generales ──
   const [activeTab, setActiveTab] = useState("form");
@@ -90,6 +94,7 @@ export default function Page() {
   const [modalFicha, setModalFicha] = useState(null);
   const [modalListaDia, setModalListaDia] = useState(false);
   const [modalEstudio, setModalEstudio] = useState(null);
+  const [modalSolicitudData, setModalSolicitudData] = useState(null);
 
   // ── Carga de mapping ──
   useEffect(() => {
@@ -109,7 +114,9 @@ export default function Page() {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Construir canonical
@@ -135,22 +142,37 @@ export default function Page() {
     return { canonicalToInternal, internalToCanonical };
   }, [mapping]);
 
-  const canonKeys = useMemo(() => (canonical ? Object.keys(canonical.canonicalToInternal) : []), [canonical]);
+  const canonKeys = useMemo(
+    () => (canonical ? Object.keys(canonical.canonicalToInternal) : []),
+    [canonical]
+  );
   const canonCX = useMemo(() => canonKeys.find(isCanonCX), [canonKeys]);
   const canonDoctor = useMemo(() => canonKeys.find(isCanonDoctor), [canonKeys]);
   const canonApellido = useMemo(() => canonKeys.find(isCanonApellido), [canonKeys]);
   const canonNombre = useMemo(() => canonKeys.find(isCanonNombre), [canonKeys]);
   const canonDNI = useMemo(() => canonKeys.find(isCanonDNI), [canonKeys]);
   const canonEdad = useMemo(() => canonKeys.find(isCanonEdad), [canonKeys]);
-  const canonEdadPaciente = useMemo(() => canonKeys.find(isCanonEdadPaciente), [canonKeys]);
+  const canonEdadPaciente = useMemo(
+    () => canonKeys.find(isCanonEdadPaciente),
+    [canonKeys]
+  );
   const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
   const canonMes = useMemo(() => canonKeys.find(isCanonMes), [canonKeys]);
   const canonAnio = useMemo(() => canonKeys.find(isCanonAnio), [canonKeys]);
   const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
   const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
-  const canonDomicilioPaciente = useMemo(() => canonKeys.find(isCanonDomicilioPaciente), [canonKeys]);
-  const canonNacimientoPaciente = useMemo(() => canonKeys.find(isCanonNacimientoPaciente), [canonKeys]);
-  const canonHCPaciente = useMemo(() => canonKeys.find(isCanonHCPaciente), [canonKeys]);
+  const canonDomicilioPaciente = useMemo(
+    () => canonKeys.find(isCanonDomicilioPaciente),
+    [canonKeys]
+  );
+  const canonNacimientoPaciente = useMemo(
+    () => canonKeys.find(isCanonNacimientoPaciente),
+    [canonKeys]
+  );
+  const canonHCPaciente = useMemo(
+    () => canonKeys.find(isCanonHCPaciente),
+    [canonKeys]
+  );
   const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
   const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
   const canonART = useMemo(() => canonKeys.find(isCanonART), [canonKeys]);
@@ -160,9 +182,17 @@ export default function Page() {
   useEffect(() => {
     if (!canonical || !mapping) return;
     const initial = {};
-    for (const k of Object.keys(canonical.canonicalToInternal).sort((a, b) => a.localeCompare(b, "es"))) initial[k] = "";
-    if (Object.keys(mapping).some((k) => k.includes("masculino-paciente") || k.includes("femenino-paciente"))) initial["sexo"] = "";
-    if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio)) initial["servicio"] = "PISO";
+    for (const k of Object.keys(canonical.canonicalToInternal).sort((a, b) =>
+      a.localeCompare(b, "es")
+    )) initial[k] = "";
+    if (
+      Object.keys(mapping).some(
+        (k) => k.includes("masculino-paciente") || k.includes("femenino-paciente")
+      )
+    )
+      initial["sexo"] = "";
+    if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio))
+      initial["servicio"] = "PISO";
     setForm(initial);
   }, [canonical, mapping]);
 
@@ -206,7 +236,9 @@ export default function Page() {
       "GIMENEZ MARTIN",
       "PERTUS DIEGO",
     ];
-    doctoresLista.forEach((dr) => { seeded = addSuggestion(seeded, canonDoctor, dr); });
+    doctoresLista.forEach((dr) => {
+      seeded = addSuggestion(seeded, canonDoctor, dr);
+    });
     setSuggestions(seeded);
     saveSuggestions(seeded);
   }, [canonDoctor]);
@@ -344,20 +376,28 @@ export default function Page() {
     if (n === "localidad") return "address-level2";
     if (n.includes("domicilio") || n.includes("direccion")) return "street-address";
     if (n.includes("telefono") || n.includes("celular")) return "tel";
-    if (n.includes("dni") || n.includes("hc") || n.includes("historia-clinica")) return "off";
+    if (n.includes("dni") || n.includes("hc") || n.includes("historia-clinica"))
+      return "off";
     if (n.includes("nacimiento") || n.includes("nacmiento")) return "address-level2";
     return "on";
   }
 
   function generateFilename(type) {
-    const apellido = canonApellido ? (form?.[canonApellido] ?? "").toString().trim() : "";
-    const nombre = canonNombre ? (form?.[canonNombre] ?? "").toString().trim() : "";
+    const apellido = canonApellido
+      ? (form?.[canonApellido] ?? "").toString().trim()
+      : "";
+    const nombre = canonNombre
+      ? (form?.[canonNombre] ?? "").toString().trim()
+      : "";
     const baseName = apellido && nombre ? `${apellido} ${nombre}` : apellido || nombre || "Paciente";
     const safeName = generateSafeFilename(baseName);
-    return !safeName || safeName.trim() === "" ? `Paciente-${type}-${Date.now()}` : `${safeName}-${type}`;
+    return !safeName || safeName.trim() === ""
+      ? `Paciente-${type}-${Date.now()}`
+      : `${safeName}-${type}`;
   }
 
-  async function buildFilledPdfBytes(templateUrl) {
+  // ── Función central para llenar PDF (acepta formDataOverride) ──
+  async function buildFilledPdfBytes(templateUrl, formDataOverride = null) {
     if (!mapping || !canonical) throw new Error("Mapping no cargado");
     const templateBytes = await fetch(templateUrl, { cache: "no-store" }).then((r) => {
       if (!r.ok) throw new Error(`No pude cargar template PDF (${r.status})`);
@@ -368,19 +408,37 @@ export default function Page() {
     const trySetText = (fieldName, value) => {
       const v = safeUpper((value ?? "").toString()).trim();
       if (!v) return;
-      try { pdfForm.getTextField(fieldName).setText(v); } catch {}
+      try {
+        pdfForm.getTextField(fieldName).setText(v);
+      } catch {}
     };
     const tryCheck = (fieldName, shouldCheck) => {
       if (!shouldCheck) return;
-      try { pdfForm.getCheckBox(fieldName).check(); } catch {}
+      try {
+        pdfForm.getCheckBox(fieldName).check();
+      } catch {}
     };
 
-    const apellido = canonApellido ? (form?.[canonApellido] ?? "").toString().trim() : "";
-    const nombre = canonNombre ? (form?.[canonNombre] ?? "").toString().trim() : "";
+    const formData = formDataOverride || form;
+
+    const apellido = canonApellido
+      ? (formData?.[canonApellido] ?? "").toString().trim()
+      : "";
+    const nombre = canonNombre
+      ? (formData?.[canonNombre] ?? "").toString().trim()
+      : "";
     const nombresPaciente = [apellido, nombre].filter(Boolean).join(" ").trim();
-    const edadValuePrint = edadCalculada ? `${edadCalculada} años` : "";
-    const doctorRaw = canonDoctor ? (form?.[canonDoctor] ?? "").toString().trim() : "";
-    const doctorPrint = doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
+    const d = canonDia ? formData?.[canonDia] : "";
+    const m = canonMes ? formData?.[canonMes] : "";
+    const y = canonAnio ? formData?.[canonAnio] : "";
+    const edadValuePrint = computeAgeYears(d, m, y)
+      ? `${computeAgeYears(d, m, y)} años`
+      : "";
+    const doctorRaw = canonDoctor
+      ? (formData?.[canonDoctor] ?? "").toString().trim()
+      : "";
+    const doctorPrint =
+      doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
 
     trySetText("apellido-paciente", apellido);
     trySetText("nombre-paciente", nombre);
@@ -388,18 +446,21 @@ export default function Page() {
     trySetText("edad", edadValuePrint);
     trySetText("edad-paciente", edadValuePrint);
     trySetText("servicio", "PISO");
-    const sexValue = form?.sexo;
+    const sexValue = formData?.sexo;
     tryCheck("masculino-paciente", sexValue === "M");
     tryCheck("femenino-paciente", sexValue === "F");
 
     for (const canonName of Object.keys(canonical.canonicalToInternal)) {
       if (canonName === "sexo") continue;
-      let canonValue = form?.[canonName];
-      if (canonName === canonHCPaciente && canonValue) canonValue = parseFormattedNumber(canonValue);
+      let canonValue = formData?.[canonName];
+      if (canonName === canonHCPaciente && canonValue)
+        canonValue = parseFormattedNumber(canonValue);
       if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
       if (canonEdad && canonName === canonEdad) canonValue = edadValuePrint;
-      if (canonEdadPaciente && canonName === canonEdadPaciente) canonValue = edadValuePrint;
-      if (canonNombres && canonName === canonNombres) canonValue = nombresPaciente;
+      if (canonEdadPaciente && canonName === canonEdadPaciente)
+        canonValue = edadValuePrint;
+      if (canonNombres && canonName === canonNombres)
+        canonValue = nombresPaciente;
       if (canonServicio && canonName === canonServicio) canonValue = "PISO";
       const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
       for (const internal of canonical.canonicalToInternal[canonName] || []) {
@@ -431,6 +492,7 @@ export default function Page() {
     }
   }
 
+  // ── Guardar cirugía ──
   async function guardarCX(optionalData = null) {
     let fecha = fechaEstimada;
     let formData = form;
@@ -461,9 +523,10 @@ export default function Page() {
           apellido,
           nombre,
           dni: formData[canonDNI] || "",
-          fechaNacimiento: formData[canonAnio] && formData[canonMes] && formData[canonDia]
-            ? `${formData[canonAnio]}-${formData[canonMes]}-${formData[canonDia]}`
-            : "",
+          fechaNacimiento:
+            formData[canonAnio] && formData[canonMes] && formData[canonDia]
+              ? `${formData[canonAnio]}-${formData[canonMes]}-${formData[canonDia]}`
+              : "",
           edad: edadCalculada,
           sexo: formData.sexo,
           localidad: formData[canonLocalidad] || "",
@@ -484,7 +547,8 @@ export default function Page() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Error al guardar");
-      alert("Cirugía guardada correctamente.");
+      setMensajeExito("Cirugía guardada correctamente.");
+      setTimeout(() => setMensajeExito(""), 3000);
       setFechaEstimada("");
       setForm((prev) => {
         const reset = {};
@@ -525,16 +589,19 @@ export default function Page() {
     if (activeTab === "solicitudes") cargarSolicitudes();
   }, [activeTab]);
 
-  const cargarSolicitudEnFormulario = (solicitud) => {
-    const nuevoForm = { ...form };
+  // ── Funciones para solicitudes ──
+  const buildFormFromSolicitud = (solicitud) => {
+    const nuevoForm = {};
     if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || "";
     if (canonNombre) nuevoForm[canonNombre] = solicitud.nombre || "";
     if (canonDNI) nuevoForm[canonDNI] = solicitud.dni || "";
     if (canonTelefono) nuevoForm[canonTelefono] = solicitud.telefono || "";
     if (canonLocalidad) nuevoForm[canonLocalidad] = solicitud.localidad || "";
     if (canonProvincia) nuevoForm[canonProvincia] = solicitud.provincia || "";
-    if (canonDomicilioPaciente) nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || "";
-    if (canonNacimientoPaciente && solicitud.lugarNacimiento) nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento;
+    if (canonDomicilioPaciente)
+      nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || "";
+    if (canonNacimientoPaciente)
+      nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento || "";
     if (solicitud.sexo) nuevoForm.sexo = solicitud.sexo === "M" ? "M" : "F";
     if (solicitud.nacimiento) {
       const [y, m, d] = solicitud.nacimiento.split("-");
@@ -542,18 +609,84 @@ export default function Page() {
       if (canonMes) nuevoForm[canonMes] = m || "";
       if (canonAnio) nuevoForm[canonAnio] = y || "";
     }
-    setForm(nuevoForm);
+    return nuevoForm;
+  };
+
+  const descargarFrenteSolicitud = async (solicitud) => {
+    const formData = buildFormFromSolicitud(solicitud);
+    try {
+      const bytes = await buildFilledPdfBytes(TEMPLATE_FRENTE_URL, formData);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const baseName =
+        `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
+      a.download = `${generateSafeFilename(baseName)}-Frente.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    } catch (e) {
+      setError(e?.message || "Error al generar Frente");
+    }
+  };
+
+  const descargarDorsoSolicitud = async (solicitud) => {
+    const formData = buildFormFromSolicitud(solicitud);
+    try {
+      const bytes = await buildFilledPdfBytes(TEMPLATE_DORSO_URL, formData);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const baseName =
+        `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
+      a.download = `${generateSafeFilename(baseName)}-Dorso.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    } catch (e) {
+      setError(e?.message || "Error al generar Dorso");
+    }
+  };
+
+  const eliminarSolicitud = async (id) => {
+    if (!confirm("¿Eliminar permanentemente esta solicitud?")) return;
+    try {
+      await fetch(`${SOLICITUDES_DB_URL}/${id}.json`, { method: "DELETE" });
+      cargarSolicitudes();
+      setMensajeExito("Solicitud eliminada.");
+      setTimeout(() => setMensajeExito(""), 3000);
+    } catch (e) {
+      setError("Error al eliminar solicitud");
+    }
+  };
+
+  const verDatosSolicitud = (solicitud) => {
+    setModalSolicitudData(solicitud);
+  };
+
+  // ── Cargar solicitud al formulario (con mensaje bonito) ──
+  const cargarSolicitudEnFormulario = (solicitud) => {
+    const nuevoForm = buildFormFromSolicitud(solicitud);
+    setForm((prev) => ({ ...prev, ...nuevoForm }));
     setActiveTab("form");
     setMode("manual");
     setSelectedPaciente(null);
-    alert("Solicitud cargada. Complete los datos de cirugía y guarde.");
+    setMensajeExito("Solicitud cargada al formulario. Complete los datos de cirugía y guarde.");
+    setTimeout(() => setMensajeExito(""), 4000);
   };
 
+  // ── Guardar cirugía y eliminar solicitud ──
   const guardarCXYEliminarSolicitud = async () => {
     const success = await guardarCX();
     if (success && pendingSolicitudId) {
       try {
-        await fetch(`${SOLICITUDES_DB_URL}/${pendingSolicitudId}.json`, { method: "DELETE" });
+        await fetch(`${SOLICITUDES_DB_URL}/${pendingSolicitudId}.json`, {
+          method: "DELETE",
+        });
         setPendingSolicitudId(null);
         cargarSolicitudes();
       } catch (err) {
@@ -577,7 +710,9 @@ export default function Page() {
     }
   };
 
-  useEffect(() => { fetchCirugias(); }, []);
+  useEffect(() => {
+    fetchCirugias();
+  }, []);
   useEffect(() => {
     if (activeTab === "programadas") fetchCirugias();
   }, [activeTab]);
@@ -667,21 +802,49 @@ export default function Page() {
   }
 
   const hasSexo = form?.sexo !== undefined;
-  const hasLocation = canonDomicilioPaciente || canonNacimientoPaciente || canonLocalidad || canonProvincia;
+  const hasLocation =
+    canonDomicilioPaciente ||
+    canonNacimientoPaciente ||
+    canonLocalidad ||
+    canonProvincia;
 
   return (
     <main className={styles.page}>
       <div className={styles.layout}>
         <div className={styles.formColumn}>
           {error && <div className={styles.bannerError}>{error}</div>}
+          {mensajeExito && (
+            <div className={styles.bannerSuccess}>
+              {mensajeExito}
+            </div>
+          )}
 
           {/* Botones Foja */}
-          <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <button onClick={goToNuevaFoja} className={styles.primaryBtn} style={{ flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.75rem",
+              marginBottom: "1.5rem",
+              paddingBottom: "1rem",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <button
+              onClick={goToNuevaFoja}
+              className={styles.primaryBtn}
+              style={{ flex: 1 }}
+            >
               📄 Crear Foja Quirúrgica
             </button>
-            <button onClick={goToVerFojas} className={styles.primaryBtn}
-              style={{ flex: 1, background: "transparent", border: "1px solid rgba(255,255,255,0.2)" }}>
+            <button
+              onClick={goToVerFojas}
+              className={styles.primaryBtn}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
               📂 Ver Fojas Guardadas
             </button>
           </div>
@@ -689,19 +852,25 @@ export default function Page() {
           {/* Pestañas */}
           <div className={styles.tabsContainer}>
             <button
-              className={`${styles.tabButton} ${activeTab === "form" ? styles.activeTab : ""}`}
+              className={`${styles.tabButton} ${
+                activeTab === "form" ? styles.activeTab : ""
+              }`}
               onClick={() => setActiveTab("form")}
             >
               📋 Formulario
             </button>
             <button
-              className={`${styles.tabButton} ${activeTab === "solicitudes" ? styles.activeTab : ""}`}
+              className={`${styles.tabButton} ${
+                activeTab === "solicitudes" ? styles.activeTab : ""
+              }`}
               onClick={() => setActiveTab("solicitudes")}
             >
               📝 Solicitudes
             </button>
             <button
-              className={`${styles.tabButton} ${activeTab === "programadas" ? styles.activeTab : ""}`}
+              className={`${styles.tabButton} ${
+                activeTab === "programadas" ? styles.activeTab : ""
+              }`}
               onClick={() => setActiveTab("programadas")}
             >
               📅 Programadas
@@ -755,6 +924,11 @@ export default function Page() {
               solicitudes={solicitudes}
               loadingSolicitudes={loadingSolicitudes}
               cargarSolicitudEnFormulario={cargarSolicitudEnFormulario}
+              onEliminar={eliminarSolicitud}
+              onDescargarFrente={descargarFrenteSolicitud}
+              onDescargarDorso={descargarDorsoSolicitud}
+              onVerDatos={verDatosSolicitud}
+              onRecargar={cargarSolicitudes}
             />
           )}
           {activeTab === "programadas" && (
@@ -795,7 +969,9 @@ export default function Page() {
                       .filter(Boolean)
                       .join(" ") || <span className={styles.patientNameEmpty}>Sin nombre</span>}
                   </div>
-                  {edadCalculada && <div className={styles.patientAge}>{edadCalculada} años</div>}
+                  {edadCalculada && (
+                    <div className={styles.patientAge}>{edadCalculada} años</div>
+                  )}
                   {canonHCPaciente && form?.[canonHCPaciente] && (
                     <div className={styles.patientHC}>
                       HC {formatNumberWithThousands(form[canonHCPaciente])}
@@ -869,10 +1045,78 @@ export default function Page() {
         <ModalEstudio
           cx={modalEstudio.cx}
           estudio={modalEstudio.tipo}
-          onSave={(prof, fecha) => guardarEstudio(modalEstudio.cx, modalEstudio.tipo, prof, fecha)}
+          onSave={(prof, fecha) =>
+            guardarEstudio(modalEstudio.cx, modalEstudio.tipo, prof, fecha)
+          }
           onCancel={() => setModalEstudio(null)}
         />
       )}
+
+      {/* Modal de visualización de solicitud */}
+      {modalSolicitudData && (
+        <ModalSolicitud
+          solicitud={modalSolicitudData}
+          onClose={() => setModalSolicitudData(null)}
+        />
+      )}
     </main>
+  );
+}
+
+// ── Componente ModalSolicitud (dentro del mismo archivo) ──
+function ModalSolicitud({ solicitud, onClose }) {
+  const styles = require("./cx-common.module.css"); // o importado arriba, pero mejor usar el mismo objeto
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2>Detalles de la solicitud</h2>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <div className={styles.modalBody}>
+          <div className={styles.detailRow}>
+            <strong>Apellido:</strong> {solicitud.apellido || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Nombre:</strong> {solicitud.nombre || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>DNI:</strong> {solicitud.dni || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Teléfono:</strong> {solicitud.telefono || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Sexo:</strong>{" "}
+            {solicitud.sexo === "M"
+              ? "Masculino"
+              : solicitud.sexo === "F"
+              ? "Femenino"
+              : "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Fecha nacimiento:</strong> {solicitud.nacimiento || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Localidad:</strong> {solicitud.localidad || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Provincia:</strong> {solicitud.provincia || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Domicilio:</strong> {solicitud.domicilio || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Lugar de nacimiento:</strong> {solicitud.lugarNacimiento || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Fecha de solicitud:</strong>{" "}
+            {solicitud.fechaSolicitud
+              ? new Date(solicitud.fechaSolicitud).toLocaleString()
+              : "-"}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
