@@ -95,14 +95,12 @@ export default function WhatsAppSender() {
   };
 
   const buildMessage = () => {
-    const infoLine =
-      "\n\n💬 Si necesita más información, responda *INFO* y nos comunicaremos a la brevedad.";
-
     const datosArtSiniestro =
       art || siniestro
         ? `\n\n📋 *Datos de la ART:*\n• ART: ${art || "No especificada"}\n• Nro. de Siniestro: ${siniestro || "No especificado"}`
         : "";
 
+    // Mensaje 1 - FKT
     if (mensaje === "1") {
       return `${headerClinica(name)}✅ Sus *sesiones de kinesiología fueron aprobadas*.
 
@@ -124,9 +122,10 @@ export default function WhatsAppSender() {
 📍 9 de Julio 1870
 📲 Contacto: https://wa.me/+5493456440878
 
-⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${datosArtSiniestro}${infoLine}${footerClinica}`;
+⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 2 - RMN
     if (mensaje === "2") {
       return `${headerClinica(name)}✅ Su *resonancia fue aprobada*.
 
@@ -145,9 +144,10 @@ export default function WhatsAppSender() {
 • Prótesis metálicas
 • Implantes
 • Válvula cardíaca
-• Cirugías recientes${datosArtSiniestro}${infoLine}${footerClinica}`;
+• Cirugías recientes${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 3 - Medicamentos
     if (mensaje === "3") {
       return `${headerClinica(name)}✅ Sus *medicamentos fueron aprobados*.
 
@@ -168,9 +168,10 @@ export default function WhatsAppSender() {
 🏥 *La Segunda:* Orden + copia de denuncia → Farmacia de la Unión.
 
 🏥 *Otras ART:* Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.
-${datosArtSiniestro}${infoLine}${footerClinica}`;
+${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 4 - Electrocardiograma
     if (mensaje === "4") {
       const profesional =
         cardiologo === "percara"
@@ -185,9 +186,10 @@ ${datosArtSiniestro}${infoLine}${footerClinica}`;
 🪪 Traer DNI físico
 ⏰ Llegar 15 minutos antes
 
-${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
+${profesional}${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 5 - Laboratorio
     if (mensaje === "5") {
       let profesional = "";
       if (bioquimico === "confalonieri") {
@@ -208,9 +210,10 @@ ${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
 ⏰ Llegar 10 minutos antes
 
 📍 *Lugar:* 
-${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
+${profesional}${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 6 - Ecografía
     if (mensaje === "6") {
       return `${headerClinica(name)}✅ Su *ecografía fue aprobada*.
 
@@ -221,9 +224,10 @@ ${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
 
 ⚠️ *Importante:*
 🪪 Traer DNI físico
-⏰ Llegar 10 minutos antes${datosArtSiniestro}${infoLine}${footerClinica}`;
+⏰ Llegar 10 minutos antes${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 7 - Cirugía
     if (mensaje === "7") {
       return `${headerClinica(name)}✅ Su *cirugía fue aprobada por la ART*.
 
@@ -241,9 +245,10 @@ ${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
 📝 Antes de la cirugía complete este formulario:
 https://art-xi-six.vercel.app/cx
 
-✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${infoLine}${footerClinica}`;
+✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 8 - Ortopedia
     if (mensaje === "8") {
       return `${headerClinica(name)}✅ Su *ortopedia fue aprobada*.
 
@@ -265,10 +270,14 @@ https://art-xi-six.vercel.app/cx
 
 3️⃣ *Consultar cobertura*
 💰 Si la ART cubre el 100%, retira sin costo.
-🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${datosArtSiniestro}${infoLine}${footerClinica}`;
+🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${datosArtSiniestro}${footerClinica}`;
     }
 
+    // Mensaje 9 - Alta por ART (único con INFO)
     if (mensaje === "9") {
+      const infoLine =
+        "\n\n💬 Si necesita más información, responda *INFO* y nos estaremos comunicando con usted.";
+
       return `${headerClinica(name)}Buen día.
 
 Le informamos que el alta fue otorgada por su *ART*, no por la *Clínica*. Por tal motivo, ya no debe concurrir a la *Clínica* por este siniestro, salvo que su *ART* emita una nueva autorización.
