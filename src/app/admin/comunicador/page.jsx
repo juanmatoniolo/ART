@@ -15,6 +15,7 @@ const messageTitles = {
   6: "🩻 Ecografía aprobada",
   7: "🏥 Cirugía aprobada",
   8: "🦴 Ortopedia aprobada",
+  9: "📄 Alta otorgada por ART",
 };
 
 const normalizePhone = (value = "") => value.replace(/\D/g, "");
@@ -37,7 +38,6 @@ export default function WhatsAppSender() {
   const [cardiologo, setCardiologo] = useState("percara");
   const [preview, setPreview] = useState("");
 
-  // Estado para ART y siniestro
   const [art, setArt] = useState("");
   const [siniestro, setSiniestro] = useState("");
 
@@ -47,47 +47,35 @@ export default function WhatsAppSender() {
 
   const requiresDateTime = ["2", "4", "5", "6", "7"].includes(mensaje);
 
-  // Cargar pacientes desde Firebase
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
         const res = await fetch(`${FIREBASE_URL}/pacientes.json`);
-
-        if (!res.ok) {
-          throw new Error("Error al cargar pacientes");
-        }
-
+        if (!res.ok) throw new Error("Error al cargar pacientes");
         const data = await res.json();
-
         if (!data) {
           setPacientes([]);
           return;
         }
-
-const arr = Object.entries(data).map(([id, value]) => ({
-  id,
-  ...value,
-  fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
-  phone: value.trabajador?.telefono || "",
-  art: value.ART?.nombre || "",          // ✅ CORRECTO
-  siniestro: value.ART?.nroSiniestro || "", // ✅ CORRECTO
-}));
-
+        const arr = Object.entries(data).map(([id, value]) => ({
+          id,
+          ...value,
+          fullName: `${value.trabajador?.apellido || ""} ${value.trabajador?.nombre || ""}`.trim(),
+          phone: value.trabajador?.telefono || "",
+          art: value.ART?.nombre || "",
+          siniestro: value.ART?.nroSiniestro || "",
+        }));
         setPacientes(arr);
       } catch (error) {
         console.error("Error cargando pacientes:", error);
       }
     };
-
     fetchPacientes();
   }, []);
 
-  // Filtro de pacientes por nombre o DNI
   const filteredPacientes = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-
     if (!term) return [];
-
     return pacientes.filter((p) => {
       const dni = p.trabajador?.dni || "";
       return (
@@ -97,7 +85,6 @@ const arr = Object.entries(data).map(([id, value]) => ({
     });
   }, [pacientes, searchTerm]);
 
-  // Seleccionar paciente y cargar datos
   const handleSelectPaciente = (paciente) => {
     setName(paciente.fullName || "");
     setPhone(paciente.phone || "");
@@ -107,9 +94,10 @@ const arr = Object.entries(data).map(([id, value]) => ({
     setShowSuggestions(false);
   };
 
-  // Construcción del mensaje según el tipo seleccionado
   const buildMessage = () => {
-    // Bloque común con ART y siniestro (si existen)
+    const infoLine =
+      "\n\n💬 Si necesita más información, responda *INFO* y nos comunicaremos a la brevedad.";
+
     const datosArtSiniestro =
       art || siniestro
         ? `\n\n📋 *Datos de la ART:*\n• ART: ${art || "No especificada"}\n• Nro. de Siniestro: ${siniestro || "No especificado"}`
@@ -136,7 +124,7 @@ const arr = Object.entries(data).map(([id, value]) => ({
 📍 9 de Julio 1870
 📲 Contacto: https://wa.me/+5493456440878
 
-⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${datosArtSiniestro}${footerClinica}`;
+⚠️ *Importante:* Puede consultar con su ART o Seguro Personal la cartilla de todos sus prestadores de kinesiología.${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "2") {
@@ -157,7 +145,7 @@ const arr = Object.entries(data).map(([id, value]) => ({
 • Prótesis metálicas
 • Implantes
 • Válvula cardíaca
-• Cirugías recientes${datosArtSiniestro}${footerClinica}`;
+• Cirugías recientes${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "3") {
@@ -180,7 +168,7 @@ const arr = Object.entries(data).map(([id, value]) => ({
 🏥 *La Segunda:* Orden + copia de denuncia → Farmacia de la Unión.
 
 🏥 *Otras ART:* Orden + copia de denuncia → Farmacia Zordan o Farmacia de la Unión.
-${datosArtSiniestro}${footerClinica}`;
+${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "4") {
@@ -197,12 +185,11 @@ ${datosArtSiniestro}${footerClinica}`;
 🪪 Traer DNI físico
 ⏰ Llegar 15 minutos antes
 
-${profesional}${datosArtSiniestro}${footerClinica}`;
+${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "5") {
       let profesional = "";
-
       if (bioquimico === "confalonieri") {
         profesional = `🧪 *Bioquímica Confalonieri*\n📍 Belgrano y Corrientes (frente a Pepos)`;
       } else if (bioquimico === "marmol") {
@@ -221,7 +208,7 @@ ${profesional}${datosArtSiniestro}${footerClinica}`;
 ⏰ Llegar 10 minutos antes
 
 📍 *Lugar:* 
-${profesional}${datosArtSiniestro}${footerClinica}`;
+${profesional}${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "6") {
@@ -234,7 +221,7 @@ ${profesional}${datosArtSiniestro}${footerClinica}`;
 
 ⚠️ *Importante:*
 🪪 Traer DNI físico
-⏰ Llegar 10 minutos antes${datosArtSiniestro}${footerClinica}`;
+⏰ Llegar 10 minutos antes${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "7") {
@@ -254,7 +241,7 @@ ${profesional}${datosArtSiniestro}${footerClinica}`;
 📝 Antes de la cirugía complete este formulario:
 https://art-xi-six.vercel.app/cx
 
-✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${footerClinica}`;
+✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     if (mensaje === "8") {
@@ -278,13 +265,20 @@ https://art-xi-six.vercel.app/cx
 
 3️⃣ *Consultar cobertura*
 💰 Si la ART cubre el 100%, retira sin costo.
-🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${datosArtSiniestro}${footerClinica}`;
+🧾 Si debe pagar, guarde la factura para solicitar reintegro a la ART.${datosArtSiniestro}${infoLine}${footerClinica}`;
+    }
+
+    if (mensaje === "9") {
+      return `${headerClinica(name)}Buen día.
+
+Le informamos que el alta fue otorgada por su *ART*, no por la *Clínica*. Por tal motivo, ya no debe concurrir a la *Clínica* por este siniestro, salvo que su *ART* emita una nueva autorización.
+
+Si no está de acuerdo con el alta o desea realizar un reclamo, deberá comunicarse directamente con su *ART*, ya que es la entidad responsable de esa decisión.${datosArtSiniestro}${infoLine}${footerClinica}`;
     }
 
     return "";
   };
 
-  // Actualizar vista previa cuando cambian los datos
   useEffect(() => {
     setPreview(buildMessage());
   }, [name, dia, hora, mensaje, bioquimico, cardiologo, art, siniestro]);
@@ -299,13 +293,10 @@ https://art-xi-six.vercel.app/cx
 
   const createWaLink = (mode = "web") => {
     if (!cleanPhone) return "#";
-
     const encodedText = encodeURIComponent(preview);
-
     if (mode === "web") {
       return `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
     }
-
     return `https://wa.me/${cleanPhone}?text=${encodedText}`;
   };
 
@@ -404,7 +395,7 @@ https://art-xi-six.vercel.app/cx
             />
           </div>
 
-          {/* ART y Nro. de Siniestro juntos al 50% */}
+          {/* ART y Nro. de Siniestro */}
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <div className={styles.rowFields}>
               <div className={styles.halfField}>
@@ -430,7 +421,7 @@ https://art-xi-six.vercel.app/cx
             </div>
           </div>
 
-          {/* Tipo de mensaje - ocupa todo el ancho */}
+          {/* Tipo de mensaje */}
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <label htmlFor="mensaje" className={styles.label}>
               Tipo de mensaje
@@ -449,10 +440,11 @@ https://art-xi-six.vercel.app/cx
               <option value="6">Mensaje 6 – Ecografía</option>
               <option value="7">Mensaje 7 – Cirugía</option>
               <option value="8">Mensaje 8 – Ortopedia</option>
+              <option value="9">Mensaje 9 – Alta otorgada por ART</option>
             </select>
           </div>
 
-          {/* Campos de fecha/hora (según tipo) */}
+          {/* Fecha/Hora para los que lo necesitan */}
           {requiresDateTime && (
             <>
               <div className={styles.field}>
@@ -484,7 +476,7 @@ https://art-xi-six.vercel.app/cx
             </>
           )}
 
-          {/* Selector de bioquímico (solo para Laboratorio) */}
+          {/* Selector bioquímico (solo Laboratorio) */}
           {mensaje === "5" && (
             <div className={styles.field}>
               <label htmlFor="bioquimico" className={styles.label}>
@@ -503,7 +495,7 @@ https://art-xi-six.vercel.app/cx
             </div>
           )}
 
-          {/* Selector de cardiólogo (solo para Electro) */}
+          {/* Selector cardiólogo (solo Electro) */}
           {mensaje === "4" && (
             <div className={styles.field}>
               <label htmlFor="cardiologo" className={styles.label}>
@@ -522,7 +514,7 @@ https://art-xi-six.vercel.app/cx
           )}
         </div>
 
-        {/* Vista previa del mensaje */}
+        {/* Vista previa */}
         <section className={styles.previewBox}>
           <div className={styles.previewHeader}>
             <div>
