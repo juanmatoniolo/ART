@@ -60,7 +60,7 @@ const initialForm = {
   trabajadorProvincia: "",
   trabajadorCP: "",
   trabajadorTelefono: "",
-  consultaTipo: "",
+  consultaTipo: "AT",   // ← valor por defecto
   diaIngreso: defaultDay,
   mesIngreso: defaultMonth,
   anioIngreso: defaultYear,
@@ -106,21 +106,35 @@ function calcularEdad(nacimiento) {
 
 function validate(f) {
   const e = {};
+
+  // --- Empleador ---
   const empId = onlyDigits(f.empleadorCuitDni);
   if (empId && empId.length < 8 && empId.length > 0) {
     e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
   }
 
+  // --- Trabajador ---
   const dni = onlyDigits(f.trabajadorDni);
   if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
     e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
   }
 
+  // Teléfono obligatorio
   const tel = onlyDigits(f.trabajadorTelefono);
-  if (tel && tel.length < 8) {
-    e.trabajadorTelefono = "Teléfono inválido";
+  if (!tel) {
+    e.trabajadorTelefono = "El teléfono es obligatorio";
+  } else if (tel.length < 8) {
+    e.trabajadorTelefono = "Teléfono inválido (mínimo 8 dígitos)";
   }
 
+  // Sexo obligatorio
+  if (!f.trabajadorSexo) {
+    e.trabajadorSexo = "El sexo es obligatorio";
+  } else if (!["M", "F"].includes(f.trabajadorSexo)) {
+    e.trabajadorSexo = "Sexo inválido";
+  }
+
+  // Fechas
   const validarFecha = (dia, mes, anio, prefix) => {
     const d = Number(dia), m = Number(mes), a = Number(anio);
     if (dia && (d < 1 || d > 31)) e[`${prefix}Dia`] = "Día inválido";
@@ -129,6 +143,7 @@ function validate(f) {
   };
   validarFecha(f.diaIngreso, f.mesIngreso, f.anioIngreso, "ingreso");
   validarFecha(f.diaDenuncia, f.mesDenuncia, f.anioDenuncia, "denuncia");
+
   return e;
 }
 
@@ -185,7 +200,7 @@ export default function SiniestroPage() {
   const [loadingPacientes, setLoadingPacientes] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [currentEstado, setCurrentEstado] = useState(null); // nuevo estado
+  const [currentEstado, setCurrentEstado] = useState(null);
 
   const submittingRef = useRef(false);
 
@@ -321,7 +336,7 @@ export default function SiniestroPage() {
       trabajadorEdad: t.edad || "",
     });
     setEditingId(paciente.id);
-    setCurrentEstado(paciente.estado || "abierto"); // guardamos el estado actual
+    setCurrentEstado(paciente.estado || "abierto");
     setActiveTab("nuevo");
     setCreatedId(null);
     setPdfError(null);
@@ -419,7 +434,7 @@ export default function SiniestroPage() {
           dni: trabajadorDniFormatted || "",
           nacimiento: form.trabajadorNacimiento || "",
           edad: form.trabajadorEdad,
-          sexo: form.trabajadorSexo || "",
+          sexo: form.trabajadorSexo,
           calle: form.trabajadorCalle.trim() || "",
           numero: form.trabajadorNumero.trim() || "",
           piso: form.trabajadorPiso.trim() || "",
@@ -427,7 +442,7 @@ export default function SiniestroPage() {
           localidad: form.trabajadorLocalidad.trim() || "",
           provincia: form.trabajadorProvincia.trim() || "",
           cp: onlyDigits(form.trabajadorCP) || "",
-          telefono: onlyDigits(form.trabajadorTelefono) || "",
+          telefono: onlyDigits(form.trabajadorTelefono), // guardamos solo dígitos
         },
         consulta: { tipo: form.consultaTipo || "" },
         fechaIngreso: {
@@ -448,12 +463,10 @@ export default function SiniestroPage() {
 
       let savedId;
       if (editingId) {
-        // Conservamos el estado actual
         payload.estado = currentEstado;
         await update(ref(db, `pacientes/${editingId}`), payload);
         savedId = editingId;
       } else {
-        // Nuevo paciente: lo dejamos como abierto
         payload.estado = "abierto";
         payload.createdAt = Date.now();
         const newRef = push(ref(db, "pacientes"));
@@ -486,7 +499,7 @@ export default function SiniestroPage() {
       setPdfFileName(fileName);
 
       setEditingId(null);
-      setCurrentEstado(null); // limpiamos después de editar
+      setCurrentEstado(null);
       if (activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
@@ -520,7 +533,6 @@ export default function SiniestroPage() {
                     : "Nuevo registro de siniestro"
                   : "Buscar y gestionar pacientes"}
               </p>
-              {/* Badge de estado visible durante la edición */}
               {editingId && currentEstado && (
                 <span
                   style={{
@@ -561,7 +573,7 @@ export default function SiniestroPage() {
                     setPdfUrl(null);
                     setPdfFileName(null);
                     setEditingId(null);
-                    setCurrentEstado(null); // limpiamos el estado
+                    setCurrentEstado(null);
                     localStorage.removeItem(STORAGE_KEY);
                   }}
                 >
@@ -743,7 +755,7 @@ export default function SiniestroPage() {
                     </div>
                   </Section>
 
-                  <Section title="4) Trabajador" subtitle="Todos los campos son opcionales">
+                  <Section title="4) Trabajador" subtitle="Campos marcados con * son obligatorios">
                     <div className={styles.grid}>
                       <div className={styles.field}>
                         <label className={styles.label}>Apellido</label>
@@ -796,13 +808,20 @@ export default function SiniestroPage() {
                         />
                       </div>
 
+                      {/* SEXO OBLIGATORIO */}
                       <div className={styles.field}>
-                        <label className={styles.label}>Sexo</label>
+                        <label className={styles.label}>
+                          Sexo <span style={{ color: "#ef4444" }}>*</span>
+                        </label>
                         <div className={styles.chips}>
                           {["M", "F"].map((val) => (
                             <label
                               key={val}
-                              className={cx(styles.chip, form.trabajadorSexo === val && styles.chipActive)}
+                              className={cx(
+                                styles.chip,
+                                form.trabajadorSexo === val && styles.chipActive,
+                                errors.trabajadorSexo && styles.inputError
+                              )}
                             >
                               <input
                                 type="radio"
@@ -815,18 +834,25 @@ export default function SiniestroPage() {
                             </label>
                           ))}
                         </div>
+                        {errors.trabajadorSexo && <div className={styles.errorText}>{errors.trabajadorSexo}</div>}
                       </div>
+
+                      {/* TELÉFONO OBLIGATORIO */}
                       <div className={styles.field}>
-                        <label className={styles.label}>Teléfono</label>
+                        <label className={styles.label}>
+                          Teléfono <span style={{ color: "#ef4444" }}>*</span>
+                        </label>
                         <input
                           className={cx(styles.input, errors.trabajadorTelefono && styles.inputError)}
                           value={form.trabajadorTelefono}
                           onChange={onChange("trabajadorTelefono")}
                           inputMode="numeric"
-                          placeholder="Teléfono"
+                          placeholder="Ej: 11 1234 5678"
                         />
                         {errors.trabajadorTelefono && <div className={styles.errorText}>{errors.trabajadorTelefono}</div>}
                       </div>
+
+                      {/* resto de campos opcionales */}
                       <div className={styles.field}>
                         <label className={styles.label}>Calle</label>
                         <input
@@ -966,7 +992,7 @@ export default function SiniestroPage() {
                         <th>ART</th>
                         <th>N° Siniestro</th>
                         <th>Fecha Ingreso</th>
-                        <th>Estado</th>  {/* Nueva columna */}
+                        <th>Estado</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
@@ -989,7 +1015,6 @@ export default function SiniestroPage() {
                                 ? `${fi.dia}/${fi.mes}/${fi.anio}`
                                 : "—"}
                             </td>
-                            {/* Indicador visual de estado */}
                             <td>
                               <span
                                 style={{
