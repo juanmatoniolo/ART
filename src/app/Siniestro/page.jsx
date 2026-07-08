@@ -35,7 +35,6 @@ const ART_OPTIONS = [
   "Medicar work",
   "Victoria seguros",
   "Reconquista ART",
-  
 ];
 
 const today = new Date();
@@ -112,7 +111,6 @@ function validate(f) {
     e.empleadorCuitDni = "Debe tener al menos 8 números si se completa";
   }
 
-  // Validación que acepta DNI (7-9) o CUIL (11)
   const dni = onlyDigits(f.trabajadorDni);
   if (dni && !((dni.length >= 7 && dni.length <= 9) || dni.length === 11)) {
     e.trabajadorDni = "Documento inválido (debe tener 7 a 9 dígitos para DNI o 11 para CUIL)";
@@ -181,12 +179,13 @@ export default function SiniestroPage() {
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfError, setPdfError] = useState(null);
   const [theme, setTheme] = useState("dark");
-  const [shouldFocusError, setShouldFocusError] = useState(false); // <-- Nuevo estado
+  const [shouldFocusError, setShouldFocusError] = useState(false);
 
   const [pacientes, setPacientes] = useState([]);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [currentEstado, setCurrentEstado] = useState(null); // nuevo estado
 
   const submittingRef = useRef(false);
 
@@ -209,14 +208,14 @@ export default function SiniestroPage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setForm({ ...initialForm, ...JSON.parse(raw) });
-    } catch { }
+    } catch {}
   }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-      } catch { }
+      } catch {}
     }, 250);
     return () => clearTimeout(t);
   }, [form]);
@@ -322,6 +321,7 @@ export default function SiniestroPage() {
       trabajadorEdad: t.edad || "",
     });
     setEditingId(paciente.id);
+    setCurrentEstado(paciente.estado || "abierto"); // guardamos el estado actual
     setActiveTab("nuevo");
     setCreatedId(null);
     setPdfError(null);
@@ -394,7 +394,7 @@ export default function SiniestroPage() {
     const v = validate(form);
     setErrors(v);
     if (Object.keys(v).length) {
-      setShouldFocusError(true); // <-- Activa el scroll al error
+      setShouldFocusError(true);
       submittingRef.current = false;
       return;
     }
@@ -448,9 +448,13 @@ export default function SiniestroPage() {
 
       let savedId;
       if (editingId) {
+        // Conservamos el estado actual
+        payload.estado = currentEstado;
         await update(ref(db, `pacientes/${editingId}`), payload);
         savedId = editingId;
       } else {
+        // Nuevo paciente: lo dejamos como abierto
+        payload.estado = "abierto";
         payload.createdAt = Date.now();
         const newRef = push(ref(db, "pacientes"));
         await set(newRef, payload);
@@ -482,6 +486,7 @@ export default function SiniestroPage() {
       setPdfFileName(fileName);
 
       setEditingId(null);
+      setCurrentEstado(null); // limpiamos después de editar
       if (activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
@@ -515,6 +520,23 @@ export default function SiniestroPage() {
                     : "Nuevo registro de siniestro"
                   : "Buscar y gestionar pacientes"}
               </p>
+              {/* Badge de estado visible durante la edición */}
+              {editingId && currentEstado && (
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: "0.5rem",
+                    padding: "0.25rem 0.75rem",
+                    borderRadius: "999px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    background: currentEstado === "abierto" ? "#dcfce7" : "#fee2e2",
+                    color: currentEstado === "abierto" ? "#166534" : "#991b1b",
+                  }}
+                >
+                  {currentEstado === "abierto" ? "🟢 Abierto" : "🔴 Cerrado"}
+                </span>
+              )}
             </div>
             <div className={styles.headerActions}>
               <button
@@ -539,6 +561,7 @@ export default function SiniestroPage() {
                     setPdfUrl(null);
                     setPdfFileName(null);
                     setEditingId(null);
+                    setCurrentEstado(null); // limpiamos el estado
                     localStorage.removeItem(STORAGE_KEY);
                   }}
                 >
@@ -943,6 +966,7 @@ export default function SiniestroPage() {
                         <th>ART</th>
                         <th>N° Siniestro</th>
                         <th>Fecha Ingreso</th>
+                        <th>Estado</th>  {/* Nueva columna */}
                         <th>Acciones</th>
                       </tr>
                     </thead>
@@ -951,6 +975,7 @@ export default function SiniestroPage() {
                         const t = p.trabajador || {};
                         const art = p.ART || {};
                         const fi = p.fechaIngreso || {};
+                        const estado = p.estado || "abierto";
                         return (
                           <tr key={p.id}>
                             <td>
@@ -963,6 +988,19 @@ export default function SiniestroPage() {
                               {fi.dia && fi.mes && fi.anio
                                 ? `${fi.dia}/${fi.mes}/${fi.anio}`
                                 : "—"}
+                            </td>
+                            {/* Indicador visual de estado */}
+                            <td>
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: estado === "abierto" ? "#22c55e" : "#ef4444",
+                                }}
+                                title={estado === "abierto" ? "Abierto" : "Cerrado"}
+                              />
                             </td>
                             <td className={styles.actionsCell}>
                               <button
