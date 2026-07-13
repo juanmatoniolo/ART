@@ -8,11 +8,11 @@ import PasoMedico from "./components/PasoMedico";
 import AtajosDeMail from "./components/AtajosDeMail";
 import PasoDestinatarios from "./components/PasoDestinatarios";
 import ResumenEnvio from "./components/ResumenEnvio";
+import GestionArts from "./components/GestionArts";
 import usePacientes from "./hooks/usePacientes";
 import useAcciones from "./hooks/useAcciones";
 import useAtajos from "./hooks/useAtajos";
-import { FIREBASE_URL } from "./utils/irebase";
-import { PROVEEDORES } from "./utils/proveedores";
+import useArts from "./hooks/useArts";
 import { generarAsunto, generarCuerpo, buildGmailUrl } from "./utils/generadores";
 
 export default function ARTComunicador() {
@@ -26,17 +26,10 @@ export default function ARTComunicador() {
   const [cuerpoEditado, setCuerpoEditado] = useState("");
   const [copiado, setCopiado] = useState(false);
 
-  // Hooks de datos
-  const { pacientes, loading: loadingPacientes } = usePacientes();
-  const {
-    acciones: accionesDisponibles,
-    loading: loadingAcciones,
-    setAcciones: setAccionesDisponibles,
-  } = useAcciones();
-  const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
-
   // Estados para modales
+  const [mostrarGestionArts, setMostrarGestionArts] = useState(false);
   const [mostrarGestionAcciones, setMostrarGestionAcciones] = useState(false);
+  const [mostrarFormAtajo, setMostrarFormAtajo] = useState(false);
   const [editActionId, setEditActionId] = useState(null);
   const [formAction, setFormAction] = useState({
     id: "",
@@ -48,7 +41,6 @@ export default function ARTComunicador() {
     defaultSelected: false,
     categoria: "practica",
   });
-  const [mostrarFormAtajo, setMostrarFormAtajo] = useState(false);
   const [editandoAtajo, setEditandoAtajo] = useState(null);
   const [nuevoAtajoLabel, setNuevoAtajoLabel] = useState("");
   const [nuevoAtajoAsunto, setNuevoAtajoAsunto] = useState("");
@@ -56,6 +48,16 @@ export default function ARTComunicador() {
   const [nuevoAtajoCuerpo, setNuevoAtajoCuerpo] = useState("");
   const [guardandoAtajo, setGuardandoAtajo] = useState(false);
   const [errorAtajo, setErrorAtajo] = useState("");
+
+  // Hooks de datos
+  const { pacientes, loading: loadingPacientes } = usePacientes();
+  const {
+    acciones: accionesDisponibles,
+    loading: loadingAcciones,
+    setAcciones: setAccionesDisponibles,
+  } = useAcciones();
+  const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
+  const { arts, loading: loadingArts, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
 
   // Sincronizar defaults de acciones al cargar
   useEffect(() => {
@@ -87,19 +89,22 @@ export default function ARTComunicador() {
     cuerpoEditadoPorUsuario.current = false;
   }, [paciente, accionesSeleccionadas, medico, tab, atajoActivo]);
 
-  // Contactos y destinatarios
+  // Contactos y destinatarios (ahora desde arts dinámicas)
   const contactos = useMemo(() => {
-    if (selectedArts.size === 0) return [];
+    if (selectedArts.size === 0 || arts.length === 0) return [];
     const list = [];
     selectedArts.forEach((id) => {
-      const art = PROVEEDORES.find((p) => p.id === id);
-      if (art)
-        (tab === "siniestros" ? art.siniestros : art.facturacion).forEach((c) =>
-          list.push({ ...c, artId: id })
-        );
+      const art = arts.find((p) => p.id === id);
+      if (art) {
+        let emails = [];
+        if (tab === "siniestros") emails = art.siniestros || [];
+        else if (tab === "facturacion") emails = art.facturacion || [];
+        else emails = art.convenios || [];
+        emails.forEach((c) => list.push({ ...c, artId: id }));
+      }
     });
     return list.filter((c, i, arr) => arr.findIndex((x) => x.email === c.email) === i);
-  }, [selectedArts, tab]);
+  }, [selectedArts, tab, arts]);
 
   const emailsActivos = useMemo(
     () =>
@@ -129,7 +134,7 @@ export default function ARTComunicador() {
   if (!emailsActivos.length && selectedArts.size > 0)
     faltantes.push("📧 Activar al menos un destinatario");
 
-  // Handlers
+  // Handlers de ARTs
   const toggleArt = (id) =>
     setSelectedArts((prev) => {
       const next = new Set(prev);
@@ -137,7 +142,9 @@ export default function ARTComunicador() {
       return next;
     });
   const toggleAllArts = (all) =>
-    setSelectedArts(all ? new Set(PROVEEDORES.map((a) => a.id)) : new Set());
+    setSelectedArts(all ? new Set(arts.map((a) => a.id)) : new Set());
+
+  // Handlers de destinatarios
   const toggleDestinatario = (i) =>
     setDestinatariosOff((prev) => ({ ...prev, [`${i}`]: !prev[`${i}`] }));
   const toggleAllDestinatarios = (active) => {
@@ -150,12 +157,13 @@ export default function ARTComunicador() {
     });
   };
 
+  // Copiar y restaurar cuerpo
   const copiarCuerpo = async () => {
     try {
       await navigator.clipboard.writeText(cuerpoEditado);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 1600);
-    } catch { }
+    } catch {}
   };
   const restaurarCuerpo = () => {
     setCuerpoEditado(cuerpo);
@@ -169,10 +177,7 @@ export default function ARTComunicador() {
       setAccionesSeleccionadas(atajo.acciones);
     }
   };
-
-  const desactivarAtajo = () => {
-    setAtajoActivo(null);
-  };
+  const desactivarAtajo = () => setAtajoActivo(null);
 
   // Gestión de acciones (modal)
   const openNewAction = () => {
@@ -199,7 +204,7 @@ export default function ARTComunicador() {
       alert("ID y nombre son obligatorios");
       return;
     }
-    const url = `${FIREBASE_URL}/ART-MAILS/acciones/${formAction.id}.json`;
+    const url = `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones/${formAction.id}.json`;
     try {
       await fetch(url, {
         method: "PUT",
@@ -214,7 +219,7 @@ export default function ARTComunicador() {
           categoria: formAction.categoria,
         }),
       });
-      const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
+      const res = await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones.json`);
       const data = await res.json();
       if (data) {
         const lista = Object.entries(data).map(([id, val]) => ({
@@ -236,8 +241,10 @@ export default function ARTComunicador() {
   };
   const deleteAction = async (id) => {
     if (!confirm(`¿Eliminar la práctica "${id}"?`)) return;
-    await fetch(`${FIREBASE_URL}/ART-MAILS/acciones/${id}.json`, { method: "DELETE" });
-    const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
+    await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones/${id}.json`, {
+      method: "DELETE",
+    });
+    const res = await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones.json`);
     const data = await res.json();
     if (data) {
       const lista = Object.entries(data).map(([id, val]) => ({ id, ...val }));
@@ -268,8 +275,8 @@ export default function ARTComunicador() {
       };
       const method = editandoAtajo ? "PUT" : "POST";
       const url = editandoAtajo
-        ? `${FIREBASE_URL}/ART-MAILS/atajos/${editandoAtajo.id}.json`
-        : `${FIREBASE_URL}/ART-MAILS/atajos.json`;
+        ? `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos/${editandoAtajo.id}.json`
+        : `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos.json`;
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -282,10 +289,8 @@ export default function ARTComunicador() {
       setMostrarFormAtajo(false);
       setEditandoAtajo(null);
       recargarAtajos();
-      // Si no hay atajo activo, aplicar el nuevo atajo
       if (!atajoActivo) {
-        // Buscar el atajo recién creado en la lista actualizada y aplicarlo
-        const atajoGuardado = atajos.find(a => a.label === nuevoAtajo.label);
+        const atajoGuardado = atajos.find((a) => a.label === nuevoAtajo.label);
         if (atajoGuardado) aplicarAtajo(atajoGuardado);
       }
     } catch (err) {
@@ -294,10 +299,11 @@ export default function ARTComunicador() {
       setGuardandoAtajo(false);
     }
   };
-
   const eliminarAtajo = async (id) => {
     if (!confirm("¿Eliminar atajo?")) return;
-    await fetch(`${FIREBASE_URL}/ART-MAILS/atajos/${id}.json`, { method: "DELETE" });
+    await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos/${id}.json`, {
+      method: "DELETE",
+    });
     if (atajoActivo?.id === id) setAtajoActivo(null);
     recargarAtajos();
   };
@@ -326,6 +332,12 @@ export default function ARTComunicador() {
             💰 Facturación
           </button>
           <button
+            className={`${styles.modeTab} ${tab === "convenios" ? styles.modeTabOn : ""}`}
+            onClick={() => setTab("convenios")}
+          >
+            📄 Convenios
+          </button>
+          <button
             className={styles.tinyBtn}
             onClick={() => setMostrarGestionAcciones(true)}
             title="Gestionar prácticas y prestaciones"
@@ -335,13 +347,19 @@ export default function ARTComunicador() {
         </section>
       </header>
 
-     
-
       <div className={styles.mainContainer}>
 
-         {/* ARTs */}
-      <PasoArtes selectedArts={selectedArts} toggleArt={toggleArt} toggleAllArts={toggleAllArts} />
+        
+        {/* ARTS */}
+        <PasoArtes
+          arts={arts}
+          selectedArts={selectedArts}
+          toggleArt={toggleArt}
+          toggleAllArts={toggleAllArts}
+          onManageArts={() => setMostrarGestionArts(true)}
+        />
 
+        
         {/* ATAJOS DE MAIL */}
         <AtajosDeMail
           atajos={atajos}
@@ -359,7 +377,7 @@ export default function ARTComunicador() {
         />
 
 
-        {/* Paciente + Médico en línea horizontal */}
+        {/* Paciente + Médico */}
         <div className={styles.pacienteMedicoRow}>
           <PasoPaciente
             pacientes={pacientes}
@@ -367,10 +385,7 @@ export default function ARTComunicador() {
             paciente={paciente}
             setPaciente={setPaciente}
           />
-          <PasoMedico
-            medico={medico}
-            setMedico={setMedico}
-          />
+          <PasoMedico medico={medico} setMedico={setMedico} />
         </div>
 
         {/* ASUNTO GENERADO */}
@@ -426,6 +441,17 @@ export default function ARTComunicador() {
         />
       </div>
 
+      {/* MODAL GESTIONAR ARTs */}
+      {mostrarGestionArts && (
+        <GestionArts
+          arts={arts}
+          onAdd={addArt}
+          onUpdate={updateArt}
+          onDelete={deleteArt}
+          onClose={() => setMostrarGestionArts(false)}
+        />
+      )}
+
       {/* MODAL GESTIONAR PRÁCTICAS */}
       {mostrarGestionAcciones && (
         <div className={styles.formAtajoOverlay} onClick={() => setMostrarGestionAcciones(false)}>
@@ -475,9 +501,7 @@ export default function ARTComunicador() {
               </select>
             </div>
             <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>
-                Código (usa {"{medico}"} si es necesario)
-              </label>
+              <label className={styles.formAtajoLabel}>Código (usa {"{medico}"} si es necesario)</label>
               <textarea
                 className={styles.area}
                 rows={2}
@@ -514,10 +538,22 @@ export default function ARTComunicador() {
               <span>Seleccionada por defecto</span>
             </label>
             <div className={styles.formAtajoBtns}>
-              <button className={styles.formBtnSave} onClick={saveAction}>💾 Guardar</button>
-              <button className={styles.formBtnCancel} onClick={() => setMostrarGestionAcciones(false)}>Cancelar</button>
+              <button className={styles.formBtnSave} onClick={saveAction}>
+                💾 Guardar
+              </button>
+              <button className={styles.formBtnCancel} onClick={() => setMostrarGestionAcciones(false)}>
+                Cancelar
+              </button>
               {editActionId && (
-                <button className={styles.formBtnDelete} onClick={() => { deleteAction(editActionId); setMostrarGestionAcciones(false); }}>🗑 Eliminar</button>
+                <button
+                  className={styles.formBtnDelete}
+                  onClick={() => {
+                    deleteAction(editActionId);
+                    setMostrarGestionAcciones(false);
+                  }}
+                >
+                  🗑 Eliminar
+                </button>
               )}
             </div>
           </div>
@@ -569,10 +605,14 @@ export default function ARTComunicador() {
                   <button
                     key={accion.id}
                     type="button"
-                    className={`${styles.chip} ${nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""}`}
+                    className={`${styles.chip} ${
+                      nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""
+                    }`}
                     onClick={() =>
                       setNuevoAtajoAcciones((prev) =>
-                        prev.includes(accion.id) ? prev.filter((a) => a !== accion.id) : [...prev, accion.id]
+                        prev.includes(accion.id)
+                          ? prev.filter((a) => a !== accion.id)
+                          : [...prev, accion.id]
                       )
                     }
                   >
@@ -580,7 +620,9 @@ export default function ARTComunicador() {
                   </button>
                 ))}
               </div>
-              <p className={styles.formAtajoHint}>Estas acciones se seleccionan automáticamente al aplicar el atajo.</p>
+              <p className={styles.formAtajoHint}>
+                Estas acciones se seleccionan automáticamente al aplicar el atajo.
+              </p>
             </div>
             <div className={styles.formAtajoField}>
               <label className={styles.formAtajoLabel}>Cuerpo del mail</label>
@@ -592,12 +634,18 @@ export default function ARTComunicador() {
                 onChange={(e) => setNuevoAtajoCuerpo(e.target.value)}
               />
               <p className={styles.formAtajoHint}>
-                Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"}, {"{firma}"}
+                Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"},{" "}
+                {"{firma}"}
               </p>
             </div>
             {errorAtajo && <p className={styles.errorMsg}>{errorAtajo}</p>}
             <div className={styles.formAtajoBtns}>
-              <button type="button" className={styles.formBtnSave} onClick={guardarAtajo} disabled={guardandoAtajo}>
+              <button
+                type="button"
+                className={styles.formBtnSave}
+                onClick={guardarAtajo}
+                disabled={guardandoAtajo}
+              >
                 {guardandoAtajo ? "Guardando..." : "✅ Guardar atajo"}
               </button>
               <button

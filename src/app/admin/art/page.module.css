@@ -285,7 +285,8 @@
     flex-direction: row;
     gap: 16px;
   }
-  .pacienteMedicoRow > * {
+
+  .pacienteMedicoRow>* {
     flex: 1;
   }
 }
@@ -437,6 +438,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1307,6 +1309,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .modeTab,
   .artChip,
   .chip,
@@ -1324,4 +1327,15 @@
   .crearAtajoBtn {
     transition: none;
   }
+}
+
+.emailRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+
+.emailRow .inp {
+  flex: 1;
 }
