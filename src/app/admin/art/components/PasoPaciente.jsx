@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import styles from "../page.module.css";
 import { normalize } from "../utils/generadores";
 
@@ -26,50 +26,64 @@ export default function PasoPaciente({ pacientes, loading, paciente, setPaciente
     setShowSuggestions(false);
   };
 
+  const handleClear = () => {
+    setPaciente(null);
+    setSearchTerm("");
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
   return (
-    <div className={`${styles.block} ${styles.searchBlock} ${styles.blockHighlight}`}>
-      <div className={styles.blockTop}>
-        <p className={styles.blockLabel}>👤 2. Paciente</p>
-        {loading && <span className={styles.badge}>Cargando...</span>}
+    <div className={styles.pacienteWrapper}>
+      <div className={styles.fieldHeader}>
+        <span className={styles.fieldLabel}>👤 Paciente</span>
         {paciente && <span className={styles.checkBadge}>✓</span>}
+        {loading && <span className={styles.badge}>Cargando...</span>}
       </div>
-      <div className={styles.searchWrap}>
+
+      <div className={styles.searchWrapper}>
         <input
           ref={inputRef}
-          type="search"
-          className={styles.inp}
-          placeholder="🔍 Buscar por apellido, nombre, DNI o siniestro..."
+          type="text"
+          className={styles.searchInput}
+          placeholder="🔍 Buscar por nombre, DNI o siniestro..."
           value={searchTerm}
-          onChange={e => { setSearchTerm(e.target.value); setShowSuggestions(true); setPaciente(null); }}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setShowSuggestions(true);
+            if (paciente) setPaciente(null);
+          }}
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         />
-        {showSuggestions && filtered.length > 0 && (
-          <div className={styles.dropdown}>
-            <div className={styles.dropdownHeader}>{filtered.length} encontrado{filtered.length > 1 ? "s" : ""}</div>
-            {filtered.map(p => (
-              <button key={p.id} className={styles.dropItem} onMouseDown={() => handleSelect(p)}>
-                <span className={styles.dropName}>{p.fullName || "Sin nombre"}</span>
-                <span className={styles.dropMeta}>DNI {p.trabajador?.dni || "—"} · Stro {p.ART?.nroSiniestro || "—"} · {p.ART?.nombre || "Sin ART"}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        {showSuggestions && searchTerm && filtered.length === 0 && (
-          <div className={styles.dropdown}><p className={styles.emptyMsg}>No se encontró "{searchTerm}"</p></div>
+        {paciente && (
+          <button className={styles.clearBtn} onClick={handleClear}>✕</button>
         )}
       </div>
-      {paciente && (
-        <div className={styles.pacienteCard}>
-          <div className={styles.pacienteCardHeader}>
-            <span className={styles.pacienteNombre}>{paciente.fullName}</span>
-            <button className={styles.tinyBtn} onClick={() => { setPaciente(null); setSearchTerm(""); }}>✕ Cambiar</button>
-          </div>
-          <div className={styles.pacienteMeta}>
-            <span>🆔 DNI: <strong>{paciente.trabajador?.dni || "—"}</strong></span>
-            <span>📋 Stro: <strong>{paciente.ART?.nroSiniestro || "—"}</strong></span>
-            <span>🏢 ART: <strong>{paciente.ART?.nombre || "—"}</strong></span>
-          </div>
+
+      {showSuggestions && (
+        <div className={styles.dropdown}>
+          {filtered.length > 0 ? (
+            <>
+              <div className={styles.dropdownHeader}>
+                {filtered.length} resultado{filtered.length > 1 ? "s" : ""}
+              </div>
+              {filtered.map(p => (
+                <button
+                  key={p.id}
+                  className={styles.dropdownItem}
+                  onMouseDown={() => handleSelect(p)}
+                >
+                  <span className={styles.itemName}>{p.fullName || "Sin nombre"}</span>
+                  <span className={styles.itemMeta}>
+                    DNI {p.trabajador?.dni || "—"} · Stro {p.ART?.nroSiniestro || "—"}
+                  </span>
+                </button>
+              ))}
+            </>
+          ) : searchTerm ? (
+            <div className={styles.emptyState}>No se encontró "{searchTerm}"</div>
+          ) : null}
         </div>
       )}
     </div>

@@ -8,7 +8,7 @@ export default function PasoArtes({ selectedArts, toggleArt, toggleAllArts }) {
         <p className={styles.blockLabel}>🏢 1. ARTs / Aseguradoras</p>
         <div className={styles.blockBadges}>
           <span className={styles.blockHint}>{selectedArts.size} seleccionada(s)</span>
-          {selectedArts.size > 0 && <span className={styles.checkBadge}>✓</span>}
+          {/* Eliminado el checkBadge */}
         </div>
       </div>
       <div className={styles.toggleRow}>
