@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { FIREBASE_URL } from "../utils/irebase";
+import { FIREBASE_URL } from "../utils/firebase";
 
 export default function useAtajos() {
   const [atajos, setAtajos] = useState([]);

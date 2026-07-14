@@ -1,6 +1,6 @@
 // hooks/useArts.js
 import { useState, useEffect } from 'react';
-import { FIREBASE_URL } from '../utils/irebase';
+import { FIREBASE_URL } from '../utils/firebase';
 
 export default function useArts() {
   const [arts, setArts] = useState([]);
