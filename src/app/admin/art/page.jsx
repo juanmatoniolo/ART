@@ -14,6 +14,7 @@ import useAcciones from "./hooks/useAcciones";
 import useAtajos from "./hooks/useAtajos";
 import useArts from "./hooks/useArts";
 import { generarAsunto, generarCuerpo, buildGmailUrl } from "./utils/generadores";
+import { FIREBASE_URL } from "./utils/firebase";
 
 export default function ARTComunicador() {
   const [tab, setTab] = useState("siniestros");
@@ -204,7 +205,7 @@ export default function ARTComunicador() {
       alert("ID y nombre son obligatorios");
       return;
     }
-    const url = `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones/${formAction.id}.json`;
+    const url = `${FIREBASE_URL}/ART-MAILS/acciones/${formAction.id}.json`;
     try {
       await fetch(url, {
         method: "PUT",
@@ -219,7 +220,7 @@ export default function ARTComunicador() {
           categoria: formAction.categoria,
         }),
       });
-      const res = await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones.json`);
+      const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
       const data = await res.json();
       if (data) {
         const lista = Object.entries(data).map(([id, val]) => ({
@@ -241,10 +242,10 @@ export default function ARTComunicador() {
   };
   const deleteAction = async (id) => {
     if (!confirm(`¿Eliminar la práctica "${id}"?`)) return;
-    await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones/${id}.json`, {
+    await fetch(`${FIREBASE_URL}/ART-MAILS/acciones/${id}.json`, {
       method: "DELETE",
     });
-    const res = await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/acciones.json`);
+    const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
     const data = await res.json();
     if (data) {
       const lista = Object.entries(data).map(([id, val]) => ({ id, ...val }));
@@ -266,6 +267,7 @@ export default function ARTComunicador() {
       return;
     }
     setGuardandoAtajo(true);
+    
     try {
       const nuevoAtajo = {
         label: nuevoAtajoLabel.trim(),
@@ -273,35 +275,60 @@ export default function ARTComunicador() {
         acciones: nuevoAtajoAcciones,
         cuerpo: nuevoAtajoCuerpo.trim(),
       };
+      
       const method = editandoAtajo ? "PUT" : "POST";
       const url = editandoAtajo
-        ? `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos/${editandoAtajo.id}.json`
-        : `https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos.json`;
+        ? `${FIREBASE_URL}/ART-MAILS/atajos/${editandoAtajo.id}.json`
+        : `${FIREBASE_URL}/ART-MAILS/atajos.json`;
+      
+      console.log("📤 Enviando a:", url, "Método:", method);
+      
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoAtajo),
       });
-      if (!response.ok) throw new Error("No se pudo guardar el atajo");
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+        throw new Error("No se pudo guardar el atajo");
+      }
+      
+      let atajoGuardado = null;
+      if (!editandoAtajo) {
+        const data = await response.json();
+        atajoGuardado = { id: data.name, ...nuevoAtajo };
+        console.log("✅ Atajo creado:", atajoGuardado);
+      } else {
+        atajoGuardado = { id: editandoAtajo.id, ...nuevoAtajo };
+        console.log("✅ Atajo actualizado:", atajoGuardado);
+      }
+      
       setNuevoAtajoLabel("");
       setNuevoAtajoAsunto("");
+      setNuevoAtajoAcciones(["evolucion"]);
       setNuevoAtajoCuerpo("");
       setMostrarFormAtajo(false);
       setEditandoAtajo(null);
-      recargarAtajos();
+      
       if (!atajoActivo) {
-        const atajoGuardado = atajos.find((a) => a.label === nuevoAtajo.label);
-        if (atajoGuardado) aplicarAtajo(atajoGuardado);
+        aplicarAtajo(atajoGuardado);
       }
+      
+      await recargarAtajos();
+      
     } catch (err) {
-      setErrorAtajo("Error al guardar el atajo");
+      console.error("❌ Error completo:", err);
+      setErrorAtajo("Error al guardar el atajo: " + err.message);
     } finally {
       setGuardandoAtajo(false);
     }
   };
+
   const eliminarAtajo = async (id) => {
     if (!confirm("¿Eliminar atajo?")) return;
-    await fetch(`https://art-mails-7c92d-default-rtdb.firebaseio.com/ART-MAILS/atajos/${id}.json`, {
+    await fetch(`${FIREBASE_URL}/ART-MAILS/atajos/${id}.json`, {
       method: "DELETE",
     });
     if (atajoActivo?.id === id) setAtajoActivo(null);
@@ -348,7 +375,6 @@ export default function ARTComunicador() {
       </header>
 
       <div className={styles.mainContainer}>
-
         
         {/* ARTS */}
         <PasoArtes
@@ -358,7 +384,6 @@ export default function ARTComunicador() {
           toggleAllArts={toggleAllArts}
           onManageArts={() => setMostrarGestionArts(true)}
         />
-
         
         {/* ATAJOS DE MAIL */}
         <AtajosDeMail
@@ -375,7 +400,6 @@ export default function ARTComunicador() {
           setNuevoAtajoCuerpo={setNuevoAtajoCuerpo}
           eliminarAtajo={eliminarAtajo}
         />
-
 
         {/* Paciente + Médico */}
         <div className={styles.pacienteMedicoRow}>
