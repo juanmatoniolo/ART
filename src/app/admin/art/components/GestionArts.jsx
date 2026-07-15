@@ -7,6 +7,7 @@ export default function GestionArts({
   onUpdate, 
   onDelete, 
   onClose,
+  onSaved,   // nueva prop para notificar cambios al padre
 }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
@@ -51,6 +52,7 @@ export default function GestionArts({
         await onAdd(form);
       }
       resetForm();
+      onSaved && onSaved();   // avisar al padre que hubo cambios
       onClose();
     } catch (err) {
       alert('Error al guardar: ' + err.message);
@@ -83,6 +85,18 @@ export default function GestionArts({
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  // Manejador para eliminar una ART (con confirmación y callback onSaved)
+  const handleDelete = async () => {
+    if (!confirm('¿Eliminar ART?')) return;
+    try {
+      await onDelete(editingId);
+      onSaved && onSaved();
+      onClose();
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+    }
   };
 
   return (
@@ -148,7 +162,7 @@ export default function GestionArts({
               Cancelar
             </button>
             {editingId && (
-              <button type="button" className={styles.formBtnDelete} onClick={() => { if(confirm('¿Eliminar ART?')) onDelete(editingId); }}>
+              <button type="button" className={styles.formBtnDelete} onClick={handleDelete}>
                 🗑 Eliminar
               </button>
             )}

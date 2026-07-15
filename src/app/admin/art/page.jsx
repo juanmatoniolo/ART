@@ -1,3 +1,4 @@
+// src/app/admin/art/page.js
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -58,7 +59,25 @@ export default function ARTComunicador() {
     setAcciones: setAccionesDisponibles,
   } = useAcciones();
   const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
-  const { arts, loading: loadingArts, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
+  const { arts, loading: loadingArts, error: artsError, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
+
+  // Si hay error cargando ARTs, mostrar mensaje
+  if (artsError) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.errorContainer}>
+          <h2>⚠️ Error al cargar ARTs</h2>
+          <p>{artsError}</p>
+          <p style={{ fontSize: "14px", color: "#6b7280", marginTop: "8px" }}>
+            Verifica que la URL de Firebase sea correcta y que tengas conexión a internet.
+          </p>
+          <button onClick={refetchArts} className={styles.retryBtn}>
+            🔄 Reintentar
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   // Sincronizar defaults de acciones al cargar
   useEffect(() => {
@@ -97,11 +116,39 @@ export default function ARTComunicador() {
     selectedArts.forEach((id) => {
       const art = arts.find((p) => p.id === id);
       if (art) {
-        let emails = [];
-        if (tab === "siniestros") emails = art.siniestros || [];
-        else if (tab === "facturacion") emails = art.facturacion || [];
-        else emails = art.convenios || [];
-        emails.forEach((c) => list.push({ ...c, artId: id }));
+        // 1. Para "siniestros"
+        if (tab === "siniestros") {
+          let siniestros = art.siniestros;
+          if (typeof siniestros === "object" && !Array.isArray(siniestros)) {
+            siniestros = Object.values(siniestros);
+          }
+          const contactosArray = Array.isArray(siniestros) ? siniestros : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
+        }
+        // 2. Para "facturacion"
+        else if (tab === "facturacion") {
+          let facturacion = art.facturacion;
+          if (typeof facturacion === "object" && !Array.isArray(facturacion)) {
+            facturacion = Object.values(facturacion);
+          }
+          const contactosArray = Array.isArray(facturacion) ? facturacion : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
+        }
+        // 3. Para "convenios"
+        else {
+          let convenios = art.convenios;
+          if (typeof convenios === "object" && !Array.isArray(convenios)) {
+            convenios = Object.values(convenios);
+          }
+          const contactosArray = Array.isArray(convenios) ? convenios : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
+        }
       }
     });
     return list.filter((c, i, arr) => arr.findIndex((x) => x.email === c.email) === i);
@@ -164,7 +211,7 @@ export default function ARTComunicador() {
       await navigator.clipboard.writeText(cuerpoEditado);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 1600);
-    } catch {}
+    } catch { }
   };
   const restaurarCuerpo = () => {
     setCuerpoEditado(cuerpo);
@@ -267,7 +314,7 @@ export default function ARTComunicador() {
       return;
     }
     setGuardandoAtajo(true);
-    
+
     try {
       const nuevoAtajo = {
         label: nuevoAtajoLabel.trim(),
@@ -275,26 +322,26 @@ export default function ARTComunicador() {
         acciones: nuevoAtajoAcciones,
         cuerpo: nuevoAtajoCuerpo.trim(),
       };
-      
+
       const method = editandoAtajo ? "PUT" : "POST";
       const url = editandoAtajo
         ? `${FIREBASE_URL}/ART-MAILS/atajos/${editandoAtajo.id}.json`
         : `${FIREBASE_URL}/ART-MAILS/atajos.json`;
-      
+
       console.log("📤 Enviando a:", url, "Método:", method);
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoAtajo),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Error response:", errorText);
         throw new Error("No se pudo guardar el atajo");
       }
-      
+
       let atajoGuardado = null;
       if (!editandoAtajo) {
         const data = await response.json();
@@ -304,20 +351,20 @@ export default function ARTComunicador() {
         atajoGuardado = { id: editandoAtajo.id, ...nuevoAtajo };
         console.log("✅ Atajo actualizado:", atajoGuardado);
       }
-      
+
       setNuevoAtajoLabel("");
       setNuevoAtajoAsunto("");
       setNuevoAtajoAcciones(["evolucion"]);
       setNuevoAtajoCuerpo("");
       setMostrarFormAtajo(false);
       setEditandoAtajo(null);
-      
+
       if (!atajoActivo) {
         aplicarAtajo(atajoGuardado);
       }
-      
+
       await recargarAtajos();
-      
+
     } catch (err) {
       console.error("❌ Error completo:", err);
       setErrorAtajo("Error al guardar el atajo: " + err.message);
@@ -375,16 +422,16 @@ export default function ARTComunicador() {
       </header>
 
       <div className={styles.mainContainer}>
-        
         {/* ARTS */}
         <PasoArtes
           arts={arts}
+          loading={loadingArts}
           selectedArts={selectedArts}
           toggleArt={toggleArt}
           toggleAllArts={toggleAllArts}
           onManageArts={() => setMostrarGestionArts(true)}
         />
-        
+
         {/* ATAJOS DE MAIL */}
         <AtajosDeMail
           atajos={atajos}
@@ -446,8 +493,7 @@ export default function ARTComunicador() {
 
         {/* DESTINATARIOS */}
         <PasoDestinatarios
-          selectedArts={selectedArts}
-          tab={tab}
+          contactos={contactos}   // ← CORRECCIÓN: pasar contactos calculados
           destinatariosOff={destinatariosOff}
           toggleDestinatario={toggleDestinatario}
           toggleAllDestinatarios={toggleAllDestinatarios}
@@ -473,6 +519,7 @@ export default function ARTComunicador() {
           onUpdate={updateArt}
           onDelete={deleteArt}
           onClose={() => setMostrarGestionArts(false)}
+          onSaved={() => refetchArts()}   // ← CORRECCIÓN: refrescar lista al guardar/eliminar
         />
       )}
 
@@ -629,9 +676,8 @@ export default function ARTComunicador() {
                   <button
                     key={accion.id}
                     type="button"
-                    className={`${styles.chip} ${
-                      nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""
-                    }`}
+                    className={`${styles.chip} ${nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""
+                      }`}
                     onClick={() =>
                       setNuevoAtajoAcciones((prev) =>
                         prev.includes(accion.id)
