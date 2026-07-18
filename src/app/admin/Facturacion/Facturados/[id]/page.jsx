@@ -495,7 +495,8 @@ const PrintView = React.forwardRef(({
 PrintView.displayName = 'PrintView';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Vista de impresión solo Medicamentos + Descartables + Laboratorio (mejorada)
+//  Vista de impresión solo Medicamentos + Descartables + Laboratorio
+//  (con pie institucional de la clínica)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrintMedDescLabView = React.forwardRef(({
   paciente,
@@ -639,18 +640,21 @@ const PrintMedDescLabView = React.forwardRef(({
         </div>
       </div>
 
-      {/* Firma */}
-      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 40 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              borderBottom: '1.5px solid #1e293b',
-              width: 200,
-              marginBottom: 6,
-              height: 40,
-            }}
-          />
-          <span>Firma y sello – Administración</span>
+      {/* Firma institucional (Clínica de la Unión) */}
+      <div style={{ marginTop: 40, textAlign: 'center' }}>
+        <div
+          style={{
+            borderBottom: '1.5px solid #1e293b',
+            width: 240,
+            margin: '0 auto 8px',
+            height: 40,
+          }}
+        />
+        <div style={{ fontWeight: 600, marginBottom: 2 }}>Firma y sello del responsable</div>
+        <div style={{ fontWeight: 500 }}>Clínica de la Unión</div>
+        <div style={{ fontSize: '0.9em' }}>Clínica de la Unión S.A.</div>
+        <div style={{ fontSize: '0.85em', color: '#4b5563' }}>
+          Chajarí, Entre Ríos - Av. Siburu 1085
         </div>
       </div>
     </div>
@@ -869,8 +873,6 @@ export default function FacturadoDetallePage() {
   const estado = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
   const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
-  // Para los medicamentos y descartables podemos pasar los arrays ya procesados
-  // (gastoMedicamentos, gastoDescartables) porque esa vista solo necesita la descripción, cant, unit, total.
   return (
     <div className={styles.container}>
       <div className={styles.screenView}>
@@ -916,13 +918,13 @@ export default function FacturadoDetallePage() {
         artNombre={artNombre}
       />
 
-      {/* Vista impresión Med+Desc+Lab: ahora pasamos arrays procesados */}
+      {/* Vista impresión Med+Desc+Lab: arrays procesados + pie institucional */}
       <PrintMedDescLabView
         ref={printMedDescRef}
         paciente={paciente}
-        medicamentos={gastoMedicamentos}        // ya procesado
-        descartables={gastoDescartables}        // ya procesado
-        laboratorios={honorLaboratorios}        // ya procesado (contiene doctor)
+        medicamentos={gastoMedicamentos}
+        descartables={gastoDescartables}
+        laboratorios={honorLaboratorios}
         artNombre={artNombre}
       />
     </div>
