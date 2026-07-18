@@ -103,7 +103,8 @@ const getArtImage = (artName) => {
     normalized.includes('victoriaseguro') ||
     normalized.includes('victoriaseguros')
   ) {
-    return `${baseUrl}/img-art/vicotriaart.png`;
+    // Corregido: antes era "vicotriaart.png"
+    return `${baseUrl}/img-art/victoriaart.png`;
   }
 
   console.warn('Logo ART no mapeado:', { artName: raw, normalized });
@@ -126,6 +127,7 @@ function csvEscape(s) {
 }
 
 function buildCsv({ paciente, estado, item, honorRows, gastoRows }) {
+  // Pendiente de implementar
   return '';
 }
 
@@ -493,13 +495,13 @@ const PrintView = React.forwardRef(({
 PrintView.displayName = 'PrintView';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Vista de impresión solo Medicamentos + Descartables + Laboratorio
+//  Vista de impresión solo Medicamentos + Descartables + Laboratorio (mejorada)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrintMedDescLabView = React.forwardRef(({
   paciente,
   medicamentos,
   descartables,
-  laboratorios,
+  laboratorios,  // ← ahora recibe el array ya procesado (honorLaboratorios)
   artNombre,
 }, ref) => {
   const artImageUrl = getArtImage(artNombre);
@@ -512,7 +514,7 @@ const PrintMedDescLabView = React.forwardRef(({
   const dniFormateado = formatDNI(paciente?.dni);
   const siniestro = paciente?.nroSiniestro || '—';
 
-  // Unimos medicamentos y descartables
+  // Medicamentos y descartables unidos (vienen procesados como gasto)
   const medDesc = [
     ...(Array.isArray(medicamentos) ? medicamentos : []),
     ...(Array.isArray(descartables) ? descartables : []),
@@ -525,31 +527,20 @@ const PrintMedDescLabView = React.forwardRef(({
     { label: 'Total', field: 'total', className: styles.printNumber }
   ];
 
+  // Laboratorio procesado: tiene desc, origen, unidades, unit, total
   const labColumns = [
     { label: 'Código – Estudio', field: 'desc' },
     { label: 'Bioquímico/a', field: 'origen' },
     { label: 'Cant.', field: 'unidades', className: styles.printNumber },
-    { label: 'UB', field: 'ub', className: styles.printNumber },
+    { label: 'UB', field: 'unit', className: styles.printNumber },
     { label: 'Total', field: 'total', className: styles.printNumber }
   ];
 
-  const labRows = (Array.isArray(laboratorios) ? laboratorios : []).map(l => {
-    const codigo = l.codigo || l.code || '';
-    const nombre = l.nombre || l.descripcion || l.practica || '—';
-    return {
-      desc: codigo ? `${codigo} — ${nombre}` : nombre,
-      origen: l.doctor || l.bioquimico || l.prestador || '—',
-      unidades: l.cantidad ?? 1,
-      ub: l.unidadBioquimica ?? l.ub ?? 0,
-      total: l.honorarioMedico ?? l.total ?? 0,
-    };
-  });
-
-  const totalMedDesc = medDesc.reduce(
-    (sum, m) => sum + safeNum(m.gastoSanatorial ?? m.total ?? 0),
+  const totalMedDesc = medDesc.reduce((sum, m) => sum + safeNum(m.total), 0);
+  const totalLab = (Array.isArray(laboratorios) ? laboratorios : []).reduce(
+    (sum, l) => sum + safeNum(l.total),
     0
   );
-  const totalLab = labRows.reduce((sum, l) => sum + safeNum(l.total), 0);
   const totalGeneral = totalMedDesc + totalLab;
 
   return (
@@ -557,7 +548,6 @@ const PrintMedDescLabView = React.forwardRef(({
       <div className={styles.printHeaderRow}>
         <div className={styles.printPatientData}>
           <div className={styles.printPatientName}>{nombreCompleto}</div>
-          {/* DNI más grande y en negrita */}
           <div className={styles.printPatientDni} style={{ fontSize: '12pt', fontWeight: 'bold' }}>
             DNI {dniFormateado}
           </div>
@@ -588,31 +578,21 @@ const PrintMedDescLabView = React.forwardRef(({
               </tr>
             </thead>
             <tbody>
-              {medDesc.map((item, idx) => {
-                const qty = item.cantidad ?? 1;
-                // ✅ Se evita el error separando ?? y ||
-                const rawUnit = item.valorUnitario ?? (qty > 0 ? item.total / qty : 0);
-                const unit = rawUnit || 0;
-                const total = item.gastoSanatorial ?? item.total ?? 0;
-                const descripcion =
-                  (item.nombre || item.descripcion || '—') +
-                  (item.presentacion ? ` (${item.presentacion})` : '');
-                return (
-                  <tr key={idx}>
-                    <td>{descripcion}</td>
-                    <td className={styles.printNumber}>{qty}</td>
-                    <td className={styles.printNumber}>$ {money(unit)}</td>
-                    <td className={styles.printNumber}>$ {money(total)}</td>
-                  </tr>
-                );
-              })}
+              {medDesc.map((item, idx) => (
+                <tr key={idx}>
+                  <td>{item.desc}</td>
+                  <td className={styles.printNumber}>{item.unidades}</td>
+                  <td className={styles.printNumber}>$ {money(item.unit)}</td>
+                  <td className={styles.printNumber}>$ {money(item.total)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Laboratorio */}
-      {labRows.length > 0 && (
+      {/* Laboratorio (procesado) */}
+      {Array.isArray(laboratorios) && laboratorios.length > 0 && (
         <div className={styles.printSectionCompact}>
           <div className={styles.printSectionTitle}>
             LABORATORIO — Total: $ {money(totalLab)}
@@ -626,12 +606,12 @@ const PrintMedDescLabView = React.forwardRef(({
               </tr>
             </thead>
             <tbody>
-              {labRows.map((lab, idx) => (
+              {laboratorios.map((lab, idx) => (
                 <tr key={idx}>
                   <td>{lab.desc}</td>
                   <td>{lab.origen}</td>
                   <td className={styles.printNumber}>{lab.unidades}</td>
-                  <td className={styles.printNumber}>$ {money(lab.ub)}</td>
+                  <td className={styles.printNumber}>$ {money(lab.unit)}</td>
                   <td className={styles.printNumber}>$ {money(lab.total)}</td>
                 </tr>
               ))}
@@ -647,7 +627,7 @@ const PrintMedDescLabView = React.forwardRef(({
           <span>Subtotal Medicación y Descartables:</span>
           <span>$ {money(totalMedDesc)}</span>
         </div>
-        {labRows.length > 0 && (
+        {totalLab > 0 && (
           <div className={styles.printTotalLine}>
             <span>Subtotal Laboratorio:</span>
             <span>$ {money(totalLab)}</span>
@@ -658,7 +638,6 @@ const PrintMedDescLabView = React.forwardRef(({
           <span>$ {money(totalGeneral)}</span>
         </div>
       </div>
-
 
       {/* Firma */}
       <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 40 }}>
@@ -890,8 +869,8 @@ export default function FacturadoDetallePage() {
   const estado = item.estado || (item.cerradoAt ? 'cerrado' : 'borrador');
   const artNombre = item.artNombre || paciente.artSeguro || item.convenioNombre || 'SIN ART';
 
-  const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
-
+  // Para los medicamentos y descartables podemos pasar los arrays ya procesados
+  // (gastoMedicamentos, gastoDescartables) porque esa vista solo necesita la descripción, cant, unit, total.
   return (
     <div className={styles.container}>
       <div className={styles.screenView}>
@@ -937,13 +916,13 @@ export default function FacturadoDetallePage() {
         artNombre={artNombre}
       />
 
-      {/* Vista impresión Med+Desc+Lab (oculta en pantalla) */}
+      {/* Vista impresión Med+Desc+Lab: ahora pasamos arrays procesados */}
       <PrintMedDescLabView
         ref={printMedDescRef}
         paciente={paciente}
-        medicamentos={toArr(item.medicamentos)}
-        descartables={toArr(item.descartables)}
-        laboratorios={toArr(item.laboratorios)}
+        medicamentos={gastoMedicamentos}        // ya procesado
+        descartables={gastoDescartables}        // ya procesado
+        laboratorios={honorLaboratorios}        // ya procesado (contiene doctor)
         artNombre={artNombre}
       />
     </div>
