@@ -31,7 +31,7 @@ const normCode = (c) => String(c ?? '').replace(/\D/g, '');
 
 // Detecta si una práctica es ecografía (capítulo 18), EXCEPTO las que tienen meta especial
 const isEcografia = (practica) => {
-  if (practica?.meta?.kind === 'especial') return false; // ecografías con valor propio no entran aquí
+  if (practica?.meta?.kind === 'especial') return false;
   return String(practica?.capitulo ?? '') === '18';
 };
 
@@ -124,7 +124,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   };
 
   // ============================================================
-  //  FUNCIÓN DE CÁLCULO (incluye FKT y FKT+MGT)
+  //  FUNCIÓN DE CÁLCULO (incluye FKT, FKT+MGT y capítulo 12)
   // ============================================================
   const getCalculo = useCallback((practica) => {
     if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
@@ -161,22 +161,22 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     }
 
     // Caso especial: código 400101 → honorario y gasto por separado, pero con bandera de unificación
-if (practica.codigo === '400101') {
-  const gal = parseFloat(practica.q_gal) || 0;   // 39.75
-  const gto = parseFloat(practica.gto) || 0;     // 196
-  const pension = parseFloat(valoresConvenio['Pension']) || 0;
-  const galenoRx = parseFloat(valoresConvenio['Galeno_Rx_Practica']) || 0;
+    if (practica.codigo === '400101') {
+      const gal = parseFloat(practica.q_gal) || 0;
+      const gto = parseFloat(practica.gto) || 0;
+      const pension = parseFloat(valoresConvenio['Pension']) || 0;
+      const galenoRx = parseFloat(valoresConvenio['Galeno_Rx_Practica']) || 0;
 
-  const totalGasto = (gto * pension) + (gal * galenoRx) + (10 * pension);
+      const totalGasto = (gto * pension) + (gal * galenoRx) + (10 * pension);
 
-  return {
-    honorarioMedico: 0,
-    gastoSanatorial: totalGasto,
-    soloHonorario: false,
-    soloGasto: true,
-    // ya no necesitamos unificar, porque es solo gasto
-  };
-}
+      return {
+        honorarioMedico: 0,
+        gastoSanatorial: totalGasto,
+        soloHonorario: false,
+        soloGasto: true,
+      };
+    }
+
     // Caso especial: código 431107 (Oxígeno en terapia) – gasto fijo, sin honorario
     if (practica.codigo === '431107') {
       return {
@@ -207,6 +207,22 @@ if (practica.codigo === '400101') {
       };
     }
 
+    // ============================================================
+    //  🆕 CAPÍTULO 12 (Cirugías): Gasto Operatorio × gto y Galeno Quir × q_gal
+    // ============================================================
+    if (String(practica.capitulo) === '12') {
+      const gastoOperatorio = Number(valoresConvenio['Gasto_Operatorio']) || 0;
+      const galenoQuir = Number(valoresConvenio['Galeno_Quir']) || 0;
+      const honorario = galenoQuir * (practica.q_gal || 0);
+      const gasto = gastoOperatorio * (practica.gto || 0);
+      return {
+        honorarioMedico: honorario,
+        gastoSanatorial: gasto,
+        soloHonorario: false,
+        soloGasto: false,
+      };
+    }
+
     // --- Radiografías (Capítulo 34) ---
     if (practica.capitulo === '34' || (practica.capituloNombre && practica.capituloNombre.toLowerCase().includes('radiolog'))) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
@@ -224,7 +240,6 @@ if (practica.codigo === '400101') {
     }
 
     // --- Ecografías (Capítulo 18) sin meta especial ---
-    // Todo va al médico: galeno_rx × q_gal + gasto_rx × gto (honorario completo, sin gasto sanatorial)
     if (isEcografia(practica)) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
       const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
@@ -407,7 +422,6 @@ if (practica.codigo === '400101') {
         __key: 'custom-oxigeno'
       });
 
-      // ================== NUEVAS PRÁCTICAS ==================
       // FKT (Kinesiología)
       if (valoresConvenio['FKT'] && Number(valoresConvenio['FKT']) > 0) {
         picked.push({
@@ -445,7 +459,7 @@ if (practica.codigo === '400101') {
   }, [data, valoresConvenio]);
 
   // ============================================================
-  //  RESULTADOS DE BÚSQUEDA (sin cambios)
+  //  RESULTADOS DE BÚSQUEDA
   // ============================================================
   const resultadosBusqueda = useMemo(() => {
     const q = debouncedQuery.trim();
@@ -482,7 +496,7 @@ if (practica.codigo === '400101') {
   }, [debouncedQuery, defaultResultados, resultadosBusqueda]);
 
   // ============================================================
-  //  RENDERIZADO (sin cambios, ya maneja las nuevas prácticas)
+  //  RENDERIZADO (con columna Total y capítulo 12 corregido)
   // ============================================================
   const renderItem = (item, isMobile = false, qLocal = '') => {
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
@@ -492,8 +506,8 @@ if (practica.codigo === '400101') {
     const esECG = item.codigo === '17.01.01';
     const es400101 = item.codigo === '400101';
     const esEco18 = isEcografia(item);
-    // Detectamos si es FKT o FKT+MGT
     const esFKT = item.codigo === 'FKT' || item.codigo === 'FKT_+_MGT';
+    const esCapitulo12 = String(item.capitulo) === '12'; // para mostrar etiquetas
 
     const calculo = getCalculo(item);
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
@@ -519,6 +533,12 @@ if (practica.codigo === '400101') {
           {esEco18 && (
             <div className={styles.ecoBadge}>
               🩺 Honorario completo al médico (Galeno Rx × UVR + Gasto Rx × Gto)
+            </div>
+          )}
+
+          {esCapitulo12 && !esArtroscopia && (
+            <div className={styles.cap12Badge}>
+              ⚙️ Cirugía: Gasto Operatorio × {item.gto || 0} = {money(calculo.gastoSanatorial)}
             </div>
           )}
 
@@ -587,13 +607,26 @@ if (practica.codigo === '400101') {
               <span className={styles.costLabel}>Honorario</span>
               {es400101 && <div className={styles.baseLine}>Gal: {money(item.q_gal || 0)}</div>}
               {esEco18 && <div className={styles.baseLine}>UVR: {item.q_gal || 0} / Gto: {item.gto || 0}</div>}
+              {esCapitulo12 && <div className={styles.baseLine}>Gal. Quir × {item.q_gal || 0}</div>}
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
 
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
               {es400101 && <div className={styles.baseLine}>Gto: {money(item.gto || 0)}</div>}
+              {esCapitulo12 && <div className={styles.baseLine}>G. Oper. × {item.gto || 0}</div>}
               <span className={styles.costValue}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</span>
+            </div>
+
+            {/* NUEVO: Total en mobile */}
+            <div className={styles.costBox}>
+              <span className={styles.costLabel}>Total</span>
+              <span className={styles.costValue}>
+                {esEco18 || esFKT
+                  ? money(calculo.honorarioMedico)
+                  : money(calculo.honorarioMedico + calculo.gastoSanatorial)
+                }
+              </span>
             </div>
           </div>
 
@@ -606,6 +639,7 @@ if (practica.codigo === '400101') {
       );
     }
 
+    // Vista de escritorio (tabla)
     return (
       <tr
         key={key}
@@ -672,6 +706,12 @@ if (practica.codigo === '400101') {
               </label>
             </div>
           )}
+          {/* Etiqueta pequeña para capítulo 12 */}
+          {esCapitulo12 && !esArtroscopia && (
+            <div className={styles.cap12Note}>
+              ⚙️ Gasto = G. Oper. × {item.gto || 0} = {money(calculo.gastoSanatorial)}
+            </div>
+          )}
         </td>
         <td className={styles.capCell}>
           <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
@@ -681,7 +721,9 @@ if (practica.codigo === '400101') {
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
-              : `Gal: ${money(item.q_gal || 0)}`
+              : esCapitulo12
+                ? `Gal. Quir × ${item.q_gal || 0}`
+                : `Gal: ${money(item.q_gal || 0)}`
             }
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
@@ -691,10 +733,22 @@ if (practica.codigo === '400101') {
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
-              : money(item.gto || 0)
+              : esCapitulo12
+                ? `G. Oper. × ${item.gto || 0}`
+                : money(item.gto || 0)
             }
           </div>
           <div className={styles.valueBig}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</div>
+        </td>
+
+        {/* NUEVO: Columna Total en tabla */}
+        <td className={styles.numericCell}>
+          <div className={styles.valueBig}>
+            {esEco18 || esFKT
+              ? money(calculo.honorarioMedico)
+              : money(calculo.honorarioMedico + calculo.gastoSanatorial)
+            }
+          </div>
         </td>
 
         <td className={styles.actionCell}>
@@ -779,6 +833,7 @@ if (practica.codigo === '400101') {
                   <th className={styles.thCap}>Capítulo</th>
                   <th className={styles.thNum}>Honorario</th>
                   <th className={styles.thNum}>Gasto</th>
+                  <th className={styles.thNum}>Total</th>   {/* NUEVA COLUMNA */}
                   <th className={styles.thAction}>Agregar</th>
                 </tr>
               </thead>
@@ -786,7 +841,7 @@ if (practica.codigo === '400101') {
               <tbody>
                 {resultados.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className={styles.noResultsCell}>
+                    <td colSpan={7} className={styles.noResultsCell}>   {/* colSpan ajustado a 7 */}
                       {qTrim === '' ? 'No se encontraron accesos rápidos.' : `No hay resultados para "${qTrim}"`}
                     </td>
                   </tr>
