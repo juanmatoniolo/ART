@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   VARIABLES Y ESTILOS BASE (mobile-first)
+   VARIABLES Y ESTILOS BASE (mobile‑first)
    ══════════════════════════════════════════════════════════════ */
 .page {
   --verde: #44794d;
@@ -106,15 +106,45 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CONTENEDOR PRINCIPAL (una sola columna)
+   LAYOUT DE DOS COLUMNAS
    ══════════════════════════════════════════════════════════════ */
-.mainContainer {
+.pageLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mainContent {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+}
+
+.sidebar {
+  order: 1;
+}
+
+@media (min-width: 1024px) {
+  .pageLayout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .mainContent {
+    gap: 18px;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    order: 0;
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 14px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -174,7 +204,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   INPUTS Y ÁREAS (para Asunto y Cuerpo)
+   INPUTS Y ÁREAS
    ══════════════════════════════════════════════════════════════ */
 .inp,
 .area {
@@ -272,7 +302,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   BÚSQUEDA – PACIENTE Y MÉDICO (en línea horizontal)
+   BÚSQUEDA – PACIENTE Y MÉDICO
    ══════════════════════════════════════════════════════════════ */
 .pacienteMedicoRow {
   display: flex;
@@ -286,7 +316,7 @@
     gap: 16px;
   }
 
-  .pacienteMedicoRow>* {
+  .pacienteMedicoRow > * {
     flex: 1;
   }
 }
@@ -363,7 +393,6 @@
   color: #f8fafc;
 }
 
-/* Dropdown simple (sin portal) */
 .dropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -438,19 +467,16 @@
     opacity: 0;
     transform: translateY(-4px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Tarjeta de elemento seleccionado (oculta) */
 .selectedCard {
   display: none;
 }
 
-/* Badges */
 .checkBadge {
   display: inline-flex;
   align-items: center;
@@ -665,18 +691,6 @@
   text-align: right;
 }
 
-.emptyState {
-  text-align: center;
-  padding: 20px 12px;
-  color: #64748b;
-}
-
-.emptyStateIcon {
-  font-size: 28px;
-  display: block;
-  margin-bottom: 6px;
-}
-
 /* ══════════════════════════════════════════════════════════════
    BOTÓN ENVIAR
    ══════════════════════════════════════════════════════════════ */
@@ -716,7 +730,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CAJAS DE ESTADO (ready, required, adjuntos)
+   CAJAS DE ESTADO
    ══════════════════════════════════════════════════════════════ */
 .readyBox {
   padding: 14px;
@@ -850,14 +864,14 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ATAJOS DE MAIL – VERSIÓN COMPACTA (con botón Aplicar al lado)
+   ATAJOS DE MAIL – ACORDEÓN GLOBAL + FILTRO + LISTA SCROLL
    ══════════════════════════════════════════════════════════════ */
 .atajosWrapper {
   display: flex;
   flex-direction: column;
 }
 
-/* Filtro de búsqueda */
+/* Filtro siempre visible (incluso cuando el acordeón está cerrado) */
 .atajosFilter {
   margin-bottom: 8px;
 }
@@ -883,31 +897,31 @@
   color: #64748b;
 }
 
-/* Lista de atajos */
-.atajosList {
+/* Lista con scroll interno (se muestra solo cuando el acordeón está abierto) */
+.atajosAccordion {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 320px;
+  max-height: 400px;
   overflow-y: auto;
   padding-right: 4px;
   margin-bottom: 6px;
 }
 
-.atajosList::-webkit-scrollbar {
+.atajosAccordion::-webkit-scrollbar {
   width: 5px;
 }
 
-.atajosList::-webkit-scrollbar-thumb {
+.atajosAccordion::-webkit-scrollbar-thumb {
   background: #475569;
   border-radius: 999px;
 }
 
-.atajosList::-webkit-scrollbar-track {
+.atajosAccordion::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Tarjeta de atajo */
+/* Tarjeta individual */
 .atajoCard {
   border: 1.5px solid rgba(71, 85, 105, 0.5);
   border-radius: 10px;
@@ -927,13 +941,27 @@
   box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
 }
 
-/* Encabezado: nombre a la izquierda, acciones a la derecha */
+/* Efecto visual al arrastrar */
+.atajoCardDragOver {
+  border-color: #60a5fa !important;
+  background: rgba(37, 99, 235, 0.2) !important;
+  transform: scale(1.02);
+  transition: transform 0.1s;
+}
+
 .atajoCardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.atajoCardHeader:hover {
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .atajoNombre {
@@ -946,7 +974,6 @@
   max-width: 60%;
 }
 
-/* Contenedor de botones: Aplicar, Editar, Eliminar */
 .atajoCardActions {
   display: flex;
   align-items: center;
@@ -954,7 +981,6 @@
   flex-shrink: 0;
 }
 
-/* Botón Aplicar (con texto, compacto) */
 .aplicarBtn {
   background: rgba(37, 99, 235, 0.2);
   border: 1.5px solid rgba(96, 165, 250, 0.3);
@@ -967,7 +993,6 @@
   transition: all 0.15s;
   white-space: nowrap;
   width: 7em;
-  margin-left: 1em;
 }
 
 .aplicarBtn:hover {
@@ -987,7 +1012,6 @@
   border-color: #4ade80;
 }
 
-/* Botones Editar y Eliminar */
 .atajoEdit,
 .atajoDelete {
   width: 28px;
@@ -1015,11 +1039,12 @@
   color: #fca5a5;
 }
 
-/* Cuerpo del atajo (preview) */
+/* (Opcional) si se usa el cuerpo expandido por tarjeta – ya no se usa en el acordeón global, pero se mantiene por compatibilidad */
 .atajoCardBody {
-  padding: 6px 12px 10px;
-  border-top: 1px solid rgba(71, 85, 105, 0.15);
-  background: rgba(0, 0, 0, 0.05);
+  padding: 8px 12px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  animation: fadeSlide 0.15s ease-out;
 }
 
 .atajoPreview {
@@ -1033,7 +1058,6 @@
   color: #cbd5e1;
 }
 
-/* Botón "Crear nuevo atajo" */
 .crearAtajoBtn {
   width: 100%;
   padding: 10px;
@@ -1055,7 +1079,6 @@
   border-color: #16a34a;
 }
 
-/* Botón "Desactivar atajo" */
 .desactivarAtajoBtn {
   width: 100%;
   margin-top: 8px;
@@ -1083,7 +1106,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   MODALES
+   MODALES (formulario de atajo, gestión de acciones, etc.)
    ══════════════════════════════════════════════════════════════ */
 .formAtajoOverlay {
   position: fixed;
@@ -1217,13 +1240,13 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   SCROLLBARS
+   SCROLLBARS (global)
    ══════════════════════════════════════════════════════════════ */
 .dropdown::-webkit-scrollbar,
 .area::-webkit-scrollbar,
 .formAtajo::-webkit-scrollbar,
 .recipientsList::-webkit-scrollbar,
-.atajosList::-webkit-scrollbar {
+.atajosAccordion::-webkit-scrollbar {
   width: 6px;
 }
 
@@ -1231,7 +1254,7 @@
 .area::-webkit-scrollbar-track,
 .formAtajo::-webkit-scrollbar-track,
 .recipientsList::-webkit-scrollbar-track,
-.atajosList::-webkit-scrollbar-track {
+.atajosAccordion::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.5);
   border-radius: 999px;
 }
@@ -1240,7 +1263,7 @@
 .area::-webkit-scrollbar-thumb,
 .formAtajo::-webkit-scrollbar-thumb,
 .recipientsList::-webkit-scrollbar-thumb,
-.atajosList::-webkit-scrollbar-thumb {
+.atajosAccordion::-webkit-scrollbar-thumb {
   background: #475569;
   border-radius: 999px;
 }
@@ -1281,7 +1304,7 @@
     font-size: 13px;
   }
 
-  .mainContainer {
+  .mainContent {
     gap: 18px;
   }
 }
@@ -1302,14 +1325,9 @@
   .area {
     min-height: 260px;
   }
-
-  .mainContainer {
-    max-width: 1000px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   .modeTab,
   .artChip,
   .chip,
@@ -1329,6 +1347,9 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   UTILIDADES AUXILIARES (modales, etc.)
+   ══════════════════════════════════════════════════════════════ */
 .emailRow {
   display: flex;
   gap: 6px;
@@ -1339,9 +1360,6 @@
 .emailRow .inp {
   flex: 1;
 }
-
-
-/* En page.module.css - agrega estos estilos si no están */
 
 .modalOverlay {
   position: fixed;

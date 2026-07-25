@@ -3,14 +3,8 @@ import styles from "../page.module.css";
 export default function ResumenEnvio({ canSend, gmailUrl, faltantes, adjuntosRecordatorio, asunto, emailsActivos, paciente }) {
   return (
     <>
-      <a
-        href={canSend ? gmailUrl : "#"}
-        className={`${styles.sendBtn} ${!canSend ? styles.sendBtnOff : ""}`}
-        onClick={e => !canSend && e.preventDefault()}
-        target="_blank" rel="noopener noreferrer"
-      >
-        {canSend ? "🚀 Abrir Gmail con mail listo" : "🔒 Completá los pasos"}
-      </a>
+
+
       {!canSend && faltantes.length > 0 && (
         <div className={styles.requiredBox}>
           <p className={styles.requiredTitle}>⚠️ Faltan:</p>
@@ -36,6 +30,14 @@ export default function ResumenEnvio({ canSend, gmailUrl, faltantes, adjuntosRec
           <div className={styles.resumenLine}><span className={styles.resumenLabel}>Asunto:</span><span className={styles.resumenValue}>{asunto}</span></div>
         </div>
       )}
+            <a
+        href={canSend ? gmailUrl : "#"}
+        className={`${styles.sendBtn} ${!canSend ? styles.sendBtnOff : ""}`}
+        onClick={e => !canSend && e.preventDefault()}
+        target="_blank" rel="noopener noreferrer"
+      >
+        {canSend ? "🚀 Abrir Gmail con mail listo" : "🔒 Completá los pasos"}
+      </a>
     </>
   );
 }

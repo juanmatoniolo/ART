@@ -384,6 +384,7 @@ export default function ARTComunicador() {
 
   return (
     <main className={styles.page}>
+
       <header className={styles.topBar}>
         <div className={styles.topLeft}>
           <div className={styles.topIcon}>📧</div>
@@ -421,94 +422,98 @@ export default function ARTComunicador() {
         </section>
       </header>
 
-      <div className={styles.mainContainer}>
-        {/* ARTS */}
-        <PasoArtes
-          arts={arts}
-          loading={loadingArts}
-          selectedArts={selectedArts}
-          toggleArt={toggleArt}
-          toggleAllArts={toggleAllArts}
-          onManageArts={() => setMostrarGestionArts(true)}
-        />
-
-        {/* ATAJOS DE MAIL */}
-        <AtajosDeMail
-          atajos={atajos}
-          loading={loadingAtajos}
-          atajoActivo={atajoActivo}
-          aplicarAtajo={aplicarAtajo}
-          desactivarAtajo={desactivarAtajo}
-          setMostrarFormAtajo={setMostrarFormAtajo}
-          setEditandoAtajo={setEditandoAtajo}
-          setNuevoAtajoLabel={setNuevoAtajoLabel}
-          setNuevoAtajoAsunto={setNuevoAtajoAsunto}
-          setNuevoAtajoAcciones={setNuevoAtajoAcciones}
-          setNuevoAtajoCuerpo={setNuevoAtajoCuerpo}
-          eliminarAtajo={eliminarAtajo}
-        />
-
-        {/* Paciente + Médico */}
-        <div className={styles.pacienteMedicoRow}>
-          <PasoPaciente
-            pacientes={pacientes}
-            loading={loadingPacientes}
-            paciente={paciente}
-            setPaciente={setPaciente}
+      <div className={styles.pageLayout}>
+        {/* Columna principal */}
+        <div className={styles.mainContent}>
+          {/* ARTS */}
+          <PasoArtes
+            arts={arts}
+            loading={loadingArts}
+            selectedArts={selectedArts}
+            toggleArt={toggleArt}
+            toggleAllArts={toggleAllArts}
+            onManageArts={() => setMostrarGestionArts(true)}
           />
-          <PasoMedico medico={medico} setMedico={setMedico} />
-        </div>
-
-        {/* ASUNTO GENERADO */}
-        <div className={styles.block}>
-          <div className={styles.blockTop}>
-            <p className={styles.blockLabel}>📝 Asunto generado</p>
-            {atajoActivo && <span className={styles.badge}>⚡ {atajoActivo.label}</span>}
+          {/* Paciente + Médico */}
+          <div className={styles.pacienteMedicoRow}>
+            <PasoPaciente
+              pacientes={pacientes}
+              loading={loadingPacientes}
+              paciente={paciente}
+              setPaciente={setPaciente}
+            />
+            <PasoMedico medico={medico} setMedico={setMedico} />
           </div>
-          <input className={`${styles.inp} ${styles.inpReadonly}`} value={asunto} readOnly />
-        </div>
+          
+          {/* ATAJOS DE MAIL (acordeón) */}
+          <AtajosDeMail
+            atajos={atajos}
+            loading={loadingAtajos}
+            atajoActivo={atajoActivo}
+            aplicarAtajo={aplicarAtajo}
+            desactivarAtajo={desactivarAtajo}
+            setMostrarFormAtajo={setMostrarFormAtajo}
+            setEditandoAtajo={setEditandoAtajo}
+            setNuevoAtajoLabel={setNuevoAtajoLabel}
+            setNuevoAtajoAsunto={setNuevoAtajoAsunto}
+            setNuevoAtajoAcciones={setNuevoAtajoAcciones}
+            setNuevoAtajoCuerpo={setNuevoAtajoCuerpo}
+            eliminarAtajo={eliminarAtajo}
+          />
 
-        {/* CUERPO DEL MAIL */}
-        <div className={styles.block}>
-          <div className={styles.blockTop}>
-            <p className={styles.blockLabel}>📄 Cuerpo del mail</p>
-            <div className={styles.toggleRow}>
-              <button className={styles.tinyBtn} onClick={copiarCuerpo} disabled={!cuerpoEditado}>
-                {copiado ? "✓ Copiado" : "📋 Copiar"}
-              </button>
-              <button className={styles.tinyBtn} onClick={restaurarCuerpo} disabled={!cuerpo}>
-                ↩ Restaurar
-              </button>
+          {/* ASUNTO GENERADO */}
+          <div className={styles.block}>
+            <div className={styles.blockTop}>
+              <p className={styles.blockLabel}>📝 Asunto generado</p>
+              {atajoActivo && <span className={styles.badge}>⚡ {atajoActivo.label}</span>}
             </div>
+            <input className={`${styles.inp} ${styles.inpReadonly}`} value={asunto} readOnly />
           </div>
-          <textarea
-            className={styles.area}
-            value={cuerpoEditado}
-            onChange={(e) => {
-              setCuerpoEditado(e.target.value);
-              cuerpoEditadoPorUsuario.current = true;
-            }}
+
+          {/* CUERPO DEL MAIL */}
+          <div className={styles.block}>
+            <div className={styles.blockTop}>
+              <p className={styles.blockLabel}>📄 Cuerpo del mail</p>
+              <div className={styles.toggleRow}>
+                <button className={styles.tinyBtn} onClick={copiarCuerpo} disabled={!cuerpoEditado}>
+                  {copiado ? "✓ Copiado" : "📋 Copiar"}
+                </button>
+                <button className={styles.tinyBtn} onClick={restaurarCuerpo} disabled={!cuerpo}>
+                  ↩ Restaurar
+                </button>
+              </div>
+            </div>
+            <textarea
+              className={styles.area}
+              value={cuerpoEditado}
+              onChange={(e) => {
+                setCuerpoEditado(e.target.value);
+                cuerpoEditadoPorUsuario.current = true;
+              }}
+            />
+          </div>
+
+          {/* DESTINATARIOS */}
+          <PasoDestinatarios
+            contactos={contactos}
+            destinatariosOff={destinatariosOff}
+            toggleDestinatario={toggleDestinatario}
+            toggleAllDestinatarios={toggleAllDestinatarios}
           />
         </div>
 
-        {/* DESTINATARIOS */}
-        <PasoDestinatarios
-          contactos={contactos}   // ← CORRECCIÓN: pasar contactos calculados
-          destinatariosOff={destinatariosOff}
-          toggleDestinatario={toggleDestinatario}
-          toggleAllDestinatarios={toggleAllDestinatarios}
-        />
-
-        {/* RESUMEN Y BOTÓN DE ENVÍO */}
-        <ResumenEnvio
-          canSend={canSend}
-          gmailUrl={gmailUrl}
-          faltantes={faltantes}
-          adjuntosRecordatorio={adjuntosRecordatorio}
-          asunto={asunto}
-          emailsActivos={emailsActivos}
-          paciente={paciente}
-        />
+        {/* Sidebar derecha con resumen y botón de envío */}
+        <aside className={styles.sidebar}>
+          <ResumenEnvio
+            canSend={canSend}
+            gmailUrl={gmailUrl}
+            faltantes={faltantes}
+            adjuntosRecordatorio={adjuntosRecordatorio}
+            asunto={asunto}
+            emailsActivos={emailsActivos}
+            paciente={paciente}
+          />
+        </aside>
       </div>
 
       {/* MODAL GESTIONAR ARTs */}
@@ -519,7 +524,7 @@ export default function ARTComunicador() {
           onUpdate={updateArt}
           onDelete={deleteArt}
           onClose={() => setMostrarGestionArts(false)}
-          onSaved={() => refetchArts()}   // ← CORRECCIÓN: refrescar lista al guardar/eliminar
+          onSaved={() => refetchArts()}
         />
       )}
 
