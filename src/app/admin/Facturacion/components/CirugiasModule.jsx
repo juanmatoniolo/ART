@@ -205,19 +205,6 @@ export default function CirugiasModule({
     return () => clearTimeout(tooltipTimeoutRef.current);
   }, []);
 
-  // Nuevo helper para cálculo de capítulo 12 nacional
-  const calcularCap12 = useCallback(
-    (item) => {
-      const gOperatorio = Number(valoresConvenio?.['Gasto_Operatorio']) || 0;
-      const gQuir = Number(valoresConvenio?.['Galeno_Quir']) || 0;
-      return {
-        honorario: gQuir * (item.q_gal || 0),
-        gasto: gOperatorio * (item.gto || 0),
-      };
-    },
-    [valoresConvenio]
-  );
-
   const handleAgregar = useCallback(
     (item) => {
       if (!valoresConvenio) {
@@ -318,42 +305,40 @@ export default function CirugiasModule({
         return;
       }
 
-      // --- NACIONAL (adaptado para capítulo 12) ---
+      // --- NACIONAL (REGLAS CORREGIDAS) ---
       if (item.type === 'nacional') {
+        const empiezaConLetra = /^[A-Za-z]/.test(item.codigo);
+        const esArtroscopia = item.codigo === '120902';
+
         let honorario = 0;
         let gasto = 0;
-        let tipoMsg = '';
         let tipoArtroscopia = null;
 
-        // Artroscopia especial (código 120902)
-        if (item.codigo === '120902') {
+        // 1. Códigos que empiezan con letra → SOLO HONORARIO MÉDICO
+        if (empiezaConLetra) {
+          const gQuir = Number(valoresConvenio?.['Galeno_Quir']) || 0;
+          honorario = gQuir * (item.q_gal || 0);
+        }
+        // 2. Artroscopia (siempre numérica) → SOLO GASTO SANATORIAL (según tipo)
+        else if (esArtroscopia) {
           const tipo = artroscopiaSelections[item.__key] || 'simple';
           tipoArtroscopia = tipo;
           let gastoKey;
-          if (tipo === 'simple') {
-            gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
-            tipoMsg = 'simple';
-          } else if (tipo === 'ligamento') {
-            gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
-            tipoMsg = 'compleja (ligamento cruzado)';
-          } else {
-            gastoKey = 'Artroscopia_Hombro';
-            tipoMsg = 'hombro';
-          }
+          if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+          else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+          else gastoKey = 'Artroscopia_Hombro';
           gasto = Number(valoresConvenio[gastoKey]) || 0;
         }
-        // Capítulo 12 (excepto 120902) → nuevo cálculo
-        else if (String(item.capitulo) === '12') {
-          const calc = calcularCap12(item);
-          honorario = calc.honorario;
-          gasto = calc.gasto;
-          tipoMsg = 'cap12';
-        }
-        // Resto de nacionales (cálculo tradicional solo gasto)
+        // 3. Resto de códigos numéricos (incluye capítulo 12) → SOLO GASTO SANATORIAL
         else {
-          const calculo = calcularPractica(item, valoresConvenio);
-          gasto = calculo.gastoSanatorial;
-          honorario = 0; // por ahora el resto no tiene honorario
+          // Para capítulo 12 usamos la fórmula original: Gasto_Operatorio * gto
+          if (String(item.capitulo) === '12') {
+            const gOperatorio = Number(valoresConvenio?.['Gasto_Operatorio']) || 0;
+            gasto = gOperatorio * (item.gto || 0);
+          } else {
+            const calculo = calcularPractica(item, valoresConvenio);
+            gasto = calculo.gastoSanatorial;
+          }
         }
 
         if (gasto === 0 && honorario === 0) {
@@ -375,21 +360,21 @@ export default function CirugiasModule({
 
         const agregados = [];
 
-        // Línea del doctor (solo capítulo 12 con honorario)
+        // Solo agregamos línea de doctor si es código con letra (honorario > 0)
         if (honorario > 0) {
           agregados.push({
             id: `${baseId}-dr`,
             ...baseCommon,
             prestadorTipo: 'Dr',
             prestadorNombre: '',
-            prestadorRol: 'Cirugía Cap.12',
+            prestadorRol: 'Honorario médico',
             honorarioMedico: honorario,
             gastoSanatorial: 0,
             total: honorario,
           });
         }
 
-        // Línea de la clínica
+        // Línea de clínica (para cualquier numérico con gasto, incluida artroscopia y cap12)
         if (gasto > 0) {
           const gastoClinica = {
             id: `${baseId}-clin`,
@@ -407,7 +392,6 @@ export default function CirugiasModule({
           agregados.push(gastoClinica);
         }
 
-        // Agregar usando la función correspondiente (todas son prácticas)
         agregados.forEach((p) => agregarPractica(p));
 
         const partes = [];
@@ -415,7 +399,6 @@ export default function CirugiasModule({
         if (gasto > 0) partes.push(`Clin: ${money(gasto)}`);
         const msg = `✓ ${item.codigo} – ${item.descripcion.slice(0, 35)}... (${partes.join(' + ')})`;
         showTooltipMessage(msg, groupId);
-        return;
       }
     },
     [
@@ -425,7 +408,6 @@ export default function CirugiasModule({
       agregarCirugia,
       agregarPractica,
       showTooltipMessage,
-      calcularCap12,
     ]
   );
 
@@ -552,26 +534,32 @@ export default function CirugiasModule({
 
     // --- NACIONAL (tarjetas) ---
     const esArtroscopia = item.codigo === '120902';
+    const empiezaConLetra = /^[A-Za-z]/.test(item.codigo);
+
     let honorario = 0;
     let gasto = 0;
 
-    if (esArtroscopia) {
+    if (empiezaConLetra) {
+      const gQuir = Number(valoresConvenio?.['Galeno_Quir']) || 0;
+      honorario = gQuir * (item.q_gal || 0);
+    } else if (esArtroscopia) {
       const tipo = artroscopiaSelections[item.__key] || 'simple';
       let gastoKey;
       if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
       else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
       else gastoKey = 'Artroscopia_Hombro';
       gasto = Number(valoresConvenio?.[gastoKey]) || 0;
-    } else if (String(item.capitulo) === '12') {
-      const calc = calcularCap12(item);
-      honorario = calc.honorario;
-      gasto = calc.gasto;
     } else {
-      // cálculo tradicional (solo gasto)
-      const calculo = valoresConvenio
-        ? calcularPractica(item, valoresConvenio)
-        : { gastoSanatorial: 0 };
-      gasto = calculo.gastoSanatorial;
+      // Numérico no artroscopia → solo gasto
+      if (String(item.capitulo) === '12') {
+        const gOperatorio = Number(valoresConvenio?.['Gasto_Operatorio']) || 0;
+        gasto = gOperatorio * (item.gto || 0);
+      } else {
+        const calculo = valoresConvenio
+          ? calcularPractica(item, valoresConvenio)
+          : { gastoSanatorial: 0 };
+        gasto = calculo.gastoSanatorial;
+      }
     }
 
     const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
@@ -595,14 +583,17 @@ export default function CirugiasModule({
         </div>
 
         <div className={styles.prices}>
-          <div className={styles.priceItem}>
-            <span className={styles.priceLabel}>Honorario</span>
-            <span className={styles.priceValue}>{money(honorario)}</span>
-          </div>
-          <div className={styles.priceItem}>
-            <span className={styles.priceLabel}>Gasto</span>
-            <span className={styles.priceValue}>{money(gasto)}</span>
-          </div>
+          {empiezaConLetra ? (
+            <div className={styles.priceItem}>
+              <span className={styles.priceLabel}>Honorario</span>
+              <span className={styles.priceValue}>{money(honorario)}</span>
+            </div>
+          ) : (
+            <div className={styles.priceItem}>
+              <span className={styles.priceLabel}>Gasto</span>
+              <span className={styles.priceValue}>{money(gasto)}</span>
+            </div>
+          )}
         </div>
 
         {esArtroscopia && (
@@ -643,11 +634,11 @@ export default function CirugiasModule({
         )}
 
         <div className={styles.ayudanteSelector}>
-          {!esArtroscopia && honorario === 0 && (
-            <span className={styles.nacionalHint}>Solo gasto sanatorial</span>
+          {empiezaConLetra && (
+            <span className={styles.nacionalHint}>Honorario médico</span>
           )}
-          {honorario > 0 && (
-            <span className={styles.nacionalHint}>Dr + Clínica</span>
+          {!empiezaConLetra && (
+            <span className={styles.nacionalHint}>Solo gasto sanatorial</span>
           )}
         </div>
 
@@ -655,7 +646,7 @@ export default function CirugiasModule({
           className={styles.btnAgregar}
           onClick={() => handleAgregar(item)}
         >
-          ➕ Agregar {esArtroscopia ? '(gasto según tipo)' : honorario > 0 ? '(Dr + Clínica)' : '(solo gasto)'}
+          ➕ Agregar {empiezaConLetra ? '(honorario)' : '(solo gasto)'}
         </button>
       </article>
     );
@@ -746,25 +737,31 @@ export default function CirugiasModule({
 
     // --- NACIONAL (tabla) ---
     const esArtroscopia = item.codigo === '120902';
+    const empiezaConLetra = /^[A-Za-z]/.test(item.codigo);
+
     let honorario = 0;
     let gasto = 0;
 
-    if (esArtroscopia) {
+    if (empiezaConLetra) {
+      const gQuir = Number(valoresConvenio?.['Galeno_Quir']) || 0;
+      honorario = gQuir * (item.q_gal || 0);
+    } else if (esArtroscopia) {
       const tipo = artroscopiaSelections[item.__key] || 'simple';
       let gastoKey;
       if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
       else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
       else gastoKey = 'Artroscopia_Hombro';
       gasto = Number(valoresConvenio?.[gastoKey]) || 0;
-    } else if (String(item.capitulo) === '12') {
-      const calc = calcularCap12(item);
-      honorario = calc.honorario;
-      gasto = calc.gasto;
     } else {
-      const calculo = valoresConvenio
-        ? calcularPractica(item, valoresConvenio)
-        : { gastoSanatorial: 0 };
-      gasto = calculo.gastoSanatorial;
+      if (String(item.capitulo) === '12') {
+        const gOperatorio = Number(valoresConvenio?.['Gasto_Operatorio']) || 0;
+        gasto = gOperatorio * (item.gto || 0);
+      } else {
+        const calculo = valoresConvenio
+          ? calcularPractica(item, valoresConvenio)
+          : { gastoSanatorial: 0 };
+        gasto = calculo.gastoSanatorial;
+      }
     }
 
     const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
@@ -818,14 +815,17 @@ export default function CirugiasModule({
           )}
         </td>
         <td className={styles.tdHonorarios}>
-          <div>Hon: {money(honorario)}</div>
-          <div>Gas: {money(gasto)}</div>
+          {empiezaConLetra ? (
+            <div>Hon: {money(honorario)}</div>
+          ) : (
+            <div>Gas: {money(gasto)}</div>
+          )}
         </td>
         <td className={styles.tdAccion}>
           <button
             className={styles.btnAgregarTabla}
             onClick={() => handleAgregar(item)}
-            title={honorario > 0 ? 'Agregar (Dr + Clínica)' : 'Agregar (solo gasto)'}
+            title={empiezaConLetra ? 'Agregar (honorario)' : 'Agregar (solo gasto)'}
           >
             +
           </button>
@@ -867,9 +867,10 @@ export default function CirugiasModule({
         </div>
 
         <p className={styles.helpText}>
-          Buscá códigos AOTER o del nomenclador nacional. Para capítulo 12 se
-          calcula Dr (Galeno Quir × q_gal) + Clínica (Gasto Operatorio × gto).
-          Artroscopia: seleccioná el tipo.
+          AOTER: honorarios (cirujano/ayudantes).<br />
+          Nacional con letra (MS, PP…): honorario médico.<br />
+          Nacional numérico (incluye cap. 12): solo gasto sanatorial.<br />
+          Artroscopia: seleccioná el tipo de gasto.
         </p>
       </div>
 
