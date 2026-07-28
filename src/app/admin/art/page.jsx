@@ -28,6 +28,9 @@ export default function ARTComunicador() {
   const [cuerpoEditado, setCuerpoEditado] = useState("");
   const [copiado, setCopiado] = useState(false);
 
+  // Clave para forzar remontaje de los componentes de paciente y médico
+  const [resetKey, setResetKey] = useState(0);
+
   // Estados para modales
   const [mostrarGestionArts, setMostrarGestionArts] = useState(false);
   const [mostrarGestionAcciones, setMostrarGestionAcciones] = useState(false);
@@ -102,6 +105,23 @@ export default function ARTComunicador() {
   );
 
   const cuerpoEditadoPorUsuario = useRef(false);
+
+  // Función para limpiar absolutamente todos los campos
+  const limpiarTodo = () => {
+    setTab("siniestros");
+    setSelectedArts(new Set());
+    setAccionesSeleccionadas(["evolucion"]);
+    setDestinatariosOff({});
+    setPaciente(null);
+    setMedico("");
+    setAtajoActivo(null);
+    cuerpoEditadoPorUsuario.current = false;
+    setCuerpoEditado("");
+    setCopiado(false);
+    // Forzar remontaje de los componentes de búsqueda
+    setResetKey((prev) => prev + 1);
+  };
+
   useEffect(() => {
     if (!cuerpoEditadoPorUsuario.current) setCuerpoEditado(cuerpo);
   }, [cuerpo]);
@@ -434,15 +454,20 @@ export default function ARTComunicador() {
             toggleAllArts={toggleAllArts}
             onManageArts={() => setMostrarGestionArts(true)}
           />
-          {/* Paciente + Médico */}
+          {/* Paciente + Médico (con key para forzar limpieza) */}
           <div className={styles.pacienteMedicoRow}>
             <PasoPaciente
+              key={`paciente-${resetKey}`}
               pacientes={pacientes}
               loading={loadingPacientes}
               paciente={paciente}
               setPaciente={setPaciente}
             />
-            <PasoMedico medico={medico} setMedico={setMedico} />
+            <PasoMedico
+              key={`medico-${resetKey}`}
+              medico={medico}
+              setMedico={setMedico}
+            />
           </div>
           
           {/* ATAJOS DE MAIL (acordeón) */}
@@ -502,8 +527,17 @@ export default function ARTComunicador() {
           />
         </div>
 
-        {/* Sidebar derecha con resumen y botón de envío */}
+        {/* Sidebar derecha con resumen y botón de limpiar */}
         <aside className={styles.sidebar}>
+          {/* Botón para limpiar todo */}
+          <button
+            className={styles.clearSidebarBtn}
+            onClick={limpiarTodo}
+            title="Restablecer todos los campos a su estado inicial"
+          >
+            🧹 Limpiar todo
+          </button>
+
           <ResumenEnvio
             canSend={canSend}
             gmailUrl={gmailUrl}

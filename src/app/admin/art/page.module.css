@@ -1510,3 +1510,63 @@
 .modalBtnDelete:hover {
   background: #dc2626;
 }
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   BOTÓN "LIMPIAR TODO" EN EL SIDEBAR
+   ══════════════════════════════════════════════════════════════ */
+.clearSidebarBtn {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(234, 179, 8, 0.08);
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+
+.clearSidebarBtn:hover {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: rgba(251, 191, 36, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.15);
+}
+
+.clearSidebarBtn:active {
+  transform: scale(0.98);
+}
+
+/* BOTÓN "LIMPIAR TODO" EN EL SIDEBAR */
+.clearSidebarBtn {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(234, 179, 8, 0.08);
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+
+.clearSidebarBtn:hover {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: rgba(251, 191, 36, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.15);
+}
+
+.clearSidebarBtn:active {
+  transform: scale(0.98);
+}
