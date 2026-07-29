@@ -229,24 +229,27 @@ ${profesional}${datosArtSiniestro}${footerClinica}`;
 
     // Mensaje 7 - Cirugía
     if (mensaje === "7") {
-      return `${headerClinica(name)}✅ Su *cirugía fue aprobada por la ART*.
+      return `${headerClinica(name)}✅ Su cirugía fue aprobada por la ART.
 
-📅 *Fecha de la cirugía:* ${dia} a las ${hora}
+📅 Fecha: ${dia}
+🕒 Hora: ${hora}
 
-⚠️ *Importante:*
-🥛 Debe venir en AYUNAS
-⏰ Asistir en el horario indicado
-🏥 Ese día ya se realiza la cirugía
-🪪 Traer DNI físico original
-📄 Traer fotocopia del DNI (frente y dorso)
+⚠️ IMPORTANTE - LEER CON ATENCIÓN
 
-🚪 *Ingreso:* Presentarse en Mesa de Entrada.
-
-📝 Antes de la cirugía complete este formulario:
+📝 Antes de la cirugía es obligatorio completar el siguiente formulario:
 https://art-xi-six.vercel.app/cx
 
-✅ Por favor responder: *CONFIRMO ASISTENCIA*${datosArtSiniestro}${footerClinica}`;
+El día de la cirugía deberá:
+
+🕒 Presentarse en la fecha y horario indicados.
+🥛 Concurrir en ayunas.
+🪪 Traer el DNI físico original.
+📄 Traer una fotocopia del DNI (frente y dorso).
+🚪 Anunciarse en Mesa de Entrada al ingresar.
+
+🏥 Ese mismo día se realizará la cirugía.${footerClinica}`;
     }
+
 
     // Mensaje 8 - Ortopedia
     if (mensaje === "8") {
