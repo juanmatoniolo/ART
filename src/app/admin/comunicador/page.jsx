@@ -228,27 +228,30 @@ ${profesional}${datosArtSiniestro}${footerClinica}`;
     }
 
     // Mensaje 7 - Cirugía
-    if (mensaje === "7") {
-      return `${headerClinica(name)}✅ Su cirugía fue aprobada por la ART.
+  if (mensaje === "7") {
+  return `${headerClinica(name)}✅ Su cirugía fue aprobada por la ART.
 
 📅 Fecha: ${dia}
 🕒 Hora: ${hora}
 
 ⚠️ IMPORTANTE - LEER CON ATENCIÓN
 
-📝 Antes de la cirugía es obligatorio completar el siguiente formulario:
+📝 Ahora debe completar el siguiente formulario:
 https://art-xi-six.vercel.app/cx
+
+Completarlo con anticipación nos permitirá agilizar el trámite administrativo el día de la cirugía. De esta manera, al ingresar solo deberá presentar su DNI.
 
 El día de la cirugía deberá:
 
 🕒 Presentarse en la fecha y horario indicados.
 🥛 Concurrir en ayunas.
 🪪 Traer el DNI físico original.
-📄 Traer una fotocopia del DNI (frente y dorso).
 🚪 Anunciarse en Mesa de Entrada al ingresar.
 
-🏥 Ese mismo día se realizará la cirugía.${footerClinica}`;
-    }
+🏥 Ese mismo día se realizará la cirugía.
+
+${footerClinica}`;
+}
 
 
     // Mensaje 8 - Ortopedia
