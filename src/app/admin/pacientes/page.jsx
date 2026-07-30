@@ -36,7 +36,14 @@ export default function PacientesPage() {
   const [filtroEstado, setFiltroEstado] = useState("abierto");
   const [filtroArt, setFiltroArt] = useState("todas");
   const [filtroCompletitud, setFiltroCompletitud] = useState("todos");
-  const [filtroSexo, setFiltroSexo] = useState("todos"); // nuevo filtro
+  const [filtroSexo, setFiltroSexo] = useState("todos");
+  const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
+  const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
+
+  // Filtros propios de la vista estadísticas
+  const [statsFechaDesde, setStatsFechaDesde] = useState("");
+  const [statsFechaHasta, setStatsFechaHasta] = useState("");
+  const [statsFiltroArt, setStatsFiltroArt] = useState("todas");
 
   const [activeView, setActiveView] = useState("listado");
   const [printingId, setPrintingId] = useState(null);
@@ -48,10 +55,8 @@ export default function PacientesPage() {
   const [pacientesDuplicados, setPacientesDuplicados] = useState([]);
   const [principalId, setPrincipalId] = useState(null);
 
-  // Datos de facturación en tiempo real
   const [facturacionData, setFacturacionData] = useState({});
 
-  // Filtros de fecha para estadísticas
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
 
@@ -81,7 +86,6 @@ export default function PacientesPage() {
     }
   };
 
-  // ---- Carga en tiempo real de Facturación ----
   useEffect(() => {
     const factRef = ref(db, "Facturacion");
     const unsub = onValue(
@@ -99,49 +103,55 @@ export default function PacientesPage() {
     fetchPacientes();
   }, []);
 
-  // ---- Lista de ART únicas para filtro ----
+  // ---- Lista de ART únicas ----
   const artOptions = useMemo(() => {
     const uniqueArts = Array.from(
-      new Set(
-        pacientes
-          .map((p) => p.ART?.nombre?.trim())
-          .filter(Boolean)
-      )
+      new Set(pacientes.map((p) => p.ART?.nombre?.trim()).filter(Boolean))
     );
     return uniqueArts.sort((a, b) => a.localeCompare(b, "es"));
   }, [pacientes]);
 
-  // ---- Filtrado y ordenamiento de pacientes ----
+  // ---- Conversión de fecha ingreso a timestamp ----
+  const fechaIngresoToTs = (fechaIngreso) => {
+    if (!fechaIngreso) return null;
+    const { dia, mes, anio } = fechaIngreso;
+    if (!dia || !mes || !anio) return null;
+    const d = new Date(`${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  };
+
+  // ---- Filtrado y ordenamiento para el listado ----
   const filteredPacientes = useMemo(() => {
+    const tsDesde = filtroFechaDesde ? new Date(filtroFechaDesde + "T00:00:00").getTime() : null;
+    const tsHasta = filtroFechaHasta ? new Date(filtroFechaHasta + "T23:59:59.999").getTime() : null;
+
     const filtrados = pacientes.filter((p) => {
-      const fullName = `${p.trabajador?.apellido || ""} ${p.trabajador?.nombre || ""
-        }`.toLowerCase();
+      const fullName = `${p.trabajador?.apellido || ""} ${p.trabajador?.nombre || ""}`.toLowerCase();
       const dni = p.trabajador?.dni || "";
       const artNombre = p.ART?.nombre || "";
       const estado = p.estado || "abierto";
       const incompleto = pacienteIncompleto(p);
       const sexo = String(p.trabajador?.sexo || "").toUpperCase().trim();
 
-      const matchSearch =
-        fullName.includes(searchTerm.toLowerCase()) ||
-        dni.includes(searchTerm);
-      const matchEstado =
-        filtroEstado === "todos" || estado === filtroEstado;
-      const matchArt =
-        filtroArt === "todas" || artNombre === filtroArt;
+      const matchSearch = fullName.includes(searchTerm.toLowerCase()) || dni.includes(searchTerm);
+      const matchEstado = filtroEstado === "todos" || estado === filtroEstado;
+      const matchArt = filtroArt === "todas" || artNombre === filtroArt;
       const matchCompletitud =
         filtroCompletitud === "todos" ||
         (filtroCompletitud === "completos" && !incompleto) ||
         (filtroCompletitud === "incompletos" && !!incompleto);
-      
-      // Filtro por sexo
+
       let matchSexo = true;
-      if (filtroSexo === "M") {
-        matchSexo = sexo === "M" || sexo === "MASCULINO";
-      } else if (filtroSexo === "F") {
-        matchSexo = sexo === "F" || sexo === "FEMENINO";
-      } else if (filtroSexo === "sinDato") {
+      if (filtroSexo === "M") matchSexo = sexo === "M" || sexo === "MASCULINO";
+      else if (filtroSexo === "F") matchSexo = sexo === "F" || sexo === "FEMENINO";
+      else if (filtroSexo === "sinDato")
         matchSexo = !sexo || (sexo !== "M" && sexo !== "MASCULINO" && sexo !== "F" && sexo !== "FEMENINO");
+
+      if (tsDesde !== null || tsHasta !== null) {
+        const tsIngreso = fechaIngresoToTs(p.fechaIngreso);
+        if (tsIngreso === null) return false;
+        if (tsDesde !== null && tsIngreso < tsDesde) return false;
+        if (tsHasta !== null && tsIngreso > tsHasta) return false;
       }
 
       return matchSearch && matchEstado && matchArt && matchCompletitud && matchSexo;
@@ -184,49 +194,100 @@ export default function PacientesPage() {
           valB = b.createdAt || 0;
       }
       if (typeof valA === "string") {
-        return ordenDireccion === "asc"
-          ? valA.localeCompare(valB)
-          : valB.localeCompare(valA);
+        return ordenDireccion === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
       return ordenDireccion === "asc" ? valA - valB : valB - valA;
     });
 
     return sorted;
   }, [
-    pacientes,
-    searchTerm,
-    filtroEstado,
-    filtroArt,
-    filtroCompletitud,
-    filtroSexo,
-    ordenColumna,
-    ordenDireccion,
+    pacientes, searchTerm, filtroEstado, filtroArt, filtroCompletitud,
+    filtroSexo, filtroFechaDesde, filtroFechaHasta, ordenColumna, ordenDireccion,
   ]);
 
-  // ---- Estadísticas generales de pacientes ----
+  // ---- Chips de filtros activos ----
+  const filtrosActivos = useMemo(() => {
+    const activos = [];
+    if (filtroEstado !== "todos")
+      activos.push({
+        key: "estado",
+        label: filtroEstado === "abierto" ? "🟢 Abierto" : "🔴 Cerrado",
+        clear: () => setFiltroEstado("todos"),
+      });
+    if (filtroArt !== "todas")
+      activos.push({
+        key: "art",
+        label: `🏥 ${filtroArt}`,
+        clear: () => setFiltroArt("todas"),
+      });
+    if (filtroCompletitud !== "todos")
+      activos.push({
+        key: "completitud",
+        label: filtroCompletitud === "completos" ? "✅ Completos" : "⚠️ Incompletos",
+        clear: () => setFiltroCompletitud("todos"),
+      });
+    if (filtroSexo !== "todos") {
+      const labelSexo = filtroSexo === "M" ? "👨 Masculino" : filtroSexo === "F" ? "👩 Femenino" : "❔ Sin dato";
+      activos.push({ key: "sexo", label: labelSexo, clear: () => setFiltroSexo("todos") });
+    }
+    if (filtroFechaDesde)
+      activos.push({
+        key: "fechaDesde",
+        label: `📅 Desde ${filtroFechaDesde}`,
+        clear: () => setFiltroFechaDesde(""),
+      });
+    if (filtroFechaHasta)
+      activos.push({
+        key: "fechaHasta",
+        label: `📅 Hasta ${filtroFechaHasta}`,
+        clear: () => setFiltroFechaHasta(""),
+      });
+    if (searchTerm.trim())
+      activos.push({
+        key: "search",
+        label: `🔍 "${searchTerm}"`,
+        clear: () => setSearchTerm(""),
+      });
+    return activos;
+  }, [filtroEstado, filtroArt, filtroCompletitud, filtroSexo, filtroFechaDesde, filtroFechaHasta, searchTerm]);
+
+  // ---- Pacientes para estadísticas ----
+  const filteredPatientsForStats = useMemo(() => {
+    const tsDesde = statsFechaDesde ? new Date(statsFechaDesde + "T00:00:00").getTime() : null;
+    const tsHasta = statsFechaHasta ? new Date(statsFechaHasta + "T23:59:59.999").getTime() : null;
+
+    return pacientes.filter((p) => {
+      const artNombre = p.ART?.nombre || "";
+      const matchArt = statsFiltroArt === "todas" || artNombre === statsFiltroArt;
+
+      if (tsDesde !== null || tsHasta !== null) {
+        const tsIngreso = fechaIngresoToTs(p.fechaIngreso);
+        if (tsIngreso === null) return false;
+        if (tsDesde !== null && tsIngreso < tsDesde) return false;
+        if (tsHasta !== null && tsIngreso > tsHasta) return false;
+      }
+
+      return matchArt;
+    });
+  }, [pacientes, statsFechaDesde, statsFechaHasta, statsFiltroArt]);
+
+  // ---- Estadísticas de pacientes ----
   const stats = useMemo(() => {
-    const total = pacientes.length;
-    const abiertos = pacientes.filter((p) => (p.estado || "abierto") === "abierto").length;
-    const cerrados = pacientes.filter((p) => (p.estado || "abierto") === "cerrado").length;
-    const incompletos = pacientes.filter((p) => pacienteIncompleto(p)).length;
+    const lista = filteredPatientsForStats;
+    const total = lista.length;
+    const abiertos = lista.filter((p) => (p.estado || "abierto") === "abierto").length;
+    const cerrados = lista.filter((p) => (p.estado || "abierto") === "cerrado").length;
+    const incompletos = lista.filter((p) => pacienteIncompleto(p)).length;
     const completos = total - incompletos;
 
-    const edades = pacientes
+    const edades = lista
       .map((p) => Number(p.trabajador?.edad))
       .filter((edad) => Number.isFinite(edad) && edad > 0);
-    const promedioEdad = edades.length
-      ? (edades.reduce((acc, n) => acc + n, 0) / edades.length).toFixed(1)
-      : "—";
+    const promedioEdad = edades.length ? (edades.reduce((acc, n) => acc + n, 0) / edades.length).toFixed(1) : "—";
     const edadMin = edades.length ? Math.min(...edades) : "—";
     const edadMax = edades.length ? Math.max(...edades) : "—";
 
-    const rangos = {
-      "0-17": 0,
-      "18-30": 0,
-      "31-45": 0,
-      "46-60": 0,
-      "60+": 0,
-    };
+    const rangos = { "0-17": 0, "18-30": 0, "31-45": 0, "46-60": 0, "60+": 0 };
     edades.forEach((edad) => {
       if (edad <= 17) rangos["0-17"] += 1;
       else if (edad <= 30) rangos["18-30"] += 1;
@@ -235,7 +296,7 @@ export default function PacientesPage() {
       else rangos["60+"] += 1;
     });
 
-    const sexos = pacientes.reduce(
+    const sexos = lista.reduce(
       (acc, p) => {
         const sexo = String(p.trabajador?.sexo || "").toUpperCase();
         if (sexo === "M" || sexo === "MASCULINO") acc.m += 1;
@@ -246,60 +307,36 @@ export default function PacientesPage() {
       { m: 0, f: 0, sinDato: 0 }
     );
 
-    const porArt = pacientes.reduce((acc, p) => {
+    const porArt = lista.reduce((acc, p) => {
       const art = p.ART?.nombre?.trim() || "Sin ART";
       const estado = p.estado || "abierto";
       const edad = Number(p.trabajador?.edad);
       const incompleto = pacienteIncompleto(p);
-      if (!acc[art]) {
-        acc[art] = {
-          art,
-          total: 0,
-          abiertos: 0,
-          cerrados: 0,
-          incompletos: 0,
-          completos: 0,
-          edades: [],
-        };
-      }
+      if (!acc[art]) acc[art] = { art, total: 0, abiertos: 0, cerrados: 0, incompletos: 0, completos: 0, edades: [] };
       acc[art].total += 1;
       if (estado === "cerrado") acc[art].cerrados += 1;
       else acc[art].abiertos += 1;
       if (incompleto) acc[art].incompletos += 1;
       else acc[art].completos += 1;
-      if (Number.isFinite(edad) && edad > 0) {
-        acc[art].edades.push(edad);
-      }
+      if (Number.isFinite(edad) && edad > 0) acc[art].edades.push(edad);
       return acc;
     }, {});
 
     const porArtArray = Object.values(porArt)
       .map((item) => ({
         ...item,
-        porcentaje:
-          total > 0 ? ((item.total / total) * 100).toFixed(1) : "0.0",
+        porcentaje: total > 0 ? ((item.total / total) * 100).toFixed(1) : "0.0",
         promedioEdad: item.edades.length
-          ? (
-            item.edades.reduce((acc, n) => acc + n, 0) / item.edades.length
-          ).toFixed(1)
+          ? (item.edades.reduce((acc, n) => acc + n, 0) / item.edades.length).toFixed(1)
           : "—",
       }))
       .sort((a, b) => b.total - a.total || a.art.localeCompare(b.art, "es"));
 
-    const topArts = porArtArray.slice(0, 5);
-
-    const ingresosPorMes = pacientes.reduce((acc, p) => {
+    const ingresosPorMes = lista.reduce((acc, p) => {
       const fi = p.fechaIngreso || {};
       if (fi.anio && fi.mes) {
         const key = `${fi.anio}-${String(fi.mes).padStart(2, "0")}`;
-        if (!acc[key]) {
-          acc[key] = {
-            mes: key,
-            total: 0,
-            abiertos: 0,
-            cerrados: 0,
-          };
-        }
+        if (!acc[key]) acc[key] = { mes: key, total: 0, abiertos: 0, cerrados: 0 };
         acc[key].total += 1;
         if ((p.estado || "abierto") === "cerrado") acc[key].cerrados += 1;
         else acc[key].abiertos += 1;
@@ -311,80 +348,46 @@ export default function PacientesPage() {
       .sort((a, b) => b.mes.localeCompare(a.mes))
       .slice(0, 12);
 
-    const conTelefono = pacientes.filter((p) =>
-      p.trabajador?.telefono?.trim()
-    ).length;
-    const conSiniestro = pacientes.filter((p) =>
-      p.ART?.nroSiniestro?.trim()
-    ).length;
+    const conTelefono = lista.filter((p) => p.trabajador?.telefono?.trim()).length;
+    const conSiniestro = lista.filter((p) => p.ART?.nroSiniestro?.trim()).length;
     const sinSiniestro = total - conSiniestro;
     const tasaCierre = total > 0 ? ((cerrados / total) * 100).toFixed(1) : "0.0";
-    const tasaCompletitud =
-      total > 0 ? ((completos / total) * 100).toFixed(1) : "0.0";
+    const tasaCompletitud = total > 0 ? ((completos / total) * 100).toFixed(1) : "0.0";
     const artMasFrecuente = porArtArray[0]?.art || "—";
     const artMasFrecuenteCantidad = porArtArray[0]?.total || 0;
 
     return {
-      total,
-      abiertos,
-      cerrados,
-      incompletos,
-      completos,
-      promedioEdad,
-      edadMin,
-      edadMax,
-      rangos,
-      sexos,
-      porArtArray,
-      topArts,
-      ingresosPorMesArray,
-      conTelefono,
-      conSiniestro,
-      sinSiniestro,
-      tasaCierre,
-      tasaCompletitud,
-      artMasFrecuente,
-      artMasFrecuenteCantidad,
+      total, abiertos, cerrados, incompletos, completos,
+      promedioEdad, edadMin, edadMax, rangos, sexos,
+      porArtArray, topArts: porArtArray.slice(0, 5),
+      ingresosPorMesArray, conTelefono, conSiniestro, sinSiniestro,
+      tasaCierre, tasaCompletitud, artMasFrecuente, artMasFrecuenteCantidad,
     };
-  }, [pacientes]);
+  }, [filteredPatientsForStats]);
 
-  // ---- Función para obtener timestamp en milisegundos desde una fecha ----
-  const dateToTs = (dateStr, isEndOfDay = false) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr + (isEndOfDay ? "T23:59:59.999" : "T00:00:00"));
-    return isNaN(d.getTime()) ? null : d.getTime();
-  };
-
-  // ---- Estadísticas de facturación (con filtro de fechas) ----
+  // ---- Estadísticas de facturación ----
   const facturacionStats = useMemo(() => {
     const facturas = Object.values(facturacionData || {});
     if (!facturas.length) return null;
 
-    const desdeTs = dateToTs(fechaDesde);
-    const hastaTs = dateToTs(fechaHasta, true);
+    const desdeTs = fechaDesde ? new Date(fechaDesde + "T00:00:00").getTime() : null;
+    const hastaTs = fechaHasta ? new Date(fechaHasta + "T23:59:59.999").getTime() : null;
 
-    let totalFacturado = 0;     // cerrados
-    let totalBorradores = 0;   // borradores
-
+    let totalFacturado = 0;
+    let totalBorradores = 0;
     const porArtMap = {};
     const porMesMap = {};
 
     facturas.forEach((f) => {
-      // Total correcto, igual que en FacturadosPage
       const total = Number(
         f?.totales?.total ??
         f?.total ??
         (Number(f?.totales?.honorarios || 0) + Number(f?.totales?.gastos || 0)) ??
         0
       );
-
       const estado = f?.estado || (f?.cerradoAt ? "cerrado" : "borrador");
       const esCerrado = estado === "cerrado";
-
-      // Fecha de referencia según estado
-      const ts = esCerrado
-        ? (f?.cerradoAt || f?.createdAt)
-        : (f?.updatedAt || f?.createdAt);
+      const ts = esCerrado ? (f?.cerradoAt || f?.createdAt) : (f?.updatedAt || f?.createdAt);
       const tsNum = Number(ts) || 0;
       if (desdeTs !== null && tsNum < desdeTs) return;
       if (hastaTs !== null && tsNum > hastaTs) return;
@@ -392,7 +395,6 @@ export default function PacientesPage() {
       if (esCerrado) totalFacturado += total;
       else totalBorradores += total;
 
-      // ART (ahora con la misma lógica que FacturadosPage)
       const art = (
         f?.paciente?.artSeguro?.trim() ||
         f?.artNombre?.trim() ||
@@ -415,7 +417,6 @@ export default function PacientesPage() {
         porArtMap[art].borrador.count += 1;
       }
 
-      // Mes
       if (tsNum) {
         const fecha = new Date(tsNum);
         if (!isNaN(fecha.getTime())) {
@@ -465,13 +466,13 @@ export default function PacientesPage() {
     };
   }, [facturacionData, fechaDesde, fechaHasta]);
 
-  // ---- Estadísticas de prácticas y médicos (con filtro de fechas) ----
+  // ---- Estadísticas de prácticas y médicos ----
   const consultasStats = useMemo(() => {
     const facturas = Object.values(facturacionData || {});
     if (!facturas.length) return null;
 
-    const desdeTs = dateToTs(fechaDesde);
-    const hastaTs = dateToTs(fechaHasta, true);
+    const desdeTs = fechaDesde ? new Date(fechaDesde + "T00:00:00").getTime() : null;
+    const hastaTs = fechaHasta ? new Date(fechaHasta + "T23:59:59.999").getTime() : null;
 
     const practicasCount = {};
     const medicosCount = {};
@@ -486,11 +487,8 @@ export default function PacientesPage() {
         items.forEach((item) => {
           const codigo = item?.codigo || item?.descripcion || item?.nombre || "Sin código";
           practicasCount[codigo] = (practicasCount[codigo] || 0) + 1;
-
           const medico = item?.prestadorNombre?.trim();
-          if (medico) {
-            medicosCount[medico] = (medicosCount[medico] || 0) + 1;
-          }
+          if (medico) medicosCount[medico] = (medicosCount[medico] || 0) + 1;
         });
       };
 
@@ -512,7 +510,7 @@ export default function PacientesPage() {
     return { topPracticas, topMedicos };
   }, [facturacionData, fechaDesde, fechaHasta]);
 
-  // ---- Ordenamiento ----
+  // ---- Handlers ----
   const handleSort = (columna) => {
     if (ordenColumna === columna) {
       setOrdenDireccion((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -522,7 +520,6 @@ export default function PacientesPage() {
     setOrdenDireccion("asc");
   };
 
-  // ---- Cambio rápido de estado (doble clic) ----
   const handleToggleEstado = async (id, estadoActual) => {
     const nuevoEstado = estadoActual === "abierto" ? "cerrado" : "abierto";
     if (!confirm(`¿Cambiar estado a ${nuevoEstado.toUpperCase()}?`)) return;
@@ -539,14 +536,11 @@ export default function PacientesPage() {
     }
   };
 
-  // ---- Unión de duplicados ----
   const handleUnionClickGlobal = () => {
     const mapa = new Map();
     pacientes.forEach((p) => {
       const dni = p.trabajador?.dni?.replace(/\D/g, "");
-      const nombre = `${p.trabajador?.apellido || ""} ${p.trabajador?.nombre || ""}`
-        .trim()
-        .toLowerCase();
+      const nombre = `${p.trabajador?.apellido || ""} ${p.trabajador?.nombre || ""}`.trim().toLowerCase();
       const clave = dni || nombre;
       if (!clave) return;
       if (mapa.has(clave)) {
@@ -597,20 +591,19 @@ export default function PacientesPage() {
       trabajador: combinarObjeto(principal.trabajador, secundarios[0]?.trabajador),
       fechaIngreso: combinarObjeto(principal.fechaIngreso, secundarios[0]?.fechaIngreso),
       fechaDenuncia: combinarObjeto(principal.fechaDenuncia, secundarios[0]?.fechaDenuncia),
-      prestador:
-        principal.prestador || {
-          nombre: "CLINICA DE LA UNION S.A",
-          cuit: "30-70754530-1",
-          calle: "Av. Siburu",
-          nro: "1085",
-          piso: "-",
-          depto: "-",
-          localidad: "Chajari",
-          provincia: "Entre Rios",
-          cp: "3228",
-          celular: "3456-441580",
-          mail: "clinicadelaunionart@gmail.com",
-        },
+      prestador: principal.prestador || {
+        nombre: "CLINICA DE LA UNION S.A",
+        cuit: "30-70754530-1",
+        calle: "Av. Siburu",
+        nro: "1085",
+        piso: "-",
+        depto: "-",
+        localidad: "Chajari",
+        provincia: "Entre Rios",
+        cp: "3228",
+        celular: "3456-441580",
+        mail: "clinicadelaunionart@gmail.com",
+      },
       estado: principal.estado || "abierto",
       updatedAt: Date.now(),
     };
@@ -621,13 +614,7 @@ export default function PacientesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoData),
       });
-      await Promise.all(
-        secundarios.map((sec) =>
-          fetch(`${FIREBASE_URL}/pacientes/${sec.id}.json`, {
-            method: "DELETE",
-          })
-        )
-      );
+      await Promise.all(secundarios.map((sec) => fetch(`${FIREBASE_URL}/pacientes/${sec.id}.json`, { method: "DELETE" })));
       await fetchPacientes();
       setShowUnionModal(false);
       alert("Pacientes fusionados correctamente.");
@@ -637,13 +624,10 @@ export default function PacientesPage() {
     }
   };
 
-  // ---- Eliminar paciente ----
   const handleDelete = async (id) => {
     if (!confirm("¿Estás seguro de eliminar este paciente?")) return;
     try {
-      await fetch(`${FIREBASE_URL}/pacientes/${id}.json`, {
-        method: "DELETE",
-      });
+      await fetch(`${FIREBASE_URL}/pacientes/${id}.json`, { method: "DELETE" });
       await fetchPacientes();
     } catch (error) {
       console.error(error);
@@ -651,18 +635,27 @@ export default function PacientesPage() {
     }
   };
 
-  // ---- Ir a listado con filtro Sin dato ----
   const verSinDatoSexo = () => {
     setFiltroSexo("sinDato");
     setActiveView("listado");
-    // Opcional: limpiar otros filtros para que solo se vean esos
     setFiltroEstado("todos");
     setFiltroArt("todas");
     setFiltroCompletitud("todos");
     setSearchTerm("");
   };
 
-  // ---- Impresión de PDF (se mantiene igual) ----
+  const verEstosPacientes = () => {
+    setFiltroFechaDesde(statsFechaDesde);
+    setFiltroFechaHasta(statsFechaHasta);
+    setFiltroArt(statsFiltroArt);
+    setFiltroEstado("todos");
+    setFiltroCompletitud("todos");
+    setFiltroSexo("todos");
+    setSearchTerm("");
+    setActiveView("listado");
+  };
+
+  // ---- Impresión ----
   const getPrestadorDefault = (paciente) =>
     paciente.prestador || {
       nombre: "CLINICA DE LA UNION S.A",
@@ -681,10 +674,7 @@ export default function PacientesPage() {
   const buildPayloadByType = (paciente, type) => {
     const basePayload = { ...paciente, prestador: getPrestadorDefault(paciente) };
     if (type === "evolucion") {
-      return {
-        ...basePayload,
-        fechaIngreso: { ...basePayload.fechaIngreso, dia: "", mes: "", anio: "" },
-      };
+      return { ...basePayload, fechaIngreso: { ...basePayload.fechaIngreso, dia: "", mes: "", anio: "" } };
     }
     return basePayload;
   };
@@ -704,18 +694,7 @@ export default function PacientesPage() {
       alert("El navegador bloqueó la ventana de impresión.");
       return;
     }
-    printWindow.document.write(`
-      <!doctype html>
-      <html lang="es">
-        <head><meta charset="utf-8" /><title>Cargando...</title>
-          <style>
-            html,body{margin:0;height:100%;display:grid;place-items:center;font-family:Arial,sans-serif;background:#f3f4f6}
-            .loader{text-align:center;color:#111827}
-          </style>
-        </head>
-        <body><div class="loader">Generando vista de impresión...</div></body>
-      </html>
-    `);
+    printWindow.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8" /><title>Cargando...</title><style>html,body{margin:0;height:100%;display:grid;place-items:center;font-family:Arial,sans-serif;background:#f3f4f6}.loader{text-align:center;color:#111827}</style></head><body><div class="loader">Generando vista de impresión...</div></body></html>`);
     printWindow.document.close();
     setPrintingId(`${paciente.id}-${type}`);
 
@@ -725,12 +704,7 @@ export default function PacientesPage() {
       const res = await fetch("/api/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payload,
-          fileName,
-          templateName: type === "evolucion" ? "EVOLUCION.pdf" : "ART-COMPLETOS.pdf",
-          pdfType: type,
-        }),
+        body: JSON.stringify({ payload, fileName, templateName: type === "evolucion" ? "EVOLUCION.pdf" : "ART-COMPLETOS.pdf", pdfType: type }),
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const blob = await res.blob();
@@ -758,7 +732,7 @@ export default function PacientesPage() {
     router.push(`/admin/comunicador?${params.toString()}`);
   };
 
-  // ---- Renderizado ----
+  // ===== RENDER =====
   if (loading) {
     return (
       <div className={styles.loadingScreen}>
@@ -774,165 +748,120 @@ export default function PacientesPage() {
 
   return (
     <main className={styles.container}>
-      {/* Header y botón nuevo paciente */}
+      {/* Header */}
       <header className={styles.pageHeader}>
         <div className={styles.titleBlock}>
           <h1 className={styles.pageTitle}>Pacientes</h1>
           <div className={styles.statsRow}>
-            <span className={styles.statBadge} data-type="abierto">
-              🟢 {stats.abiertos} abiertos
-            </span>
-            <span className={styles.statBadge} data-type="cerrado">
-              🔴 {stats.cerrados} cerrados
-            </span>
-            <span className={styles.statBadge} data-type="total">
-              {stats.total} total
-            </span>
-            <span className={styles.statBadge} data-type="incompleto">
-              ⚠️ {stats.incompletos} incompletos
-            </span>
+            <span className={styles.statBadge} data-type="abierto">🟢 {stats.abiertos} abiertos</span>
+            <span className={styles.statBadge} data-type="cerrado">🔴 {stats.cerrados} cerrados</span>
+            <span className={styles.statBadge} data-type="total">{stats.total} total</span>
+            <span className={styles.statBadge} data-type="incompleto">⚠️ {stats.incompletos} incompletos</span>
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.newBtn}
-          onClick={() => router.push("/admin/pacientes/nuevo")}
-        >
-          <span>+</span>
-          Nuevo Paciente
+        <button type="button" className={styles.newBtn} onClick={() => router.push("/admin/pacientes/nuevo")}>
+          <span>+</span> Nuevo Paciente
         </button>
       </header>
 
-      {/* Pestañas de vista */}
-      <nav className={styles.viewTabs} aria-label="Vista de pacientes">
-        <button
-          type="button"
-          className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`}
-          onClick={() => setActiveView("listado")}
-        >
-          📋 Listado
-        </button>
-        <button
-          type="button"
-          className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`}
-          onClick={() => setActiveView("estadisticas")}
-        >
-          📊 Estadísticas
-        </button>
+      {/* Tabs de vista */}
+      <nav className={styles.viewTabs}>
+        <button className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("listado")}>📋 Listado</button>
+        <button className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("estadisticas")}>📊 Estadísticas</button>
       </nav>
 
       {activeView === "listado" ? (
         <>
           {/* Filtros del listado */}
-          <section className={styles.filterBar} aria-label="Filtros">
-            <div className={styles.filterGroup}>
-              <div className={styles.tabGroup}>
-                {["abierto", "cerrado", "todos"].map((estado) => (
-                  <button
-                    type="button"
-                    key={estado}
-                    className={`${styles.tab} ${filtroEstado === estado ? styles.tabActive : ""}`}
-                    onClick={() => setFiltroEstado(estado)}
-                  >
-                    {estado === "abierto" ? "🟢 Abierto" : estado === "cerrado" ? "🔴 Cerrado" : "Todos"}
-                  </button>
-                ))}
+          <section className={styles.filterBarNew}>
+            <div className={styles.filterRow}>
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>🔍</span>
+                <input type="search" placeholder="Buscar por nombre o DNI..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInputNew} />
               </div>
-              <select
-                value={filtroArt}
-                onChange={(e) => setFiltroArt(e.target.value)}
-                className={styles.selectInput}
-                aria-label="Filtrar por ART"
-              >
-                <option value="todas">Todas las ART</option>
-                {artOptions.map((art) => (
-                  <option key={art} value={art}>
-                    {art}
-                  </option>
-                ))}
-              </select>
-              <div className={styles.tabGroup}>
-                {["todos", "completos", "incompletos"].map((tipo) => (
-                  <button
-                    type="button"
-                    key={tipo}
-                    className={`${styles.tab} ${filtroCompletitud === tipo ? styles.tabActive : ""}`}
-                    onClick={() => setFiltroCompletitud(tipo)}
-                  >
-                    {tipo === "todos" ? "Todos" : tipo === "completos" ? "✅ Completos" : "⚠️ Incompletos"}
-                  </button>
-                ))}
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>Estado</span>
+                <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className={styles.selectInputNew}>
+                  <option value="todos">Todos</option>
+                  <option value="abierto">🟢 Abierto</option>
+                  <option value="cerrado">🔴 Cerrado</option>
+                </select>
               </div>
-              {/* Filtro de sexo nuevo */}
-              <select
-                value={filtroSexo}
-                onChange={(e) => setFiltroSexo(e.target.value)}
-                className={styles.selectInput}
-                aria-label="Filtrar por sexo"
-                style={{ minWidth: "130px" }}
-              >
-                <option value="todos">Todos los sexos</option>
-                <option value="M">Masculino</option>
-                <option value="F">Femenino</option>
-                <option value="sinDato">Sin dato</option>
-              </select>
-              <button type="button" className={styles.duplicadosBtn} onClick={handleUnionClickGlobal}>
-                🔍 Duplicados
-              </button>
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>ART</span>
+                <select value={filtroArt} onChange={(e) => setFiltroArt(e.target.value)} className={styles.selectInputNew}>
+                  <option value="todas">Todas</option>
+                  {artOptions.map((art) => (<option key={art} value={art}>{art}</option>))}
+                </select>
+              </div>
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>Carga</span>
+                <select value={filtroCompletitud} onChange={(e) => setFiltroCompletitud(e.target.value)} className={styles.selectInputNew}>
+                  <option value="todos">Todos</option>
+                  <option value="completos">✅ Completos</option>
+                  <option value="incompletos">⚠️ Incompletos</option>
+                </select>
+              </div>
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>Sexo</span>
+                <select value={filtroSexo} onChange={(e) => setFiltroSexo(e.target.value)} className={styles.selectInputNew}>
+                  <option value="todos">Todos</option>
+                  <option value="M">👨 Masculino</option>
+                  <option value="F">👩 Femenino</option>
+                  <option value="sinDato">❔ Sin dato</option>
+                </select>
+              </div>
+              <div className={styles.filterInputGroup}>
+                <span className={styles.filterLabel}>📅 Ingreso</span>
+                <div className={styles.dateRangeGroup}>
+                  <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} className={styles.dateInput} max={filtroFechaHasta || undefined} />
+                  <span className={styles.dateSeparator}>—</span>
+                  <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} className={styles.dateInput} min={filtroFechaDesde || undefined} />
+                </div>
+              </div>
+              <div className={styles.filterActions}>
+                {filtrosActivos.length > 0 && (
+                  <button type="button" className={styles.clearAllBtn} onClick={() => {
+                    setFiltroEstado("todos"); setFiltroArt("todas"); setFiltroCompletitud("todos");
+                    setFiltroSexo("todos"); setFiltroFechaDesde(""); setFiltroFechaHasta(""); setSearchTerm("");
+                  }}>✕ Limpiar filtros</button>
+                )}
+                <button type="button" className={styles.duplicadosBtnNew} onClick={handleUnionClickGlobal}>🔍 Duplicados</button>
+              </div>
             </div>
-            <input
-              type="search"
-              placeholder="Buscar por nombre o DNI..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
-              aria-label="Buscar paciente por nombre o DNI"
-            />
+            {filtrosActivos.length > 0 && (
+              <div className={styles.activeFiltersRow}>
+                <span className={styles.activeFiltersLabel}>Filtros activos ({filtrosActivos.length}):</span>
+                {filtrosActivos.map((f) => (
+                  <button key={f.key} type="button" className={styles.filterChip} onClick={f.clear} title={`Quitar filtro: ${f.label}`}>
+                    {f.label} <span className={styles.chipClose}>✕</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
-          {/* Tabla de pacientes */}
+          <div className={styles.resultsSummary}>
+            <span>Mostrando <strong>{filteredPacientes.length}</strong> de <strong>{pacientes.length}</strong> pacientes</span>
+          </div>
+
           {filteredPacientes.length === 0 ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyIcon}>🔍</div>
-              <p>No se encontraron pacientes con esos filtros.</p>
-            </div>
+            <div className={styles.empty}><div className={styles.emptyIcon}>🔍</div><p>No se encontraron pacientes con esos filtros.</p></div>
           ) : (
-            <section className={styles.tableWrapper} aria-label="Listado de pacientes">
+            <section className={styles.tableWrapper}>
               <table className={styles.table}>
                 <colgroup>
-                  <col className={styles.colPaciente} />
-                  <col className={styles.colDni} />
-                  <col className={styles.colEdad} />
-                  <col className={styles.colArt} />
-                  <col className={styles.colSiniestro} />
-                  <col className={styles.colIngreso} />
-                  <col className={styles.colEstado} />
-                  <col className={styles.colAcciones} />
+                  <col className={styles.colPaciente} /><col className={styles.colDni} /><col className={styles.colEdad} />
+                  <col className={styles.colArt} /><col className={styles.colSiniestro} /><col className={styles.colIngreso} />
+                  <col className={styles.colEstado} /><col className={styles.colAcciones} />
                 </colgroup>
                 <thead>
                   <tr>
-                    {[
-                      ["nombre", "Paciente"],
-                      ["dni", "DNI"],
-                      ["edad", "Edad"],
-                      ["art", "ART"],
-                      ["nroSiniestro", "N° Siniestro"],
-                      ["fechaIngreso", "Ingreso"],
-                      ["estado", "Estado"],
-                    ].map(([key, label]) => (
+                    {[["nombre","Paciente"],["dni","DNI"],["edad","Edad"],["art","ART"],["nroSiniestro","N° Siniestro"],["fechaIngreso","Ingreso"],["estado","Estado"]].map(([key,label]) => (
                       <th key={key} className={styles.sortable}>
-                        <button
-                          type="button"
-                          className={styles.sortButton}
-                          onClick={() => handleSort(key)}
-                          aria-label={`Ordenar por ${label}`}
-                        >
+                        <button type="button" className={styles.sortButton} onClick={() => handleSort(key)}>
                           <span>{label}</span>
-                          {ordenColumna === key && (
-                            <span className={styles.sortArrow}>
-                              {ordenDireccion === "asc" ? "↑" : "↓"}
-                            </span>
-                          )}
+                          {ordenColumna === key && <span className={styles.sortArrow}>{ordenDireccion === "asc" ? "↑" : "↓"}</span>}
                         </button>
                       </th>
                     ))}
@@ -947,94 +876,24 @@ export default function PacientesPage() {
                     const estado = paciente.estado || "abierto";
                     const incompleto = pacienteIncompleto(paciente);
                     const nombreCompleto = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "—";
-
                     return (
                       <tr key={paciente.id} className={estado === "cerrado" ? styles.rowCerrado : ""}>
-                        <td data-label="Paciente">
-                          <div className={styles.cellNameContent}>
-                            <span className={styles.patientName}>{nombreCompleto}</span>
-                            {incompleto && (
-                              <span className={styles.incompletoIcon} title={`Faltan: ${incompleto.join(", ")}`} aria-label="Paciente incompleto">
-                                ⚠️
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td data-label="DNI">
-                          <span className={styles.cellTextWrap}>{t.dni || "—"}</span>
-                        </td>
+                        <td data-label="Paciente"><div className={styles.cellNameContent}><span className={styles.patientName}>{nombreCompleto}</span>{incompleto && <span className={styles.incompletoIcon} title={`Faltan: ${incompleto.join(", ")}`}>⚠️</span>}</div></td>
+                        <td data-label="DNI"><span className={styles.cellTextWrap}>{t.dni || "—"}</span></td>
                         <td data-label="Edad">{t.edad ? `${t.edad}` : "—"}</td>
-                        <td data-label="ART">
-                          <span className={styles.artTag}>{art.nombre || "—"}</span>
-                        </td>
-                        <td data-label="N° Siniestro" className={styles.mono}>
-                          <span className={styles.cellTextWrap}>{art.nroSiniestro || "—"}</span>
-                        </td>
-                        <td data-label="Ingreso" className={styles.mono}>
-                          {fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—"}
-                        </td>
-                        {/* Celda de estado con doble clic */}
-                        <td
-                          data-label="Estado"
-                          onDoubleClick={() => handleToggleEstado(paciente.id, estado)}
-                          style={{ cursor: "pointer" }}
-                          title="Doble clic para cambiar estado"
-                        >
-                          <span
-                            className={estado === "abierto" ? styles.bolitaVerde : styles.bolitaRoja}
-                          />
+                        <td data-label="ART"><span className={styles.artTag}>{art.nombre || "—"}</span></td>
+                        <td data-label="N° Siniestro" className={styles.mono}><span className={styles.cellTextWrap}>{art.nroSiniestro || "—"}</span></td>
+                        <td data-label="Ingreso" className={styles.mono}>{fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—"}</td>
+                        <td data-label="Estado" onDoubleClick={() => handleToggleEstado(paciente.id, estado)} style={{ cursor: "pointer" }} title="Doble clic para cambiar estado">
+                          <span className={estado === "abierto" ? styles.bolitaVerde : styles.bolitaRoja} />
                         </td>
                         <td data-label="Acciones">
                           <div className={styles.actionsCellContent}>
-                            <button
-                              type="button"
-                              className={styles.iconBtn}
-                              title="Editar"
-                              aria-label={`Editar ${nombreCompleto}`}
-                              onClick={() => router.push(`/admin/pacientes/editar/${paciente.id}`)}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-                              title="Eliminar"
-                              aria-label={`Eliminar ${nombreCompleto}`}
-                              onClick={() => handleDelete(paciente.id)}
-                            >
-                              🗑️
-                            </button>
-                            {t.telefono && (
-                              <button
-                                type="button"
-                                className={`${styles.iconBtn} ${styles.iconBtnWa}`}
-                                title="WhatsApp"
-                                aria-label={`Enviar WhatsApp a ${nombreCompleto}`}
-                                onClick={() => handleWhatsAppClick(paciente)}
-                              >
-                                📱
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className={`${styles.iconBtn} ${styles.iconBtnPrint}`}
-                              title="ART completo"
-                              aria-label={`Imprimir ART completo de ${nombreCompleto}`}
-                              onClick={() => handlePrint(paciente, "art")}
-                              disabled={printingId === `${paciente.id}-art`}
-                            >
-                              {printingId === `${paciente.id}-art` ? "⏳" : "🖨️"}
-                            </button>
-                            <button
-                              type="button"
-                              className={`${styles.iconBtn} ${styles.iconBtnPrint}`}
-                              title="Evolución"
-                              aria-label={`Imprimir evolución de ${nombreCompleto}`}
-                              onClick={() => handlePrint(paciente, "evolucion")}
-                              disabled={printingId === `${paciente.id}-evolucion`}
-                            >
-                              {printingId === `${paciente.id}-evolucion` ? "⏳" : "📄"}
-                            </button>
+                            <button className={styles.iconBtn} title="Editar" onClick={() => router.push(`/admin/pacientes/editar/${paciente.id}`)}>✏️</button>
+                            <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} title="Eliminar" onClick={() => handleDelete(paciente.id)}>🗑️</button>
+                            {t.telefono && <button className={`${styles.iconBtn} ${styles.iconBtnWa}`} title="WhatsApp" onClick={() => handleWhatsAppClick(paciente)}>📱</button>}
+                            <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="ART completo" onClick={() => handlePrint(paciente, "art")} disabled={printingId === `${paciente.id}-art`}>{printingId === `${paciente.id}-art` ? "⏳" : "🖨️"}</button>
+                            <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="Evolución" onClick={() => handlePrint(paciente, "evolucion")} disabled={printingId === `${paciente.id}-evolucion`}>{printingId === `${paciente.id}-evolucion` ? "⏳" : "📄"}</button>
                           </div>
                         </td>
                       </tr>
@@ -1046,246 +905,100 @@ export default function PacientesPage() {
           )}
         </>
       ) : (
-        /* ========== VISTA ESTADÍSTICAS ========== */
+        /* VISTA ESTADÍSTICAS */
         <section className={styles.statsLayout}>
-          {/* Encabezado y filtro de fechas */}
           <div className={styles.statsHeader}>
             <div>
-              <h2 className={styles.statsTitle}>Estadísticas generales</h2>
-              <p className={styles.statsSubtitle}>
-                Resumen operativo de pacientes, ART, estados y calidad de carga.
-              </p>
+              <h2 className={styles.statsTitle}>Estadísticas de pacientes</h2>
+              <p className={styles.statsSubtitle}>Filtra por fecha de ingreso y ART para ver métricas específicas.</p>
             </div>
-            <span className={styles.statsTotalBadge}>{stats.total} pacientes registrados</span>
+            <span className={styles.statsTotalBadge}>{stats.total} pacientes en el período</span>
           </div>
 
-          {/* Filtro de fechas para facturación / consultas */}
-          <div className={styles.statsHeader} style={{ justifyContent: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              Desde
-              <input
-                type="date"
-                className={styles.selectInput}
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-                max={fechaHasta || undefined}
-              />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              Hasta
-              <input
-                type="date"
-                className={styles.selectInput}
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-                min={fechaDesde || undefined}
-              />
-            </label>
-            {(fechaDesde || fechaHasta) && (
-              <button
-                type="button"
-                className={styles.duplicadosBtn}
-                onClick={() => { setFechaDesde(""); setFechaHasta(""); }}
-              >
-                Limpiar fechas
-              </button>
-            )}
-            <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginLeft: "auto" }}>
-              {!fechaDesde && !fechaHasta
-                ? "Mostrando todos los datos"
-                : `Filtrando facturación y consultas`}
-            </span>
+          <div className={styles.statsFilterRow}>
+            <div className={styles.filterInputGroup}>
+              <span className={styles.filterLabel}>📅 Ingreso</span>
+              <input type="date" value={statsFechaDesde} onChange={(e) => setStatsFechaDesde(e.target.value)} className={styles.dateInput} max={statsFechaHasta || undefined} />
+              <span className={styles.dateSeparator}>—</span>
+              <input type="date" value={statsFechaHasta} onChange={(e) => setStatsFechaHasta(e.target.value)} className={styles.dateInput} min={statsFechaDesde || undefined} />
+            </div>
+            <div className={styles.filterInputGroup}>
+              <span className={styles.filterLabel}>ART</span>
+              <select value={statsFiltroArt} onChange={(e) => setStatsFiltroArt(e.target.value)} className={styles.selectInputNew}>
+                <option value="todas">Todas</option>
+                {artOptions.map((art) => (<option key={art} value={art}>{art}</option>))}
+              </select>
+            </div>
+            <button type="button" className={styles.clearAllBtn} onClick={() => { setStatsFechaDesde(""); setStatsFechaHasta(""); setStatsFiltroArt("todas"); }}>Limpiar filtros</button>
+            <button type="button" className={styles.duplicadosBtnNew} onClick={verEstosPacientes}>👁️ Ver estos pacientes</button>
           </div>
 
-          {/* KPI cards de pacientes */}
           <div className={styles.kpiGrid}>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>👥</span>
-              <div>
-                <span className={styles.kpiLabel}>Total pacientes</span>
-                <strong className={styles.kpiValue}>{stats.total}</strong>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>🟢</span>
-              <div>
-                <span className={styles.kpiLabel}>Abiertos</span>
-                <strong className={styles.kpiValue}>{stats.abiertos}</strong>
-                <small className={styles.kpiHint}>
-                  {stats.total ? ((stats.abiertos / stats.total) * 100).toFixed(1) : 0}%
-                </small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>🔴</span>
-              <div>
-                <span className={styles.kpiLabel}>Cerrados</span>
-                <strong className={styles.kpiValue}>{stats.cerrados}</strong>
-                <small className={styles.kpiHint}>{stats.tasaCierre}% cierre</small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>✅</span>
-              <div>
-                <span className={styles.kpiLabel}>Completitud</span>
-                <strong className={styles.kpiValue}>{stats.tasaCompletitud}%</strong>
-                <small className={styles.kpiHint}>
-                  {stats.completos} completos / {stats.incompletos} incompletos
-                </small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>🎂</span>
-              <div>
-                <span className={styles.kpiLabel}>Edad promedio</span>
-                <strong className={styles.kpiValue}>
-                  {stats.promedioEdad === "—" ? "—" : `${stats.promedioEdad}`}
-                </strong>
-                <small className={styles.kpiHint}>
-                  Min {stats.edadMin} / Max {stats.edadMax}
-                </small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>🏥</span>
-              <div>
-                <span className={styles.kpiLabel}>ART principal</span>
-                <strong className={styles.kpiValueSmall}>{stats.artMasFrecuente}</strong>
-                <small className={styles.kpiHint}>{stats.artMasFrecuenteCantidad} pacientes</small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>📱</span>
-              <div>
-                <span className={styles.kpiLabel}>Con teléfono</span>
-                <strong className={styles.kpiValue}>{stats.conTelefono}</strong>
-                <small className={styles.kpiHint}>
-                  {stats.total ? ((stats.conTelefono / stats.total) * 100).toFixed(1) : 0}% contactables
-                </small>
-              </div>
-            </article>
-            <article className={styles.kpiCard}>
-              <span className={styles.kpiIcon}>📄</span>
-              <div>
-                <span className={styles.kpiLabel}>Sin N° siniestro</span>
-                <strong className={styles.kpiValue}>{stats.sinSiniestro}</strong>
-                <small className={styles.kpiHint}>Revisar carga administrativa</small>
-              </div>
-            </article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>👥</span><div><span className={styles.kpiLabel}>Total pacientes</span><strong className={styles.kpiValue}>{stats.total}</strong></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🟢</span><div><span className={styles.kpiLabel}>Abiertos</span><strong className={styles.kpiValue}>{stats.abiertos}</strong><small className={styles.kpiHint}>{stats.total ? ((stats.abiertos / stats.total) * 100).toFixed(1) : 0}%</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🔴</span><div><span className={styles.kpiLabel}>Cerrados</span><strong className={styles.kpiValue}>{stats.cerrados}</strong><small className={styles.kpiHint}>{stats.tasaCierre}% cierre</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>✅</span><div><span className={styles.kpiLabel}>Completitud</span><strong className={styles.kpiValue}>{stats.tasaCompletitud}%</strong><small className={styles.kpiHint}>{stats.completos} completos / {stats.incompletos} incompletos</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🎂</span><div><span className={styles.kpiLabel}>Edad promedio</span><strong className={styles.kpiValue}>{stats.promedioEdad === "—" ? "—" : `${stats.promedioEdad}`}</strong><small className={styles.kpiHint}>Min {stats.edadMin} / Max {stats.edadMax}</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🏥</span><div><span className={styles.kpiLabel}>ART principal</span><strong className={styles.kpiValueSmall}>{stats.artMasFrecuente}</strong><small className={styles.kpiHint}>{stats.artMasFrecuenteCantidad} pacientes</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>📱</span><div><span className={styles.kpiLabel}>Con teléfono</span><strong className={styles.kpiValue}>{stats.conTelefono}</strong><small className={styles.kpiHint}>{stats.total ? ((stats.conTelefono / stats.total) * 100).toFixed(1) : 0}% contactables</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>📄</span><div><span className={styles.kpiLabel}>Sin N° siniestro</span><strong className={styles.kpiValue}>{stats.sinSiniestro}</strong><small className={styles.kpiHint}>Revisar carga administrativa</small></div></article>
           </div>
 
-          {/* Paneles de pacientes */}
           <div className={styles.statsGrid}>
             <section className={`${styles.statsPanel} ${styles.statsPanelLarge}`}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <h3 className={styles.panelTitle}>Resumen por ART</h3>
-                  <p className={styles.panelSubtitle}>Cantidad, estado, completitud y promedio de edad.</p>
-                </div>
-              </div>
+              <div className={styles.panelHeader}><div><h3 className={styles.panelTitle}>Resumen por ART</h3><p className={styles.panelSubtitle}>Cantidad, estado, completitud y promedio de edad.</p></div></div>
               <div className={styles.statsTableScroll}>
                 <table className={styles.statsTable}>
-                  <thead>
-                    <tr>
-                      <th>ART</th>
-                      <th>Total</th>
-                      <th>%</th>
-                      <th>Abiertos</th>
-                      <th>Cerrados</th>
-                      <th>Incompletos</th>
-                      <th>Prom. edad</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>ART</th><th>Total</th><th>%</th><th>Abiertos</th><th>Cerrados</th><th>Incompletos</th><th>Prom. edad</th></tr></thead>
                   <tbody>
-                    {stats.porArtArray.length === 0 ? (
-                      <tr><td colSpan={7}>No hay datos.</td></tr>
-                    ) : (
+                    {stats.porArtArray.length === 0 ? <tr><td colSpan={7}>No hay datos.</td></tr> :
                       stats.porArtArray.map((item) => (
                         <tr key={item.art}>
-                          <td><strong>{item.art}</strong></td>
-                          <td>{item.total}</td>
-                          <td>{item.porcentaje}%</td>
+                          <td><strong>{item.art}</strong></td><td>{item.total}</td><td>{item.porcentaje}%</td>
                           <td><span className={styles.statusPillGreen}>{item.abiertos}</span></td>
                           <td><span className={styles.statusPillRed}>{item.cerrados}</span></td>
-                          <td>
-                            <span className={item.incompletos > 0 ? styles.statusPillYellow : styles.statusPillNeutral}>
-                              {item.incompletos}
-                            </span>
-                          </td>
+                          <td><span className={item.incompletos > 0 ? styles.statusPillYellow : styles.statusPillNeutral}>{item.incompletos}</span></td>
                           <td>{item.promedioEdad === "—" ? "—" : `${item.promedioEdad} años`}</td>
                         </tr>
                       ))
-                    )}
+                    }
                   </tbody>
                 </table>
               </div>
             </section>
 
-            {/* Distribución por sexo mejorada */}
             <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}>
-                <h3 className={styles.panelTitle}>Distribución por sexo</h3>
-              </div>
+              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Distribución por sexo</h3></div>
               <div className={styles.compactList}>
-                <div className={styles.compactItem}>
-                  <span>👨 Masculino</span>
-                  <strong>{stats.sexos.m} <small>({stats.total ? ((stats.sexos.m / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
-                </div>
-                <div className={styles.compactItem}>
-                  <span>👩 Femenino</span>
-                  <strong>{stats.sexos.f} <small>({stats.total ? ((stats.sexos.f / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
-                </div>
-                <div
-                  className={styles.compactItem}
-                  onClick={verSinDatoSexo}
-                  style={{ cursor: "pointer", background: "var(--btn-ghost-hover)" }}
-                  title="Hacé clic para ver los pacientes sin dato de sexo"
-                >
-                  <span>❔ Sin dato</span>
-                  <strong>{stats.sexos.sinDato} <small>({stats.total ? ((stats.sexos.sinDato / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
+                <div className={styles.compactItem}><span>👨 Masculino</span><strong>{stats.sexos.m} <small>({stats.total ? ((stats.sexos.m / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
+                <div className={styles.compactItem}><span>👩 Femenino</span><strong>{stats.sexos.f} <small>({stats.total ? ((stats.sexos.f / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
+                <div className={styles.compactItem} onClick={verSinDatoSexo} style={{ cursor: "pointer", background: "var(--btn-ghost-hover)" }} title="Ver pacientes sin dato de sexo">
+                  <span>❔ Sin dato</span><strong>{stats.sexos.sinDato} <small>({stats.total ? ((stats.sexos.sinDato / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
                 </div>
               </div>
             </section>
 
             <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}>
-                <h3 className={styles.panelTitle}>Rango etario</h3>
-              </div>
+              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Rango etario</h3></div>
               <div className={styles.compactList}>
                 {Object.entries(stats.rangos).map(([rango, count]) => {
                   const pct = stats.total ? ((count / stats.total) * 100).toFixed(1) : 0;
-                  return (
-                    <div key={rango} className={styles.compactItem}>
-                      <span>{rango} años</span>
-                      <strong>{count} <small>({pct}%)</small></strong>
-                    </div>
-                  );
+                  return (<div key={rango} className={styles.compactItem}><span>{rango} años</span><strong>{count} <small>({pct}%)</small></strong></div>);
                 })}
               </div>
             </section>
 
             <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}>
-                <h3 className={styles.panelTitle}>Últimos ingresos</h3>
-              </div>
+              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Ingresos por mes</h3></div>
               <div className={styles.compactList}>
-                {stats.ingresosPorMesArray.length === 0 ? (
-                  <div className={styles.emptyMini}>No hay datos.</div>
-                ) : (
-                  stats.ingresosPorMesArray.map((item) => (
-                    <div key={item.mes} className={styles.compactItem}>
-                      <span>{item.mes}</span>
-                      <strong>{item.total}</strong>
-                    </div>
-                  ))
-                )}
+                {stats.ingresosPorMesArray.length === 0 ? <div className={styles.emptyMini}>No hay datos.</div> :
+                  stats.ingresosPorMesArray.map((item) => (<div key={item.mes} className={styles.compactItem}><span>{item.mes}</span><strong>{item.total}</strong></div>))
+                }
               </div>
             </section>
 
             <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}>
-                <h3 className={styles.panelTitle}>Calidad de datos</h3>
-              </div>
+              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Calidad de datos</h3></div>
               <div className={styles.compactList}>
                 <div className={styles.compactItem}><span>✅ Completos</span><strong>{stats.completos}</strong></div>
                 <div className={styles.compactItem}><span>⚠️ Incompletos</span><strong>{stats.incompletos}</strong></div>
@@ -1295,98 +1008,49 @@ export default function PacientesPage() {
             </section>
           </div>
 
-          {/* ========== FACTURACIÓN ========== */}
+          {/* Facturación */}
+          <div className={styles.statsHeader} style={{ marginTop: "1rem" }}>
+            <div><h2 className={styles.statsTitle}>💰 Facturación</h2><p className={styles.statsSubtitle}>Usa los filtros de fecha para analizar la facturación.</p></div>
+            <span className={styles.statsTotalBadge}>{facturacionStats ? `Total general: $${facturacionStats.totalGeneral.toLocaleString()}` : "Sin datos"}</span>
+          </div>
+          <div className={styles.statsFilterRow} style={{ justifyContent: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+              Desde <input type="date" className={styles.selectInput} value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} max={fechaHasta || undefined} />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+              Hasta <input type="date" className={styles.selectInput} value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} min={fechaDesde || undefined} />
+            </label>
+            {(fechaDesde || fechaHasta) && <button type="button" className={styles.clearAllBtn} onClick={() => { setFechaDesde(""); setFechaHasta(""); }}>Limpiar fechas</button>}
+          </div>
           {facturacionStats && (
             <>
-              <div className={styles.statsHeader} style={{ marginTop: "1rem" }}>
-                <div>
-                  <h2 className={styles.statsTitle}>💰 Facturación</h2>
-                  <p className={styles.statsSubtitle}>
-                    Diferenciado entre cerrados (facturado) y borradores (próximos a facturar).
-                  </p>
-                </div>
-                <span className={styles.statsTotalBadge}>
-                  Total general: ${facturacionStats.totalGeneral.toLocaleString()}
-                </span>
-              </div>
-
               <div className={styles.kpiGrid}>
-                <article className={styles.kpiCard}>
-                  <span className={styles.kpiIcon}>✅</span>
-                  <div>
-                    <span className={styles.kpiLabel}>Facturado (cerrado)</span>
-                    <strong className={styles.kpiValue}>
-                      ${facturacionStats.totalFacturado.toLocaleString()}
-                    </strong>
-                  </div>
-                </article>
-                <article className={styles.kpiCard}>
-                  <span className={styles.kpiIcon}>📝</span>
-                  <div>
-                    <span className={styles.kpiLabel}>Borradores</span>
-                    <strong className={styles.kpiValue}>
-                      ${facturacionStats.totalBorradores.toLocaleString()}
-                    </strong>
-                  </div>
-                </article>
+                <article className={styles.kpiCard}><span className={styles.kpiIcon}>✅</span><div><span className={styles.kpiLabel}>Facturado (cerrado)</span><strong className={styles.kpiValue}>${facturacionStats.totalFacturado.toLocaleString()}</strong></div></article>
+                <article className={styles.kpiCard}><span className={styles.kpiIcon}>📝</span><div><span className={styles.kpiLabel}>Borradores</span><strong className={styles.kpiValue}>${facturacionStats.totalBorradores.toLocaleString()}</strong></div></article>
               </div>
-
               <div className={styles.statsGrid}>
                 <section className={`${styles.statsPanel} ${styles.statsPanelLarge}`}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Facturación por ART</h3>
-                  </div>
+                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Facturación por ART</h3></div>
                   <div className={styles.statsTableScroll}>
                     <table className={styles.statsTable}>
-                      <thead>
-                        <tr>
-                          <th>ART</th>
-                          <th>Facturado</th>
-                          <th>Borradores</th>
-                          <th>Total</th>
-                          <th>% del total</th>
-                        </tr>
-                      </thead>
+                      <thead><tr><th>ART</th><th>Facturado</th><th>Borradores</th><th>Total</th><th>% del total</th></tr></thead>
                       <tbody>
                         {facturacionStats.porArtArray.map((item) => {
                           const pct = ((item.totalGeneral / facturacionStats.totalGeneral) * 100).toFixed(1);
-                          return (
-                            <tr key={item.art}>
-                              <td><strong>{item.art}</strong></td>
-                              <td>${item.cerrado.total.toLocaleString()} ({item.cerrado.count})</td>
-                              <td>${item.borrador.total.toLocaleString()} ({item.borrador.count})</td>
-                              <td>${item.totalGeneral.toLocaleString()}</td>
-                              <td>{pct}%</td>
-                            </tr>
-                          );
+                          return (<tr key={item.art}><td><strong>{item.art}</strong></td><td>${item.cerrado.total.toLocaleString()} ({item.cerrado.count})</td><td>${item.borrador.total.toLocaleString()} ({item.borrador.count})</td><td>${item.totalGeneral.toLocaleString()}</td><td>{pct}%</td></tr>);
                         })}
                       </tbody>
                     </table>
                   </div>
                 </section>
-
                 <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Facturación mensual</h3>
-                  </div>
+                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Facturación mensual</h3></div>
                   <div className={styles.statsTableScroll}>
                     <table className={styles.statsTable}>
-                      <thead>
-                        <tr>
-                          <th>Mes</th>
-                          <th>Facturado</th>
-                          <th>Borradores</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
+                      <thead><tr><th>Mes</th><th>Facturado</th><th>Borradores</th><th>Total</th></tr></thead>
                       <tbody>
                         {facturacionStats.porMesArray.map((item) => (
-                          <tr key={item.mes}>
-                            <td><strong>{item.mes}</strong></td>
-                            <td>${item.cerrado.total.toLocaleString()}</td>
-                            <td>${item.borrador.total.toLocaleString()}</td>
-                            <td>${item.totalGeneral.toLocaleString()}</td>
-                          </tr>
+                          <tr key={item.mes}><td><strong>{item.mes}</strong></td><td>${item.cerrado.total.toLocaleString()}</td><td>${item.borrador.total.toLocaleString()}</td><td>${item.totalGeneral.toLocaleString()}</td></tr>
                         ))}
                       </tbody>
                     </table>
@@ -1396,78 +1060,41 @@ export default function PacientesPage() {
             </>
           )}
 
-          {/* ========== PRÁCTICAS Y MÉDICOS ========== */}
+          {/* Prácticas y médicos */}
           {consultasStats && (
             <>
-              <div className={styles.statsHeader} style={{ marginTop: "1rem" }}>
-                <div>
-                  <h2 className={styles.statsTitle}>🩺 Atenciones</h2>
-                  <p className={styles.statsSubtitle}>
-                    Prácticas más frecuentes y médicos que más atienden.
-                  </p>
-                </div>
-              </div>
-
+              <div className={styles.statsHeader} style={{ marginTop: "1rem" }}><div><h2 className={styles.statsTitle}>🩺 Atenciones</h2><p className={styles.statsSubtitle}>Prácticas más frecuentes y médicos que más atienden.</p></div></div>
               <div className={styles.statsGrid}>
                 <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Prácticas más usadas</h3>
-                  </div>
+                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Prácticas más usadas</h3></div>
                   <div className={styles.compactList}>
                     {consultasStats.topPracticas.map((p) => {
-                      const pct = consultasStats.topPracticas[0].count > 0
-                        ? ((p.count / consultasStats.topPracticas[0].count) * 100).toFixed(0)
-                        : 0;
-                      return (
-                        <div key={p.nombre} className={styles.compactItem}>
-                          <span>{p.nombre}</span>
-                          <strong>{p.count} <small>({pct}%)</small></strong>
-                        </div>
-                      );
+                      const pct = consultasStats.topPracticas[0].count > 0 ? ((p.count / consultasStats.topPracticas[0].count) * 100).toFixed(0) : 0;
+                      return (<div key={p.nombre} className={styles.compactItem}><span>{p.nombre}</span><strong>{p.count} <small>({pct}%)</small></strong></div>);
                     })}
                   </div>
                 </section>
-
                 <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Médicos con más atenciones</h3>
-                  </div>
+                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Médicos con más atenciones</h3></div>
                   <div className={styles.compactList}>
                     {consultasStats.topMedicos.map((m) => {
-                      const pct = consultasStats.topMedicos[0].count > 0
-                        ? ((m.count / consultasStats.topMedicos[0].count) * 100).toFixed(0)
-                        : 0;
-                      return (
-                        <div key={m.nombre} className={styles.compactItem}>
-                          <span>{m.nombre}</span>
-                          <strong>{m.count} <small>({pct}%)</small></strong>
-                        </div>
-                      );
+                      const pct = consultasStats.topMedicos[0].count > 0 ? ((m.count / consultasStats.topMedicos[0].count) * 100).toFixed(0) : 0;
+                      return (<div key={m.nombre} className={styles.compactItem}><span>{m.nombre}</span><strong>{m.count} <small>({pct}%)</small></strong></div>);
                     })}
                   </div>
                 </section>
               </div>
             </>
           )}
-
-          {!facturacionStats && !consultasStats && (
-            <div className={styles.emptyMini} style={{ textAlign: "center", padding: "2rem" }}>
-              No hay datos de facturación ni consultas para mostrar.
-            </div>
-          )}
+          {!facturacionStats && !consultasStats && <div className={styles.emptyMini} style={{ textAlign: "center", padding: "2rem" }}>No hay datos de facturación ni consultas para mostrar.</div>}
         </section>
       )}
 
-      {/* Modal de unión de duplicados */}
+      {/* Modal unión duplicados */}
       {showUnionModal && (
         <div className={styles.unionOverlay}>
           <div className={styles.unionPanel}>
-            <div className={styles.unionHeader}>
-              <h3>Fusionar pacientes duplicados</h3>
-              <button type="button" className={styles.closeBtn} onClick={() => setShowUnionModal(false)} aria-label="Cerrar modal">
-                ✕
-              </button>
-            </div>
+            <div className={styles.unionHeader}><h3>Fusionar pacientes duplicados</h3><button type="button" className={styles.closeBtn} onClick={() => setShowUnionModal(false)}>✕</button></div>
             <p>Selecciona el paciente principal. Se conservarán sus datos y se completarán con los de los demás.</p>
             <div className={styles.unionList}>
               {pacientesDuplicados.map((p) => {
@@ -1476,25 +1103,15 @@ export default function PacientesPage() {
                 const dni = t.dni || "Sin DNI";
                 return (
                   <label key={p.id} className={styles.unionItem}>
-                    <input
-                      type="radio"
-                      name="principal"
-                      value={p.id}
-                      checked={principalId === p.id}
-                      onChange={() => setPrincipalId(p.id)}
-                    />
+                    <input type="radio" name="principal" value={p.id} checked={principalId === p.id} onChange={() => setPrincipalId(p.id)} />
                     <span>{fullName} ({dni})</span>
                   </label>
                 );
               })}
             </div>
             <div className={styles.unionActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => setShowUnionModal(false)}>
-                Cancelar
-              </button>
-              <button type="button" className={styles.saveBtn} onClick={fusionarPacientes}>
-                Fusionar
-              </button>
+              <button type="button" className={styles.cancelBtn} onClick={() => setShowUnionModal(false)}>Cancelar</button>
+              <button type="button" className={styles.saveBtn} onClick={fusionarPacientes}>Fusionar</button>
             </div>
           </div>
         </div>
