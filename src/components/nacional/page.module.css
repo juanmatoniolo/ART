@@ -52,7 +52,6 @@
     font-size: 0.92rem;
 }
 
-/* Compat si existiera titleRow */
 .titleRow {
     display: flex;
     flex-direction: column;
@@ -80,17 +79,22 @@
 
 /* Toolbar */
 .toolbar {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 1rem;
+    align-items: end;
+    min-width: 0;
 }
 
-/* Control */
+@media (min-width: 1024px) {
+    .toolbar {
+        grid-template-columns: minmax(320px, 420px) 1fr;
+        gap: 1.25rem;
+    }
+}
+
 .controlBlock {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
+    min-width: 0;
 }
 
 .label {
@@ -98,12 +102,13 @@
     color: #9ca3af;
     font-weight: 800;
     letter-spacing: 0.02em;
+    margin-bottom: 0.5rem;
 }
 
-/* ===== Selector de convenios mejorado ===== */
+/* Selector de convenios */
 .select {
     width: 100%;
-    background: #1f2937; /* gris oscuro sólido */
+    background: #1f2937;
     color: #f9fafb;
     border: 1px solid #4b5563;
     border-radius: 12px;
@@ -111,11 +116,9 @@
     font-size: 1rem;
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    /* Eliminar flecha nativa en algunos navegadores para personalizar después */
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    /* Opcional: agregar una flecha personalizada */
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23e5e7eb%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat;
     background-position: right 1rem center;
@@ -127,31 +130,34 @@
     box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* Estilo para las opciones del select (funciona en la mayoría de navegadores modernos) */
 .select option {
     background: #1f2937;
     color: #f9fafb;
 }
 
-/* ===== Chips (colores distintos, sobrio) ===== */
+/* Chips */
 .chips {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.65rem;
     width: 100%;
-    max-width: 100%;
+    min-width: 0;
+}
+
+@media (min-width: 1280px) {
+    .chips {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
 }
 
 .chip {
-    min-height: 44px;
-    padding: 0.65rem 0.85rem;
-    border-radius: 12px;
-    font-weight: 800;
-    color: #e5e7eb;
-
+    min-width: 0;
+    min-height: 46px;
+    padding: 0.7rem 0.85rem;
+    border-radius: 14px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.10);
-
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -160,52 +166,63 @@
 }
 
 .chip b {
-    color: #cbd5e1;
+    color: rgba(203, 213, 225, 0.92);
     font-weight: 900;
     white-space: nowrap;
+    flex: 0 0 auto;
 }
 
-/* Variantes (barra + tinte) */
-.chipRx {
-    border-left: 4px solid rgba(59, 130, 246, 0.9);
-    background: rgba(59, 130, 246, 0.07);
+.chipValue {
+    font-weight: 1000;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 
-.chipGalRx {
-    border-left: 4px solid rgba(16, 185, 129, 0.9);
-    background: rgba(16, 185, 129, 0.07);
+/* Colores de chips */
+.chipGastoRx {
+    border-left: 4px solid rgba(59, 130, 246, 0.95);
+    background: rgba(59, 130, 246, 0.08);
 }
+.chipGastoRx .chipValue { color: rgba(147, 197, 253, 0.95); }
 
-.chipOper {
-    border-left: 4px solid rgba(245, 158, 11, 0.9);
-    background: rgba(245, 158, 11, 0.07);
+.chipGalenoRx {
+    border-left: 4px solid rgba(16, 185, 129, 0.95);
+    background: rgba(16, 185, 129, 0.08);
 }
+.chipGalenoRx .chipValue { color: rgba(110, 231, 183, 0.95); }
 
-.chipQuir {
-    border-left: 4px solid rgba(168, 85, 247, 0.9);
-    background: rgba(168, 85, 247, 0.07);
+.chipGtoOperatorio {
+    border-left: 4px solid rgba(245, 158, 11, 0.95);
+    background: rgba(245, 158, 11, 0.08);
 }
+.chipGtoOperatorio .chipValue { color: rgba(253, 230, 138, 0.95); }
+
+.chipGalenoQuir {
+    border-left: 4px solid rgba(168, 85, 247, 0.95);
+    background: rgba(168, 85, 247, 0.08);
+}
+.chipGalenoQuir .chipValue { color: rgba(216, 180, 254, 0.95); }
 
 .chipPension {
-    border-left: 4px solid rgba(20, 184, 166, 0.9);
-    background: rgba(20, 184, 166, 0.07);
+    border-left: 4px solid rgba(20, 184, 166, 0.95);
+    background: rgba(20, 184, 166, 0.08);
 }
+.chipPension .chipValue { color: rgba(94, 234, 212, 0.95); }
 
 .chipOtros {
-    border-left: 4px solid rgba(148, 163, 184, 0.9);
+    border-left: 4px solid rgba(148, 163, 184, 0.95);
     background: rgba(148, 163, 184, 0.06);
 }
+.chipOtros .chipValue { color: rgba(226, 232, 240, 0.9); }
 
-/* Nuevo chip para galeno común */
-.chipGalenoComun {
+.chipConsulta {
     border-left: 4px solid rgba(99, 102, 241, 0.95);
     background: rgba(99, 102, 241, 0.08);
 }
-.chipGalenoComun .chipValue {
-    color: rgba(165, 180, 252, 0.95);
-}
+.chipConsulta .chipValue { color: rgba(165, 180, 252, 0.95); }
 
-/* Alert */
+/* Alerta */
 .alert {
     background: rgba(250, 204, 21, 0.14);
     border: 1px solid rgba(250, 204, 21, 0.22);
@@ -237,7 +254,7 @@
     box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.18);
 }
 
-/* ===== Mobile list cards ===== */
+/* ===== Mobile cards ===== */
 .mobileList {
     display: grid;
     grid-template-columns: 1fr;
@@ -268,7 +285,6 @@
     outline: 2px dashed rgba(255, 255, 255, 0.14);
 }
 
-/* ✅ Arreglo: el código siempre visible en mobile */
 .cardTop {
     display: flex;
     flex-direction: column;
@@ -280,20 +296,14 @@
     display: inline-flex;
     align-self: flex-start;
     max-width: 100%;
-
     font-weight: 1000;
     font-size: 1.05rem;
     color: #eaf7ef;
-
     padding: 0.35rem 0.55rem;
     border-radius: 12px;
-
     background: rgba(111, 161, 123, 0.18);
     border: 1px solid rgba(111, 161, 123, 0.25);
-
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-        "Courier New", monospace;
-
+    font-family: ui-monospace, monospace;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -321,10 +331,11 @@
     overflow-wrap: anywhere;
 }
 
+/* Grilla de costes: ahora 3 columnas (Honorario / Gasto / Total) */
 .costGrid {
     margin-top: 0.85rem;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 0.65rem;
 }
 
@@ -332,7 +343,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 14px;
-    padding: 0.85rem;
+    padding: 0.85rem 0.5rem;
     text-align: center;
 }
 
@@ -370,6 +381,19 @@
     text-overflow: ellipsis;
 }
 
+/* Clases para total (heredadas de facturación) */
+.valueBig {
+    font-weight: 1000;
+    font-size: 1.25rem;
+    color: #e5e7eb;
+}
+
+.baseLine {
+    font-size: 0.9rem;
+    color: #9ca3af;
+    margin-bottom: 0.25rem;
+}
+
 .noResults {
     padding: 2.2rem 1rem;
     color: rgba(229, 231, 235, 0.65);
@@ -381,7 +405,6 @@
 /* ===== Desktop table ===== */
 .tableWrapper {
     display: none;
-    /* mobile-first */
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.03);
@@ -422,13 +445,7 @@
     white-space: normal;
 }
 
-.numeric {
-    text-align: right;
-    font-weight: 900;
-    white-space: nowrap;
-}
-
-/* Row hints */
+/* Filas especiales */
 .rxRow td:first-child {
     border-left: 4px solid rgba(111, 161, 123, 0.75);
 }
@@ -437,7 +454,7 @@
     border-left: 4px dashed rgba(229, 231, 235, 0.25);
 }
 
-/* Highlight buscador */
+/* Highlight */
 .highlight {
     background: rgba(111, 161, 123, 0.18);
     color: #f1f5f9;
@@ -446,7 +463,7 @@
     font-weight: 900;
 }
 
-/* ===== Accordion (modo capítulos) ===== */
+/* Acordeón capítulos */
 .accordion {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -471,95 +488,16 @@
     padding: 1rem;
 }
 
-/* ===== Breakpoints ===== */
-@media (min-width: 640px) {
-    .headerTop {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-
-    .switchButton {
-        width: auto;
-        white-space: nowrap;
-    }
-
-    .chips {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .mobileList {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    /* En pantallas medianas, el código puede crecer un poco */
-    .code {
-        font-size: 1.08rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .header {
-        padding: 1.25rem;
-    }
-
-    .toolbar {
-        flex-direction: row;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 1.25rem;
-    }
-
-    .controlBlock {
-        max-width: 420px;
-    }
-
-    .chips {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .mobileList {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (min-width: 1200px) {
-    .mobileList {
-        display: none;
-    }
-
-    .tableWrapper {
-        display: block;
-    }
-
-    .page {
-        padding: 1.5rem;
-    }
-
-    .table th,
-    .table td {
-        padding: 1rem 1.1rem;
-    }
-}
-
-/* =========================
-   Buscador estilo “barra”
-   ========================= */
-
+/* Barra de búsqueda */
 .searchBar {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-
     padding: 0.9rem 1rem;
     border-radius: 18px;
-
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.10);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
-
-    /* ✅ que quede prolijo y no se “rompa” */
     min-height: 60px;
 }
 
@@ -573,11 +511,9 @@
 .searchInput {
     flex: 1 1 auto;
     min-width: 0;
-
     background: transparent;
     border: none;
     outline: none;
-
     color: #e5e7eb;
     font-size: 1.05rem;
     font-weight: 800;
@@ -599,10 +535,8 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
     color: #e5e7eb;
-
     padding: 0.6rem 0.85rem;
     border-radius: 12px;
-
     font-weight: 850;
     cursor: pointer;
     transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
@@ -615,192 +549,57 @@
 }
 
 /* Responsive */
-@media (max-width: 420px) {
-    .searchBar {
-        padding: 0.85rem 0.9rem;
-        gap: 0.6rem;
-        min-height: 58px;
+@media (min-width: 640px) {
+    .headerTop {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
     }
-
-    .searchInput {
-        font-size: 1rem;
+    .switchButton {
+        width: auto;
+        white-space: nowrap;
     }
-
-    .clearBtn {
-        padding: 0.55rem 0.7rem;
+    .chips {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .mobileList {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (min-width: 1024px) {
-    .searchBar {
-        padding: 1rem 1.15rem;
-        min-height: 64px;
+    .header {
+        padding: 1.25rem;
     }
-
-    .searchInput {
-        font-size: 1.08rem;
-    }
-}
-
-/* =========================
-   TOOLBAR + CHIPS (FIX sidebar expandida)
-   ========================= */
-
-.toolbar {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    align-items: end;
-    min-width: 0;
-    /* ✅ evita overflow con sidebar */
-}
-
-/* En desktop: 1 columna para select + otra para chips */
-@media (min-width: 1024px) {
     .toolbar {
-        grid-template-columns: minmax(320px, 420px) 1fr;
-        gap: 1.25rem;
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
     }
-}
-
-.controlBlock {
-    min-width: 0;
-}
-
-/* El select ya está definido arriba */
-
-/* ✅ Grilla inteligente (no se aplasta) */
-.chips {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.65rem;
-    width: 100%;
-    min-width: 0;
-}
-
-/* En pantallas grandes, damos un poco más de aire */
-@media (min-width: 1280px) {
+    .controlBlock {
+        max-width: 420px;
+    }
     .chips {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.75rem;
+    }
+    .mobileList {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
-.chip {
-    min-width: 0;
-    min-height: 46px;
-
-    padding: 0.7rem 0.85rem;
-    border-radius: 14px;
-
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-
-    overflow: hidden;
-}
-
-/* etiqueta */
-.chip b {
-    color: rgba(203, 213, 225, 0.92);
-    font-weight: 900;
-    white-space: nowrap;
-    flex: 0 0 auto;
-}
-
-/* ✅ el valor se ve siempre completo */
-.chipValue {
-    font-weight: 1000;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-    flex: 0 0 auto;
-}
-
-/* =========================
-   COLORES (los más usados)
-   - borde + fondo + valor
-   ========================= */
-
-/* Gasto Rx (azul) */
-.chipGastoRx {
-    border-left: 4px solid rgba(59, 130, 246, 0.95);
-    background: rgba(59, 130, 246, 0.08);
-}
-
-.chipGastoRx .chipValue {
-    color: rgba(147, 197, 253, 0.95);
-}
-
-/* Galeno Rx (verde) */
-.chipGalenoRx {
-    border-left: 4px solid rgba(16, 185, 129, 0.95);
-    background: rgba(16, 185, 129, 0.08);
-}
-
-.chipGalenoRx .chipValue {
-    color: rgba(110, 231, 183, 0.95);
-}
-
-/* Gasto Operatorio (ámbar) */
-.chipGtoOperatorio {
-    border-left: 4px solid rgba(245, 158, 11, 0.95);
-    background: rgba(245, 158, 11, 0.08);
-}
-
-.chipGtoOperatorio .chipValue {
-    color: rgba(253, 230, 138, 0.95);
-}
-
-/* Galeno Quir (violeta) */
-.chipGalenoQuir {
-    border-left: 4px solid rgba(168, 85, 247, 0.95);
-    background: rgba(168, 85, 247, 0.08);
-}
-
-.chipGalenoQuir .chipValue {
-    color: rgba(216, 180, 254, 0.95);
-}
-
-/* Pensión (teal) */
-.chipPension {
-    border-left: 4px solid rgba(20, 184, 166, 0.95);
-    background: rgba(20, 184, 166, 0.08);
-}
-
-.chipPension .chipValue {
-    color: rgba(94, 234, 212, 0.95);
-}
-
-/* Otros (gris) */
-.chipOtros {
-    border-left: 4px solid rgba(148, 163, 184, 0.95);
-    background: rgba(148, 163, 184, 0.06);
-}
-
-.chipOtros .chipValue {
-    color: rgba(226, 232, 240, 0.9);
-}
-
-.chipConsulta {
-  border-left: 4px solid rgba(99, 102, 241, 0.95);
-  background: rgba(99, 102, 241, 0.08);
-}
-.chipConsulta .chipValue {
-  color: rgba(165, 180, 252, 0.95);
-}
-
-.valueBig {
-  font-weight: 1000;
-  font-size: 1.25rem;
-  color: #e5e7eb;
-}
-
-.baseLine {
-  font-size: 0.9rem;
-  color: #9ca3af;
-  margin-bottom: 0.25rem;
+@media (min-width: 1200px) {
+    .mobileList {
+        display: none;
+    }
+    .tableWrapper {
+        display: block;
+    }
+    .page {
+        padding: 1.5rem;
+    }
+    .table th,
+    .table td {
+        padding: 1rem 1.1rem;
+    }
 }

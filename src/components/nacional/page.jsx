@@ -5,98 +5,69 @@ import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
 import styles from './page.module.css';
+import {
+  normalize,
+  money,
+  isRadiografia,
+  isSubsiguiente,
+  vincularSubsiguientes,
+  highlight,
+  parseNumber,
+  calcularPractica,
 
-/* ================= Utils ================= */
-const normalize = (s) =>
-  (s ?? '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+} from '../../app/admin/Facturacion/utils/calculos';   // ✅ usamos las mismas utilidades que facturación
 
-const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-function highlight(text, q) {
-  if (!text || !q) return text;
-  const safe = escapeRegExp(q);
-  const regex = new RegExp(`(${safe})`, 'gi');
-  const parts = String(text).split(regex);
-  return parts.map((part, i) =>
-    part.toLowerCase() === String(q).toLowerCase() ? (
-      <mark key={i} className={styles.highlight}>
-        {part}
-      </mark>
-    ) : (
-      part
-    )
-  );
-}
-
-const parseNumber = (val) => {
-  if (val == null || val === '') return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
-
-  let s = String(val).trim();
-  s = s.replace(/[^\d.,-]/g, '');
-
-  const hasComma = s.includes(',');
-  const hasDot = s.includes('.');
-
-  if (hasComma) {
-    s = s.replace(/\./g, '').replace(',', '.');
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  if (hasDot) {
-    const dotCount = (s.match(/\./g) || []).length;
-
-    if (dotCount === 1 && /^\-?\d+(\.\d{1,2})$/.test(s)) {
-      const n = parseFloat(s);
-      return Number.isFinite(n) ? n : 0;
-    }
-
-    s = s.replace(/\./g, '');
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-};
-
-const money = (n) => {
-  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const isRadiografia = (item) => {
-  const d = normalize(item?.descripcion);
-  return d.includes('radiograf') || d.includes('rx');
-};
-
-const isSubsiguiente = (item) => {
-  const d = normalize(item?.descripcion);
-  return d.includes('por exposicion subsiguiente') || d.includes('por exposición subsiguiente');
-};
-
-const vincularSubsiguientes = (item, data) => {
-  const idx = data.findIndex((d) => (item.__key ? d.__key === item.__key : d.codigo === item.codigo));
-  if (idx === -1) return [item];
-
-  const prev = data[idx - 1];
-  const next = data[idx + 1];
-
-  if (isSubsiguiente(item) && prev) return [prev, item];
-  if (next && isSubsiguiente(next)) return [item, next];
-  return [item];
-};
 
 const formatConvenioLabel = (s) =>
   String(s ?? '')
     .replace(/_+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+// ----- CÓDIGOS DE PRÁCTICAS COMUNES (accesos rápidos) -----
+const DEFAULT_CODES = [
+  '42.01.01',
+  '43.02.01',
+  '34.02.13',
+  '13.01.10',
+  '34.02.013',
+  '43.01.01',
+  '43.10.01',
+  '43.11.01',
+  '400101',
+];
+
+const normCode = (c) => String(c ?? '').replace(/\D/g, '');
+
+/**
+ * Normaliza el objeto valores_generales del convenio a las claves
+ * que espera la función calcularPractica (igual que en facturación).
+ */
+const normalizarValores = (vg) => {
+  if (!vg) return {};
+
+  // Función para buscar un valor con múltiples nombres de clave posibles
+  const buscar = (claves, defecto = 0) => {
+    for (const c of claves) {
+      if (vg[c] != null && vg[c] !== '') return parseNumber(vg[c]);
+    }
+    return defecto;
+  };
+
+  return {
+    // Campos que usa calcularPractica
+    galenoRx: buscar(['Galeno_Rx_Practica', 'Galeno_Rx_y_Practica', 'Galeno_Rx', 'galeno_rx']),
+    gastoRx: buscar(['Gasto_Rx', 'Gastos_Rx', 'Gasto Rx', 'gasto_rx']),
+    galenoQuir: buscar(['Galeno_Quir', 'Galeno Quir', 'Galeno_Quirurgico', 'galeno_quir']),
+    gastoOperatorio: buscar(['Gasto_Operatorio', 'Gasto Operatorio', 'gasto_operatorio']),
+    pension: buscar(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión']),
+    otrosGastos: buscar(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos']),
+    consulta: buscar(['Consulta', 'consulta', 'CONSULTA']),
+    Curaciones_R: buscar(['Curaciones_R', 'CURACIONES_R', 'Curaciones']),
+    // También exponemos el objeto completo por si se necesita en otro lado
+    ...vg, // spread para mantener compatibilidad con búsquedas flexibles internas de calcularPractica
+  };
+};
 
 export default function NomencladorNacional() {
   const [data, setData] = useState([]);
@@ -109,17 +80,10 @@ export default function NomencladorNacional() {
 
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
+  const [valoresConvenio, setValoresConvenio] = useState({}); // ahora es el objeto normalizado
   const [alerta, setAlerta] = useState('');
 
-  // Valores del convenio
-  const [gastoRx, setGastoRx] = useState(0);
-  const [galenoRxPractica, setGalenoRxPractica] = useState(0);
-  const [gastoOperatorio, setGastoOperatorio] = useState(0);
-  const [galenoQuir, setGalenoQuir] = useState(0);
-  const [diaPension, setDiaPension] = useState(0);
-  const [otrosGastos, setOtrosGastos] = useState(0);
-  const [galenoComun, setGalenoComun] = useState(0);
-
+  // Cargar JSON del nomenclador
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
@@ -153,6 +117,7 @@ export default function NomencladorNacional() {
       });
   }, []);
 
+  // Cargar convenios desde Firebase
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
@@ -172,41 +137,18 @@ export default function NomencladorNacional() {
     return () => off();
   }, []);
 
+  // Cuando cambia el convenio seleccionado, normalizamos sus valores
   useEffect(() => {
-    if (!convenioSel || !convenios[convenioSel]) return;
+    if (!convenioSel || !convenios[convenioSel]) {
+      setValoresConvenio({});
+      return;
+    }
     const vg = convenios[convenioSel]?.valores_generales || {};
-
-    const pick = (keys) => {
-      for (const k of keys) {
-        if (vg[k] != null && vg[k] !== '') return vg[k];
-      }
-      return null;
-    };
-
-    const gastoRaw = pick(['Gasto_Rx', 'Gastos_Rx', 'Gasto Rx', 'Gastos Rx']);
-    const galenoRaw = pick([
-      'Galeno_Rx_Practica',
-      'Galeno_Rx_y_Practica',
-      'Galeno Rx Practica',
-      'Galeno Rx y Practica',
-    ]);
-    const gastoOpRaw = pick(['Gasto_Operatorio', 'Gasto Operatorio', 'Gastos Operatorios']);
-    const galenoQuirRaw = pick(['Galeno_Quir', 'Galeno Quir', 'Galeno Quirúrgico', 'Galeno Quirurgico']);
-    const pensionRaw = pick(['Pension', 'pension', 'Dia_Pension', 'Día_Pensión', 'Dia Pension', 'Día Pension']);
-    const otrosGastosRaw = pick(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos', 'Otros Gastos Medicos']);
-    const galenoComunRaw = pick(['Galeno_Comun', 'Galeno_General', 'Honorario_Basico', 'Galeno Comun']);
-
-    setGastoRx(parseNumber(gastoRaw));
-    setGalenoRxPractica(parseNumber(galenoRaw));
-    setGastoOperatorio(parseNumber(gastoOpRaw));
-    setGalenoQuir(parseNumber(galenoQuirRaw));
-    setDiaPension(parseNumber(pensionRaw));
-    setOtrosGastos(parseNumber(otrosGastosRaw));
-    setGalenoComun(parseNumber(galenoComunRaw));
-
+    setValoresConvenio(normalizarValores(vg));
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
 
+  // Fuse para búsqueda global
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
@@ -218,7 +160,30 @@ export default function NomencladorNacional() {
     });
   }, [data]);
 
-  const resultadosGlobales = useMemo(() => {
+  // --- Prácticas predefinidas (accesos rápidos) ---
+  const defaultResultados = useMemo(() => {
+    if (!data.length) return [];
+
+    const wanted = DEFAULT_CODES.map(normCode);
+    const picked = [];
+
+    for (const w of wanted) {
+      const found = data.find((it) => normCode(it.codigo) === w);
+      if (!found) continue;
+      picked.push(...vincularSubsiguientes(found, data));
+    }
+
+    const seen = new Map();
+    picked.forEach((it) => {
+      const key = it.__key || `${it.capitulo}|${it.codigo}`;
+      if (!seen.has(key)) seen.set(key, it);
+    });
+
+    return Array.from(seen.values());
+  }, [data]);
+
+  // --- Resultados de búsqueda ---
+  const resultadosBusqueda = useMemo(() => {
     const q = query.trim();
     if (!q) return [];
 
@@ -246,51 +211,26 @@ export default function NomencladorNacional() {
     return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
   }, [query, data, fuseGlobal]);
 
-  const computeExtras = (it) => {
-    const gto = parseNumber(it.gto);
-    const gal = parseNumber(it.q_gal);
+  // Combina: si no hay query → defaultResultados, sino → resultadosBusqueda
+  const resultadosGlobales = query.trim() === '' ? defaultResultados : resultadosBusqueda;
 
-    // Caso especial para código 400101: reemplazar valores por los calculados
-    if (String(it.codigo) === '400101') {
-      const galCalculado = gal * galenoComun;
-      const gtoCalculado = gto * diaPension;
-      return {
-        gal: galCalculado,
-        gto: gtoCalculado,
-        extraGal: null,
-        extraGto: null
-      };
-    }
-
-    const capituloNum = Number(String(it.capitulo ?? '').replace(/\D/g, '')) || 0;
-    const capituloNombre = it.capituloNombre ?? '';
-
-    const esCapitulo34 =
-      normalize(capituloNombre).includes('radiologia') ||
-      normalize(capituloNombre).includes('diagnostico por imagenes') ||
-      normalize(capituloNombre).includes('diagnóstico por imagenes');
-
-    const esCap12o13 = capituloNum === 12 || capituloNum === 13;
-
-    let extraGal = null;
-    let extraGto = null;
-
-    if (esCapitulo34) {
-      const gastoOp = (gastoRx * gto) / 2;
-      const honorario = galenoRxPractica * gal + gastoOp;
-      extraGal = honorario;
-      extraGto = gastoOp;
-    }
-
-    if (esCap12o13) {
-      extraGal = galenoQuir * gal;
-      extraGto = gastoOperatorio * gto;
-    }
-
-    return { gal, gto, extraGal, extraGto };
+  // Función que calcula honorario/gasto usando la misma lógica de facturación
+  const getCalculo = (practica) => {
+    if (!valoresConvenio || Object.keys(valoresConvenio).length === 0)
+      return { honorarioMedico: 0, gastoSanatorial: 0, total: 0 };
+    return calcularPractica(practica, valoresConvenio);
   };
 
   const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
+
+  // Valores para los chips (tomados del objeto normalizado)
+  const gastoRx = valoresConvenio?.gastoRx ?? 0;
+  const galenoRxPractica = valoresConvenio?.galenoRx ?? 0;
+  const gastoOperatorio = valoresConvenio?.gastoOperatorio ?? 0;
+  const galenoQuir = valoresConvenio?.galenoQuir ?? 0;
+  const diaPension = valoresConvenio?.pension ?? 0;
+  const otrosGastos = valoresConvenio?.otrosGastos ?? 0;
+  const galenoComun = parseNumber(valoresConvenio?.['Galeno_Comun'] ?? 0);
 
   return (
     <div className={styles.page}>
@@ -303,6 +243,7 @@ export default function NomencladorNacional() {
             </p>
           </div>
         </div>
+        {/* Chips de valores */}
         <div className={styles.chips} aria-label="Valores del convenio">
           <span className={`${styles.chip} ${styles.chipGastoRx}`}>
             <b>Gasto Rx</b> <span className={styles.chipValue}>{money(gastoRx)}</span>
@@ -388,12 +329,13 @@ export default function NomencladorNacional() {
             )}
           </div>
 
+          {/* ------ VISTA MOBILE (tarjetas) ------ */}
           <div className={styles.mobileList}>
             {resultadosGlobales.length === 0 ? (
               <div className={styles.noResults}>Sin resultados.</div>
             ) : (
               resultadosGlobales.map((it) => {
-                const { gal, gto, extraGal, extraGto } = computeExtras(it);
+                const calc = getCalculo(it);
                 const key = it.__key ?? `${it.capitulo}|${it.codigo}`;
 
                 return (
@@ -412,15 +354,18 @@ export default function NomencladorNacional() {
 
                     <div className={styles.costGrid}>
                       <div className={styles.costBox}>
-                        <span className={styles.costLabel}>GAL</span>
-                        <span className={styles.costValue}>{money(gal)}</span>
-                        {extraGal != null && <span className={styles.subValue}>${money(extraGal)}</span>}
+                        <span className={styles.costLabel}>Honorario</span>
+                        <span className={styles.costValue}>{money(calc.honorarioMedico)}</span>
                       </div>
 
                       <div className={styles.costBox}>
-                        <span className={styles.costLabel}>GTO</span>
-                        <span className={styles.costValue}>{money(gto)}</span>
-                        {extraGto != null && <span className={styles.subValue}>${money(extraGto)}</span>}
+                        <span className={styles.costLabel}>Gasto</span>
+                        <span className={styles.costValue}>{money(calc.gastoSanatorial)}</span>
+                      </div>
+
+                      <div className={styles.costBox}>
+                        <span className={styles.costLabel}>Total</span>
+                        <span className={styles.costValue}>{money(calc.total)}</span>
                       </div>
                     </div>
                   </article>
@@ -429,6 +374,7 @@ export default function NomencladorNacional() {
             )}
           </div>
 
+          {/* ------ VISTA ESCRITORIO (tabla) ------ */}
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -436,20 +382,21 @@ export default function NomencladorNacional() {
                   <th>Código</th>
                   <th>Descripción</th>
                   <th>Capítulo</th>
-                  <th className={styles.thNumeric}>GAL</th>
-                  <th className={styles.thNumeric}>GTO</th>
+                  <th className={styles.thNumeric}>Honorario</th>
+                  <th className={styles.thNumeric}>Gasto</th>
+                  <th className={styles.thNumeric}>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {resultadosGlobales.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className={styles.noResultsCell}>
+                    <td colSpan={6} className={styles.noResultsCell}>
                       Sin resultados.
                     </td>
                   </tr>
                 ) : (
                   resultadosGlobales.map((it) => {
-                    const { gal, gto, extraGal, extraGto } = computeExtras(it);
+                    const calc = getCalculo(it);
                     const key = it.__key ?? `${it.capitulo}|${it.codigo}`;
 
                     return (
@@ -466,21 +413,15 @@ export default function NomencladorNacional() {
                         </td>
 
                         <td className={styles.tdNumeric}>
-                          <span className={styles.mainValue}>{money(gal)}</span>
-                          {extraGal != null && (
-                            <div className={styles.extraWrapper}>
-                              <span className={styles.subValue}>${money(extraGal)}</span>
-                            </div>
-                          )}
+                          <span className={styles.valueBig}>{money(calc.honorarioMedico)}</span>
                         </td>
 
                         <td className={styles.tdNumeric}>
-                          <span className={styles.mainValue}>{money(gto)}</span>
-                          {extraGto != null && (
-                            <div className={styles.extraWrapper}>
-                              <span className={styles.subValue}>${money(extraGto)}</span>
-                            </div>
-                          )}
+                          <span className={styles.valueBig}>{money(calc.gastoSanatorial)}</span>
+                        </td>
+
+                        <td className={styles.tdNumeric}>
+                          <span className={styles.valueBig}>{money(calc.total)}</span>
                         </td>
                       </tr>
                     );
@@ -551,7 +492,7 @@ export default function NomencladorNacional() {
                       ) : (
                         practicasFiltradas.map((it, j) => {
                           const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
-                          const { gal, gto, extraGal, extraGto } = computeExtras(itFull);
+                          const calc = getCalculo(itFull);
                           const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
 
                           return (
@@ -572,15 +513,18 @@ export default function NomencladorNacional() {
 
                               <div className={styles.costGrid}>
                                 <div className={styles.costBox}>
-                                  <span className={styles.costLabel}>GAL</span>
-                                  <span className={styles.costValue}>{money(gal)}</span>
-                                  {extraGal != null && <span className={styles.subValue}>${money(extraGal)}</span>}
+                                  <span className={styles.costLabel}>Honorario</span>
+                                  <span className={styles.costValue}>{money(calc.honorarioMedico)}</span>
                                 </div>
 
                                 <div className={styles.costBox}>
-                                  <span className={styles.costLabel}>GTO</span>
-                                  <span className={styles.costValue}>{money(gto)}</span>
-                                  {extraGto != null && <span className={styles.subValue}>${money(extraGto)}</span>}
+                                  <span className={styles.costLabel}>Gasto</span>
+                                  <span className={styles.costValue}>{money(calc.gastoSanatorial)}</span>
+                                </div>
+
+                                <div className={styles.costBox}>
+                                  <span className={styles.costLabel}>Total</span>
+                                  <span className={styles.costValue}>{money(calc.total)}</span>
                                 </div>
                               </div>
                             </article>
@@ -595,21 +539,22 @@ export default function NomencladorNacional() {
                           <tr>
                             <th>Código</th>
                             <th>Descripción</th>
-                            <th className={styles.thNumeric}>GAL</th>
-                            <th className={styles.thNumeric}>GTO</th>
+                            <th className={styles.thNumeric}>Honorario</th>
+                            <th className={styles.thNumeric}>Gasto</th>
+                            <th className={styles.thNumeric}>Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {practicasFiltradas.length === 0 ? (
                             <tr>
-                              <td colSpan={4} className={styles.noResultsCell}>
+                              <td colSpan={5} className={styles.noResultsCell}>
                                 Sin resultados.
                               </td>
                             </tr>
                           ) : (
                             practicasFiltradas.map((it, j) => {
                               const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
-                              const { gal, gto, extraGal, extraGto } = computeExtras(itFull);
+                              const calc = getCalculo(itFull);
                               const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
 
                               return (
@@ -623,21 +568,15 @@ export default function NomencladorNacional() {
                                   <td className={styles.descCell}>{highlight(itFull.descripcion, qLocal)}</td>
 
                                   <td className={styles.tdNumeric}>
-                                    <span className={styles.mainValue}>{money(gal)}</span>
-                                    {extraGal != null && (
-                                      <div className={styles.extraWrapper}>
-                                        <span className={styles.subValue}>${money(extraGal)}</span>
-                                      </div>
-                                    )}
+                                    <span className={styles.valueBig}>{money(calc.honorarioMedico)}</span>
                                   </td>
 
                                   <td className={styles.tdNumeric}>
-                                    <span className={styles.mainValue}>{money(gto)}</span>
-                                    {extraGto != null && (
-                                      <div className={styles.extraWrapper}>
-                                        <span className={styles.subValue}>${money(extraGto)}</span>
-                                      </div>
-                                    )}
+                                    <span className={styles.valueBig}>{money(calc.gastoSanatorial)}</span>
+                                  </td>
+
+                                  <td className={styles.tdNumeric}>
+                                    <span className={styles.valueBig}>{money(calc.total)}</span>
                                   </td>
                                 </tr>
                               );

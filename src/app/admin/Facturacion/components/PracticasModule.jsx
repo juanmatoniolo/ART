@@ -21,15 +21,14 @@ const DEFAULT_CODES = [
   '34.02.13',
   '13.01.10',
   '34.02.013',
-  '43.01.01',
+  '43.01.01',   // DIA PISO/INT
   '43.10.01',
   '43.11.01',
-  '400101',      // código especial: se unifica todo en clínica
+  '400101',     // DIA UTI (G + H)
 ];
 
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
 
-// Detecta si una práctica es ecografía (capítulo 18), EXCEPTO las que tienen meta especial
 const isEcografia = (practica) => {
   if (practica?.meta?.kind === 'especial') return false;
   return String(practica?.capitulo ?? '') === '18';
@@ -47,9 +46,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   const [modoBusqueda, setModoBusqueda] = useState(true);
 
-  // Estado para la selección de artroscopia (simple / ligamento / hombro)
   const [artroscopiaSelections, setArtroscopiaSelections] = useState({});
-  // Estado para la selección de ECG (profesional/clínica)
   const [ecgSelections, setEcgSelections] = useState({});
 
   const [showTooltip, setShowTooltip] = useState(false);
@@ -57,7 +54,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const [lastAddedGroupId, setLastAddedGroupId] = useState(null);
   const tooltipTimeoutRef = useRef(null);
 
-  // Cargar nomenclador nacional
   useEffect(() => {
     let mounted = true;
     fetch('/archivos/NomecladorNacional.json')
@@ -114,7 +110,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
 
-  // Manejadores para cambios de selección
   const handleArtroscopiaChange = (key, tipo) => {
     setArtroscopiaSelections(prev => ({ ...prev, [key]: tipo }));
   };
@@ -124,12 +119,12 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   };
 
   // ============================================================
-  //  FUNCIÓN DE CÁLCULO (incluye FKT, FKT+MGT y capítulo 12)
+  //  FUNCIÓN DE CÁLCULO
   // ============================================================
   const getCalculo = useCallback((practica) => {
     if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
 
-    // --- NUEVAS PRÁCTICAS COMUNES: FKT y FKT+MGT ---
+    // FKT y FKT+MGT
     if (practica.codigo === 'FKT') {
       const valor = Number(valoresConvenio['FKT']) || 0;
       return { honorarioMedico: valor, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
@@ -139,130 +134,79 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       return { honorarioMedico: valor, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
 
-    // --- ECG con selector profesional/clínica ---
+    // ECG
     if (practica.codigo === '17.01.01') {
       const valorBase = Number(valoresConvenio['ECG_Y_EX_EN_CV']) || 0;
       const tipo = ecgSelections[practica.__key] || 'profesional';
       if (tipo === 'profesional') {
-        return {
-          honorarioMedico: valorBase,
-          gastoSanatorial: 0,
-          soloHonorario: true,
-          soloGasto: false,
-        };
+        return { honorarioMedico: valorBase, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
       } else {
-        return {
-          honorarioMedico: 0,
-          gastoSanatorial: valorBase,
-          soloHonorario: false,
-          soloGasto: true,
-        };
+        return { honorarioMedico: 0, gastoSanatorial: valorBase, soloHonorario: false, soloGasto: true };
       }
     }
 
-    // Caso especial: código 400101 → honorario y gasto por separado, pero con bandera de unificación
+    // --- NUEVOS MÓDULOS (siempre gasto clínica) ---
+    if (practica.codigo === '43.01.01' || practica.codigo === '43.10.01' || practica.codigo === '43.11.01') {
+      const valor = Number(valoresConvenio['DIA_DE_PENSION-INTERNACION_PISO'] || valoresConvenio['Dia_Pension_Internacion_Piso']) || 0;
+      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+    }
+
     if (practica.codigo === '400101') {
-      const gal = parseFloat(practica.q_gal) || 0;
-      const gto = parseFloat(practica.gto) || 0;
-      const pension = parseFloat(valoresConvenio['Pension']) || 0;
-      const galenoRx = parseFloat(valoresConvenio['Galeno_Rx_Practica']) || 0;
-
-      const totalGasto = (gto * pension) + (gal * galenoRx) + (10 * pension);
-
-      return {
-        honorarioMedico: 0,
-        gastoSanatorial: totalGasto,
-        soloHonorario: false,
-        soloGasto: true,
-      };
+      const valor = Number(valoresConvenio['DIA_UTI_(_G+H)'] || valoresConvenio['Dia_UTI']) || 0;
+      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
     }
 
-    // Caso especial: código 431107 (Oxígeno en terapia) – gasto fijo, sin honorario
     if (practica.codigo === '431107') {
-      return {
-        honorarioMedico: 0,
-        gastoSanatorial: 85000,
-        soloHonorario: false,
-        soloGasto: true,
-      };
+      const valor = Number(valoresConvenio['MODULO_OXIGENO'] || valoresConvenio['Modulo_Oxigeno']) || 0;
+      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
     }
 
-    // --- ARTROSCOPIA (código 120902) con tres opciones ---
+    if (practica.codigo === 'MOD8') {
+      const valor = Number(valoresConvenio['GASTOS_ARTROSCOPIA_COMPLEJA_COMPLEJIDAD_8'] || valoresConvenio['Gastos_Artroscopia_Compleja']) || 0;
+      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+    }
+
+    // Artroscopia (código 120902) con tres opciones
     if (practica.codigo === '120902') {
       const tipo = artroscopiaSelections[practica.__key] || 'simple';
       let gastoKey;
-      if (tipo === 'simple') {
-        gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
-      } else if (tipo === 'ligamento') {
-        gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
-      } else { // hombro
-        gastoKey = 'Artroscopia_Hombro';
-      }
+      if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
+      else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
+      else gastoKey = 'Artroscopia_Hombro';
       const gasto = Number(valoresConvenio[gastoKey]) || 0;
-      return {
-        honorarioMedico: 0,
-        gastoSanatorial: gasto,
-        soloHonorario: false,
-        soloGasto: true,
-      };
+      return { honorarioMedico: 0, gastoSanatorial: gasto, soloHonorario: false, soloGasto: true };
     }
 
-    // ============================================================
-    //  🆕 CAPÍTULO 12 (Cirugías): Gasto Operatorio × gto y Galeno Quir × q_gal
-    // ============================================================
+    // Capítulo 12 (cirugías generales)
     if (String(practica.capitulo) === '12') {
       const gastoOperatorio = Number(valoresConvenio['Gasto_Operatorio']) || 0;
       const galenoQuir = Number(valoresConvenio['Galeno_Quir']) || 0;
       const honorario = galenoQuir * (practica.q_gal || 0);
       const gasto = gastoOperatorio * (practica.gto || 0);
-      return {
-        honorarioMedico: honorario,
-        gastoSanatorial: gasto,
-        soloHonorario: false,
-        soloGasto: false,
-      };
+      return { honorarioMedico: honorario, gastoSanatorial: gasto, soloHonorario: false, soloGasto: false };
     }
 
-    // --- Radiografías (Capítulo 34) ---
+    // Radiografías
     if (practica.capitulo === '34' || (practica.capituloNombre && practica.capituloNombre.toLowerCase().includes('radiolog'))) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
       const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
-
       const honorario = (galenoRx * (practica.q_gal || 0)) + ((gastoRx * (practica.gto || 0)) / 2);
       const gasto = ((gastoRx * (practica.gto || 0)) / 2);
-
-      return {
-        honorarioMedico: honorario,
-        gastoSanatorial: gasto,
-        soloHonorario: false,
-        soloGasto: false,
-      };
+      return { honorarioMedico: honorario, gastoSanatorial: gasto, soloHonorario: false, soloGasto: false };
     }
 
-    // --- Ecografías (Capítulo 18) sin meta especial ---
+    // Ecografías sin meta especial
     if (isEcografia(practica)) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
       const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
-
       const totalMedico = (galenoRx * (practica.q_gal || 0)) + (gastoRx * (practica.gto || 0));
-
-      return {
-        honorarioMedico: totalMedico,
-        gastoSanatorial: 0,
-        soloHonorario: true,
-        soloGasto: false,
-      };
+      return { honorarioMedico: totalMedico, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
 
-    // Prácticas con meta especial (Ecografía partes blandas, etc.)
+    // Prácticas con meta especial (ej: eco partes blandas, eco abdominal)
     if (practica.meta?.kind === 'especial') {
       const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
-      return {
-        honorarioMedico: valorBase,
-        gastoSanatorial: 0,
-        soloHonorario: true,
-        soloGasto: false,
-      };
+      return { honorarioMedico: valorBase, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
 
     // Resto: usar calcularPractica de utils
@@ -274,7 +218,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     const calculo = getCalculo(practica);
 
-    // Capturar tipo de artroscopia si corresponde
     let tipoArtroscopia = null;
     if (practica.codigo === '120902') {
       tipoArtroscopia = artroscopiaSelections[practica.__key] || 'simple';
@@ -294,49 +237,27 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     const agregados = [];
 
-    // Caso especial 400101 (unificar en clínica)
-    if (calculo.unificarEnClinica) {
-      const total = (calculo.honorarioMedico || 0) + (calculo.gastoSanatorial || 0);
-      const descripcionPersonalizada = `Día de pensión UTI (Hon + Gastos)`;
+    if (calculo.honorarioMedico > 0) {
       agregados.push({
-        id: `${baseId}-clin-unificado`,
+        id: `${baseId}-dr`,
         ...baseCommon,
-        descripcion: descripcionPersonalizada,
+        prestadorTipo: 'Dr',
+        prestadorNombre: '',
+        honorarioMedico: calculo.honorarioMedico,
+        gastoSanatorial: 0,
+        total: calculo.honorarioMedico,
+      });
+    }
+    if (calculo.gastoSanatorial > 0) {
+      agregados.push({
+        id: `${baseId}-clin`,
+        ...baseCommon,
         prestadorTipo: 'Clinica',
         prestadorNombre: 'Clínica de la Unión',
         honorarioMedico: 0,
-        gastoSanatorial: total,
-        total: total,
+        gastoSanatorial: calculo.gastoSanatorial,
+        total: calculo.gastoSanatorial,
       });
-    } else {
-      // Comportamiento normal
-      if (calculo.honorarioMedico > 0) {
-        agregados.push({
-          id: `${baseId}-dr`,
-          ...baseCommon,
-          prestadorTipo: 'Dr',
-          prestadorNombre: '',
-          honorarioMedico: calculo.honorarioMedico,
-          gastoSanatorial: 0,
-          total: calculo.honorarioMedico,
-        });
-      }
-
-      if (calculo.gastoSanatorial > 0) {
-        const itemClinica = {
-          id: `${baseId}-clin`,
-          ...baseCommon,
-          prestadorTipo: 'Clinica',
-          prestadorNombre: 'Clínica de la Unión',
-          honorarioMedico: 0,
-          gastoSanatorial: calculo.gastoSanatorial,
-          total: calculo.gastoSanatorial,
-        };
-        if (tipoArtroscopia) {
-          itemClinica.tipoArtroscopia = tipoArtroscopia;
-        }
-        agregados.push(itemClinica);
-      }
     }
 
     agregados.forEach(item => agregarPractica(item));
@@ -357,7 +278,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   }, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
 
   // ============================================================
-  //  RESULTADOS RÁPIDOS (incluye FKT y FKT+MGT si existen)
+  //  RESULTADOS RÁPIDOS (accesos directos)
   // ============================================================
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
@@ -397,6 +318,19 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-eco'
         });
       }
+      // Ecografía abdominal completa
+      if (valoresConvenio['Ecografia_abdominal_completa']) {
+        picked.push({
+          codigo: '18.06.02',
+          descripcion: 'Ecografía abdominal completa',
+          capitulo: '18',
+          capituloNombre: 'Ecografías',
+          q_gal: 0,
+          gto: 0,
+          meta: { kind: 'especial', baseKey: 'Ecografia_abdominal_completa' },
+          __key: 'custom-eco-abdominal'
+        });
+      }
       // Artroscopia
       if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] ||
           valoresConvenio['Lig_Cruzado_Gastos_Sanatoriales'] ||
@@ -411,18 +345,60 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-artroscopia'
         });
       }
-      // Oxígeno en terapia
-      picked.push({
-        codigo: '431107',
-        descripcion: 'Oxígeno en terapia',
-        capitulo: '43',
-        capituloNombre: 'Terapias',
-        q_gal: 0,
-        gto: 85000,
-        __key: 'custom-oxigeno'
-      });
 
-      // FKT (Kinesiología)
+      // MOD 02
+      if (valoresConvenio['MODULO_OXIGENO'] || valoresConvenio['Modulo_Oxigeno']) {
+        picked.push({
+          codigo: 'MOD 02',
+          descripcion: 'Modulo de oxigeno por dia',
+          capitulo: '43',
+          capituloNombre: 'Terapias',
+          q_gal: 0,
+          gto: 0,
+          __key: 'custom-mod02'
+        });
+      }
+
+      // DIA PISO/INT
+      if (valoresConvenio['DIA_DE_PENSION-INTERNACION_PISO'] || valoresConvenio['Dia_Pension_Internacion_Piso']) {
+        picked.push({
+          codigo: '43.01.01',
+          descripcion: 'DIA PISO/INT',
+          capitulo: '43',
+          capituloNombre: 'Internación',
+          q_gal: 0,
+          gto: 0,
+          __key: 'custom-piso-int'
+        });
+      }
+
+      // DIA UTI (G+H)
+      if (valoresConvenio['DIA_UTI_(_G+H)'] || valoresConvenio['Dia_UTI']) {
+        picked.push({
+          codigo: '400101',
+          descripcion: 'DIA UTI (G + H)',
+          capitulo: '43',
+          capituloNombre: 'Terapias',
+          q_gal: 0,
+          gto: 0,
+          __key: 'custom-uti'
+        });
+      }
+
+      // MOD8
+      if (valoresConvenio['GASTOS_ARTROSCOPIA_COMPLEJA_COMPLEJIDAD_8'] || valoresConvenio['Gastos_Artroscopia_Compleja']) {
+        picked.push({
+          codigo: 'MOD8',
+          descripcion: 'Artroscopia compleja (Complejidad 8)',
+          capitulo: '12',
+          capituloNombre: 'Procedimientos',
+          q_gal: 0,
+          gto: 0,
+          __key: 'custom-mod8'
+        });
+      }
+
+      // FKT y FKT+MGT
       if (valoresConvenio['FKT'] && Number(valoresConvenio['FKT']) > 0) {
         picked.push({
           codigo: 'FKT',
@@ -434,7 +410,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           __key: 'custom-fkt'
         });
       }
-      // FKT + MGT
       if (valoresConvenio['FKT_+_MGT'] && Number(valoresConvenio['FKT_+_MGT']) > 0) {
         picked.push({
           codigo: 'FKT_+_MGT',
@@ -448,19 +423,14 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       }
     }
 
-    // Eliminar duplicados
     const seen = new Map();
     picked.forEach((it) => {
       const key = it.__key || `${it.capitulo}|${it.codigo}`;
       if (!seen.has(key)) seen.set(key, it);
     });
-
     return Array.from(seen.values());
   }, [data, valoresConvenio]);
 
-  // ============================================================
-  //  RESULTADOS DE BÚSQUEDA
-  // ============================================================
   const resultadosBusqueda = useMemo(() => {
     const q = debouncedQuery.trim();
     if (!q) return [];
@@ -507,7 +477,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const es400101 = item.codigo === '400101';
     const esEco18 = isEcografia(item);
     const esFKT = item.codigo === 'FKT' || item.codigo === 'FKT_+_MGT';
-    const esCapitulo12 = String(item.capitulo) === '12'; // para mostrar etiquetas
+    const esCapitulo12 = String(item.capitulo) === '12';
 
     const calculo = getCalculo(item);
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
@@ -618,7 +588,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
               <span className={styles.costValue}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</span>
             </div>
 
-            {/* NUEVO: Total en mobile */}
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Total</span>
               <span className={styles.costValue}>
@@ -706,7 +675,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
               </label>
             </div>
           )}
-          {/* Etiqueta pequeña para capítulo 12 */}
           {esCapitulo12 && !esArtroscopia && (
             <div className={styles.cap12Note}>
               ⚙️ Gasto = G. Oper. × {item.gto || 0} = {money(calculo.gastoSanatorial)}
@@ -741,7 +709,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <div className={styles.valueBig}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</div>
         </td>
 
-        {/* NUEVO: Columna Total en tabla */}
         <td className={styles.numericCell}>
           <div className={styles.valueBig}>
             {esEco18 || esFKT
@@ -833,7 +800,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   <th className={styles.thCap}>Capítulo</th>
                   <th className={styles.thNum}>Honorario</th>
                   <th className={styles.thNum}>Gasto</th>
-                  <th className={styles.thNum}>Total</th>   {/* NUEVA COLUMNA */}
+                  <th className={styles.thNum}>Total</th>
                   <th className={styles.thAction}>Agregar</th>
                 </tr>
               </thead>
@@ -841,7 +808,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
               <tbody>
                 {resultados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className={styles.noResultsCell}>   {/* colSpan ajustado a 7 */}
+                    <td colSpan={7} className={styles.noResultsCell}>
                       {qTrim === '' ? 'No se encontraron accesos rápidos.' : `No hay resultados para "${qTrim}"`}
                     </td>
                   </tr>
