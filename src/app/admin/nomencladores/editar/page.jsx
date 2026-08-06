@@ -17,7 +17,7 @@ const formatNumber = (num) => {
   return entero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
-// NUEVA FUNCIÓN: Formato moneda argentina para impresión
+// Formato moneda argentina para impresión
 const formatCurrency = (num) => {
   if (typeof num !== "number" || isNaN(num)) return num;
   const fixed = num.toFixed(2);
@@ -660,7 +660,7 @@ export default function ConveniosAdmin() {
             /* Numeración de página automática */
             @page {
               size: A4;
-              margin: 20mm 15mm 25mm 15mm; /* margen superior amplio para el encabezado */
+              margin: 20mm 15mm 25mm 15mm;
               @top-center {
                 content: "Hoja " counter(page) " de " counter(pages);
                 font-size: 9px;
@@ -704,7 +704,7 @@ export default function ConveniosAdmin() {
               </tbody>
             </table>
 
-            <h2>Honorarios Médicos por Complejidad</h2>
+            <h2 style="page-break-before: always;">Honorarios Médicos por Complejidad</h2>
             <table>
               <thead><tr><th>Nivel</th><th>Cirujano</th><th>Ayudante 1</th><th>Ayudante 2</th></tr></thead>
               <tbody>
@@ -835,7 +835,7 @@ export default function ConveniosAdmin() {
                 .join("")}
             </tbody>
           </table>
-          <h2>Honorarios Médicos por Complejidad</h2>
+          <h2 style="page-break-before: always;">Honorarios Médicos por Complejidad</h2>
           <table>
             <thead><tr><th>Nivel</th><th>Cirujano</th><th>Ayudante 1</th><th>Ayudante 2</th></tr></thead>
             <tbody>
