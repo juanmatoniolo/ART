@@ -64,6 +64,23 @@ export default function ARTComunicador() {
   const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
   const { arts, loading: loadingArts, error: artsError, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
 
+  // 🆕 Filtrar ARTs para mostrar solo las que tienen al menos un mail en la categoría activa
+  const filteredArts = useMemo(() => {
+    return arts.filter(art => {
+      let contacts;
+      if (tab === "siniestros") {
+        contacts = art.siniestros;
+      } else if (tab === "facturacion") {
+        contacts = art.facturacion;
+      } else {
+        contacts = art.convenios;
+      }
+      if (!contacts) return false;
+      const list = Array.isArray(contacts) ? contacts : Object.values(contacts);
+      return list.some(c => c && c.email);
+    });
+  }, [arts, tab]);
+
   // Si hay error cargando ARTs, mostrar mensaje
   if (artsError) {
     return (
@@ -210,7 +227,7 @@ export default function ARTComunicador() {
       return next;
     });
   const toggleAllArts = (all) =>
-    setSelectedArts(all ? new Set(arts.map((a) => a.id)) : new Set());
+    setSelectedArts(all ? new Set(filteredArts.map((a) => a.id)) : new Set());
 
   // Handlers de destinatarios
   const toggleDestinatario = (i) =>
@@ -445,9 +462,9 @@ export default function ARTComunicador() {
       <div className={styles.pageLayout}>
         {/* Columna principal */}
         <div className={styles.mainContent}>
-          {/* ARTS */}
+          {/* ARTS – ahora recibe filteredArts */}
           <PasoArtes
-            arts={arts}
+            arts={filteredArts}
             loading={loadingArts}
             selectedArts={selectedArts}
             toggleArt={toggleArt}
@@ -470,7 +487,7 @@ export default function ARTComunicador() {
             />
           </div>
           
-          {/* ATAJOS DE MAIL (acordeón) */}
+          {/* ATAJOS DE MAIL – siempre expandido inicialmente */}
           <AtajosDeMail
             atajos={atajos}
             loading={loadingAtajos}
@@ -484,6 +501,7 @@ export default function ARTComunicador() {
             setNuevoAtajoAcciones={setNuevoAtajoAcciones}
             setNuevoAtajoCuerpo={setNuevoAtajoCuerpo}
             eliminarAtajo={eliminarAtajo}
+            defaultOpen={true}  // 🆕 Prop para iniciar expandido
           />
 
           {/* ASUNTO GENERADO */}

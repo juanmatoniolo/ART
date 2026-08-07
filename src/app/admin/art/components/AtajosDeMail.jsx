@@ -18,7 +18,7 @@ export default function AtajosDeMail({
 }) {
   const [filtro, setFiltro] = useState("");
   const [orden, setOrden] = useState([]);
-  const [isOpen, setIsOpen] = useState(false); // cerrado por defecto, se abre al buscar
+  const [isOpen, setIsOpen] = useState(true); // cerrado por defecto, se abre al buscar
 
   // Filtrar atajos
   const atajosFiltrados = (atajos || []).filter((a) =>
