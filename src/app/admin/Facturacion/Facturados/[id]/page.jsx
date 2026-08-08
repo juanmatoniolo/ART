@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { money, parseNumber } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
 import { useReactToPrint } from 'react-to-print';
+import getArtImage from '../lib/artImages'; // <-- importamos la función compartida
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Función para formatear DNI con puntos (separadores de miles) o CUIL con guiones
@@ -29,86 +30,6 @@ const formatDNI = (dni) => {
   } else {
     return dni;
   }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Mapa unificado de imágenes de ART (claves normalizadas sin espacios ni tildes)
-// ─────────────────────────────────────────────────────────────────────────────
-const getArtImage = (artName) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-
-  const normalize = (value = '') =>
-    String(value)
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-
-  const raw = String(artName || '').trim();
-  const normalized = normalize(raw);
-
-  if (!normalized || normalized === 'sinart') {
-    return `${baseUrl}/img-art/default.webp`;
-  }
-
-  if (normalized.includes('asociart')) {
-    return `${baseUrl}/img-art/ASOCIART.png`;
-  }
-
-  if (normalized.includes('comfye')) {
-    return `${baseUrl}/img-art/COMFYE.png`;
-  }
-
-  if (
-    normalized.includes('federacionpatronalap') ||
-    normalized.includes('fedpatronalap') ||
-    normalized.includes('fedpatronal')
-  ) {
-    return `${baseUrl}/img-art/FEDPATRONAL-AP.png`;
-  }
-
-  if (
-    normalized.includes('federacionpatronalart') ||
-    normalized.includes('fedpatronalart') ||
-    normalized === 'fpart'
-  ) {
-    return `${baseUrl}/img-art/FPART.png`;
-  }
-
-  if (normalized.includes('iapsart')) {
-    return `${baseUrl}/img-art/IAPSART.png`;
-  }
-
-  if (normalized.includes('iapsseguros') || normalized === 'iaps') {
-    return `${baseUrl}/img-art/IAPSSEGUROS.webp`;
-  }
-
-  if (normalized.includes('lasegundaart')) {
-    return `${baseUrl}/img-art/LASEGUNDAART.png`;
-  }
-
-  if (normalized.includes('lasegunda')) {
-    return `${baseUrl}/img-art/LASEGUNDA.webp`;
-  }
-
-  if (
-    normalized.includes('medicarwork') ||
-    normalized.includes('medicarwor')
-  ) {
-    return `${baseUrl}/img-art/MEDICARWOR.png`;
-  }
-
-  if (
-    normalized.includes('victoriaart') ||
-    normalized.includes('victoriaseguro') ||
-    normalized.includes('victoriaseguros')
-  ) {
-    // Corregido: antes era "vicotriaart.png"
-    return `${baseUrl}/img-art/victoriaart.png`;
-  }
-
-  console.warn('Logo ART no mapeado:', { artName: raw, normalized });
-  return `${baseUrl}/img-art/default.webp`;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
