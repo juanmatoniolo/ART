@@ -19,7 +19,7 @@ import MedicacionyDescartables from "./components/MedicacionyDescartables";
 export default function FarmaciaDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [modal, setModal] = useState(null);
-    const [theme, setTheme] = useState("light"); // "light" o "dark"
+    const [theme, setTheme] = useState("light");
 
     const toggleTheme = () => {
         setTheme(prev => prev === "light" ? "dark" : "light");
@@ -48,6 +48,7 @@ export default function FarmaciaDashboard() {
             />
 
             <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+            
             <main className={s.mainContent}>
                 {activeTab === "dashboard" && (
                     <DashboardTab
@@ -56,6 +57,7 @@ export default function FarmaciaDashboard() {
                         movimientos={movimientos}
                     />
                 )}
+
                 {activeTab === "stock" && (
                     <StockTab
                         items={items}
@@ -67,16 +69,27 @@ export default function FarmaciaDashboard() {
                         eliminarProducto={eliminarProducto}
                     />
                 )}
+
                 {activeTab === "precios" && (
                     <ListasPreciosTab
                         items={items}
                         listas={listasPrecios}
                         onGuardarLista={guardarListaPrecio}
                         onEliminarLista={eliminarListaPrecio}
+                        onActualizarItem={editarProducto} // <-- Se pasa correctamente
                     />
                 )}
-                {activeTab === "movimientos" && <MovimientosTab movimientos={movimientos} />}
-                {activeTab === "catalogo" && <div className={s.panel}><MedicacionyDescartables /></div>}
+
+                {activeTab === "movimientos" && (
+                    <MovimientosTab movimientos={movimientos} />
+                )}
+
+                {activeTab === "catalogo" && (
+                    <div className={s.panel}>
+                        <MedicacionyDescartables />
+                    </div>
+                )}
+
                 {activeTab === "exportar" && (
                     <ExportarTab
                         estadisticas={estadisticas}
@@ -86,11 +99,37 @@ export default function FarmaciaDashboard() {
                 )}
             </main>
 
-            {modal === "agregar" && <AgregarModal onClose={() => setModal(null)} onSubmit={agregarProducto} />}
-            {modal === "masiva" && <CargaMasivaModal onClose={() => setModal(null)} onSubmit={procesarCargaMasiva} cargarCatalogo={cargarCatalogo} />}
-            {modal === "reparto" && <RepartoModal onClose={() => setModal(null)} onSubmit={procesarReparto} items={items} />}
-            {modal === "importar" && <ImportarExcelModal onClose={() => setModal(null)} onSubmit={importarDesdeExcel} />}
-            {mensaje && <MensajeModal data={mensaje} onClose={cerrarMensaje} />}
+            {/* Modales */}
+            {modal === "agregar" && (
+                <AgregarModal onClose={() => setModal(null)} onSubmit={agregarProducto} />
+            )}
+            
+            {modal === "masiva" && (
+                <CargaMasivaModal
+                    onClose={() => setModal(null)}
+                    onSubmit={procesarCargaMasiva}
+                    cargarCatalogo={cargarCatalogo}
+                />
+            )}
+            
+            {modal === "reparto" && (
+                <RepartoModal
+                    onClose={() => setModal(null)}
+                    onSubmit={procesarReparto}
+                    items={items}
+                />
+            )}
+            
+            {modal === "importar" && (
+                <ImportarExcelModal
+                    onClose={() => setModal(null)}
+                    onSubmit={importarDesdeExcel}
+                />
+            )}
+            
+            {mensaje && (
+                <MensajeModal data={mensaje} onClose={cerrarMensaje} />
+            )}
         </div>
     );
 }

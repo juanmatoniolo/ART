@@ -1824,3 +1824,44 @@
         display: none !important;
     }
 }
+
+
+/* ── Estilos para edición inline de precios ── */
+.precioInput {
+    width: 90px;
+    padding: 4px 6px;
+    border: 2px solid var(--c-primary);
+    border-radius: var(--r-sm, 6px);
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--c-surface);
+    color: var(--c-text);
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.precioInput:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+.precioCell {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    display: inline-block;
+    min-width: 70px;
+    text-align: center;
+    font-weight: 600;
+}
+.precioCell:hover {
+    background: var(--c-hover-bg);
+}
+.guardandoIndicator {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    font-size: 1.2rem;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
