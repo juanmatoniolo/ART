@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════
-   FARMACIA DASHBOARD — Tema Claro / Oscuro
+   FARMACIA DASHBOARD — Tema Claro / Oscuro (optimizado)
    ═══════════════════════════════════════════════ */
 
 /* ── Variables por defecto (claro) ── */
 .light {
-    --c-bg: #e8edf4;
-    --c-surface: #f8fafc;
-    --c-border: #cbd5e1;
+    --c-bg: #dce3ec;               /* fondo más oscuro que antes */
+    --c-surface: #f0f4f8;          /* blanco roto, menos brillo */
+    --c-border: #b8c5d6;           /* borde más suave */
     --c-text: #0f172a;
-    --c-muted: #334155;
+    --c-muted: #2d3a4f;            /* gris oscuro suave */
     --c-primary: #1d4ed8;
     --c-primary2: #1e3a8a;
     --c-green: #059669;
@@ -18,7 +18,7 @@
     --c-amber: #d97706;
     --c-blue: #2563eb;
     --c-hover-bg: #dbeafe;
-    --c-hover-surface: #eef2f6;
+    --c-hover-surface: #e2e8f0;    /* un poco más oscuro */
     --c-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 1px 2px rgba(15, 23, 42, .08);
     --c-shadow-md: 0 4px 6px rgba(15, 23, 42, .10), 0 2px 4px rgba(15, 23, 42, .08);
     --c-shadow-lg: 0 10px 15px rgba(15, 23, 42, .15), 0 4px 6px rgba(15, 23, 42, .08);
@@ -64,7 +64,7 @@
     --c-export-info-border: #3b82f6;
 }
 
-/* ── Estilos comunes que usan las variables ── */
+/* ── Estilos base ────────────────────────────── */
 .dashboardContainer {
     min-height: 100vh;
     background: var(--c-bg);
@@ -74,7 +74,7 @@
     transition: background .3s ease, color .3s ease;
 }
 
-/* ── Header ─────────────────────────────────── */
+/* ── Header ──────────────────────────────────── */
 .dashboardHeader {
     background: var(--c-surface);
     border-bottom: 1px solid var(--c-border);
@@ -158,7 +158,7 @@
     flex-wrap: wrap;
 }
 
-/* ── Botones de acción ─────────────────────── */
+/* ── Botones ──────────────────────────────────── */
 .actionBtn {
     display: inline-flex;
     align-items: center;
@@ -176,28 +176,12 @@
 .actionBtn:active { transform: translateY(0); }
 .actionBtn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-.btn_primary {
-    background: linear-gradient(135deg, var(--c-primary), var(--c-primary2));
-    color: #fff;
-}
-.btn_secondary {
-    background: linear-gradient(135deg, var(--c-green), var(--c-green2));
-    color: #fff;
-}
-.btn_danger {
-    background: linear-gradient(135deg, var(--c-red), var(--c-red2));
-    color: #fff;
-}
-.btn_success {
-    background: linear-gradient(135deg, var(--c-green), var(--c-green2));
-    color: #fff;
-}
-.btn_import {
-    background: linear-gradient(135deg, #7c3aed, #6d28d9);
-    color: #fff;
-}
+.btn_primary   { background: linear-gradient(135deg, var(--c-primary), var(--c-primary2)); color: #fff; }
+.btn_secondary { background: linear-gradient(135deg, var(--c-green), var(--c-green2)); color: #fff; }
+.btn_danger    { background: linear-gradient(135deg, var(--c-red), var(--c-red2)); color: #fff; }
+.btn_success   { background: linear-gradient(135deg, var(--c-green), var(--c-green2)); color: #fff; }
+.btn_import    { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
 
-/* ── Botón toggle tema ── */
 .toggleThemeBtn {
     background: var(--c-bg);
     border: 1px solid var(--c-border);
@@ -217,7 +201,9 @@
     transform: scale(1.05);
 }
 
-/* ── Tab Nav ────────────────────────────────── */
+.actionBtnLabel { display: none; }
+
+/* ── Navegación por pestañas ──────────────────── */
 .mainNav {
     display: flex;
     background: var(--c-surface);
@@ -269,14 +255,14 @@
     to { transform: scaleX(1); }
 }
 
-/* ── Main content ───────────────────────────── */
+/* ── Contenido principal ────────────────────── */
 .mainContent {
     max-width: 1400px;
     margin: 0 auto;
     padding: 1.25rem 1rem;
 }
 
-/* ── Panel ──────────────────────────────────── */
+/* ── Paneles ──────────────────────────────────── */
 .panel {
     background: var(--c-surface);
     border-radius: var(--r-xl, 20px);
@@ -306,15 +292,12 @@
 .panelSub { margin: .25rem 0 0; font-size: .8rem; color: var(--c-muted); }
 .panelActions { display: flex; gap: .5rem; }
 
-/* ── Dashboard grid ─────────────────────────── */
-.dashboardGrid { display: flex; flex-direction: column; gap: 1.25rem; }
-
+/* ── Estadísticas ────────────────────────────── */
 .statsRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
 }
-
 .statCard {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -341,7 +324,7 @@
     gap: 1.25rem;
 }
 
-/* ── Alert items ────────────────────────────── */
+/* ── Alertas ──────────────────────────────────── */
 .alertItem {
     display: flex;
     align-items: center;
@@ -384,7 +367,7 @@
 }
 .alertItemMin { font-size: .8rem; color: var(--c-muted); }
 
-/* ── Movimiento mini ────────────────────────── */
+/* ── Movimientos mini (Dashboard) ────────────── */
 .movMini {
     display: flex;
     justify-content: space-between;
@@ -405,19 +388,13 @@
     font-size: .75rem;
     font-weight: 600;
 }
-.movBadgeIn {
-    background: var(--c-badge-in);
-    color: var(--c-badge-in-text);
-}
-.movBadgeOut {
-    background: var(--c-badge-out);
-    color: var(--c-badge-out-text);
-}
+.movBadgeIn  { background: var(--c-badge-in); color: var(--c-badge-in-text); }
+.movBadgeOut { background: var(--c-badge-out); color: var(--c-badge-out-text); }
 .movDest { font-size: .8rem; color: var(--c-muted); }
 .movValue { font-weight: 700; font-size: .95rem; }
 .movDate { font-size: .75rem; color: var(--c-muted); }
 
-/* ── Stock Tab ──────────────────────────────── */
+/* ── Stock ────────────────────────────────────── */
 .filtersRow { display: flex; gap: .75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .searchWrap { flex: 1; min-width: 220px; position: relative; }
 .searchIconInner {
@@ -532,7 +509,7 @@
     font-weight: 600;
 }
 
-/* ── Badges ─────────────────────────────────── */
+/* ── Badges ───────────────────────────────────── */
 .badgeMed {
     display: inline-block;
     padding: .25rem .6rem;
@@ -575,81 +552,122 @@
     color: var(--c-muted);
 }
 
-/* ── Movimientos Tab ────────────────────────── */
-.movList { display: flex; flex-direction: column; gap: 1rem; }
+/* ── Movimientos Tab (completo) ───────────────── */
+.movimientosContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.movimientosHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.movimientosHeader h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+}
+.movimientosCount {
+    background: var(--c-bg);
+    color: var(--c-muted);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 999px;
+}
+.movimientosList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .movCard {
-    border-radius: var(--r-lg, 16px);
-    border: 1px solid var(--c-border);
-    overflow: hidden;
-    transition: all .2s ease;
+    background: var(--c-surface);
+    border: 2px solid var(--c-border);
+    border-left-width: 6px;
+    border-radius: var(--r-lg);
+    padding: 14px;
+    transition: var(--tr);
 }
 .movCard:hover { box-shadow: var(--c-shadow-md); }
-.movCardIn { border-left: 4px solid var(--c-blue); }
-.movCardOut { border-left: 4px solid var(--c-red); }
+.movCardIn  { border-left-color: var(--c-green); }
+.movCardOut { border-left-color: var(--c-blue); }
 
-.movCardHeader {
+.movCardHead {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 1rem 1.25rem;
-    background: var(--c-hover-surface);
-    border-bottom: 1px solid var(--c-border);
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
-    gap: .75rem;
+    margin-bottom: 10px;
 }
-.movCardLeft { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.movCardRight { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
-
-.movResp {
-    font-size: .8rem;
-    color: var(--c-red);
-    border: 1px solid var(--c-red);
-    padding: .2rem .6rem;
-    border-radius: 20px;
+.movBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 999px;
 }
-.movUser { font-size: .8rem; color: var(--c-muted); }
-.movDate { font-size: .8rem; color: var(--c-muted); }
+.movBadgeIn  { background: var(--c-badge-in); color: var(--c-badge-in-text); }
+.movBadgeOut { background: var(--c-badge-out); color: var(--c-badge-out-text); }
 
+.movChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--c-muted);
+}
+.movCardDate {
+    margin-left: auto;
+    font-size: 14px;
+    color: var(--c-muted);
+}
 .movCardStats {
     display: flex;
-    gap: 1rem;
-    padding: .75rem 1.25rem;
-    border-bottom: 1px solid var(--c-border);
-    font-size: .85rem;
-    color: var(--c-muted);
+    gap: 14px;
     flex-wrap: wrap;
+    font-size: 14px;
+    color: var(--c-text);
+    margin-bottom: 10px;
 }
-.movValIn { color: var(--c-green); font-weight: 600; }
-.movValOut { color: var(--c-red); font-weight: 600; }
+.movCardStats b { font-weight: 800; }
+.movCardStats .valIn { color: var(--c-green); }
+.movCardStats .valOut { color: var(--c-blue); }
 
-.movTableWrap { overflow: auto; }
-.movTable {
+.movTableWrap { overflow-x: auto; }
+.movCardTable {
     width: 100%;
     border-collapse: collapse;
-    min-width: 700px;
-    font-size: .85rem;
+    font-size: 14px;
 }
-.movTable th {
-    background: var(--c-hover-surface);
-    padding: .75rem 1rem;
+.movCardTable th {
     text-align: left;
-    font-size: .75rem;
-    font-weight: 700;
+    padding: 8px;
+    background: var(--c-hover-surface);
     color: var(--c-muted);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    border-bottom: 1px solid var(--c-border);
+    font-weight: 700;
+    white-space: nowrap;
 }
-.movTable td {
-    padding: .75rem 1rem;
-    border-bottom: 1px solid var(--c-border);
+.movCardTable td {
+    padding: 8px;
+    border-top: 1px solid var(--c-border);
+    white-space: nowrap;
 }
-.movTable tr:last-child td { border-bottom: none; }
+.movQtyPos { color: var(--c-green); font-weight: 800; }
+.movQtyNeg { color: var(--c-red); font-weight: 800; }
 
-.cantPos { color: var(--c-green); font-weight: 600; }
-.cantNeg { color: var(--c-red); font-weight: 600; }
+.productName { font-weight: 500; }
+.stockAfter { color: var(--c-primary); font-weight: 700; }
 
-/* ── Exportar Tab ───────────────────────────── */
+/* ── Exportar Tab ────────────────────────────── */
 .exportGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -694,7 +712,7 @@
     color: var(--c-muted);
 }
 
-/* ── Modales ────────────────────────────────── */
+/* ── Modales ──────────────────────────────────── */
 .overlay {
     position: fixed;
     inset: 0;
@@ -797,7 +815,7 @@
 }
 .btnCancel:hover { background: var(--c-hover-surface); }
 
-/* ── Forms ──────────────────────────────────── */
+/* ── Formularios ──────────────────────────────── */
 .formGrid2 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
 .formField { display: flex; flex-direction: column; gap: .4rem; }
 .formLabel { font-size: .85rem; font-weight: 600; color: var(--c-text); }
@@ -821,7 +839,7 @@
 }
 .formTextarea { resize: vertical; min-height: 80px; }
 
-/* ── Split layout ───────────────────────────── */
+/* ── Split layout ─────────────────────────────── */
 .splitLayout {
     display: grid;
     grid-template-columns: 1fr;
@@ -946,7 +964,7 @@
 
 .subTotal { font-size: .9rem; font-weight: 700; color: var(--c-green); margin-left: auto; }
 
-/* Reparto disponibles */
+/* ── Reparto ───────────────────────────────────── */
 .availGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -971,14 +989,13 @@
 .availName { margin: 0; font-size: .8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .availStock { margin: 0; font-size: .75rem; color: var(--c-muted); }
 
-/* Footer totals */
 .footerTotals { display: flex; align-items: center; gap: .75rem; flex: 1; }
 .footerBtns { display: flex; gap: .5rem; }
 
-/* ── Mensaje modal ──────────────────────────── */
+/* ── Mensaje modal ────────────────────────────── */
 .mensajeText { text-align: center; font-size: 1rem; line-height: 1.6; margin: .5rem 0; }
 
-/* ── Empty state ────────────────────────────── */
+/* ── Empty state ──────────────────────────────── */
 .emptyState {
     text-align: center;
     padding: 3rem 2rem;
@@ -991,254 +1008,186 @@
 .emptyState span { font-size: 2.5rem; opacity: .5; }
 .emptyState p { margin: 0; font-size: .95rem; }
 
-/* ═══════════════ RESPONSIVE ════════════════════ */
-@media (min-width: 480px) { .actionBtnLabel { display: inline; } }
-@media (min-width: 640px) {
-    .tabLabel { display: inline; }
-    .formGrid2 { grid-template-columns: 1fr 1fr; }
-}
-@media (min-width: 768px) {
-    .dashboardCols { grid-template-columns: 1fr 1fr; }
-    .splitLayout { grid-template-columns: 1fr 1fr; height: 60vh; }
-    .catalogList { max-height: 100%; }
-    .selectedList { max-height: 100%; }
-}
-@media (min-width: 1024px) {
-    .statsRow { grid-template-columns: repeat(4, 1fr); }
-    .mainContent { padding: 1.5rem; }
-    .dashboardHeader { padding: 1rem 2rem; }
-}
-@media (max-width: 639px) {
-    .headerStats { display: none; }
-    .headerActions { width: 100%; justify-content: center; }
-    .footerBtns { flex-direction: column; width: 100%; }
-    .footerBtns button { width: 100%; justify-content: center; }
-    .modalFooter { flex-direction: column; }
-    .footerTotals { justify-content: center; }
+/* ── Iconos SVG ────────────────────────────────── */
+.svgIc {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
 }
 
-/* ── Stock cards (mobile) ────────────────────── */
-.stockCards { display: flex; flex-direction: column; gap: .75rem; }
-.tableWrap { display: none; }
+/* ── Listas de Precios ────────────────────────── */
+.precioChips {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.precioChip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .6rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 20px;
+    background: var(--c-surface);
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--c-muted);
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.precioChip:hover { border-color: var(--c-primary); }
+.precioChipActive {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+    color: #fff;
+}
+.precioChipMult { opacity: .8; font-weight: 500; }
 
-.stockCard {
+.precioCards {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+.precioCard {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
     background: var(--c-surface);
     border: 1.5px solid var(--c-border);
     border-radius: var(--r-lg, 16px);
     padding: 1rem;
     transition: all .2s ease;
 }
-.stockCard:hover { box-shadow: var(--c-shadow); }
+.precioCard:hover { box-shadow: var(--c-shadow); }
+.precioCardIcon { color: var(--c-primary); flex-shrink: 0; }
+.precioCardInfo { flex: 1; min-width: 0; }
+.precioCardName { margin: 0; font-weight: 700; font-size: .9rem; }
+.precioCardMeta { margin: .2rem 0 0; font-size: .78rem; color: var(--c-muted); }
+.precioPriceBox { text-align: right; white-space: nowrap; }
+.precioPriceLabel { display: block; font-size: .68rem; font-weight: 700; color: var(--c-muted); text-transform: uppercase; letter-spacing: .03em; }
+.precioPriceVal { display: block; font-size: 1.25rem; font-weight: 800; color: var(--c-green2); }
 
-.stockCardHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: .5rem;
-    margin-bottom: .875rem;
+.precioTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
 }
-.stockCardInfo {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    flex: 1;
-    min-width: 0;
-}
-.stockCardIcon { font-size: 1.5rem; flex-shrink: 0; }
-.stockCardName { margin: 0; font-weight: 700; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stockCardMeta { margin: 0; font-size: .78rem; color: var(--c-muted); }
-.stockCardActions { display: flex; gap: .35rem; flex-shrink: 0; }
-
-.stockCardFooter { display: flex; flex-direction: column; gap: .4rem; }
-.stockCardBar {
-    height: 6px;
-    background: var(--c-border);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.stockCardBarFill { height: 100%; transition: width .4s ease; }
-.stockCardNums { display: flex; align-items: center; gap: .5rem; font-size: .875rem; }
-.stockCardMin { color: var(--c-muted); }
-
-/* ── Icon buttons ────────────────────────────── */
-.iconBtn {
-    border: none;
-    background: var(--c-bg);
-    border-radius: var(--r-sm, 8px);
-    width: 34px;
-    height: 34px;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all .2s ease;
-}
-.iconBtn:hover { background: var(--c-hover-bg); }
-.iconBtnDanger:hover { background: var(--c-badge-out); }
-
-.tableActions { display: flex; gap: .35rem; justify-content: center; }
-
-/* ── Edit product modal ──────────────────────── */
-.editProductInfo {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
-    padding: 1rem;
-    background: var(--c-bg);
-    border-radius: var(--r-md, 12px);
-    margin-bottom: 1.25rem;
-}
-.editProductIcon { font-size: 2rem; }
-.editProductName { margin: 0; font-weight: 700; font-size: 1rem; }
-.editProductMeta { margin: 0; font-size: .8rem; color: var(--c-muted); }
-
-.editCurrentValues {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: .75rem;
-    margin-bottom: 1.25rem;
-}
-.editCurrentItem {
+.precioTable th {
+    background: var(--c-hover-surface);
+    padding: .75rem 1rem;
     text-align: center;
-    padding: .75rem;
-    background: var(--c-bg);
-    border-radius: var(--r-md, 12px);
-}
-.editCurrentLabel { display: block; font-size: .72rem; color: var(--c-muted); margin-bottom: .25rem; }
-.editCurrentValue { display: block; font-weight: 700; font-size: 1rem; }
-
-/* ── Delete modal ────────────────────────────── */
-.deleteWarning {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
-    padding: 1rem;
-    background: var(--c-badge-out);
-    border: 1.5px solid var(--c-red);
-    border-radius: var(--r-md, 12px);
-}
-.deleteWarningIcon { font-size: 1.75rem; }
-
-/* ── Importar Excel modal ────────────────────── */
-.uploadSection { display: flex; flex-direction: column; gap: 1.5rem; }
-.uploadStep {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-}
-.uploadStepNum {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--c-primary);
-    color: #fff;
-    font-size: .85rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-.uploadStepBody { flex: 1; }
-.uploadStepTitle { margin: 0 0 .25rem; font-weight: 700; font-size: .95rem; }
-.uploadStepDesc { margin: 0 0 .75rem; font-size: .85rem; color: var(--c-muted); }
-
-.uploadColsInfo {
-    background: var(--c-bg);
-    border-radius: var(--r-md, 12px);
-    padding: 1rem;
-}
-.uploadColsTitle { margin: 0 0 .75rem; font-weight: 700; font-size: .85rem; }
-.uploadColsGrid { display: flex; flex-direction: column; gap: .4rem; }
-.uploadColItem {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    font-size: .82rem;
-}
-.uploadColName {
-    background: #c7d2fe;
-    color: #312e81;
-    padding: .15rem .5rem;
-    border-radius: 4px;
     font-size: .78rem;
+    font-weight: 700;
+    color: var(--c-muted);
+    border-bottom: 2px solid var(--c-border);
+    white-space: nowrap;
 }
-.uploadColDesc { color: var(--c-muted); flex: 1; }
-.uploadColReq { color: var(--c-red); font-weight: 700; }
-
-.dropZone {
-    border: 2px dashed var(--c-border);
-    border-radius: var(--r-md, 12px);
-    padding: 2rem;
+.precioTable th.thLeft,
+.precioTable td.tdLeft { text-align: left; }
+.precioTable td {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--c-border);
     text-align: center;
+    font-size: .875rem;
+}
+.precioTable .precioCell { font-weight: 700; color: var(--c-green2); }
+.precioTable tr:hover td { background: var(--c-hover-surface); }
+
+/* ── Exportar precios ──────────────────────────── */
+.expSelInfo { margin: 0 0 1rem; font-size: .875rem; color: var(--c-muted); }
+.expSelList { display: flex; flex-direction: column; gap: .5rem; }
+.expSelRow {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 100%;
+    padding: .875rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-md, 12px);
+    background: var(--c-surface);
     cursor: pointer;
+    font-size: .95rem;
+    color: var(--c-text);
+    text-align: left;
     transition: all .2s ease;
 }
-.dropZone:hover {
+.expSelRow:hover { border-color: var(--c-primary); }
+.expSelRowOn {
     border-color: var(--c-primary);
     background: var(--c-hover-bg);
 }
-.dropZoneIcon { font-size: 2.5rem; display: block; margin-bottom: .5rem; }
-.dropZone p { margin: 0 0 .25rem; font-weight: 600; }
-.dropZone small { color: var(--c-muted); font-size: .8rem; }
-.uploadError { color: var(--c-red); font-size: .85rem; margin: .5rem 0 0; }
-
-.previewSection { display: flex; flex-direction: column; gap: 1rem; }
-.previewSummary { display: flex; gap: 1.5rem; }
-.previewSummaryItem { display: flex; align-items: baseline; gap: .35rem; }
-.previewSummaryNum { font-size: 1.75rem; font-weight: 800; }
-
-.previewWarning {
-    background: var(--c-alert-bg);
-    border: 1.5px solid var(--c-alert-border);
-    border-radius: var(--r-md, 12px);
-    padding: .75rem;
-    font-size: .85rem;
+.expSelRowAll { background: var(--c-hover-surface); font-weight: 700; }
+.expSelCheck {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-sm, 8px);
+    border: 2px solid var(--c-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
 }
-
-.previewTableWrap {
-    border-radius: var(--r-md, 12px);
-    border: 1px solid var(--c-border);
-    overflow: auto;
-    max-height: 380px;
+.expSelRowOn .expSelCheck {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
 }
-.previewTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .83rem;
-    min-width: 600px;
-}
-.previewTable th {
-    background: var(--c-hover-surface);
-    padding: .65rem .875rem;
-    text-align: left;
-    font-size: .75rem;
+.expSelName { flex: 1; font-weight: 600; }
+.expSelMult { color: var(--c-muted); font-weight: 500; }
+.expSelCount {
+    background: var(--c-bg);
+    color: var(--c-muted);
     font-weight: 700;
-    color: var(--c-muted);
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--c-border);
-    position: sticky;
-    top: 0;
-}
-.previewTable td {
-    padding: .65rem .875rem;
-    border-bottom: 1px solid var(--c-border);
-}
-.previewRowInvalid { opacity: .5; background: var(--c-badge-out); }
-
-.btnBack {
-    background: none;
-    border: none;
-    color: var(--c-muted);
-    font-size: .85rem;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
+    font-size: .8rem;
+    padding: .15rem .6rem;
+    border-radius: 20px;
 }
 
-/* ── Reparto mobile-first ────────────────────── */
+/* ── Gestionar listas ──────────────────────────── */
+.gestionGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+.gestionBox {
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-md, 12px);
+    padding: 1.25rem;
+}
+.gestionBoxAlt { background: var(--c-bg); }
+.gestionTitle { margin: 0 0 1rem; font-size: 1rem; font-weight: 700; }
+.gestionExample {
+    background: var(--c-hover-bg);
+    border: 1px solid var(--c-primary);
+    border-radius: var(--r-sm, 8px);
+    padding: .75rem 1rem;
+    font-size: .9rem;
+    margin: .25rem 0 1rem;
+}
+.gestionMultRow {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+.gestionMultSign { font-size: 1.4rem; font-weight: 800; }
+.gestionHint { font-size: .85rem; color: var(--c-muted); }
+
+.gestionItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .75rem 0;
+    border-bottom: 1px solid var(--c-border);
+}
+.gestionItem:last-child { border-bottom: none; }
+.gestionItemName { margin: 0; font-weight: 700; font-size: .95rem; }
+.gestionItemMeta { margin: .15rem 0 0; font-size: .82rem; color: var(--c-muted); }
+.gestionTip { font-size: .8rem; color: var(--c-muted); margin: 1rem 0 0; }
+
+/* ── Reparto (pasos) ───────────────────────────── */
 .stepIndicator {
     display: flex;
     align-items: center;
@@ -1429,617 +1378,449 @@
 .confirmItemName { flex: 1; font-weight: 500; }
 .confirmItemQty { font-weight: 700; }
 
-/* ── Footer totals ─────────────────────────────── */
-.footerTotals { display: flex; align-items: center; gap: .75rem; flex: 1; font-size: .875rem; }
-
-/* ── Responsive desktop: mostrar tabla, ocultar cards ── */
-@media (min-width: 768px) {
-    .stockCards { display: none; }
-    .tableWrap { display: block; }
+/* ── Importar Excel ────────────────────────────── */
+.uploadSection { display: flex; flex-direction: column; gap: 1.5rem; }
+.uploadStep {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
 }
-
-/* ═══════════════════════════════════════════════
-   Listas de Precios (nuevas secciones)
-   ═══════════════════════════════════════════════ */
-
-.svgIc {
-    display: inline-flex;
+.uploadStepNum {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--c-primary);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 700;
+    display: flex;
     align-items: center;
     justify-content: center;
-    vertical-align: middle;
+    flex-shrink: 0;
+    margin-top: 2px;
 }
+.uploadStepBody { flex: 1; }
+.uploadStepTitle { margin: 0 0 .25rem; font-weight: 700; font-size: .95rem; }
+.uploadStepDesc { margin: 0 0 .75rem; font-size: .85rem; color: var(--c-muted); }
 
-.precioChips {
-    display: flex;
-    gap: .5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
+.uploadColsInfo {
+    background: var(--c-bg);
+    border-radius: var(--r-md, 12px);
+    padding: 1rem;
 }
-.precioChip {
-    display: inline-flex;
+.uploadColsTitle { margin: 0 0 .75rem; font-weight: 700; font-size: .85rem; }
+.uploadColsGrid { display: flex; flex-direction: column; gap: .4rem; }
+.uploadColItem {
+    display: flex;
     align-items: center;
-    gap: .4rem;
-    padding: .6rem 1rem;
-    border: 1.5px solid var(--c-border);
-    border-radius: 20px;
-    background: var(--c-surface);
-    font-size: .875rem;
-    font-weight: 600;
-    color: var(--c-muted);
+    gap: .5rem;
+    font-size: .82rem;
+}
+.uploadColName {
+    background: #c7d2fe;
+    color: #312e81;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    font-size: .78rem;
+}
+.uploadColDesc { color: var(--c-muted); flex: 1; }
+.uploadColReq { color: var(--c-red); font-weight: 700; }
+
+.dropZone {
+    border: 2px dashed var(--c-border);
+    border-radius: var(--r-md, 12px);
+    padding: 2rem;
+    text-align: center;
     cursor: pointer;
     transition: all .2s ease;
 }
-.precioChip:hover { border-color: var(--c-primary); }
-.precioChipActive {
-    background: var(--c-primary);
+.dropZone:hover {
     border-color: var(--c-primary);
-    color: #fff;
+    background: var(--c-hover-bg);
 }
-.precioChipMult { opacity: .8; font-weight: 500; }
+.dropZoneIcon { font-size: 2.5rem; display: block; margin-bottom: .5rem; }
+.dropZone p { margin: 0 0 .25rem; font-weight: 600; }
+.dropZone small { color: var(--c-muted); font-size: .8rem; }
+.uploadError { color: var(--c-red); font-size: .85rem; margin: .5rem 0 0; }
 
-.precioCards {
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
+.previewSection { display: flex; flex-direction: column; gap: 1rem; }
+.previewSummary { display: flex; gap: 1.5rem; }
+.previewSummaryItem { display: flex; align-items: baseline; gap: .35rem; }
+.previewSummaryNum { font-size: 1.75rem; font-weight: 800; }
+
+.previewWarning {
+    background: var(--c-alert-bg);
+    border: 1.5px solid var(--c-alert-border);
+    border-radius: var(--r-md, 12px);
+    padding: .75rem;
+    font-size: .85rem;
 }
-.precioCard {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
+
+.previewTableWrap {
+    border-radius: var(--r-md, 12px);
+    border: 1px solid var(--c-border);
+    overflow: auto;
+    max-height: 380px;
+}
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .83rem;
+    min-width: 600px;
+}
+.previewTable th {
+    background: var(--c-hover-surface);
+    padding: .65rem .875rem;
+    text-align: left;
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--c-border);
+    position: sticky;
+    top: 0;
+}
+.previewTable td {
+    padding: .65rem .875rem;
+    border-bottom: 1px solid var(--c-border);
+}
+.previewRowInvalid { opacity: .5; background: var(--c-badge-out); }
+
+.btnBack {
+    background: none;
+    border: none;
+    color: var(--c-muted);
+    font-size: .85rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+/* ── Stock cards (mobile) ──────────────────────── */
+.stockCards { display: flex; flex-direction: column; gap: .75rem; }
+.tableWrap { display: none; }
+
+.stockCard {
     background: var(--c-surface);
     border: 1.5px solid var(--c-border);
     border-radius: var(--r-lg, 16px);
     padding: 1rem;
     transition: all .2s ease;
 }
-.precioCard:hover { box-shadow: var(--c-shadow); }
-.precioCardIcon { color: var(--c-primary); flex-shrink: 0; }
-.precioCardInfo { flex: 1; min-width: 0; }
-.precioCardName { margin: 0; font-weight: 700; font-size: .9rem; }
-.precioCardMeta { margin: .2rem 0 0; font-size: .78rem; color: var(--c-muted); }
-.precioPriceBox { text-align: right; white-space: nowrap; }
-.precioPriceLabel { display: block; font-size: .68rem; font-weight: 700; color: var(--c-muted); text-transform: uppercase; letter-spacing: .03em; }
-.precioPriceVal { display: block; font-size: 1.25rem; font-weight: 800; color: var(--c-green2); }
+.stockCard:hover { box-shadow: var(--c-shadow); }
 
-.precioTable {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 600px;
+.stockCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .5rem;
+    margin-bottom: .875rem;
 }
-.precioTable th {
-    background: var(--c-hover-surface);
-    padding: .75rem 1rem;
-    text-align: center;
-    font-size: .78rem;
-    font-weight: 700;
-    color: var(--c-muted);
-    border-bottom: 2px solid var(--c-border);
-    white-space: nowrap;
-}
-.precioTable th.thLeft,
-.precioTable td.tdLeft { text-align: left; }
-.precioTable td {
-    padding: .75rem 1rem;
-    border-bottom: 1px solid var(--c-border);
-    text-align: center;
-    font-size: .875rem;
-}
-.precioTable .precioCell { font-weight: 700; color: var(--c-green2); }
-.precioTable tr:hover td { background: var(--c-hover-surface); }
-
-.expSelInfo { margin: 0 0 1rem; font-size: .875rem; color: var(--c-muted); }
-.expSelList { display: flex; flex-direction: column; gap: .5rem; }
-.expSelRow {
+.stockCardInfo {
     display: flex;
     align-items: center;
     gap: .75rem;
-    width: 100%;
-    padding: .875rem 1rem;
-    border: 1.5px solid var(--c-border);
-    border-radius: var(--r-md, 12px);
-    background: var(--c-surface);
-    cursor: pointer;
-    font-size: .95rem;
-    color: var(--c-text);
-    text-align: left;
-    transition: all .2s ease;
+    flex: 1;
+    min-width: 0;
 }
-.expSelRow:hover { border-color: var(--c-primary); }
-.expSelRowOn {
-    border-color: var(--c-primary);
-    background: var(--c-hover-bg);
+.stockCardIcon { font-size: 1.5rem; flex-shrink: 0; }
+.stockCardName { margin: 0; font-weight: 700; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stockCardMeta { margin: 0; font-size: .78rem; color: var(--c-muted); }
+.stockCardActions { display: flex; gap: .35rem; flex-shrink: 0; }
+
+.stockCardFooter { display: flex; flex-direction: column; gap: .4rem; }
+.stockCardBar {
+    height: 6px;
+    background: var(--c-border);
+    border-radius: 3px;
+    overflow: hidden;
 }
-.expSelRowAll { background: var(--c-hover-surface); font-weight: 700; }
-.expSelCheck {
-    width: 26px;
-    height: 26px;
+.stockCardBarFill { height: 100%; transition: width .4s ease; }
+.stockCardNums { display: flex; align-items: center; gap: .5rem; font-size: .875rem; }
+.stockCardMin { color: var(--c-muted); }
+
+/* ── Icon buttons ──────────────────────────────── */
+.iconBtn {
+    border: none;
+    background: var(--c-bg);
     border-radius: var(--r-sm, 8px);
-    border: 2px solid var(--c-border);
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    flex-shrink: 0;
+    transition: all .2s ease;
 }
-.expSelRowOn .expSelCheck {
-    background: var(--c-primary);
-    border-color: var(--c-primary);
-}
-.expSelName { flex: 1; font-weight: 600; }
-.expSelMult { color: var(--c-muted); font-weight: 500; }
-.expSelCount {
-    background: var(--c-bg);
-    color: var(--c-muted);
-    font-weight: 700;
-    font-size: .8rem;
-    padding: .15rem .6rem;
-    border-radius: 20px;
-}
+.iconBtn:hover { background: var(--c-hover-bg); }
+.iconBtnDanger:hover { background: var(--c-badge-out); }
 
-.gestionGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-}
-.gestionBox {
-    border: 1.5px solid var(--c-border);
-    border-radius: var(--r-md, 12px);
-    padding: 1.25rem;
-}
-.gestionBoxAlt { background: var(--c-bg); }
-.gestionTitle { margin: 0 0 1rem; font-size: 1rem; font-weight: 700; }
-.gestionExample {
-    background: var(--c-hover-bg);
-    border: 1px solid var(--c-primary);
-    border-radius: var(--r-sm, 8px);
-    padding: .75rem 1rem;
-    font-size: .9rem;
-    margin: .25rem 0 1rem;
-}
-.gestionMultRow {
+.tableActions { display: flex; gap: .35rem; justify-content: center; }
+
+/* ── Editar producto ───────────────────────────── */
+.editProductInfo {
     display: flex;
     align-items: center;
-    gap: .6rem;
-    flex-wrap: wrap;
+    gap: .875rem;
+    padding: 1rem;
+    background: var(--c-bg);
+    border-radius: var(--r-md, 12px);
+    margin-bottom: 1.25rem;
 }
-.gestionMultSign { font-size: 1.4rem; font-weight: 800; }
-.gestionHint { font-size: .85rem; color: var(--c-muted); }
+.editProductIcon { font-size: 2rem; }
+.editProductName { margin: 0; font-weight: 700; font-size: 1rem; }
+.editProductMeta { margin: 0; font-size: .8rem; color: var(--c-muted); }
 
-.gestionItem {
+.editCurrentValues {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+.editCurrentItem {
+    text-align: center;
+    padding: .75rem;
+    background: var(--c-bg);
+    border-radius: var(--r-md, 12px);
+}
+.editCurrentLabel { display: block; font-size: .72rem; color: var(--c-muted); margin-bottom: .25rem; }
+.editCurrentValue { display: block; font-weight: 700; font-size: 1rem; }
+
+/* ── Eliminar modal ────────────────────────────── */
+.deleteWarning {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    padding: 1rem;
+    background: var(--c-badge-out);
+    border: 1.5px solid var(--c-red);
+    border-radius: var(--r-md, 12px);
+}
+.deleteWarningIcon { font-size: 1.75rem; }
+
+/* ── TabNav (mobile-first) ─────────────────────── */
+.tabNav {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: .75rem 0;
-    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface);
+    border-top: 1px solid var(--c-border);
+    padding: 6px 4px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,.04);
 }
-.gestionItem:last-child { border-bottom: none; }
-.gestionItemName { margin: 0; font-weight: 700; font-size: .95rem; }
-.gestionItemMeta { margin: .15rem 0 0; font-size: .82rem; color: var(--c-muted); }
-.gestionTip { font-size: .8rem; color: var(--c-muted); margin: 1rem 0 0; }
+.tabNavBtn {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 2px;
+    min-height: 58px;
+    color: var(--c-muted);
+    border-radius: 12px;
+    transition: color .15s, background .15s;
+}
+.tabNavBtn:hover {
+    background: var(--c-hover-surface);
+}
+.tabNavBtnActive {
+    color: var(--c-primary);
+}
+.tabNavLabel {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ═══════════════════ RESPONSIVE ════════════════════ */
+
+/* ── Muy pequeñas (iPhone SE, <400px) ──────────── */
+@media (max-width: 400px) {
+    .dashboardHeader { padding: 0.75rem 0.75rem; }
+    .dashboardTitle { font-size: 1.2rem; }
+    .headerActions .actionBtn { font-size: 0.7rem; padding: 0.4rem 0.6rem; }
+    .statPill { padding: 0.3rem 0.6rem; gap: 0.3rem; }
+    .statPillValue { font-size: 0.9rem; }
+    .statPillLabel { font-size: 0.6rem; }
+    .panel { padding: 1rem; }
+    .panelTitle { font-size: 0.95rem; }
+    .precioCard { flex-wrap: wrap; gap: 0.5rem; }
+    .precioCardInfo { flex: 1 1 100%; }
+    .precioPriceBox { align-self: flex-start; }
+    .movCardHead { gap: 4px; }
+    .movBadge { font-size: 12px; padding: 4px 8px; }
+    .movCardStats { font-size: 12px; gap: 8px; }
+    .movCardTable { font-size: 12px; }
+    .movCardTable th, .movCardTable td { padding: 4px 6px; }
+    .tabNavBtn { min-height: 48px; padding: 4px 0; }
+    .tabNavLabel { font-size: 10px; }
+    .modal { max-width: 100%; margin: 0 8px; }
+    .modalHeader { padding: 0.8rem 1rem; }
+    .modalBody { padding: 1rem; }
+    .modalFooter { padding: 0.8rem 1rem; flex-direction: column; }
+    .modalFooter .btnCancel, .modalFooter .actionBtn { width: 100%; justify-content: center; }
+    .formInput, .formSelect { font-size: 16px; } /* evita zoom en iOS */
+}
+
+/* ── Teléfonos (>=400px) ──────────────────────── */
+@media (min-width: 400px) and (max-width: 639px) {
+    .headerStats { display: none; }
+    .headerActions { width: 100%; justify-content: center; }
+    .footerBtns { flex-direction: column; width: 100%; }
+    .footerBtns button { width: 100%; justify-content: center; }
+    .modalFooter { flex-direction: column; }
+    .footerTotals { justify-content: center; }
+    .actionBtn { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
+    .actionBtnLabel { display: none; }
+}
+
+/* ── Tablet y superior ─────────────────────────── */
+@media (min-width: 640px) {
+    .tabLabel { display: inline; }
+    .formGrid2 { grid-template-columns: 1fr 1fr; }
+    .actionBtnLabel { display: inline; }
+}
 
 @media (min-width: 768px) {
+    .dashboardCols { grid-template-columns: 1fr 1fr; }
+    .splitLayout { grid-template-columns: 1fr 1fr; height: 60vh; }
+    .catalogList { max-height: 100%; }
+    .selectedList { max-height: 100%; }
+    .stockCards { display: none; }
+    .tableWrap { display: block; }
     .precioCards { display: grid; grid-template-columns: repeat(2, 1fr); }
     .gestionGrid { grid-template-columns: 1fr 1fr; }
+
+    /* TabNav en desktop */
+    .tabNav {
+        position: static;
+        border-top: none;
+        border-bottom: 2px solid var(--c-border);
+        box-shadow: none;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    .tabNavBtn {
+        flex-direction: row;
+        gap: 10px;
+        min-height: 52px;
+        padding: 10px 18px;
+        font-size: 16px;
+        border-radius: 12px 12px 0 0;
+    }
+    .tabNavLabel { font-size: 16px; }
+    .tabNavBtnActive {
+        background: var(--c-hover-bg);
+        box-shadow: inset 0 -3px 0 var(--c-primary);
+    }
 }
+
+@media (min-width: 1024px) {
+    .statsRow { grid-template-columns: repeat(4, 1fr); }
+    .mainContent { padding: 1.5rem; }
+    .dashboardHeader { padding: 1rem 2rem; }
+}
+
 @media (min-width: 1200px) {
     .precioCards { grid-template-columns: repeat(3, 1fr); }
 }
-
-
-
-/* ── MovimientosTab ────────────────────────── */
-.movimientosContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-.movimientosHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-.movimientosHeader h2 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-}
-.movimientosCount {
-    background: var(--c-bg);
-    color: var(--c-muted);
-    font-weight: 700;
-    font-size: 14px;
-    padding: 6px 14px;
-    border-radius: 999px;
-}
-.movimientosList {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* MovCard */
-.movCard {
-    background: var(--c-surface);
-    border: 2px solid var(--c-border);
-    border-left-width: 6px;
-    border-radius: var(--r-lg);
-    padding: 14px;
-    transition: var(--tr);
-}
-.movCard:hover {
-    box-shadow: var(--c-shadow-md);
-}
-.movCardIn {
-    border-left-color: var(--c-green);
-}
-.movCardOut {
-    border-left-color: var(--c-blue);
-}
-.movCardHead {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-}
-.movBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 800;
-    font-size: 14px;
-    padding: 6px 12px;
-    border-radius: 999px;
-}
-.movBadgeIn {
-    background: var(--c-badge-in);
-    color: var(--c-badge-in-text);
-}
-.movBadgeOut {
-    background: var(--c-badge-out);
-    color: var(--c-badge-out-text);
-}
-.movChip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--c-muted);
-}
-.movCardDate {
-    margin-left: auto;
-    font-size: 14px;
-    color: var(--c-muted);
-}
-.movCardStats {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    font-size: 14px;
-    color: var(--c-text);
-    margin-bottom: 10px;
-}
-.movCardStats b {
-    font-weight: 800;
-}
-.movCardStats .valIn {
-    color: var(--c-green);
-}
-.movCardStats .valOut {
-    color: var(--c-blue);
-}
-.movTableWrap {
-    overflow-x: auto;
-}
-.movCardTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-.movCardTable th {
-    text-align: left;
-    padding: 8px;
-    background: var(--c-hover-surface);
-    color: var(--c-muted);
-    font-weight: 700;
-    white-space: nowrap;
-}
-.movCardTable td {
-    padding: 8px;
-    border-top: 1px solid var(--c-border);
-    white-space: nowrap;
-}
-.movQtyPos {
-    color: var(--c-green);
-    font-weight: 800;
-}
-.movQtyNeg {
-    color: var(--c-red);
-    font-weight: 800;
-}
-
-/* ── TabNav ────────────────────────────────── */
-.tabNav {
-    position: sticky;
-    bottom: 0;
-    z-index: 40;
-    display: flex;
-    justify-content: space-between;
-    background: var(--c-surface);
-    border-top: 1px solid var(--c-border);
-    padding: 6px 4px;
-    box-shadow: 0 -2px 10px rgba(0,0,0,.04);
-}
-.tabNavBtn {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px 2px;
-    min-height: 58px;
-    color: var(--c-muted);
-    border-radius: 12px;
-    transition: color .15s, background .15s;
-}
-.tabNavBtn:hover {
-    background: var(--c-hover-surface);
-}
-.tabNavBtnActive {
-    color: var(--c-primary);
-}
-.tabNavLabel {
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-
-@media (min-width: 768px) {
-    .tabNav {
-        position: static;
-        border-top: none;
-        border-bottom: 2px solid var(--c-border);
-        box-shadow: none;
-        padding: 4px 8px;
-        gap: 4px;
+@media print {
+    /* Ocultar elementos de interfaz */
+    .actionBtn,
+    .panelActions,
+    .filtersRow,
+    .precioChips,
+    .btnCancel,
+    .toggleThemeBtn,
+    .headerStats,
+    .mainNav,
+    .tabNav,
+    .searchWrap,
+    .filterSelect,
+    .emptyState,
+    .panelHeader .panelActions {
+        display: none !important;
     }
-    .tabNavBtn {
-        flex-direction: row;
-        gap: 10px;
-        min-height: 52px;
-        padding: 10px 18px;
-        font-size: 16px;
-        border-radius: 12px 12px 0 0;
-    }
-    .tabNavLabel {
-        font-size: 16px;
-    }
-    .tabNavBtnActive {
-        background: var(--c-hover-bg);
-        box-shadow: inset 0 -3px 0 var(--c-primary);
-    }
-}/* ── MovimientosTab ────────────────────────── */
-.movimientosContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-.movimientosHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-.movimientosHeader h2 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-}
-.movimientosCount {
-    background: var(--c-bg);
-    color: var(--c-muted);
-    font-weight: 700;
-    font-size: 14px;
-    padding: 6px 14px;
-    border-radius: 999px;
-}
-.movimientosList {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
 
-.movCard {
-    background: var(--c-surface);
-    border: 2px solid var(--c-border);
-    border-left-width: 6px;
-    border-radius: var(--r-lg);
-    padding: 14px;
-    transition: var(--tr);
-}
-.movCard:hover {
-    box-shadow: var(--c-shadow-md);
-}
-.movCardIn {
-    border-left-color: var(--c-green);
-}
-.movCardOut {
-    border-left-color: var(--c-blue);
-}
-.movCardHead {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-}
-.movBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 800;
-    font-size: 14px;
-    padding: 6px 12px;
-    border-radius: 999px;
-}
-.movBadgeIn {
-    background: var(--c-badge-in);
-    color: var(--c-badge-in-text);
-}
-.movBadgeOut {
-    background: var(--c-badge-out);
-    color: var(--c-badge-out-text);
-}
-.movChip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--c-muted);
-}
-.movCardDate {
-    margin-left: auto;
-    font-size: 14px;
-    color: var(--c-muted);
-}
-.movCardStats {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    font-size: 14px;
-    color: var(--c-text);
-    margin-bottom: 10px;
-}
-.movCardStats b {
-    font-weight: 800;
-}
-.movCardStats .valIn {
-    color: var(--c-green);
-}
-.movCardStats .valOut {
-    color: var(--c-blue);
-}
-.movTableWrap {
-    overflow-x: auto;
-}
-.movCardTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-.movCardTable th {
-    text-align: left;
-    padding: 8px;
-    background: var(--c-hover-surface);
-    color: var(--c-muted);
-    font-weight: 700;
-    white-space: nowrap;
-}
-.movCardTable td {
-    padding: 8px;
-    border-top: 1px solid var(--c-border);
-    white-space: nowrap;
-}
-.movQtyPos {
-    color: var(--c-green);
-    font-weight: 800;
-}
-.movQtyNeg {
-    color: var(--c-red);
-    font-weight: 800;
-}
+    /* Resetear fondos y bordes usando clases locales */
+    .dashboardContainer,
+    .panel {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
 
-/* ── TabNav ────────────────────────────────── */
-.tabNav {
-    position: sticky;
-    bottom: 0;
-    z-index: 40;
-    display: flex;
-    justify-content: space-between;
-    background: var(--c-surface);
-    border-top: 1px solid var(--c-border);
-    padding: 6px 4px;
-    box-shadow: 0 -2px 10px rgba(0,0,0,.04);
-}
-.tabNavBtn {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px 2px;
-    min-height: 58px;
-    color: var(--c-muted);
-    border-radius: 12px;
-    transition: color .15s, background .15s;
-}
-.tabNavBtn:hover {
-    background: var(--c-hover-surface);
-}
-.tabNavBtnActive {
-    color: var(--c-primary);
-}
-.tabNavLabel {
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
+    /* Asegurar que el body también sea blanco (opcional) */
+    /* Si queremos afectar al body, podemos usar un selector global puro, pero para evitar errores, mejor no */
+    /* En su lugar, asumimos que el dashboardContainer cubre toda la pantalla */
 
-@media (min-width: 768px) {
-    .tabNav {
-        position: static;
-        border-top: none;
-        border-bottom: 2px solid var(--c-border);
-        box-shadow: none;
-        padding: 4px 8px;
-        gap: 4px;
+    /* Tablas compactas */
+    .precioTable,
+    .movCardTable,
+    .stockTable {
+        font-size: 9pt !important;
+        border-collapse: collapse !important;
+        width: 100% !important;
     }
-    .tabNavBtn {
-        flex-direction: row;
-        gap: 10px;
-        min-height: 52px;
-        padding: 10px 18px;
-        font-size: 16px;
-        border-radius: 12px 12px 0 0;
+    .precioTable th,
+    .precioTable td,
+    .movCardTable th,
+    .movCardTable td,
+    .stockTable th,
+    .stockTable td {
+        padding: 3px 5px !important;
+        border: 1px solid #999 !important;
+        text-align: center !important;
+        background: white !important;
+        color: black !important;
     }
-    .tabNavLabel {
-        font-size: 16px;
+    .precioTable .thLeft,
+    .precioTable .tdLeft,
+    .movCardTable th:first-child,
+    .movCardTable td:first-child {
+        text-align: left !important;
     }
-    .tabNavBtnActive {
-        background: var(--c-hover-bg);
-        box-shadow: inset 0 -3px 0 var(--c-primary);
-    }
-}
 
-.productName {
-    font-weight: 500;
-}
-.stockAfter {
-    color: var(--c-primary);
-    font-weight: 700;
+
+
+    /* Tarjetas de precios (vista simple) */
+    .precioCard {
+        border: 1px solid #ccc !important;
+        background: white !important;
+        margin-bottom: 3px !important;
+        padding: 3px 6px !important;
+        font-size: 8pt !important;
+    }
+    .precioCard .precioCardIcon {
+        font-size: 12pt !important;
+    }
+    .precioCard .precioCardName {
+        font-size: 9pt !important;
+    }
+    .precioCard .precioPriceVal {
+        font-size: 10pt !important;
+    }
+
+    /* Ocultar elementos específicos de la lista de precios */
+    #listas-precios-container .panelHeader,
+    #listas-precios-container .filtersRow,
+    #listas-precios-container .precioChips,
+    #listas-precios-container .panelActions,
+    #listas-precios-container .actionBtn {
+        display: none !important;
+    }
 }

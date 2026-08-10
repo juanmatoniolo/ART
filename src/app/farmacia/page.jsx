@@ -7,7 +7,6 @@ import DashboardTab from "./components/DashboardTab";
 import StockTab from "./components/StockTab";
 import MovimientosTab from "./components/MovimientosTab";
 import ExportarTab from "./components/ExportarTab";
-import MedyDescartablesPage from "@/components/medicacion/page";
 import AgregarModal from "./components/modals/AgregarModal";
 import CargaMasivaModal from "./components/modals/CargaMasivaModal";
 import RepartoModal from "./components/modals/RepartoModal";
@@ -15,6 +14,7 @@ import ImportarExcelModal from "./components/modals/ImportarExcelModal";
 import MensajeModal from "./components/modals/MensajeModal";
 import ListasPreciosTab from "./components/ListasPreciosTab";
 import s from "./farmaciaDashboard.module.css";
+import MedicacionyDescartables from "./components/MedicacionyDescartables";
 
 export default function FarmaciaDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard");
@@ -76,7 +76,7 @@ export default function FarmaciaDashboard() {
                     />
                 )}
                 {activeTab === "movimientos" && <MovimientosTab movimientos={movimientos} />}
-                {activeTab === "catalogo" && <div className={s.panel}><MedyDescartablesPage /></div>}
+                {activeTab === "catalogo" && <div className={s.panel}><MedicacionyDescartables /></div>}
                 {activeTab === "exportar" && (
                     <ExportarTab
                         estadisticas={estadisticas}
