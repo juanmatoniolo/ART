@@ -55,20 +55,27 @@ export default function useFarmacia() {
 	// ─── items: array plano normalizado ───────────────────────────────────
 	const items = useMemo(() => {
 		const map = (obj, tipo) =>
-			Object.entries(obj).map(([key, v]) => ({
-				...v,
-				id: key,
-				tipo: v.tipo || tipo,
-				tipoLabel:
-					(v.tipo || tipo) === "medicamento"
-						? "Medicamento"
-						: "Descartable",
-				precio: Number(v.precioReferencia) || 0,
-				precioReferencia: Number(v.precioReferencia) || 0,
-				stockActual: Number(v.stockActual) || 0,
-				stockMinimo: Number(v.stockMinimo) || 0,
-				activo: v.activo !== false,
-			}));
+			Object.entries(obj).map(([key, v]) => {
+				const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+				return {
+					...v,
+					id: key,
+					tipo: v.tipo || tipo,
+					tipoLabel:
+						(v.tipo || tipo) === "medicamento"
+							? "Medicamento"
+							: "Descartable",
+					precioCosto: pcosto,
+					precioFacturacion: Number(v.precioFacturacion) || 0,
+					precioOtros: Number(v.precioOtros) || 0,
+					// Compatibilidad con código antiguo que use "precio" o "precioReferencia"
+					precio: pcosto,
+					precioReferencia: pcosto,
+					stockActual: Number(v.stockActual) || 0,
+					stockMinimo: Number(v.stockMinimo) || 0,
+					activo: v.activo !== false,
+				};
+			});
 		return [
 			...map(medicamentos, "medicamento"),
 			...map(descartables, "descartable"),
@@ -124,7 +131,7 @@ export default function useFarmacia() {
 				(i) => i.stockActual > 0 && i.stockActual < i.stockMinimo,
 			).length,
 			valorTotalStock: activos.reduce(
-				(acc, i) => acc + i.stockActual * i.precioReferencia,
+				(acc, i) => acc + i.stockActual * i.precioCosto,
 				0,
 			),
 		};
@@ -148,17 +155,23 @@ export default function useFarmacia() {
 		const data = snap.val() || {};
 		const map = (obj = {}, tipo) =>
 			Object.entries(obj)
-				.map(([key, v]) => ({
-					...v,
-					id: key,
-					tipo: v.tipo || tipo,
-					tipoLabel:
-						(v.tipo || tipo) === "medicamento"
-							? "Medicamento"
-							: "Descartable",
-					precio: Number(v.precioReferencia) || 0,
-					stockActual: Number(v.stockActual) || 0,
-				}))
+				.map(([key, v]) => {
+					const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+					return {
+						...v,
+						id: key,
+						tipo: v.tipo || tipo,
+						tipoLabel:
+							(v.tipo || tipo) === "medicamento"
+								? "Medicamento"
+								: "Descartable",
+						precioCosto: pcosto,
+						precioFacturacion: Number(v.precioFacturacion) || 0,
+						precioOtros: Number(v.precioOtros) || 0,
+						precio: pcosto,
+						stockActual: Number(v.stockActual) || 0,
+					};
+				})
 				.filter((i) => i.activo !== false);
 		return [
 			...map(data.medicamentos, "medicamento"),
@@ -179,12 +192,12 @@ export default function useFarmacia() {
 					);
 					return false;
 				}
-				const precio = parseFloat(form.precio);
-				if (!(precio > 0)) {
+				const precioCosto = parseFloat(form.precioCosto);
+				if (!(precioCosto > 0)) {
 					mostrarMensaje(
 						"warning",
-						"Precio inválido",
-						"El precio debe ser mayor a 0.",
+						"Precio de costo inválido",
+						"El precio de costo debe ser mayor a 0.",
 					);
 					return false;
 				}
@@ -196,7 +209,9 @@ export default function useFarmacia() {
 					nombre: key,
 					tipo: form.tipo,
 					presentacion: form.presentacion || "unidad",
-					precioReferencia: precio,
+					precioCosto,
+					precioFacturacion: parseFloat(form.precioFacturacion) || 0,
+					precioOtros: parseFloat(form.precioOtros) || 0,
 					stockActual: parseInt(form.stockActual) || 0,
 					stockMinimo: parseInt(form.stockMinimo) || 10,
 				});
@@ -228,8 +243,9 @@ export default function useFarmacia() {
 					nombre: item.nombre,
 					tipo: item.tipo,
 					presentacion: item.presentacion,
-					precioReferencia:
-						parseFloat(item.precio ?? item.precioReferencia) || 0,
+					precioCosto: parseFloat(item.precioCosto) || 0,
+					precioFacturacion: parseFloat(item.precioFacturacion) || 0,
+					precioOtros: parseFloat(item.precioOtros) || 0,
 					stockActual: parseInt(item.stockActual) || 0,
 					stockMinimo: parseInt(item.stockMinimo) || 0,
 				});
@@ -305,7 +321,7 @@ export default function useFarmacia() {
 						itemId: p.id,
 						itemNombre: p.nombre,
 						motivo: "Carga masiva",
-						precioUnitario: Number(p.precio) || 0,
+						precioUnitario: Number(p.precioCosto ?? p.precio) || 0,
 						presentacion: p.presentacion || "unidad",
 						stockAnterior,
 						stockNuevo,
@@ -364,7 +380,7 @@ export default function useFarmacia() {
 						cantidad,
 						itemId: p.id,
 						itemNombre: p.nombre,
-						precioUnitario: Number(p.precio) || 0,
+						precioUnitario: Number(p.precioCosto ?? p.precio) || 0,
 						presentacion: p.presentacion || "unidad",
 						stockAnterior,
 						stockNuevo,
@@ -425,7 +441,9 @@ export default function useFarmacia() {
 						nombre: key,
 						tipo: p.tipo,
 						presentacion: p.presentacion || "unidad",
-						precioReferencia: Number(p.precio) || 0,
+						precioCosto: Number(p.precioCosto) || 0,
+						precioFacturacion: Number(p.precioFacturacion) || 0,
+						precioOtros: Number(p.precioOtros) || 0,
 						stockActual: parseInt(p.stockInicial) || 0,
 						stockMinimo: parseInt(p.stockMinimo) || 10,
 					};
@@ -470,18 +488,22 @@ export default function useFarmacia() {
 					"Tipo",
 					"Presentacion",
 					"Costo",
+					"Facturación",
+					"Otros",
 					"Stock",
 					"Stock minimo",
-					"Valor total",
+					"Valor total (costo)",
 				];
 				filas = data.map((i) => [
 					String(i.nombre).replace(/_/g, " "),
 					i.tipo,
 					i.presentacion,
-					i.precioReferencia,
+					i.precioCosto,
+					i.precioFacturacion,
+					i.precioOtros,
 					i.stockActual,
 					i.stockMinimo,
-					i.stockActual * i.precioReferencia,
+					i.stockActual * i.precioCosto,
 				]);
 				nombreArchivo =
 					tipo === "stock_bajo" ? "stock_bajo.csv" : "inventario.csv";
@@ -576,7 +598,7 @@ export default function useFarmacia() {
 		[mostrarMensaje],
 	);
 
-	// ─── Exportar listas de precios (una, varias o todas) ─────────────────
+	// ─── Exportar listas de precios ───────────────────────────────────────
 	const exportarListasPrecios = useCallback(
 		(listaIds = [], data = items) => {
 			const sel = listasPrecios
@@ -602,7 +624,7 @@ export default function useFarmacia() {
 			const filas = data
 				.filter((i) => i.activo)
 				.map((i) => {
-					const c = Number(i.precioReferencia) || 0;
+					const c = Number(i.precioCosto) || 0;
 					return [
 						String(i.nombre).replace(/_/g, " "),
 						i.tipo,

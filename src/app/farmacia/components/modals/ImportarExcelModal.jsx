@@ -69,7 +69,9 @@ export default function ImportarExcelModal({ onClose, onSubmit }) {
                                     { col: "nombre", desc: "Nombre del producto", req: true },
                                     { col: "tipo", desc: '"medicamento" o "descartable"', req: true },
                                     { col: "presentacion", desc: "ampolla, tabletas, unidad…", req: false },
-                                    { col: "precio", desc: "Precio unitario (número)", req: true },
+                                    { col: "precioCosto", desc: "Precio de costo (número)", req: true },
+                                    { col: "precioFacturacion", desc: "Precio de facturación", req: false },
+                                    { col: "precioOtros", desc: "Otros precios", req: false },
                                     { col: "stockInicial", desc: "Unidades a cargar", req: false },
                                     { col: "stockMinimo", desc: "Alerta de stock bajo", req: false },
                                 ].map(c => (
@@ -126,7 +128,7 @@ export default function ImportarExcelModal({ onClose, onSubmit }) {
 
                         {invalidos.length > 0 && (
                             <div className={s.previewWarning}>
-                                ⚠️ Las filas inválidas no tienen nombre o precio. Se omitirán.
+                                ⚠️ Las filas inválidas no tienen nombre o precio de costo. Se omitirán.
                             </div>
                         )}
 
@@ -139,7 +141,9 @@ export default function ImportarExcelModal({ onClose, onSubmit }) {
                                         <th>Nombre</th>
                                         <th>Tipo</th>
                                         <th>Presentación</th>
-                                        <th>Precio</th>
+                                        <th>Costo</th>
+                                        <th>Facturación</th>
+                                        <th>Otros</th>
                                         <th>Stock inicial</th>
                                         <th>Stock mín.</th>
                                     </tr>
@@ -155,7 +159,9 @@ export default function ImportarExcelModal({ onClose, onSubmit }) {
                                                 </span>
                                             </td>
                                             <td>{p.presentacion}</td>
-                                            <td>{p.precio > 0 ? formatCurrency(p.precio) : <span style={{ color: "var(--c-red)" }}>falta</span>}</td>
+                                            <td>{p.precioCosto > 0 ? formatCurrency(p.precioCosto) : <span style={{ color: "var(--c-red)" }}>falta</span>}</td>
+                                            <td>{formatCurrency(p.precioFacturacion)}</td>
+                                            <td>{formatCurrency(p.precioOtros)}</td>
                                             <td>{p.stockInicial}</td>
                                             <td>{p.stockMinimo}</td>
                                         </tr>
@@ -175,7 +181,7 @@ export default function ImportarExcelModal({ onClose, onSubmit }) {
 
                 {paso === "loading" && (
                     <div className={s.emptyState}>
-                        <span className={s.loadingSpinner}>⏳</span>
+                        <span>⏳</span>
                         <p>Importando {validos.length} productos...</p>
                     </div>
                 )}

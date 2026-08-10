@@ -76,8 +76,7 @@ export const buildItemKey = (nombre) =>
 
 /**
  * Genera y descarga una plantilla CSV para importar productos.
- * Las columnas son: nombre, tipo, presentacion, precio, stockInicial, stockMinimo.
- * Escapa correctamente comas, comillas dobles y saltos de línea.
+ * Columnas: nombre, tipo, presentacion, precioCosto, precioFacturacion, precioOtros, stockInicial, stockMinimo.
  * Incluye BOM UTF-8 para compatibilidad con Excel.
  */
 export const generarPlantillaExcel = () => {
@@ -85,15 +84,17 @@ export const generarPlantillaExcel = () => {
 		"nombre",
 		"tipo",
 		"presentacion",
-		"precio",
+		"precioCosto",
+		"precioFacturacion",
+		"precioOtros",
 		"stockInicial",
 		"stockMinimo",
 	];
 
 	const ejemplos = [
-		["Paracetamol 500mg", "medicamento", "ampolla", "1500", "10", "5"],
-		["Amoxicilina 500mg", "medicamento", "tabletas", "2300", "20", "10"],
-		["Guante látex talle M", "descartable", "unidad", "150", "100", "30"],
+		["Paracetamol 500mg", "medicamento", "ampolla", "1200", "1800", "1500", "10", "5"],
+		["Amoxicilina 500mg", "medicamento", "tabletas", "2300", "3200", "2700", "20", "10"],
+		["Guante látex talle M", "descartable", "unidad", "150", "220", "180", "100", "30"],
 	];
 
 	const formatearCelda = (valor) => {
@@ -115,6 +116,7 @@ export const generarPlantillaExcel = () => {
 	link.click();
 	URL.revokeObjectURL(link.href);
 };
+
 /**
  * Parsea un archivo CSV subido por el usuario y lo convierte en un array de objetos
  * con la estructura esperada por el importador.
@@ -167,11 +169,13 @@ export const parsearArchivoImportacion = (file) => {
 								? "descartable"
 								: "medicamento",
 						presentacion: obj.presentacion || "unidad",
-						precio: parseFloat(obj.precio) || 0,
+						precioCosto: parseFloat(obj.preciocosto) || 0,
+						precioFacturacion: parseFloat(obj.preciofacturacion) || 0,
+						precioOtros: parseFloat(obj.preciootros) || 0,
 						stockInicial:
 							parseInt(obj.stockinicial || obj.stockactual) || 0,
 						stockMinimo: parseInt(obj.stockminimo) || 10,
-						valido: !!(obj.nombre && parseFloat(obj.precio) > 0),
+						valido: !!(obj.nombre && parseFloat(obj.preciocosto) > 0),
 					};
 				});
 				resolve(productos);

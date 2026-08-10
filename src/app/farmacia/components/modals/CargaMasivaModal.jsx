@@ -37,7 +37,7 @@ export default function CargaMasivaModal({ onClose, onSubmit, cargarCatalogo }) 
 
     const totales = useMemo(() => seleccionados.reduce((acc, p) => {
         const c = parseInt(p.cantidad) || 0;
-        return { unidades: acc.unidades + c, valor: acc.valor + c * p.precio };
+        return { unidades: acc.unidades + c, valor: acc.valor + c * (p.precioCosto || 0) };
     }, { unidades: 0, valor: 0 }), [seleccionados]);
 
     const handleSubmit = async () => {
@@ -72,7 +72,7 @@ export default function CargaMasivaModal({ onClose, onSubmit, cargarCatalogo }) 
                                     </div>
                                     <div className={s.catalogItemBot}>
                                         <span>{item.presentacion}</span>
-                                        <span className={s.catalogItemPrice}>{formatCurrency(item.precio)}</span>
+                                        <span className={s.catalogItemPrice}>{formatCurrency(item.precioCosto)}</span>
                                         <span>Stock: {item.stockActual}</span>
                                     </div>
                                 </div>
@@ -102,7 +102,9 @@ export default function CargaMasivaModal({ onClose, onSubmit, cargarCatalogo }) 
                                             <label>Cantidad:</label>
                                             <input type="number" min="1" className={s.cantInput}
                                                 value={p.cantidad} onChange={e => setCantidad(p.id, e.target.value)} />
-                                            <span className={s.subTotal}>{formatCurrency((parseInt(p.cantidad) || 0) * p.precio)}</span>
+                                            <span className={s.subTotal}>
+                                                {formatCurrency((parseInt(p.cantidad) || 0) * (p.precioCosto || 0))}
+                                            </span>
                                         </div>
                                     </div>
                                 ))}

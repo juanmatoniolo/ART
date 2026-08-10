@@ -4,10 +4,10 @@ import { formatCurrency, getStockColor } from "../utils/farmacia";
 
 export default function DashboardTab({ estadisticas, itemsBajoStockList, movimientos }) {
     const cards = [
-        { icon: "box", label: "Total productos", value: estadisticas.totalItems, color: "#2563eb" },
-        { icon: "alert", label: "Bajo stock", value: estadisticas.itemsBajoStock, color: "#d97706" },
-        { icon: "close", label: "Sin stock", value: estadisticas.itemsSinStock, color: "#dc2626" },
-        { icon: "money", label: "Valor total", value: formatCurrency(estadisticas.valorTotalStock), color: "#059669" },
+        { icon: "box", label: "Total productos", value: estadisticas.totalItems, color: "var(--c-primary)" },
+        { icon: "alert", label: "Bajo stock", value: estadisticas.itemsBajoStock, color: "var(--c-amber)" },
+        { icon: "close", label: "Sin stock", value: estadisticas.itemsSinStock, color: "var(--c-red)" },
+        { icon: "money", label: "Valor total", value: formatCurrency(estadisticas.valorTotalStock), color: "var(--c-green)" },
     ];
 
     return (
@@ -70,35 +70,35 @@ export default function DashboardTab({ estadisticas, itemsBajoStockList, movimie
             </div>
 
             <style>{`
-                .fxdash { display: flex; flex-direction: column; gap: 14px; color: #1f2937; }
+                .fxdash { display: flex; flex-direction: column; gap: 14px; color: var(--c-text); }
                 .fxdash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-                .fxdash-card { background: #fff; border: 2px solid #e5e7eb; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+                .fxdash-card { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
                 .fxdash-card-ic { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
                 .fxdash-card-val { font-size: 24px; font-weight: 800; }
-                .fxdash-card-lbl { font-size: 14px; color: #6b7280; }
+                .fxdash-card-lbl { font-size: 14px; color: var(--c-muted); }
 
                 .fxdash-cols { display: grid; grid-template-columns: 1fr; gap: 14px; }
-                .fxpanel { background: #fff; border: 2px solid #e5e7eb; border-radius: 16px; padding: 16px; }
+                .fxpanel { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; }
                 .fxpanel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
                 .fxpanel-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 800; }
-                .fxbadge-danger { background: #fef2f2; color: #dc2626; font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 999px; }
+                .fxbadge-danger { background: var(--c-badge-out); color: var(--c-badge-out-text); font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 999px; }
 
-                .fxalert { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+                .fxalert { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--c-border); }
                 .fxalert-body { flex: 1; min-width: 0; }
                 .fxalert-body p { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-                .fxalert-bar { height: 8px; background: #f1f1f1; border-radius: 999px; overflow: hidden; }
+                .fxalert-bar { height: 8px; background: var(--c-border); border-radius: 999px; overflow: hidden; }
                 .fxalert-bar div { height: 100%; border-radius: 999px; }
-                .fxalert-num { font-size: 16px; color: #9ca3af; white-space: nowrap; }
+                .fxalert-num { font-size: 16px; color: var(--c-muted); white-space: nowrap; }
 
-                .fxmovmini { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+                .fxmovmini { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--c-border); font-size: 14px; }
                 .fxmovbadge { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 13px; padding: 5px 10px; border-radius: 999px; }
-                .fxmovbadge.in { background: #ecfdf5; color: #059669; }
-                .fxmovbadge.out { background: #eff6ff; color: #2563eb; }
-                .fxmovmini-dest { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; }
+                .fxmovbadge.in { background: var(--c-badge-in); color: var(--c-badge-in-text); }
+                .fxmovbadge.out { background: var(--c-badge-out); color: var(--c-badge-out-text); }
+                .fxmovmini-dest { display: inline-flex; align-items: center; gap: 4px; color: var(--c-muted); }
                 .fxmovmini-val { margin-left: auto; font-weight: 800; }
-                .fxmovmini-date { width: 100%; color: #9ca3af; font-size: 13px; }
+                .fxmovmini-date { width: 100%; color: var(--c-muted); font-size: 13px; }
 
-                .fxempty2 { text-align: center; padding: 28px 8px; color: #9ca3af; }
+                .fxempty2 { text-align: center; padding: 28px 8px; color: var(--c-muted); }
                 .fxempty2 p { margin: 8px 0 0; }
 
                 @media (min-width: 768px) {

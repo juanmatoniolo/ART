@@ -94,7 +94,7 @@ export default function ListasPreciosTab({ items = [], listas = [], onGuardarLis
                                 </thead>
                                 <tbody>
                                     {filtrados.map(item => {
-                                        const c = Number(item.precioReferencia) || 0;
+                                        const c = Number(item.precioCosto) || 0;
                                         return (
                                             <tr key={item.id || item.nombre}>
                                                 <td className={s.tdLeft}>{String(item.nombre).replace(/_/g, " ")}</td>
@@ -111,7 +111,7 @@ export default function ListasPreciosTab({ items = [], listas = [], onGuardarLis
                     ) : listaActiva ? (
                         <div className={s.precioCards}>
                             {filtrados.map(item => {
-                                const c = Number(item.precioReferencia) || 0;
+                                const c = Number(item.precioCosto) || 0;
                                 return (
                                     <div key={item.id || item.nombre} className={s.precioCard}>
                                         <span className={`${s.precioCardIcon} ${s.svgIc}`}>

@@ -1,27 +1,30 @@
 "use client";
 import Icon from "../Icon";
-import { Overlay } from "./AgregarModal";
+import { Overlay, CloseBtn } from "./AgregarModal";
+import s from "../../farmaciaDashboard.module.css";
 
 const CONFIGS = {
-    success: { tone: "success", icon: "check", color: "#059669" },
-    error: { tone: "danger", icon: "alert", color: "#dc2626" },
-    warning: { tone: "warning", icon: "alert", color: "#d97706" },
-    info: { tone: "", icon: "list", color: "#2563eb" },
+    success: { tone: "success", icon: "check", color: "var(--c-green)" },
+    error: { tone: "danger", icon: "alert", color: "var(--c-red)" },
+    warning: { tone: "warning", icon: "alert", color: "var(--c-amber)" },
+    info: { tone: "", icon: "list", color: "var(--c-primary)" },
 };
 
 export default function MensajeModal({ data, onClose }) {
     const cfg = CONFIGS[data.tipo] || CONFIGS.info;
     return (
         <Overlay onClose={onClose}>
-            <div className={"fxm-head" + (cfg.tone ? " " + cfg.tone : "")}>
-                <h3 className="fxm-title"><Icon name={cfg.icon} size={24} /> {data.titulo}</h3>
-                <button className="fxm-close" onClick={onClose} aria-label="Cerrar"><Icon name="close" size={22} /></button>
+            <div className={s.modalHeader} style={cfg.tone ? { background: cfg.color } : {}}>
+                <h3 className={s.modalTitle}><Icon name={cfg.icon} size={24} /> {data.titulo}</h3>
+                <CloseBtn onClick={onClose} />
             </div>
-            <div className="fxm-body">
-                <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4 }}>{data.mensaje}</p>
+            <div className={s.modalBody}>
+                <p className={s.mensajeText}>{data.mensaje}</p>
             </div>
-            <div className="fxm-footer">
-                <button className="fxm-btn primary" style={{ background: cfg.color }} onClick={onClose}>Aceptar</button>
+            <div className={s.modalFooter}>
+                <button className={`${s.actionBtn} ${s.btn_primary}`} style={{ background: cfg.color }} onClick={onClose}>
+                    Aceptar
+                </button>
             </div>
         </Overlay>
     );

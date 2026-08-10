@@ -13,15 +13,17 @@ import CargaMasivaModal from "./components/modals/CargaMasivaModal";
 import RepartoModal from "./components/modals/RepartoModal";
 import ImportarExcelModal from "./components/modals/ImportarExcelModal";
 import MensajeModal from "./components/modals/MensajeModal";
-import s from "./farmaciaDashboard.module.css";
 import ListasPreciosTab from "./components/ListasPreciosTab";
-
+import s from "./farmaciaDashboard.module.css";
 
 export default function FarmaciaDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [modal, setModal] = useState(null);
+    const [theme, setTheme] = useState("light"); // "light" o "dark"
 
-
+    const toggleTheme = () => {
+        setTheme(prev => prev === "light" ? "dark" : "light");
+    };
 
     const {
         items, movimientos, estadisticas, itemsBajoStockList,
@@ -33,26 +35,16 @@ export default function FarmaciaDashboard() {
         listasPrecios, guardarListaPrecio, eliminarListaPrecio, exportarListasPrecios,
     } = useFarmacia();
 
-    {
-        activeTab === "precios" && (
-            <ListasPreciosTab
-                items={items}
-                listas={listasPrecios}
-                onGuardarLista={guardarListaPrecio}
-                onEliminarLista={eliminarListaPrecio}
-                onExportarListas={exportarListasPrecios}
-            />
-        )
-    }
-
     return (
-        <div className={s.dashboardContainer}>
+        <div className={`${s.dashboardContainer} ${s[theme]}`}>
             <StatsHeader
                 estadisticas={estadisticas}
                 onAgregar={() => setModal("agregar")}
                 onCargaMasiva={() => setModal("masiva")}
                 onReparto={() => setModal("reparto")}
                 onExportar={() => setActiveTab("exportar")}
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
 
             <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
@@ -99,7 +91,6 @@ export default function FarmaciaDashboard() {
             {modal === "reparto" && <RepartoModal onClose={() => setModal(null)} onSubmit={procesarReparto} items={items} />}
             {modal === "importar" && <ImportarExcelModal onClose={() => setModal(null)} onSubmit={importarDesdeExcel} />}
             {mensaje && <MensajeModal data={mensaje} onClose={cerrarMensaje} />}
-
         </div>
     );
 }

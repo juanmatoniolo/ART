@@ -2,24 +2,32 @@
 import { useState } from "react";
 import Icon from "../Icon";
 import { Overlay, Header, Field } from "./AgregarModal";
-import { formatCurrency } from "../../utils/farmacia";
+import s from "../../farmaciaDashboard.module.css";
 
 export default function EditarProductoModal({ item, onClose, onSubmit }) {
-    const [precio, setPrecio] = useState(String(item.precio));
-    const [stockMinimo, setStockMinimo] = useState(String(item.stockMinimo));
-    const [stockActual, setStockActual] = useState(String(item.stockActual));
+    const [precioCosto, setPrecioCosto] = useState(
+        String(item.precioCosto ?? item.precio ?? "")
+    );
+    const [precioFacturacion, setPrecioFacturacion] = useState(
+        String(item.precioFacturacion ?? "")
+    );
+    const [precioOtros, setPrecioOtros] = useState(
+        String(item.precioOtros ?? "")
+    );
+    const [stockMinimo, setStockMinimo] = useState(String(item.stockMinimo ?? ""));
+    const [stockActual, setStockActual] = useState(String(item.stockActual ?? ""));
     const [loading, setLoading] = useState(false);
 
-    const valido = parseFloat(precio) > 0;
+    const valido = parseFloat(precioCosto) > 0;
 
     const handleSubmit = async () => {
         if (!valido) return;
         setLoading(true);
-        // El hook editarProducto espera UN solo objeto (item + cambios).
         const ok = await onSubmit({
             ...item,
-            precio: parseFloat(precio),
-            precioReferencia: parseFloat(precio),
+            precioCosto: parseFloat(precioCosto),
+            precioFacturacion: parseFloat(precioFacturacion) || 0,
+            precioOtros: parseFloat(precioOtros) || 0,
             stockMinimo: parseInt(stockMinimo) || 10,
             stockActual: parseInt(stockActual) || 0,
         });
@@ -30,43 +38,48 @@ export default function EditarProductoModal({ item, onClose, onSubmit }) {
     return (
         <Overlay onClose={onClose}>
             <Header icon="edit" title="Editar producto" onClose={onClose} />
-            <div className="fxm-body">
-                <div className="fxe-prod">
-                    <span className="fxe-ic"><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={26} /></span>
+            <div className={s.modalBody}>
+                <div className={s.editProductInfo}>
+                    <span className={s.editProductIcon}><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={26} /></span>
                     <div>
-                        <p className="fxe-name">{item.nombre.replace(/_/g, " ")}</p>
-                        <p className="fxe-meta">{item.tipo === "medicamento" ? "Medicamento" : "Descartable"} · {item.presentacion}</p>
+                        <p className={s.editProductName}>{item.nombre.replace(/_/g, " ")}</p>
+                        <p className={s.editProductMeta}>{item.tipo === "medicamento" ? "Medicamento" : "Descartable"} · {item.presentacion}</p>
                     </div>
                 </div>
 
-                <div className="fxm-grid2">
-                    <Field label="Precio de costo ($)">
-                        <input className="fxm-input" type="number" step="0.01" min="0.01" inputMode="decimal"
-                            value={precio} onChange={e => setPrecio(e.target.value)} />
+                <Field label="Precio de costo ($) *">
+                    <input className={s.formInput} type="number" step="0.01" min="0.01" inputMode="decimal"
+                        value={precioCosto} onChange={e => setPrecioCosto(e.target.value)} />
+                </Field>
+
+                <div className={s.formGrid2}>
+                    <Field label="Precio facturación ($)">
+                        <input className={s.formInput} type="number" step="0.01" min="0" inputMode="decimal"
+                            value={precioFacturacion} onChange={e => setPrecioFacturacion(e.target.value)} />
                     </Field>
+                    <Field label="Otros precios ($)">
+                        <input className={s.formInput} type="number" step="0.01" min="0" inputMode="decimal"
+                            value={precioOtros} onChange={e => setPrecioOtros(e.target.value)} />
+                    </Field>
+                </div>
+
+                <div className={s.formGrid2}>
                     <Field label="Stock actual">
-                        <input className="fxm-input" type="number" min="0" inputMode="numeric"
+                        <input className={s.formInput} type="number" min="0" inputMode="numeric"
                             value={stockActual} onChange={e => setStockActual(e.target.value)} />
                     </Field>
                     <Field label="Stock mínimo (alerta)">
-                        <input className="fxm-input" type="number" min="1" inputMode="numeric"
+                        <input className={s.formInput} type="number" min="1" inputMode="numeric"
                             value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} />
                     </Field>
                 </div>
             </div>
-            <div className="fxm-footer">
-                <button className="fxm-btn ghost" onClick={onClose}>Cancelar</button>
-                <button className="fxm-btn primary" onClick={handleSubmit} disabled={!valido || loading}>
+            <div className={s.modalFooter}>
+                <button className={s.btnCancel} onClick={onClose}>Cancelar</button>
+                <button className={`${s.actionBtn} ${s.btn_primary}`} onClick={handleSubmit} disabled={!valido || loading}>
                     <Icon name="check" size={20} /> {loading ? "Guardando..." : "Guardar"}
                 </button>
             </div>
-
-            <style>{`
-                .fxe-prod { display: flex; align-items: center; gap: 12px; background: #f9fafb; border: 1px solid #eef0f2; border-radius: 14px; padding: 14px; }
-                .fxe-ic { color: #2563eb; display: flex; }
-                .fxe-name { margin: 0; font-size: 18px; font-weight: 800; }
-                .fxe-meta { margin: 3px 0 0; font-size: 14px; color: #6b7280; }
-            `}</style>
         </Overlay>
     );
 }
