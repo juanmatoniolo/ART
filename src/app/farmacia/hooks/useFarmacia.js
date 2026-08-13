@@ -1,20 +1,13 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ref, push, update, remove, onValue, get } from "firebase/database";
-
-// ⚠️ AJUSTÁ ESTA RUTA a donde exportás tu instancia de Realtime Database.
 import { db } from "@/lib/firebase";
-
 import { buildItemKey, formatFecha, getFechaLegible } from "../utils/farmacia";
-
-// Usuario que queda registrado en los movimientos.
-// Si tenés auth, reemplazá por el usuario logueado.
-const USUARIO_ACTUAL = "Farmacia";
 
 const grupoDe = (tipo) =>
 	tipo === "descartable" ? "descartables" : "medicamentos";
 
-export default function useFarmacia() {
+export default function useFarmacia(usuarioActual = null) {
 	const [medicamentos, setMedicamentos] = useState({});
 	const [descartables, setDescartables] = useState({});
 	const [ingresos, setIngresos] = useState({});
@@ -68,7 +61,6 @@ export default function useFarmacia() {
 					precioCosto: pcosto,
 					precioFacturacion: Number(v.precioFacturacion) || 0,
 					precioOtros: Number(v.precioOtros) || 0,
-					// Compatibilidad con código antiguo que use "precio" o "precioReferencia"
 					precio: pcosto,
 					precioReferencia: pcosto,
 					stockActual: Number(v.stockActual) || 0,
@@ -109,7 +101,7 @@ export default function useFarmacia() {
 					totalProductos: productos.length,
 					totalUnidades,
 					valorTotal,
-					usuario: m.usuario || USUARIO_ACTUAL,
+					usuario: m.usuario || "Usuario desconocido",
 					fechaLegible: getFechaLegible(ts),
 					fechaFormatted: formatFecha(ts),
 					_ts: ts,
@@ -333,7 +325,7 @@ export default function useFarmacia() {
 				updates[`ingresos_farmacia/${ingresoId}`] = {
 					id: ingresoId,
 					fecha,
-					usuario: USUARIO_ACTUAL,
+					usuario: usuarioActual?.nombre || "Usuario desconocido",
 					productos,
 				};
 				await update(ref(db), updates);
@@ -353,7 +345,7 @@ export default function useFarmacia() {
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[usuarioActual, mostrarMensaje],
 	);
 
 	// ─── Reparto (despacho a un sector) ───────────────────────────────────
@@ -395,7 +387,7 @@ export default function useFarmacia() {
 					destino: datos?.destino || "Sin destino",
 					responsable: datos?.responsable || "",
 					nota: datos?.nota?.trim() || "Sin observaciones",
-					usuario: USUARIO_ACTUAL,
+					usuario: usuarioActual?.nombre || "Usuario desconocido",
 					productos: lineas,
 				};
 				await update(ref(db), updates);
@@ -415,7 +407,7 @@ export default function useFarmacia() {
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[usuarioActual, mostrarMensaje],
 	);
 
 	// ─── Importar desde CSV/Excel ─────────────────────────────────────────
@@ -513,6 +505,7 @@ export default function useFarmacia() {
 					"Tipo",
 					"Destino",
 					"Responsable",
+					"Usuario",
 					"Producto",
 					"Cantidad",
 					"Precio unitario",
@@ -525,6 +518,7 @@ export default function useFarmacia() {
 							m.tipo,
 							m.destino || "",
 							m.responsable || "",
+							m.usuario || "",
 							String(p.itemNombre).replace(/_/g, " "),
 							p.cantidad,
 							p.precioUnitario,
@@ -659,11 +653,10 @@ export default function useFarmacia() {
 		[items, listasPrecios, mostrarMensaje],
 	);
 
-	// ─── ELIMINAR MOVIMIENTO (NUEVO) ──────────────────────────────────────
+	// ─── ELIMINAR MOVIMIENTO ──────────────────────────────────────────────
 	const eliminarMovimiento = useCallback(
 		async (id) => {
 			try {
-				// Determinar si es ingreso o reparto según el prefijo del id
 				let tipo = null;
 				let refPath = null;
 				if (id.startsWith("ingreso_")) {
@@ -677,10 +670,8 @@ export default function useFarmacia() {
 					return false;
 				}
 
-				// Eliminar el nodo en Firebase
 				await remove(ref(db, refPath));
 
-				// Actualizar el estado local correspondiente
 				if (tipo === "ingreso") {
 					setIngresos((prev) => {
 						const newIngresos = { ...prev };
@@ -730,12 +721,10 @@ export default function useFarmacia() {
 		eliminarProducto,
 		importarDesdeExcel,
 		exportarDatos,
-		// precios
 		listasPrecios,
 		guardarListaPrecio,
 		eliminarListaPrecio,
 		exportarListasPrecios,
-		// nuevo
 		eliminarMovimiento,
 	};
 }

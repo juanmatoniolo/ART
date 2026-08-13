@@ -6,15 +6,14 @@ import s from "../farmaciaDashboard.module.css";
 
 export default function MovimientosTab({ 
     movimientos, 
-    userRole,                    // ← Nuevo prop: rol del usuario actual
-    onEliminarMovimiento         // ← Nuevo prop: función para eliminar un movimiento
+    userRole,                    
+    onEliminarMovimiento         
 }) {
     const [filtroTipo, setFiltroTipo] = useState("todos");
     const [fechaInicio, setFechaInicio] = useState("");
     const [fechaFin, setFechaFin] = useState("");
     const [busqueda, setBusqueda] = useState("");
 
-    // Verificar si el usuario puede eliminar
     const puedeEliminar = userRole === "ADM Farmacia" || userRole === "ADM";
 
     const movimientosFiltrados = useMemo(() => {
@@ -32,6 +31,7 @@ export default function MovimientosTab({
                     mov.tipo,
                     mov.destino,
                     mov.responsable,
+                    mov.usuario, // <-- agregamos usuario a la búsqueda
                     ...(mov.productos?.map(p => p.itemNombre) || [])
                 ].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 if (!texto.includes(q)) return false;
@@ -41,7 +41,6 @@ export default function MovimientosTab({
         });
     }, [movimientos, filtroTipo, fechaInicio, fechaFin, busqueda]);
 
-    // Totales filtrados
     const totales = useMemo(() => {
         return movimientosFiltrados.reduce((acc, mov) => {
             acc.cantidad += 1;
@@ -51,7 +50,6 @@ export default function MovimientosTab({
         }, { cantidad: 0, unidades: 0, valor: 0 });
     }, [movimientosFiltrados]);
 
-    // Función para descargar CSV
     const descargarCSV = () => {
         if (movimientosFiltrados.length === 0) {
             alert("No hay movimientos para exportar con los filtros actuales.");
@@ -64,6 +62,7 @@ export default function MovimientosTab({
             "Fecha",
             "Destino",
             "Responsable",
+            "Usuario",
             "Total Productos",
             "Total Unidades",
             "Valor Total",
@@ -82,6 +81,7 @@ export default function MovimientosTab({
             const fecha = mov.fechaFormatted || mov.fechaRaw || "";
             const destino = mov.destino || "";
             const responsable = mov.responsable || "";
+            const usuario = mov.usuario || "";
 
             if (mov.productos && mov.productos.length > 0) {
                 mov.productos.forEach(p => {
@@ -92,6 +92,7 @@ export default function MovimientosTab({
                         `"${fecha}"`,
                         `"${destino}"`,
                         `"${responsable}"`,
+                        `"${usuario}"`,
                         mov.totalProductos || 0,
                         mov.totalUnidades || 0,
                         `"${Number(mov.valorTotal || 0).toFixed(2).replace(".", ",")}"`,
@@ -104,13 +105,13 @@ export default function MovimientosTab({
                     ].join(";"));
                 });
             } else {
-                // Movimiento sin productos (raro)
                 filas.push([
                     `"${mov.id}"`,
                     `"${tipo}"`,
                     `"${fecha}"`,
                     `"${destino}"`,
                     `"${responsable}"`,
+                    `"${usuario}"`,
                     mov.totalProductos || 0,
                     mov.totalUnidades || 0,
                     `"${Number(mov.valorTotal || 0).toFixed(2).replace(".", ",")}"`,
@@ -135,7 +136,6 @@ export default function MovimientosTab({
         URL.revokeObjectURL(link.href);
     };
 
-    // Función para eliminar con confirmación
     const confirmarEliminar = async (mov) => {
         if (!puedeEliminar) return;
         const ok = window.confirm(
@@ -145,7 +145,6 @@ export default function MovimientosTab({
 
         try {
             await onEliminarMovimiento(mov.id);
-            // La lista se actualizará automáticamente desde el hook padre
         } catch (error) {
             console.error("Error al eliminar:", error);
             alert("No se pudo eliminar el movimiento.");
@@ -175,7 +174,6 @@ export default function MovimientosTab({
                 </div>
             </div>
 
-            {/* Filtros */}
             <div className={s.filtersRow}>
                 <div className={s.searchWrap}>
                     <span className={`${s.searchIconInner} ${s.svgIc}`}>
@@ -183,7 +181,7 @@ export default function MovimientosTab({
                     </span>
                     <input
                         className={s.searchInput}
-                        placeholder="Buscar por producto, destino o responsable..."
+                        placeholder="Buscar por producto, destino, responsable o usuario..."
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                     />
@@ -276,6 +274,14 @@ function MovCard({ mov, puedeEliminar, onEliminar }) {
                     <span className={s.movChip}>
                         <Icon name="user" size={14} />
                         {mov.responsable}
+                    </span>
+                )}
+
+                {/* 👤 Usuario que realizó el movimiento */}
+                {mov.usuario && (
+                    <span className={s.movChip} style={{ background: '#e3f2fd', color: '#0d47a1' }}>
+                        <Icon name="user" size={14} />
+                        {mov.usuario}
                     </span>
                 )}
 
