@@ -1,0 +1,2976 @@
+{
+  "metadata": {
+    "nomenclador": "N.B.U. - PMO-E",
+    "version": "NBU-PMOE 2007",
+    "unidad_bioquimica_valor_referencia": 1224.11,
+    "notas": {
+      "#": "Prácticas en desuso y que no se encuentran con valores referenciales.",
+      "*": "Prácticas de muy escasas frecuencias. Tendientes a ser eliminadas.",
+      "N": "Ver Anexo de Normas Específicas e Interpretaciones.",
+      "U": "Prácticas que al estar incluida en una prescripción médica con pedido expreso del profesional médico de acuerdo a la Norma 1200, se factura como tal."
+    }
+  },
+  "practicas": [
+    {
+      "codigo": "0001",
+      "practica_bioquimica": "ACTO BIOQUÍMICO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0002",
+      "practica_bioquimica": "ACETONURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0004",
+      "practica_bioquimica": "ACIDIMETRIA GASTRICA , CURVA DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0005",
+      "practica_bioquimica": "ACIDO BASE , Estado Acido Base (EAB).",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0006",
+      "practica_bioquimica": "ACTH  - HORMONA ADRENOCORTICOTROFINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0007",
+      "practica_bioquimica": "ADDIS, RECUENTO DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0013",
+      "practica_bioquimica": "AGLUTININAS Anti- RH.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0014",
+      "practica_bioquimica": "AGLUTININAS del SISTEMAS ABO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0015",
+      "practica_bioquimica": "ALBUMINA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0016",
+      "practica_bioquimica": "ALCOHOL DEHIDROGENASA, ADH.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0017",
+      "practica_bioquimica": "ALCOHOLEMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0018",
+      "practica_bioquimica": "ALDOLASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0019",
+      "practica_bioquimica": "ALDOSTERONA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0020",
+      "practica_bioquimica": "ALFA FETO PROTEINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0022",
+      "practica_bioquimica": "AMILASA - sérica.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0023",
+      "practica_bioquimica": "AMILASA - urinaria.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0025",
+      "practica_bioquimica": "AMINOACIDOS FRACCIONADOS (Cromatografía - por fracción).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "0027",
+      "practica_bioquimica": "AMINOACIDURIA FRACCIONADA (Cromatografía - por fracción).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "0028",
+      "practica_bioquimica": "AMNIOTICO , LIQUIDO CELULAS NARANJAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0029",
+      "practica_bioquimica": "AMNIOTICO, LIQUIDO  (Espectrofotometría - Test de Lisley)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0030",
+      "practica_bioquimica": "AMNIOTICO, LIQUIDO LECITINA - ESFINGOMIELINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0031",
+      "practica_bioquimica": "AMONEMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "0032",
+      "practica_bioquimica": "AMP CICLICO.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0033",
+      "practica_bioquimica": "ANGIOTENSINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0034",
+      "practica_bioquimica": "ANHIDRASA CARBONICA B, ERITROCITARIA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0035",
+      "practica_bioquimica": "ANTIBIOGRAMA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0036",
+      "practica_bioquimica": "ANTIBIOGRAMA BACILO DE KOCH (7) siete antibióticos.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 60.0
+    },
+    {
+      "codigo": "0040",
+      "practica_bioquimica": "ANTICUERPOS ANTIGLOMERULAR ,  (IFI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0041",
+      "practica_bioquimica": "ANTICUERPOS ANTIMENBRANA BASAL,  (IFI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0042",
+      "practica_bioquimica": "ANTICUERPO ANTIMUSCULO LISO,  (IFI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 7.0
+    },
+    {
+      "codigo": "0043",
+      "practica_bioquimica": "ANTICUERPOS CONTRA CEPA BACTERIANA AISLADA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0044",
+      "practica_bioquimica": "ANTICUERPOS ANTIFRACCION MICROSOMAL DE TIROIDES, (IFI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0046",
+      "practica_bioquimica": "ANTICUERPOS ANTITIROGLOBULINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0049",
+      "practica_bioquimica": "ANTIDESIXIRRIBONUCLEASA - ADNEASA – Anti-DNA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0050",
+      "practica_bioquimica": "ANTIESTAFILOLISINA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0051",
+      "practica_bioquimica": "ANTIESTREPTOLISINAS \"O\" (ASTO - AELO)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0052",
+      "practica_bioquimica": "ANTIESTREPTOQUINASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0054",
+      "practica_bioquimica": "ANTIHIALURONIDASA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0055",
+      "practica_bioquimica": "ANTIMITOCONDRIALES , ANTICUERPOS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 7.0
+    },
+    {
+      "codigo": "0056",
+      "practica_bioquimica": "ANTINUCLEARES ANTICUERPOS - FAN",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 7.0
+    },
+    {
+      "codigo": "0057",
+      "practica_bioquimica": "ANTITRIPSINA, Alfa 1 - Líq. Pleural ó Mat. Fecal ó Sérica - C/U - (por I.D.-Cuantitativa)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0058",
+      "practica_bioquimica": "ANTITROMBINA III - con calibración de tres (3) puntos.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0059",
+      "practica_bioquimica": "ARSENICO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0060",
+      "practica_bioquimica": "ASCORBICO , ACIDO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 18.0
+    },
+    {
+      "codigo": "0061",
+      "practica_bioquimica": "AUTOVACUNA, (no se aconseja por recomendación médica).",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0063",
+      "practica_bioquimica": "ANTICUERPOS Anti- HIV (ELISA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0064",
+      "practica_bioquimica": "ANTICUERPOS Anti- HIV  (A.D.)",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0101",
+      "practica_bioquimica": "BACILOSCOPIA DIRECTA - ZIEHL NEELSEN (por muestra)",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0102",
+      "practica_bioquimica": "BACILOSCOPIA, DIRECTA y CULTIVO (por muestra)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0103",
+      "practica_bioquimica": "BACILOSCOPIA, (IFI - por muestra)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0104",
+      "practica_bioquimica": "BACTERIOLOGIA, DIRECTA (Coloración de Gram)",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0105",
+      "practica_bioquimica": "BACTERIOLOGICO, DIRECTO-CULTIVO e IDENTIFICACIÓN del GÉRMEN)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0107",
+      "practica_bioquimica": "BARBITURICOS -  urinarios.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0108",
+      "practica_bioquimica": "BENCE- JONES , PROTEINAS DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0109",
+      "practica_bioquimica": "BICARBONATO.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0110",
+      "practica_bioquimica": "BILIRRUBINEMIA TOTAL, DIRECTA E INDIRECTA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0111",
+      "practica_bioquimica": "BILIRRUBINURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0131",
+      "practica_bioquimica": "CADENA LIVIANA KAPPA Y LAMBDA - sérico o urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 40.0
+    },
+    {
+      "codigo": "0132",
+      "practica_bioquimica": "CADMIO - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0133",
+      "practica_bioquimica": "CALCEMIA TOTAL.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0134",
+      "practica_bioquimica": "CALCIO IONICO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0135",
+      "practica_bioquimica": "CALCIO PRUEBA DE LA SOBRECARGA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0136",
+      "practica_bioquimica": "CALCIURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0137",
+      "practica_bioquimica": "CALCITONINA - sérica.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 16.0
+    },
+    {
+      "codigo": "0138",
+      "practica_bioquimica": "CALCULO - urinario.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0139",
+      "practica_bioquimica": "CARBONICO, ANDHIDRICO - (PCO2)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0140",
+      "practica_bioquimica": "CARIOTIPO , MAPA CROMOSOMICO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 37.0
+    },
+    {
+      "codigo": "0141",
+      "practica_bioquimica": "CAROTENO BETA - sérico.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0143",
+      "practica_bioquimica": "CATECOLAMINAS, LIBRES - FRACCIONADAS.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 25.0
+    },
+    {
+      "codigo": "0144",
+      "practica_bioquimica": "CEA - ANTÍGENO CARCINOEMBRIOGENICO",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "0148",
+      "practica_bioquimica": "CELULAS NEOPLASICAS - líquidos, exudados, trasudados.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0150",
+      "practica_bioquimica": "CEREBROSIDOS  (Cromatográfico).",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0151",
+      "practica_bioquimica": "CERULOPLASMINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0152",
+      "practica_bioquimica": "CETOGENOESTEROIDES - urinarios.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0154",
+      "practica_bioquimica": "CETONEMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0157",
+      "practica_bioquimica": "17- CETOESTEROIDES NEUTROS TOTALES",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0158",
+      "practica_bioquimica": "17 CETOESTER. , PRUEBA/Rta. DE LOS, A LA ESTIMULACION CON ACTH",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0159",
+      "practica_bioquimica": "17 CETOESTER. , PRUEBA/Rta. DE LOS, A LA INHIBIC. CON DEXAMETASONA",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0160",
+      "practica_bioquimica": "17 CETOESTER., PRUEBA/Rta. DE LOS, A LA INHIB. C/DEXAMET. Y ESTIMUL.c/GONAD.CORIONICAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0161",
+      "practica_bioquimica": "17 CETOESTER. Y 17 HIDROXICORT., Pba/Rta.de los, A LA ESTIMUL.c/ ACTH.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0163",
+      "practica_bioquimica": "CITOLOGIA EXFOLIATIVA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0164",
+      "practica_bioquimica": "CITOLOGIA VAGINAL HORMONAL  DE UNA (1) MUESTRA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0166",
+      "practica_bioquimica": "CITOLOGIA VAGINAL HORMONAL DE UN (1) CICLO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0167",
+      "practica_bioquimica": "CITRICO, ACIDO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0168",
+      "practica_bioquimica": "CLORO - sérico.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0169",
+      "practica_bioquimica": "COAGULACION y SANGRIA, TIEMPO DE",
+      "urgencia": true,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0170",
+      "practica_bioquimica": "COAGULO, RETRACCION DEL",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0171",
+      "practica_bioquimica": "COAGULOGRAMA",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.5
+    },
+    {
+      "codigo": "0172",
+      "practica_bioquimica": "COBRE - sérico.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0173",
+      "practica_bioquimica": "COCAINA  (Inmunocromatografía/Cromatográfico)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 17.5
+    },
+    {
+      "codigo": "0174",
+      "practica_bioquimica": "COLESTEROL TOTAL",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0176",
+      "practica_bioquimica": "COLONIAS , RECUENTO DE.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0177",
+      "practica_bioquimica": "COMPATIBILIDAD  - sangre materna.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0178",
+      "practica_bioquimica": "COMPATIBILIDAD MATRIMONIAL - sanguínea en cónyuges.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0179",
+      "practica_bioquimica": "COMPLEMENTO, ACTIVIDAD TOTAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0180",
+      "practica_bioquimica": "COMPLEMENTO, VALORACION INMUNOQUIMICA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0181",
+      "practica_bioquimica": "CONCENTRACIÓN DE LIQUIDOS BIOLÓGICOS.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0182",
+      "practica_bioquimica": "CONCENTRACIÓN, PRUEBA DE LA - FUNCION RENAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0184",
+      "practica_bioquimica": "COOMBS DIRECTA , PRUEBA DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0186",
+      "practica_bioquimica": "COOMBS INDIRECTA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0187",
+      "practica_bioquimica": "COPROCULTIVO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0188",
+      "practica_bioquimica": "COPROPORFIRINAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0189",
+      "practica_bioquimica": "CORTISOL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0190",
+      "practica_bioquimica": "CREATINQUINASA - CPK.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0191",
+      "practica_bioquimica": "CREATINA  - sérica o urinaria.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0192",
+      "practica_bioquimica": "CREATININA  - sérica o urinaria.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0193",
+      "practica_bioquimica": "CREATININA, CLEARENCE DE DEPURACION.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0194",
+      "practica_bioquimica": "CRIOAGLUTININA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0195",
+      "practica_bioquimica": "CRIOGLOBULINAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0196",
+      "practica_bioquimica": "CROMATINA SEXUAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0241",
+      "practica_bioquimica": "CHAGAS  (AD)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0242",
+      "practica_bioquimica": "CHAGAS  (HAI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0243",
+      "practica_bioquimica": "CHAGAS  (IFI / ELISA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0244",
+      "practica_bioquimica": "CHAGAS,  PARASITEMIA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0261",
+      "practica_bioquimica": "DAVIDSON DIFERENCIAL, PRUEBA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0262",
+      "practica_bioquimica": "DEHIDROEPIANDROSTERONA, SULFATO  - DHEA-S.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0263",
+      "practica_bioquimica": "DERMATOFITOS INTRADERMOREACCION.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0266",
+      "practica_bioquimica": "DILUCION, PRUEBA DE LA FUNCION RENAL.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0268",
+      "practica_bioquimica": "DIGOXIN.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0269",
+      "practica_bioquimica": "DISACARIDASAS.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0273",
+      "practica_bioquimica": "DOMICILIO FUERA DE RADIO URBANO ó MAS DE DOS (2) Kms.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0293",
+      "practica_bioquimica": "EMBARAZO, REACCIÓN INMUNOLÓGICA PARA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.5
+    },
+    {
+      "codigo": "0295",
+      "practica_bioquimica": "EOSINÓFILOS, RECUENTO DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0296",
+      "practica_bioquimica": "ERITROBLASTOS PORCENTAJE DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0297",
+      "practica_bioquimica": "ERITROSEDIMENTACION.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0298",
+      "practica_bioquimica": "ESPERMOGRAMA BASICO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0299",
+      "practica_bioquimica": "ESTRICNINA  - líquidos biológicos.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0300",
+      "practica_bioquimica": "ESTRADIOL - E2.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0301",
+      "practica_bioquimica": "ESTRIOL - urinario.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 13.0
+    },
+    {
+      "codigo": "0302",
+      "practica_bioquimica": "ESTRIOL - sérico.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 13.0
+    },
+    {
+      "codigo": "0304",
+      "practica_bioquimica": "ESTROGENOS TOTALES.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0305",
+      "practica_bioquimica": "ESTRONA - sérica.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0307",
+      "practica_bioquimica": "ETANOL, TOXICO - sanguineo o urinario.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0308",
+      "practica_bioquimica": "EUGLOBULINAS, TEST DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0309",
+      "practica_bioquimica": "EXUDADO NASOFARINGEO , CULTIVO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0331",
+      "practica_bioquimica": "FACTOR DE COAGULACION V.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0332",
+      "practica_bioquimica": "FACTOR DE COAGULACION VII.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 24.0
+    },
+    {
+      "codigo": "0333",
+      "practica_bioquimica": "FACTOR DE COAGULACION VIII.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "0334",
+      "practica_bioquimica": "FACTOR DE COAGULACION IX.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "0335",
+      "practica_bioquimica": "FACTOR DE COAGULACION X.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0336",
+      "practica_bioquimica": "FACTOR DE MIGRACION LINFOCITARIA - MIF.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0337",
+      "practica_bioquimica": "FENILALANINA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 17.0
+    },
+    {
+      "codigo": "0338",
+      "practica_bioquimica": "FENILCETONURIA (NEO) .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0340",
+      "practica_bioquimica": "FENILPIRUVICO ACIDO CUANTITATIVO - urinario.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0342",
+      "practica_bioquimica": "FENOTIAZINAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0343",
+      "practica_bioquimica": "FERREMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0344",
+      "practica_bioquimica": "FIBRINOGENO, PRODUCTOS DE DEGRADACION - PDF.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0345",
+      "practica_bioquimica": "FIBRINOGENO - sangre.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0349",
+      "practica_bioquimica": "FISICO QUIMICO - Ex. Líq. Exudados, Trasudados.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0350",
+      "practica_bioquimica": "FLUOREMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0351",
+      "practica_bioquimica": "FLUORURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0352",
+      "practica_bioquimica": "FOLICO, ACIDO .",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0353",
+      "practica_bioquimica": "FONDO OSCURO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0354",
+      "practica_bioquimica": "FORMULA LEUCOCITARIA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0355",
+      "practica_bioquimica": "FOSFATASA ACIDA PROSTATICA (EFM).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0356",
+      "practica_bioquimica": "FOSFATASA ACIDA TOTAL  (EFM).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0357",
+      "practica_bioquimica": "FOSFATASA ALCALINA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0358",
+      "practica_bioquimica": "FOSFATASA ALCALINA CITOQUIMICA GOMORI .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0359",
+      "practica_bioquimica": "FOSFATASA ALCALINA CITOQUIMICA KAPLOW .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0360",
+      "practica_bioquimica": "FOSFATASA ALCALINA TERMOESTABLE .",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0361",
+      "practica_bioquimica": "FOSFATASA ALCALINA - ISOENZIMAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0362",
+      "practica_bioquimica": "FOSFATEMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0363",
+      "practica_bioquimica": "FOSFATURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0364",
+      "practica_bioquimica": "FOSFO- HEXOSA- ISOMERASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0365",
+      "practica_bioquimica": "FOSFOLIPIDOS.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0366",
+      "practica_bioquimica": "FOSFORO CLEARENCE DEPURACION.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0367",
+      "practica_bioquimica": "FOSFORO REABSORCION TUBULAR .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0368",
+      "practica_bioquimica": "FRAGMENTO FAB FC .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0369",
+      "practica_bioquimica": "FREI, INTRADERMOREACCION DE .",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0370",
+      "practica_bioquimica": "FSH - HORMONA FOLÍCULO ESTIMULANTE.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0371",
+      "practica_bioquimica": "FTA/ ABS (IFI – ELISA recombinante y TPHA).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0373",
+      "practica_bioquimica": "FUNCIONAL, EXAMEN DE MATERIA FECAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 7.0
+    },
+    {
+      "codigo": "0401",
+      "practica_bioquimica": "GALACTOSA,  PRUEBA DE LA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0402",
+      "practica_bioquimica": "GALACTOSEMIA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0403",
+      "practica_bioquimica": "GALACTOSURIA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0404",
+      "practica_bioquimica": "GASES EN SANGRE , PCO2 y PO2 .",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0405",
+      "practica_bioquimica": "GASTRINA, sérica.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0409",
+      "practica_bioquimica": "GLOBULOS BLANCOS,  RECUENTO DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0410",
+      "practica_bioquimica": "GLOBULOS ROJOS,  RECUENTO DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0411",
+      "practica_bioquimica": "GLUCAGON.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0412",
+      "practica_bioquimica": "GLUCEMIA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0413",
+      "practica_bioquimica": "GLUCEMIA,  CURVA DE",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0415",
+      "practica_bioquimica": "GLUCOGENO, CITOQUIMICO.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0416",
+      "practica_bioquimica": "GLUCOPROTEINOGRAMA.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0417",
+      "practica_bioquimica": "GLUCOSA 6-FOSFATO-DEHIDROGENASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0418",
+      "practica_bioquimica": "GLUCOSA 6-FOSFATO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0419",
+      "practica_bioquimica": "GLUTAMATO DEHIDROGENASA  .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0420",
+      "practica_bioquimica": "GLUTAMIL TRANSPEPTIDASA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0422",
+      "practica_bioquimica": "GLUTATION REDUCTASA.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0428",
+      "practica_bioquimica": "GONOCOCOS  (IFI)",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0430",
+      "practica_bioquimica": "GRAHAM, TEST DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0432",
+      "practica_bioquimica": "GRASAS, CUANTITATIVO (Van de Kamer) - materia fecal",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0433",
+      "practica_bioquimica": "GRUPO SANGUÍNEO y FACTOR  RH .",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0463",
+      "practica_bioquimica": "HAPTOGLOBINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0464",
+      "practica_bioquimica": "HEINS, CUERPOS DE",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0465",
+      "practica_bioquimica": "HEMATIES, RESISTENCIA GLOBULAR OSMOTICA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0466",
+      "practica_bioquimica": "HEMATOCRITO.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0467",
+      "practica_bioquimica": "HEMOAGLUTINOGENOS A2 (c/u).",
+      "urgencia": true,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0468",
+      "practica_bioquimica": "HEMOCULTIVO AEROBIOS  (c/u)",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 7.5
+    },
+    {
+      "codigo": "0470",
+      "practica_bioquimica": "HEMOGLOBINA, DOSAJE DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0471",
+      "practica_bioquimica": "HEMOGLOBINA, ELECTROFORESIS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0472",
+      "practica_bioquimica": "HEMOGLOBINA, PLASMÁTICA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0474",
+      "practica_bioquimica": "HEMOGLOBINA ALCALIRESISTENTE.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0475",
+      "practica_bioquimica": "HEMOGRAMA",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0476",
+      "practica_bioquimica": "HEMOLISINAS EN CALIENTE, TITULACIÓN.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0477",
+      "practica_bioquimica": "HEMOLISINAS EN FRIO,  EXCL. ANTI. DE DONATH",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0478",
+      "practica_bioquimica": "HEMOPEXINA,  INMUNODIFUSION CUANTITATIVA",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0479",
+      "practica_bioquimica": "HEMOSIDERINA, INVESTIG. HISTOQUÍMICA",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0480",
+      "practica_bioquimica": "HEPARINA, RESISTENCIA A LA  (In Vitro)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0481",
+      "practica_bioquimica": "HEPATOGRAMA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0483",
+      "practica_bioquimica": "HIDATIDOSIS (HAI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0484",
+      "practica_bioquimica": "HIDATIDOSIS (Látex)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0485",
+      "practica_bioquimica": "HIDRATOS DE CARBONO (Cromatografía) - urinarios.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0486",
+      "practica_bioquimica": "17- HIDROXICORTICOIDES - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0487",
+      "practica_bioquimica": "HIDROXINDOLACETICO, ACIDO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0488",
+      "practica_bioquimica": "HIDROXIPROLINURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0489",
+      "practica_bioquimica": "HIPERHEPARINEMIA.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0490",
+      "practica_bioquimica": "HISTOPLASMINA.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0492",
+      "practica_bioquimica": "HOMOGENTISICO, ACIDO - urinario.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0493",
+      "practica_bioquimica": "HUBBNER , TEST DE .",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0494",
+      "practica_bioquimica": "HUDDLESSON, REACCION DE (Rosa de Bengala - Brucelosis).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0531",
+      "practica_bioquimica": "MYCOBACTERIUM, IDENTIFICACION.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0532",
+      "practica_bioquimica": "IDENTIFICACION SEROLÓGICA DE GERMENES.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0534",
+      "practica_bioquimica": "INDOXILEMIA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0535",
+      "practica_bioquimica": "INMUNOELECTROFORESIS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0536",
+      "practica_bioquimica": "INMUNOELECTROFORESIS LIQUIDOS BIOLOGICOS.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0537",
+      "practica_bioquimica": "INMUNOGLOBULINA A.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0538",
+      "practica_bioquimica": "INMUNOGLOBULINA D.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0539",
+      "practica_bioquimica": "INMUNOGLOBULINA E.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0540",
+      "practica_bioquimica": "INMUNOGLOBULINA G",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0541",
+      "practica_bioquimica": "INMUNOGLOBULINA M.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0542",
+      "practica_bioquimica": "INULINA, CLEARENCE.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0543",
+      "practica_bioquimica": "INSULINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0546",
+      "practica_bioquimica": "IONOGRAMA - sérico.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 3.5
+    },
+    {
+      "codigo": "0547",
+      "practica_bioquimica": "IONOGRAMA - urinario.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 3.5
+    },
+    {
+      "codigo": "0548",
+      "practica_bioquimica": "ISOCITRICO DEHIDROGENASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0591",
+      "practica_bioquimica": "LACTAMINICO, ACIDO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0592",
+      "practica_bioquimica": "LACTICO,  ACIDO ENZIMATICO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0593",
+      "practica_bioquimica": "LACTICO, ACIDO - materia fecal.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0594",
+      "practica_bioquimica": "LACTICO DEHIDROGENASA - LDH",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0596",
+      "practica_bioquimica": "LACTICO DEHIDROGENASA ISOENZIMAS - LDH Isoenzimas.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0597",
+      "practica_bioquimica": "LACTOGENO PLACENTARIO / SOMATOMAMOTROFINA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "0598",
+      "practica_bioquimica": "LATEX ARTRITIS REUMATOIDE",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0600",
+      "practica_bioquimica": "LEPTOSPIRAS, INVESTIGACIÓN DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0602",
+      "practica_bioquimica": "TRICHINOSIS,  INVESTIGACIÓN DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 30.0
+    },
+    {
+      "codigo": "0603",
+      "practica_bioquimica": "LAZO,  PRUEBA DEL",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0606",
+      "practica_bioquimica": "LEUCINAMINOPEPTIDASA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0607",
+      "practica_bioquimica": "LEUCOAGLUTINACION , INHIBICION DE",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0608",
+      "practica_bioquimica": "LEUCOAGLUTININAS (Método directo)",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0609",
+      "practica_bioquimica": "LEUCOPRECIPITINAS",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0610",
+      "practica_bioquimica": "LEVULINICO, ACIDO DELTA-AMINO",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0611",
+      "practica_bioquimica": "LEVULINICO,  DELTA DEHIDRATASA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0612",
+      "practica_bioquimica": "LH - HORMONA LUTEINIZANTE.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0613",
+      "practica_bioquimica": "LIPASA,  sérica.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0615",
+      "practica_bioquimica": "LIPIDOGRAMA (Electroforético).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0616",
+      "practica_bioquimica": "LIPIDOS, (Cromatografía en capa delgada)",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0618",
+      "practica_bioquimica": "LIPOPROTEINLIPASA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0619",
+      "practica_bioquimica": "LIQUIDO CEFALORRAQUIDEO, Fco-Qco - Citológico.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0620",
+      "practica_bioquimica": "LIQUIDO DE PUNCION, Fco-Qco  - Citológico.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0621",
+      "practica_bioquimica": "LISINA VASOPRESINA, TEST DE",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0622",
+      "practica_bioquimica": "LISTERIAS  (IFI - ELISA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0623",
+      "practica_bioquimica": "LITIO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0652",
+      "practica_bioquimica": "MACROGLOBULINA ALFA 2 (ID - cuantitativa).",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0653",
+      "practica_bioquimica": "MAGNESIO - sérico.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0654",
+      "practica_bioquimica": "MAGNESIO - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0656",
+      "practica_bioquimica": "MANTOUX, INTRADERMO-REACCION DE  (PPD)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0657",
+      "practica_bioquimica": "MEDULOGRAMA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0658",
+      "practica_bioquimica": "MELANINA  - urinaria.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0660",
+      "practica_bioquimica": "MERCURIO  - sanguineo o urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0662",
+      "practica_bioquimica": "METANEFRINAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0663",
+      "practica_bioquimica": "METANOL  -  urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0664",
+      "practica_bioquimica": "MICOLOGIA, DIRECTO - COLORACION.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0665",
+      "practica_bioquimica": "MICOLOGIA, CULTIVO e IDENTIFICACION.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0667",
+      "practica_bioquimica": "MOCO CERVICAL, CRISTALIZACION",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0668",
+      "practica_bioquimica": "MOCO NASAL, PH - CITOLOGICO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0669",
+      "practica_bioquimica": "MONONUCLEOSIS, AGLUTINACIÓN - TEST de LATEX o MONOTEST.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0670",
+      "practica_bioquimica": "MONONUCLEOSIS HEMOAGLUTINACION (P. B.)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0671",
+      "practica_bioquimica": "MONONUCLEOSIS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0672",
+      "practica_bioquimica": "MONOXIDO de CARBONO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0673",
+      "practica_bioquimica": "MORFINA OPIACEOS, DERIVADOS en LIQUIDOS BIOLOGICOS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0674",
+      "practica_bioquimica": "MUCOPOLISACARIDOS, CROMATOGRAFIA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0675",
+      "practica_bioquimica": "MUCOPROTEINAS.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0702",
+      "practica_bioquimica": "5- NUCLEOTIDASA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0711",
+      "practica_bioquimica": "ORINA COMPLETA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0713",
+      "practica_bioquimica": "OROSOMUCOIDE, INMUNODIFUSION CUANTITATIVA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0714",
+      "practica_bioquimica": "OSMOLARIDAD - CLEARENCE.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0715",
+      "practica_bioquimica": "OSMOLARIDAD  - suero.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0716",
+      "practica_bioquimica": "OXIGENO, PO2 - sangre.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0734",
+      "practica_bioquimica": "PAPANICOLAU ENDO y EXOCERVICAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0736",
+      "practica_bioquimica": "PARASITOLOGICO SERIADO.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0737",
+      "practica_bioquimica": "PARASITOS HEMATICOS.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0738",
+      "practica_bioquimica": "PARASITOS SUPERIORES.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0739",
+      "practica_bioquimica": "PARATHORMONA - PTH",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 13.5
+    },
+    {
+      "codigo": "0740",
+      "practica_bioquimica": "PEROXIDASAS, TINCION",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0741",
+      "practica_bioquimica": "PH - líquidos biológicos.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0742",
+      "practica_bioquimica": "PH - sanguineo (Titulación)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0743",
+      "practica_bioquimica": "PIRUVATO- QUINASA",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0744",
+      "practica_bioquimica": "PIRUVICO, ACIDO ENZIMATICO",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0745",
+      "practica_bioquimica": "PLAQUETARIOS, FACTORES",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0746",
+      "practica_bioquimica": "PLAQUETAS, RECUENTO DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0747",
+      "practica_bioquimica": "PLASMA RECALCIFICADO, TIEMPO DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.0
+    },
+    {
+      "codigo": "0748",
+      "practica_bioquimica": "PLASMINOGENO (IDR)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0749",
+      "practica_bioquimica": "PLOMO - sanguineo o urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0751",
+      "practica_bioquimica": "PORFIRINAS  - urinario",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0752",
+      "practica_bioquimica": "PORFOBILINOGENO - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0753",
+      "practica_bioquimica": "POTASEMIA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0754",
+      "practica_bioquimica": "POTASURIA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0755",
+      "practica_bioquimica": "PREGNANODIOL.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0756",
+      "practica_bioquimica": "PREGNANTRIOL.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0758",
+      "practica_bioquimica": "PROGESTERONA - Pg.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0759",
+      "practica_bioquimica": "PROLACTINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0760",
+      "practica_bioquimica": "PROTEICO,  CLEARENCE",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0761",
+      "practica_bioquimica": "PROTEINA C REACTIVA, CUALITATIVA.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0763",
+      "practica_bioquimica": "PROTEINA TOTALES.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0764",
+      "practica_bioquimica": "PROTEINOGRAMA (Acetato)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0766",
+      "practica_bioquimica": "PROTEINOGRAMAS LIQUIDOS BIOLOGICOS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0767",
+      "practica_bioquimica": "PROTEINURIA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0768",
+      "practica_bioquimica": "PROTOPORFIRINAS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0769",
+      "practica_bioquimica": "PROTROMBINA, CONSUMO DE",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0770",
+      "practica_bioquimica": "PROTROMBINA OWREN o DUCKE",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0771",
+      "practica_bioquimica": "PROTROMBINA, TIEMPO DE",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0772",
+      "practica_bioquimica": "PSEUDOCOLINESTERASA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0801",
+      "practica_bioquimica": "QUIMIOTRIPSINA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 24.0
+    },
+    {
+      "codigo": "0812",
+      "practica_bioquimica": "RENINA - ANGIOTESINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 18.0
+    },
+    {
+      "codigo": "0813",
+      "practica_bioquimica": "RH FACTOR - GRUPO SANGUINEO.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0814",
+      "practica_bioquimica": "RH FACTOR C GRANDE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0815",
+      "practica_bioquimica": "RH FACTOR c CHICA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0816",
+      "practica_bioquimica": "RH FACTOR E GRANDE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0817",
+      "practica_bioquimica": "RH FACTOR e CHICA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0818",
+      "practica_bioquimica": "RETICULOCITOS, RECUENTO DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0820",
+      "practica_bioquimica": "ROSSE RAGAN, PRUEBA DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0831",
+      "practica_bioquimica": "SALICILATOS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "0832",
+      "practica_bioquimica": "SALMONELLA, ANTICUERPOS (IFI - ELISA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0833",
+      "practica_bioquimica": "SANGRE OCULTA - materia fecal.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0834",
+      "practica_bioquimica": "SECRETINA, TEST DE LA",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0835",
+      "practica_bioquimica": "SEROTONINA - sérica.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 17.5
+    },
+    {
+      "codigo": "0837",
+      "practica_bioquimica": "SIDEROFILINA, CAPACIDAD.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0838",
+      "practica_bioquimica": "SIMS - HUBBNER, TEST DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "0839",
+      "practica_bioquimica": "SODIO - sérico o urinario.",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0841",
+      "practica_bioquimica": "SOMATOTROFINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0845",
+      "practica_bioquimica": "SORBITOL DEHIDROGENSA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0846",
+      "practica_bioquimica": "SUBTIPO HEMOGLOBINA A2, DETERMINACION DE",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0847",
+      "practica_bioquimica": "SUDOR, TEST DE",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "0848",
+      "practica_bioquimica": "SULFAS  - sanguineas.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0862",
+      "practica_bioquimica": "TALIO  - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0863",
+      "practica_bioquimica": "TESTOSTERONA - To",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0864",
+      "practica_bioquimica": "THORN, PRUEBA DE",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0865",
+      "practica_bioquimica": "TSH - TIROTROFINA",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0866",
+      "practica_bioquimica": "T4  - TIROXINA TOTAL",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0867",
+      "practica_bioquimica": "T4 - LIBRE  - TIROXINA EFECTIVA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0868",
+      "practica_bioquimica": "TOLBUTAMIDA, PRUEBA DE",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0869",
+      "practica_bioquimica": "TOXOPLASMOSIS (FC)",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0870",
+      "practica_bioquimica": "TOXOPLASMOSIS (HA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0871",
+      "practica_bioquimica": "TOXOPLASMOSIS (IFI)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0872",
+      "practica_bioquimica": "TOXOPLASMOSIS (Reaccción de Sabin Feldman)",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0873",
+      "practica_bioquimica": "TRANSAMINASA, GLUTAMICO OXALACETICA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0874",
+      "practica_bioquimica": "TRANSAMINASA, GLUTAMICO PIRUVICA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0875",
+      "practica_bioquimica": "TRANSFERRINA (IDR)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 5.0
+    },
+    {
+      "codigo": "0876",
+      "practica_bioquimica": "TRIGLICERIDOS.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.5
+    },
+    {
+      "codigo": "0877",
+      "practica_bioquimica": "T3 TRIIODOTIRONINA UPTAKE.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0878",
+      "practica_bioquimica": "TRIIODOTIRONINA TOTAL  - T3",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "0879",
+      "practica_bioquimica": "TROMBINA, PRUEBA DE GENERACIÓN DE LA",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0880",
+      "practica_bioquimica": "TROMBINA, TIEMPO DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0887",
+      "practica_bioquimica": "TROMBOPLASTINA, TIEMPO DE (KPTT - TTPC)",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0901",
+      "practica_bioquimica": "UREA, CLEARENCE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0902",
+      "practica_bioquimica": "UREMIA.",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0903",
+      "practica_bioquimica": "URETRAL, EXUDADO - DIRECTO y CULTIVO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 7.0
+    },
+    {
+      "codigo": "0904",
+      "practica_bioquimica": "URICEMIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0905",
+      "practica_bioquimica": "URICO,  ACIDO - urinario  (URICOSURIA).",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 1.5
+    },
+    {
+      "codigo": "0907",
+      "practica_bioquimica": "UROCITOGRAMA, UNA (1) MUESTRA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "0911",
+      "practica_bioquimica": "UROCULTIVO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 11.0
+    },
+    {
+      "codigo": "0931",
+      "practica_bioquimica": "VAGINAL, EXUDADO o FLUJO - DIRECTO y CULTIVO.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 8.0
+    },
+    {
+      "codigo": "0932",
+      "practica_bioquimica": "VAINILLIN MANDELICO, ACIDO - urinario.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 8.5
+    },
+    {
+      "codigo": "0933",
+      "practica_bioquimica": "V D R L CUALITATIVA.",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0934",
+      "practica_bioquimica": "V D R L CUANTITATIVA – USR  CUANTITATIVA.",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 2.0
+    },
+    {
+      "codigo": "0935",
+      "practica_bioquimica": "VARIANTE BACTERIANA.",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0936",
+      "practica_bioquimica": "VERONAL, PRUEBA DEL",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0937",
+      "practica_bioquimica": "VITAMINA A.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 23.0
+    },
+    {
+      "codigo": "0938",
+      "practica_bioquimica": "VITAMINA B12.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "0939",
+      "practica_bioquimica": "VITAMINA E.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 23.0
+    },
+    {
+      "codigo": "0940",
+      "practica_bioquimica": "VOLEMIA RADIOQUIMICO .",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "0953",
+      "practica_bioquimica": "WIDAL, REACCION DE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "0971",
+      "practica_bioquimica": "XILOSA D, PRUEBA DE LA",
+      "urgencia": false,
+      "nota_N_I": "*",
+      "unidad_bioquimica": 6.0
+    },
+    {
+      "codigo": "0981",
+      "practica_bioquimica": "ZINC ERITROCITARIO - PROTOPORFIRINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "0982",
+      "practica_bioquimica": "ZINC - sérico.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "1000",
+      "practica_bioquimica": "ANTIGENO PROSTATICO ESPECÍFICO TOTAL  -  PSA-t",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 18.0
+    },
+    {
+      "codigo": "1015",
+      "practica_bioquimica": "CD4 - CD8 - Sub Población linfocitaria por Citom. de flujo (c/u)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 23.0
+    },
+    {
+      "codigo": "1020",
+      "practica_bioquimica": "CHLAMYDIAS PNEUMONIAE, Ac. Anti- IgG",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 18.0
+    },
+    {
+      "codigo": "1025",
+      "practica_bioquimica": "CITOMEGALOVIRUS, Ac. IgG Anti-",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1030",
+      "practica_bioquimica": "CITOMEGALOVIRUS, Ac. IgM Anti-",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1035",
+      "practica_bioquimica": "COLESTEROL HDL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 3.0
+    },
+    {
+      "codigo": "1040",
+      "practica_bioquimica": "COLESTEROL LDL .",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 4.0
+    },
+    {
+      "codigo": "1045",
+      "practica_bioquimica": "CPK- MB.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 10.0
+    },
+    {
+      "codigo": "1050",
+      "practica_bioquimica": "DROGAS de ABUSO SCREENING  (c/u)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 17.5
+    },
+    {
+      "codigo": "1055",
+      "practica_bioquimica": "EPSTEIN BARR, Ac. IgG/Totales Anti- (VCA IgG)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1060",
+      "practica_bioquimica": "EPSTEIN BARR, Ac. IgM Anti- (VCA IgM)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1065",
+      "practica_bioquimica": "FRUCTOSAMINA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1070",
+      "practica_bioquimica": "HEMOGLOBINA GLICOSILADA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1075",
+      "practica_bioquimica": "HEPATITIS A, Ac. IgM Anti-  (HAV IgM)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1080",
+      "practica_bioquimica": "HEPATITIS B, Ac. IgG Anti-  (HBc -IgG )",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1085",
+      "practica_bioquimica": "HEPATITIS B, Antigeno e (Ag.HBe)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1086",
+      "practica_bioquimica": "HEPATITIS B, Antígeno de Superficie  (Ag.HBs )",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.0
+    },
+    {
+      "codigo": "1090",
+      "practica_bioquimica": "HEPATITIS B, Ac. Anti- (HBsAc)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1095",
+      "practica_bioquimica": "HEPATITIS C, Ac. IgG Anti-  (HCV Ac IgG)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1105",
+      "practica_bioquimica": "HIV, CARGA VIRAL.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 160.0
+    },
+    {
+      "codigo": "1110",
+      "practica_bioquimica": "HIV, WESTERN- BLOT",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 100.0
+    },
+    {
+      "codigo": "1115",
+      "practica_bioquimica": "MARCADOR CA 125 (OVARIO)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1120",
+      "practica_bioquimica": "MARCADOR CA 15. 3 (MAMA)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1125",
+      "practica_bioquimica": "MARCADOR CA 19. 9 (COLON)",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 20.0
+    },
+    {
+      "codigo": "1130",
+      "practica_bioquimica": "MICROALBUMINURIA.",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "1135",
+      "practica_bioquimica": "MONITOREO de FARMACOS para ENF. CRONICAS (Anticonvulsivantes)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1136",
+      "practica_bioquimica": "MONITOREO de FARMACOS para ENF. CRONICAS  (Cafeína o Lamotrigina)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 24.0
+    },
+    {
+      "codigo": "1140",
+      "practica_bioquimica": "MYCOPLASMA PNEUMONIAE Ac Anti-IgG",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 18.0
+    },
+    {
+      "codigo": "1142",
+      "practica_bioquimica": "PREPARACIÓN DE SANGRE A TRANSFUNDIR (MÓDULO TRANSFUSIONAL)",
+      "urgencia": true,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 115.0
+    },
+    {
+      "codigo": "1145",
+      "practica_bioquimica": "RUBEOLA, Ac. IgG Anti-",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1150",
+      "practica_bioquimica": "RUBEOLA, Ac. IgM Anti-",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 15.0
+    },
+    {
+      "codigo": "1160",
+      "practica_bioquimica": "TORCH  (Toxoplasmosis , Rubeola, Citomegalovirus y Herpes )",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 50.0
+    },
+    {
+      "codigo": "1165",
+      "practica_bioquimica": "ESTUDIO de PLIODIA CELUL. en TEGIDO TUMOR x Citom.de Flujo",
+      "urgencia": false,
+      "nota_N_I": "#",
+      "unidad_bioquimica": null
+    },
+    {
+      "codigo": "1175",
+      "practica_bioquimica": "SUBUNIDADBETA de GONADOTROFINA CORIONICA CUANTITATIVA",
+      "urgencia": true,
+      "nota_N_I": null,
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "1180",
+      "practica_bioquimica": "TEST RAPIDO de FAUCES para STREPTOCOCCUS Beta-HEMOLÍTICO Grupo \"A\"",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 12.5
+    },
+    {
+      "codigo": "1185",
+      "practica_bioquimica": "TESTOSTERONA BIODISPONIBLE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 25.0
+    },
+    {
+      "codigo": "1190",
+      "practica_bioquimica": "TIROTROFINA ULTRASENSIBLE",
+      "urgencia": false,
+      "nota_N_I": null,
+      "unidad_bioquimica": 9.0
+    },
+    {
+      "codigo": "1195",
+      "practica_bioquimica": "SCREENING NEONATAL (TSH, FENIL ALANINA y TIR - Neonatales)",
+      "urgencia": false,
+      "nota_N_I": "N",
+      "unidad_bioquimica": 20.0
+    }
+  ]
+}
