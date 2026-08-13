@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { ref, remove } from "firebase/database";
+import { useState, useEffect } from "react";
+import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import useFarmacia from "./hooks/useFarmacia";
 import StatsHeader from "./components/StatsHeader";
@@ -24,17 +24,70 @@ export default function FarmaciaDashboard() {
   const [theme, setTheme] = useState("light");
   const [loadingLogout, setLoadingLogout] = useState(false);
 
-  // Usuario fijo para el registro de movimientos
-  const usuarioActual = {
-    nombre: "Farmacia",      // Puedes cambiarlo por "Silvina" o lo que quieras
-    rol: "ADM Farmacia",     // Para habilitar eliminar movimientos
+  const [usuarios, setUsuarios] = useState([]);
+  const [usuarioActual, setUsuarioActual] = useState(null);
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(true);
+  const [errorUsuarios, setErrorUsuarios] = useState(null);
+
+  useEffect(() => {
+    const usersRef = ref(db, "usuarios");
+    const unsubscribe = onValue(
+      usersRef,
+      (snapshot) => {
+        const data = snapshot.val() || {};
+        const lista = Object.entries(data).map(([key, val]) => ({
+          id: key,
+          ...val,
+        }));
+        setUsuarios(lista);
+        setCargandoUsuarios(false);
+
+        if (lista.length > 0) {
+          const farmacia = lista.find(u => u.TipoEmpleado === "Farmacia" || u.TipoEmpleado === "ADM");
+          const seleccionado = farmacia || lista[0];
+          setUsuarioActual({
+            nombre: seleccionado.nombre || "Usuario",
+            rol: seleccionado.TipoEmpleado || "Sin rol",
+            id: seleccionado.id,
+          });
+        } else {
+          setUsuarioActual({
+            nombre: "Farmacia",
+            rol: "Farmacia",
+            id: "default",
+          });
+        }
+      },
+      (error) => {
+        console.error("Error al cargar usuarios:", error);
+        setErrorUsuarios(error.message);
+        setCargandoUsuarios(false);
+        setUsuarioActual({
+          nombre: "Farmacia",
+          rol: "Farmacia",
+          id: "default",
+        });
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSelectUser = (userId) => {
+    const user = usuarios.find(u => u.id === userId);
+    if (user) {
+      setUsuarioActual({
+        nombre: user.nombre || "Usuario",
+        rol: user.TipoEmpleado || "Sin rol",
+        id: user.id,
+      });
+    }
   };
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
-  // Pasamos el usuario al hook
   const hook = useFarmacia(usuarioActual);
 
   const {
@@ -65,11 +118,32 @@ export default function FarmaciaDashboard() {
     return ok;
   };
 
-  // Función de logout (solo para el botón, sin auth real)
+  // ✅ LOGOUT FUNCIONAL: redirige a la raíz
   const handleLogout = () => {
-    // Puedes redirigir a una página de login simulada o simplemente recargar
-    window.location.reload();
+    setLoadingLogout(true);
+    // Simular un pequeño retraso para mostrar el estado de carga
+    setTimeout(() => {
+      window.location.href = '/'; // 👈 Cambia esta ruta según tu estructura
+    }, 300);
   };
+
+  if (cargandoUsuarios) {
+    return <div className={s.loading}>Cargando usuarios...</div>;
+  }
+
+  if (errorUsuarios) {
+    return (
+      <div className={s.errorState}>
+        <p>Error al cargar usuarios: {errorUsuarios}</p>
+        <button onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
+
+  if (!usuarioActual) {
+    setUsuarioActual({ nombre: "Farmacia", rol: "Farmacia", id: "default" });
+    return null;
+  }
 
   return (
     <div className={`${s.dashboardContainer} ${s[theme]}`}>
@@ -83,8 +157,11 @@ export default function FarmaciaDashboard() {
         toggleTheme={toggleTheme}
         onLogout={handleLogout}
         loadingLogout={loadingLogout}
-        usuario={usuarioActual.nombre}   // "Farmacia" o "Silvina"
-        rol={usuarioActual.rol}          // "ADM Farmacia"
+        usuario={usuarioActual.nombre}
+        rol={usuarioActual.rol}
+        usuarios={usuarios}
+        onSelectUser={handleSelectUser}
+        usuarioSeleccionado={usuarioActual}
       />
 
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />

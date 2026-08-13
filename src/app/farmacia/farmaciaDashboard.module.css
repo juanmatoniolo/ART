@@ -2104,3 +2104,106 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+
+/* ── Selector de usuarios ────────────────────── */
+.userSelectorWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.6rem;
+  background: var(--c-bg);
+  border-radius: 20px;
+  border: 1px solid var(--c-border);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: var(--c-text);
+}
+
+.userInfo:hover {
+  border-color: var(--c-primary);
+  box-shadow: var(--c-shadow);
+}
+
+.userName {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+
+.userRole {
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.userSelectorArrow {
+  font-size: 0.6rem;
+  color: var(--c-muted);
+  margin-left: 0.2rem;
+}
+
+.userSelectorDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  box-shadow: var(--c-shadow-lg);
+  z-index: 300;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.userSelectorItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: var(--c-text);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.userSelectorItem:hover {
+  background: var(--c-hover-bg);
+}
+
+.userSelectorItemActive {
+  background: var(--c-hover-bg);
+  border-left: 3px solid var(--c-primary);
+}
+
+.userSelectorName {
+  font-weight: 600;
+}
+
+.userSelectorRol {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  background: var(--c-bg);
+  color: var(--c-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}

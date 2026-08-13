@@ -12,8 +12,11 @@ export default function StatsHeader({
   toggleTheme,
   onLogout,
   loadingLogout,
-  usuario,    // <-- nombre del usuario (ej: "Silvina")
-  rol,        // <-- rol del usuario (ej: "ADM Farmacia")
+  usuario,
+  rol,
+  usuarios,
+  onSelectUser,
+  usuarioSeleccionado,
 }) {
   return (
     <header className={s.dashboardHeader}>
@@ -27,13 +30,21 @@ export default function StatsHeader({
         </div>
 
         <div className={s.headerActions}>
-          {/* 👤 Información del usuario */}
-          {usuario && (
-            <div className={s.userInfo}>
-              <span className={s.userName}>
-                <span>👤</span> {usuario}
-              </span>
-              {rol && <span className={s.userRole}>{rol}</span>}
+          {/* 👤 Selector de usuario */}
+          {usuarios && usuarios.length > 0 && (
+            <div className={s.userSelector}>
+              <select
+                className={s.userSelect}
+                value={usuarioSeleccionado?.id || ""}
+                onChange={(e) => onSelectUser(e.target.value)}
+              >
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} ({u.TipoEmpleado})
+                  </option>
+                ))}
+              </select>
+              <span className={s.userRoleBadge}>{rol}</span>
             </div>
           )}
 
@@ -77,7 +88,6 @@ export default function StatsHeader({
             <span>📊</span> <span className={s.actionBtnLabel}>Exportar</span>
           </button>
 
-          {/* 🔓 Logout integrado (sin componente externo) */}
           <button
             className={`${s.actionBtn} ${s.btnCancel}`}
             onClick={onLogout}
