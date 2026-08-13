@@ -48,7 +48,7 @@ const mapRecentFojas = (fojas = {}) =>
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
 
-const mapRecentHistorias = (general = {}, uti = {}) => {
+/* const mapRecentHistorias = (general = {}, uti = {}) => {
   const normalize = (label, item = {}, id) => ({
     id: `${label}-${id}`,
     title: item.nombre_apellido || item.nombre || "Sin paciente",
@@ -63,7 +63,7 @@ const mapRecentHistorias = (general = {}, uti = {}) => {
   ]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
-};
+}; */
 
 const mapRecentFacturas = (facturas = {}) =>
   Object.entries(facturas || {})
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
     { title: "Nomencladores", value: "4", icon: BookOpen, color: "#059669", href: "/admin/nomencladores" },
     { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/admin/cx/programada" },
     { title: "Fojas quirurgicas", value: stats.fojas, icon: FileText, color: "#06b6d4", href: "/admin/cx/foja/medicos" },
-    { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "/historia-clinica" },
+    /* { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "/historia-clinica" }, */
     { title: "Farmacia", value: stats.farmacia, icon: Pill, color: "#a855f7", href: "/farmacia" },
     { title: "Siniestros", value: stats.siniestros, icon: FolderTree, color: "#ef4444", href: "/admin/Siniestro" },
     { title: "UTI", value: "Abrir", icon: FileText, color: "#38bdf8", href: "/uti/admin" },
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
 
   const recentGroups = [
     { title: "Fojas quirurgicas cargadas", href: "/admin/cx/foja/medicos", items: recent.fojas },
-    { title: "Historias clinicas", href: "/historia-clinica", items: recent.historias },
+    /* { title: "Historias clinicas", href: "/historia-clinica", items: recent.historias }, */
     { title: "Facturacion reciente", href: "/admin/Facturacion/Facturados", items: recent.facturas },
   ];
 

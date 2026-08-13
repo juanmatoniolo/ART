@@ -10,7 +10,7 @@ export default function ListasPreciosTab({
     listas = [],
     onGuardarLista,
     onEliminarLista,
-    onActualizarItem, // ← función para guardar cambios de precios
+    onActualizarItem,
 }) {
     // ─── Estados ────────────────────────────────────────────────
     const [busqueda, setBusqueda] = useState("");
@@ -21,7 +21,7 @@ export default function ListasPreciosTab({
     const [listaEditar, setListaEditar] = useState(null);
 
     // Edición inline
-    const [editando, setEditando] = useState(null); // id del item
+    const [editando, setEditando] = useState(null);
     const [preciosEditados, setPreciosEditados] = useState({
         precioCosto: "",
         precioFacturacion: "",
@@ -314,24 +314,24 @@ export default function ListasPreciosTab({
             ) : (
                 <div className={s.printContent}>
                     <div className={s.tableWrap} style={{ display: "block", overflowX: "auto" }}>
-                        <table className={s.precioTable} style={{ width: "100%", minWidth: "1200px", borderCollapse: "collapse" }}>
+                        <table className={s.precioTable} style={{ width: "100%", minWidth: "1100px", borderCollapse: "collapse" }}>
                             <thead>
                                 <tr>
-                                    <th className={s.thLeft}>Producto</th>
-                                    <th>Presentación</th>
-                                    <th>Tipo</th>
-                                    <th>Precio costo</th>
-                                    <th>Precio facturación</th>
-                                    <th>Otros precios</th>
+                                    <th className={s.thLeft} style={{ minWidth: "180px" }}>Producto</th>
+                                    <th style={{ minWidth: "100px" }}>Presentación</th>
+                                    <th style={{ minWidth: "100px" }}>Tipo</th>
+                                    <th style={{ minWidth: "120px" }}>Precio costo</th>
+                                    <th style={{ minWidth: "140px" }}>Precio facturación</th>
+                                    <th style={{ minWidth: "120px" }}>Otros precios</th>
                                     {listasMostrar.map(l => (
-                                        <th key={l.id}>
+                                        <th key={l.id} style={{ minWidth: "110px" }}>
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
                                                 <strong>{l.nombre}</strong>
-                                                <small>×{l.multiplicador || 1}</small>
+                                                <small style={{ opacity: 0.7 }}>×{l.multiplicador || 1}</small>
                                             </div>
                                         </th>
                                     ))}
-                                    <th>Acciones</th>
+                                    <th style={{ minWidth: "100px" }}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -370,6 +370,7 @@ export default function ListasPreciosTab({
                                                     <button
                                                         onClick={() => comenzarEdicion(item)}
                                                         style={estilos.precioClickable}
+                                                        title="Doble clic o clic para editar"
                                                     >
                                                         {formatCurrency(costo)}
                                                     </button>
@@ -391,6 +392,7 @@ export default function ListasPreciosTab({
                                                     <button
                                                         onClick={() => comenzarEdicion(item)}
                                                         style={estilos.precioClickable}
+                                                        title="Doble clic o clic para editar"
                                                     >
                                                         {formatCurrency(facturacion)}
                                                     </button>
@@ -412,6 +414,7 @@ export default function ListasPreciosTab({
                                                     <button
                                                         onClick={() => comenzarEdicion(item)}
                                                         style={estilos.precioClickable}
+                                                        title="Doble clic o clic para editar"
                                                     >
                                                         {formatCurrency(otros)}
                                                     </button>
@@ -436,12 +439,14 @@ export default function ListasPreciosTab({
                                                             onClick={() => guardarPrecios(item)}
                                                             disabled={guardando}
                                                             style={estilos.btnGuardar}
+                                                            title="Guardar cambios"
                                                         >
                                                             {guardando ? "⏳" : "💾"}
                                                         </button>
                                                         <button
                                                             onClick={cancelarEdicion}
                                                             style={estilos.btnCancelar}
+                                                            title="Cancelar edición"
                                                         >
                                                             ✕
                                                         </button>
