@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
-import s from "../farmaciaDashboard.module.css"; // ← usamos el CSS del dashboard
+import s from "../farmaciaDashboard.module.css";
 
 /* ===========================================================
-   Helpers (los mismos, pero sin estilos locales)
+   Helpers reutilizados
    =========================================================== */
-
 const limpiarNombre = (str) =>
     String(str ?? "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
@@ -46,17 +45,19 @@ const CATEGORIAS = [
     { cat: "descartables", tipo: "Descartable", label: "🧷 Descartable", presDefault: "unidad" },
 ];
 
-/* ===========================================================
-   Componente principal
-   - Ahora recibe el tema desde el padre (Dashboard) y no tiene toggle.
-   =========================================================== */
+// Opciones de precio disponibles
+const OPCIONES_PRECIO = [
+    { valor: "precioReferencia", label: "Precio referencia" },
+    { valor: "precioCosto", label: "Precio costo" },
+    { valor: "precioFacturacion", label: "Precio facturación" },
+    { valor: "precioOtros", label: "Otros precios" },
+    { valor: "precio", label: "Precio genérico" },
+];
 
 export default function MedicacionyDescartables() {
-    // El tema ya lo aplica el contenedor padre (.dashboardContainer con clase .light o .dark)
-    // Así que no necesitamos manejar tema aquí.
-
     const [busqueda, setBusqueda] = useState("");
     const [items, setItems] = useState([]);
+    const [precioCampo, setPrecioCampo] = useState("precioReferencia"); // campo por defecto
 
     /* Suscripción a Firebase para ambas categorías */
     useEffect(() => {
@@ -71,10 +72,15 @@ export default function MedicacionyDescartables() {
                     arr.push({
                         id: `medydescartables/${cat}/${key}`,
                         nombre: limpiarNombre(d.nombre || key),
-                        precio: d.precioReferencia || d.precio || 0,
                         presentacion: d.presentacion || presDefault,
                         tipo,
                         tipoFormatted: label,
+                        // Almacenamos todos los posibles precios
+                        precioReferencia: Number(d.precioReferencia || d.precio || 0),
+                        precioCosto: Number(d.precioCosto || d.precioReferencia || d.precio || 0),
+                        precioFacturacion: Number(d.precioFacturacion || d.precioReferencia || d.precio || 0),
+                        precioOtros: Number(d.precioOtros || d.precioReferencia || d.precio || 0),
+                        precio: Number(d.precio || d.precioReferencia || 0),
                     });
                 }
             }
@@ -103,17 +109,62 @@ export default function MedicacionyDescartables() {
         [items, busqueda]
     );
 
+    // Función para obtener el precio según el campo seleccionado
+    const obtenerPrecio = (item) => {
+        const valor = item[precioCampo];
+        return Number.isFinite(valor) ? valor : 0;
+    };
+
+    // Descargar CSV con los datos filtrados
+    const descargarCSV = () => {
+        if (filtrados.length === 0) {
+            alert("No hay datos para exportar.");
+            return;
+        }
+
+        const opcion = OPCIONES_PRECIO.find((o) => o.valor === precioCampo);
+        const etiquetaPrecio = opcion ? opcion.label : "Precio";
+
+        const cabeceras = ["Producto", "Presentación", "Tipo", etiquetaPrecio];
+        const filas = filtrados.map((item) => {
+            const nombre = String(item.nombre).replace(/_/g, " ");
+            const presentacion = String(item.presentacion || "").replace(/_/g, " ");
+            const tipo = item.tipo === "Medicacion" ? "Medicación" : "Descartable";
+            const precio = obtenerPrecio(item).toFixed(2).replace(".", ",");
+            return [`"${nombre}"`, `"${presentacion}"`, `"${tipo}"`, `"${precio}"`].join(";");
+        });
+
+        const csvContent = [cabeceras.join(";"), ...filas].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `medicacion_descartables_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    };
+
     return (
         <div className={s.panel}>
-            {/* Encabezado similar a otros tabs */}
+            {/* Encabezado */}
             <div className={s.panelHeader}>
                 <div>
                     <h3 className={s.panelTitle}>💊 Medicación y 🧷 Descartables</h3>
                     <p className={s.panelSub}>{filtrados.length} productos registrados</p>
                 </div>
+                <div className={s.panelActions}>
+                    <button
+                        className={`${s.actionBtn} ${s.btn_secondary}`}
+                        onClick={descargarCSV}
+                        disabled={filtrados.length === 0}
+                    >
+                        ⬇️ Descargar lista
+                    </button>
+                </div>
             </div>
 
-            {/* Buscador (reutilizamos los estilos del dashboard) */}
+            {/* Filtros: búsqueda y selector de precio */}
             <div className={s.filtersRow}>
                 <div className={s.searchWrap}>
                     <span className={`${s.searchIconInner} ${s.svgIc}`}>🔍</span>
@@ -125,25 +176,40 @@ export default function MedicacionyDescartables() {
                         placeholder='Buscar (ej: "suero", "ampolla", "descartable")'
                     />
                 </div>
+                <select
+                    className={s.filterSelect}
+                    value={precioCampo}
+                    onChange={(e) => setPrecioCampo(e.target.value)}
+                >
+                    {OPCIONES_PRECIO.map((op) => (
+                        <option key={op.valor} value={op.valor}>
+                            {op.label}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             {/* Tabla de resultados */}
-            <div className={s.tableWrap}>
+            <div className={s.tableWrap} style={{ display: "block", overflowX: "auto" }}>
                 <table className={s.stockTable}>
                     <thead>
                         <tr>
                             <th className={s.thLeft}>Producto</th>
                             <th>Presentación</th>
                             <th>Tipo</th>
-                            <th className={s.thRight}>Precio ($)</th>
+                            <th className={s.thRight}>
+                                {OPCIONES_PRECIO.find((o) => o.valor === precioCampo)?.label || "Precio"}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {filtrados.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className={s.emptyState}>
-                                    <span>📭</span>
-                                    <p>No hay coincidencias.</p>
+                                <td colSpan={4}>
+                                    <div className={s.emptyState}>
+                                        <span>📭</span>
+                                        <p>No hay coincidencias.</p>
+                                    </div>
                                 </td>
                             </tr>
                         ) : (
@@ -170,7 +236,9 @@ export default function MedicacionyDescartables() {
                                             {item.tipoFormatted}
                                         </span>
                                     </td>
-                                    <td className={s.valueCell}>{formatoMoneda(item.precio)}</td>
+                                    <td className={s.valueCell}>
+                                        {formatoMoneda(obtenerPrecio(item))}
+                                    </td>
                                 </tr>
                             ))
                         )}

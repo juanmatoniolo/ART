@@ -207,7 +207,8 @@ export default function MedicamentosModule({
         tipoFormatted: '💊 Medicación',
         nombre: itemData?.nombre || key,
         presentacion: itemData?.presentacion || 'ampolla',
-        precio: Number(itemData?.precioReferencia ?? itemData?.precio ?? 0) || 0
+        // ✅ AHORA USA PRECIO FACTURACIÓN COMO PRIORIDAD
+        precio: Number(itemData?.precioFacturacion ?? itemData?.precioReferencia ?? itemData?.precio ?? 0) || 0
       });
     }
 
@@ -219,7 +220,8 @@ export default function MedicamentosModule({
         tipoFormatted: '🧷 Descartable',
         nombre: itemData?.nombre || key,
         presentacion: itemData?.presentacion || 'unidad',
-        precio: Number(itemData?.precioReferencia ?? itemData?.precio ?? 0) || 0
+        // ✅ AHORA USA PRECIO FACTURACIÓN COMO PRIORIDAD
+        precio: Number(itemData?.precioFacturacion ?? itemData?.precioReferencia ?? itemData?.precio ?? 0) || 0
       });
     }
 

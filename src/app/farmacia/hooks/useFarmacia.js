@@ -659,6 +659,61 @@ export default function useFarmacia() {
 		[items, listasPrecios, mostrarMensaje],
 	);
 
+	// ─── ELIMINAR MOVIMIENTO (NUEVO) ──────────────────────────────────────
+	const eliminarMovimiento = useCallback(
+		async (id) => {
+			try {
+				// Determinar si es ingreso o reparto según el prefijo del id
+				let tipo = null;
+				let refPath = null;
+				if (id.startsWith("ingreso_")) {
+					tipo = "ingreso";
+					refPath = `ingresos_farmacia/${id}`;
+				} else if (id.startsWith("reparto_")) {
+					tipo = "reparto";
+					refPath = `repartos_farmacia/${id}`;
+				} else {
+					mostrarMensaje("error", "Error", "ID de movimiento no válido.");
+					return false;
+				}
+
+				// Eliminar el nodo en Firebase
+				await remove(ref(db, refPath));
+
+				// Actualizar el estado local correspondiente
+				if (tipo === "ingreso") {
+					setIngresos((prev) => {
+						const newIngresos = { ...prev };
+						delete newIngresos[id];
+						return newIngresos;
+					});
+				} else {
+					setRepartos((prev) => {
+						const newRepartos = { ...prev };
+						delete newRepartos[id];
+						return newRepartos;
+					});
+				}
+
+				mostrarMensaje(
+					"success",
+					"Movimiento eliminado",
+					"El movimiento fue eliminado correctamente.",
+				);
+				return true;
+			} catch (error) {
+				console.error("Error al eliminar movimiento:", error);
+				mostrarMensaje(
+					"error",
+					"Error",
+					"No se pudo eliminar el movimiento.",
+				);
+				return false;
+			}
+		},
+		[mostrarMensaje],
+	);
+
 	// ─── API del hook ─────────────────────────────────────────────────────
 	return {
 		items,
@@ -680,5 +735,7 @@ export default function useFarmacia() {
 		guardarListaPrecio,
 		eliminarListaPrecio,
 		exportarListasPrecios,
+		// nuevo
+		eliminarMovimiento,
 	};
 }

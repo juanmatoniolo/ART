@@ -305,167 +305,165 @@ export default function ListasPreciosTab({
                 </div>
             )}
 
-            {/* TABLA */}
+            {/* TABLA OPTIMIZADA */}
             {filtrados.length === 0 ? (
                 <div className={s.emptyState}>
                     <span>📭</span>
                     <p>No se encontraron productos</p>
                 </div>
             ) : (
-                <div className={s.printContent}>
-                    <div className={s.tableWrap} style={{ display: "block", overflowX: "auto" }}>
-                        <table className={s.precioTable} style={{ width: "100%", minWidth: "1100px", borderCollapse: "collapse" }}>
-                            <thead>
-                                <tr>
-                                    <th className={s.thLeft} style={{ minWidth: "180px" }}>Producto</th>
-                                    <th style={{ minWidth: "100px" }}>Presentación</th>
-                                    <th style={{ minWidth: "100px" }}>Tipo</th>
-                                    <th style={{ minWidth: "120px" }}>Precio costo</th>
-                                    <th style={{ minWidth: "140px" }}>Precio facturación</th>
-                                    <th style={{ minWidth: "120px" }}>Otros precios</th>
-                                    {listasMostrar.map(l => (
-                                        <th key={l.id} style={{ minWidth: "110px" }}>
-                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                                                <strong>{l.nombre}</strong>
-                                                <small style={{ opacity: 0.7 }}>×{l.multiplicador || 1}</small>
-                                            </div>
-                                        </th>
-                                    ))}
-                                    <th style={{ minWidth: "100px" }}>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filtrados.map(item => {
-                                    const id = item.id || item.nombre;
-                                    const estaEditando = editando === id;
-                                    const costo = Number(item.precioCosto ?? item.precioReferencia ?? 0);
-                                    const facturacion = Number(item.precioFacturacion ?? 0);
-                                    const otros = Number(item.precioOtros ?? 0);
+                <div className={s.precioTableWrapper}>
+                    <table className={s.precioTableOptimizada}>
+                        <thead>
+                            <tr>
+                                <th className={s.thLeft}>Producto</th>
+                                <th>Presentación</th>
+                                <th>Tipo</th>
+                                <th className={s.thRight}>Precio costo</th>
+                                <th className={s.thRight}>Precio facturación</th>
+                                <th className={s.thRight}>Otros precios</th>
+                                {listasMostrar.map(l => (
+                                    <th key={l.id} className={s.thRight}>
+                                        <span className={s.thListaNombre}>{l.nombre}</span>
+                                        <span className={s.thListaMult}>×{l.multiplicador || 1}</span>
+                                    </th>
+                                ))}
+                                <th className={s.thAcciones}>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtrados.map((item, index) => {
+                                const id = item.id || item.nombre;
+                                const estaEditando = editando === id;
+                                const costo = Number(item.precioCosto ?? item.precioReferencia ?? 0);
+                                const facturacion = Number(item.precioFacturacion ?? 0);
+                                const otros = Number(item.precioOtros ?? 0);
+                                const filaZebra = index % 2 === 1 ? s.filaZebra : "";
 
-                                    return (
-                                        <tr key={id}>
-                                            <td className={s.tdLeft}>
-                                                <strong>{String(item.nombre).replace(/_/g, " ")}</strong>
-                                            </td>
-                                            <td>{String(item.presentacion || "").replace(/_/g, " ")}</td>
-                                            <td>
-                                                <span className={item.tipo === "medicamento" ? s.badgeMed : s.badgeDesc}>
-                                                    {item.tipo === "medicamento" ? "Medicamento" : "Descartable"}
-                                                </span>
-                                            </td>
+                                return (
+                                    <tr key={id} className={filaZebra}>
+                                        <td className={s.tdLeft}>
+                                            <strong>{String(item.nombre).replace(/_/g, " ")}</strong>
+                                        </td>
+                                        <td>{String(item.presentacion || "").replace(/_/g, " ")}</td>
+                                        <td>
+                                            <span className={item.tipo === "medicamento" ? s.badgeMed : s.badgeDesc}>
+                                                {item.tipo === "medicamento" ? "Medicamento" : "Descartable"}
+                                            </span>
+                                        </td>
 
-                                            {/* Precio Costo */}
-                                            <td className={s.precioCell}>
-                                                {estaEditando ? (
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={preciosEditados.precioCosto}
-                                                        onChange={e => cambiarPrecio("precioCosto", e.target.value)}
-                                                        onKeyDown={e => manejarTeclado(e, item)}
-                                                        style={estilos.inputPrecio}
-                                                        autoFocus
-                                                    />
-                                                ) : (
+                                        {/* Precio Costo */}
+                                        <td className={`${s.tdRight} ${s.tdPrecio}`}>
+                                            {estaEditando ? (
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={preciosEditados.precioCosto}
+                                                    onChange={e => cambiarPrecio("precioCosto", e.target.value)}
+                                                    onKeyDown={e => manejarTeclado(e, item)}
+                                                    className={s.inputPrecioOptimizado}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <button
+                                                    className={s.precioClickableOptimizado}
+                                                    onClick={() => comenzarEdicion(item)}
+                                                    title="Clic para editar"
+                                                >
+                                                    {formatCurrency(costo)}
+                                                </button>
+                                            )}
+                                        </td>
+
+                                        {/* Precio Facturación */}
+                                        <td className={`${s.tdRight} ${s.tdPrecio}`}>
+                                            {estaEditando ? (
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={preciosEditados.precioFacturacion}
+                                                    onChange={e => cambiarPrecio("precioFacturacion", e.target.value)}
+                                                    onKeyDown={e => manejarTeclado(e, item)}
+                                                    className={s.inputPrecioOptimizado}
+                                                />
+                                            ) : (
+                                                <button
+                                                    className={s.precioClickableOptimizado}
+                                                    onClick={() => comenzarEdicion(item)}
+                                                    title="Clic para editar"
+                                                >
+                                                    {formatCurrency(facturacion)}
+                                                </button>
+                                            )}
+                                        </td>
+
+                                        {/* Otros Precios */}
+                                        <td className={`${s.tdRight} ${s.tdPrecio}`}>
+                                            {estaEditando ? (
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={preciosEditados.precioOtros}
+                                                    onChange={e => cambiarPrecio("precioOtros", e.target.value)}
+                                                    onKeyDown={e => manejarTeclado(e, item)}
+                                                    className={s.inputPrecioOptimizado}
+                                                />
+                                            ) : (
+                                                <button
+                                                    className={s.precioClickableOptimizado}
+                                                    onClick={() => comenzarEdicion(item)}
+                                                    title="Clic para editar"
+                                                >
+                                                    {formatCurrency(otros)}
+                                                </button>
+                                            )}
+                                        </td>
+
+                                        {/* Columnas de listas */}
+                                        {listasMostrar.map(l => {
+                                            const precio = costo * Number(l.multiplicador || 1);
+                                            return (
+                                                <td key={l.id} className={`${s.tdRight} ${s.tdPrecioLista}`}>
+                                                    {formatCurrency(precio)}
+                                                </td>
+                                            );
+                                        })}
+
+                                        {/* Acciones */}
+                                        <td className={s.tdAcciones}>
+                                            {estaEditando ? (
+                                                <div className={s.accionesInline}>
                                                     <button
-                                                        onClick={() => comenzarEdicion(item)}
-                                                        style={estilos.precioClickable}
-                                                        title="Doble clic o clic para editar"
+                                                        onClick={() => guardarPrecios(item)}
+                                                        disabled={guardando}
+                                                        className={s.btnGuardarOptimizado}
+                                                        title="Guardar cambios"
                                                     >
-                                                        {formatCurrency(costo)}
+                                                        {guardando ? "⏳" : "💾"}
                                                     </button>
-                                                )}
-                                            </td>
-
-                                            {/* Precio Facturación */}
-                                            <td className={s.precioCell}>
-                                                {estaEditando ? (
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={preciosEditados.precioFacturacion}
-                                                        onChange={e => cambiarPrecio("precioFacturacion", e.target.value)}
-                                                        onKeyDown={e => manejarTeclado(e, item)}
-                                                        style={estilos.inputPrecio}
-                                                    />
-                                                ) : (
                                                     <button
-                                                        onClick={() => comenzarEdicion(item)}
-                                                        style={estilos.precioClickable}
-                                                        title="Doble clic o clic para editar"
+                                                        onClick={cancelarEdicion}
+                                                        className={s.btnCancelarOptimizado}
+                                                        title="Cancelar edición"
                                                     >
-                                                        {formatCurrency(facturacion)}
+                                                        ✕
                                                     </button>
-                                                )}
-                                            </td>
-
-                                            {/* Otros Precios */}
-                                            <td className={s.precioCell}>
-                                                {estaEditando ? (
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={preciosEditados.precioOtros}
-                                                        onChange={e => cambiarPrecio("precioOtros", e.target.value)}
-                                                        onKeyDown={e => manejarTeclado(e, item)}
-                                                        style={estilos.inputPrecio}
-                                                    />
-                                                ) : (
-                                                    <button
-                                                        onClick={() => comenzarEdicion(item)}
-                                                        style={estilos.precioClickable}
-                                                        title="Doble clic o clic para editar"
-                                                    >
-                                                        {formatCurrency(otros)}
-                                                    </button>
-                                                )}
-                                            </td>
-
-                                            {/* Columnas de listas */}
-                                            {listasMostrar.map(l => {
-                                                const precio = costo * Number(l.multiplicador || 1);
-                                                return (
-                                                    <td key={l.id} style={{ textAlign: "center", fontWeight: 600, color: "var(--c-primary, #2563eb)" }}>
-                                                        {formatCurrency(precio)}
-                                                    </td>
-                                                );
-                                            })}
-
-                                            {/* Acciones */}
-                                            <td>
-                                                {estaEditando ? (
-                                                    <div style={estilos.acciones}>
-                                                        <button
-                                                            onClick={() => guardarPrecios(item)}
-                                                            disabled={guardando}
-                                                            style={estilos.btnGuardar}
-                                                            title="Guardar cambios"
-                                                        >
-                                                            {guardando ? "⏳" : "💾"}
-                                                        </button>
-                                                        <button
-                                                            onClick={cancelarEdicion}
-                                                            style={estilos.btnCancelar}
-                                                            title="Cancelar edición"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => comenzarEdicion(item)}
-                                                        style={estilos.btnEditar}
-                                                    >
-                                                        ✏️ Editar
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => comenzarEdicion(item)}
+                                                    className={s.btnEditarOptimizado}
+                                                    title="Editar precios"
+                                                >
+                                                    ✏️
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
@@ -482,66 +480,3 @@ export default function ListasPreciosTab({
         </div>
     );
 }
-
-// ─── Estilos locales ────────────────────────────────────────────────
-const estilos = {
-    inputPrecio: {
-        width: "110px",
-        padding: "6px 8px",
-        borderRadius: "6px",
-        border: "2px solid var(--c-primary, #2563eb)",
-        background: "var(--c-surface, #fff)",
-        color: "inherit",
-        fontSize: "14px",
-        fontWeight: 600,
-        outline: "none",
-        textAlign: "right",
-    },
-    precioClickable: {
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        fontSize: "inherit",
-        fontWeight: 600,
-        padding: "4px 8px",
-        borderRadius: "4px",
-        transition: "background 0.2s",
-        color: "var(--c-text)",
-        width: "100%",
-        textAlign: "right",
-    },
-    acciones: {
-        display: "flex",
-        gap: "4px",
-        justifyContent: "center",
-    },
-    btnEditar: {
-        border: "1px solid var(--c-border)",
-        background: "var(--c-bg)",
-        borderRadius: "6px",
-        padding: "5px 10px",
-        cursor: "pointer",
-        fontSize: "12px",
-        whiteSpace: "nowrap",
-    },
-    btnGuardar: {
-        border: "1px solid #16a34a",
-        background: "#16a34a",
-        color: "#fff",
-        borderRadius: "6px",
-        padding: "5px 10px",
-        cursor: "pointer",
-        fontSize: "14px",
-        minWidth: "36px",
-    },
-    btnCancelar: {
-        border: "1px solid #dc2626",
-        background: "#dc2626",
-        color: "#fff",
-        borderRadius: "6px",
-        padding: "5px 10px",
-        cursor: "pointer",
-        fontSize: "14px",
-        minWidth: "36px",
-    },
-};

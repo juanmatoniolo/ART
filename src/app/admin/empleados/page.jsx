@@ -16,8 +16,7 @@ const EMPTY_FORM = {
   TipoEmpleado: "ADM",
 };
 
-const ROLES = ["ADM", "ADMIN", "RECEPCION", "ENFERMERIA", "UTI", "FARM", "MEDICO"];
-
+const ROLES = ["ADM", "ADMIN", "ADM Farmacia","Farmacia", "RECEPCION", "ENFERMERIA", "UTI", "FARM", "MEDICO"];
 const normalizeText = (value = "") =>
   String(value)
     .normalize("NFD")
@@ -32,9 +31,10 @@ const getPasswordValue = (value = {}) =>
 const getRoleValue = (value = {}) =>
   String(value.TipoEmpleado || value.tipoEmpleado || value.rol || "").trim();
 
+// ✅ Se agregó "adm farmacia" a los roles con acceso de administrador
 const isAdminRole = (role = "") => {
   const normalized = normalizeUser(role);
-  return ["adm", "admin", "administracion", "administrador"].includes(normalized);
+  return ["adm", "admin", "administracion", "administrador", "adm farmacia"].includes(normalized);
 };
 
 export default function Page() {
@@ -463,7 +463,6 @@ export default function Page() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                    
                       <th>Nombre</th>
                       <th>Usuario</th>
                       <th>Contraseña</th>

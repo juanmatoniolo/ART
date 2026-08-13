@@ -4,24 +4,28 @@ import Icon from "./Icon";
 import { formatCurrency } from "../utils/farmacia";
 import s from "../farmaciaDashboard.module.css";
 
-export default function MovimientosTab({ movimientos }) {
+export default function MovimientosTab({ 
+    movimientos, 
+    userRole,                    // ← Nuevo prop: rol del usuario actual
+    onEliminarMovimiento         // ← Nuevo prop: función para eliminar un movimiento
+}) {
     const [filtroTipo, setFiltroTipo] = useState("todos");
     const [fechaInicio, setFechaInicio] = useState("");
     const [fechaFin, setFechaFin] = useState("");
     const [busqueda, setBusqueda] = useState("");
 
+    // Verificar si el usuario puede eliminar
+    const puedeEliminar = userRole === "ADM Farmacia" || userRole === "ADM";
+
     const movimientosFiltrados = useMemo(() => {
         return movimientos.filter(mov => {
-            // Filtro por tipo
             if (filtroTipo === "ingresos" && mov.tipo !== "ingreso") return false;
             if (filtroTipo === "egresos" && mov.tipo !== "reparto") return false;
 
-            // Filtro por rango de fechas (fechaFormatted o fechaRaw)
             const fechaMov = mov.fechaRaw || mov.fechaFormatted;
             if (fechaInicio && fechaMov < fechaInicio) return false;
             if (fechaFin && fechaMov > fechaFin) return false;
 
-            // Filtro por búsqueda (producto, destino, responsable)
             if (busqueda.trim()) {
                 const q = busqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const texto = [
@@ -47,6 +51,107 @@ export default function MovimientosTab({ movimientos }) {
         }, { cantidad: 0, unidades: 0, valor: 0 });
     }, [movimientosFiltrados]);
 
+    // Función para descargar CSV
+    const descargarCSV = () => {
+        if (movimientosFiltrados.length === 0) {
+            alert("No hay movimientos para exportar con los filtros actuales.");
+            return;
+        }
+
+        const cabeceras = [
+            "ID Movimiento",
+            "Tipo",
+            "Fecha",
+            "Destino",
+            "Responsable",
+            "Total Productos",
+            "Total Unidades",
+            "Valor Total",
+            "Producto",
+            "Cantidad",
+            "Stock Anterior",
+            "Stock Nuevo",
+            "Precio Unitario",
+            "Subtotal Producto"
+        ];
+
+        const filas = [];
+
+        movimientosFiltrados.forEach(mov => {
+            const tipo = mov.tipo === "ingreso" ? "Ingreso" : "Reparto";
+            const fecha = mov.fechaFormatted || mov.fechaRaw || "";
+            const destino = mov.destino || "";
+            const responsable = mov.responsable || "";
+
+            if (mov.productos && mov.productos.length > 0) {
+                mov.productos.forEach(p => {
+                    const subtotal = Number(p.cantidad * p.precioUnitario).toFixed(2).replace(".", ",");
+                    filas.push([
+                        `"${mov.id}"`,
+                        `"${tipo}"`,
+                        `"${fecha}"`,
+                        `"${destino}"`,
+                        `"${responsable}"`,
+                        mov.totalProductos || 0,
+                        mov.totalUnidades || 0,
+                        `"${Number(mov.valorTotal || 0).toFixed(2).replace(".", ",")}"`,
+                        `"${String(p.itemNombre || "").replace(/_/g, " ")}"`,
+                        p.cantidad,
+                        p.stockAnterior,
+                        p.stockNuevo,
+                        `"${Number(p.precioUnitario).toFixed(2).replace(".", ",")}"`,
+                        `"${subtotal}"`
+                    ].join(";"));
+                });
+            } else {
+                // Movimiento sin productos (raro)
+                filas.push([
+                    `"${mov.id}"`,
+                    `"${tipo}"`,
+                    `"${fecha}"`,
+                    `"${destino}"`,
+                    `"${responsable}"`,
+                    mov.totalProductos || 0,
+                    mov.totalUnidades || 0,
+                    `"${Number(mov.valorTotal || 0).toFixed(2).replace(".", ",")}"`,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                ].join(";"));
+            }
+        });
+
+        const csvContent = [cabeceras.join(";"), ...filas].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `historial_movimientos_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    };
+
+    // Función para eliminar con confirmación
+    const confirmarEliminar = async (mov) => {
+        if (!puedeEliminar) return;
+        const ok = window.confirm(
+            `¿Eliminar el movimiento ${mov.tipo === "ingreso" ? "de ingreso" : "de reparto"} del ${mov.fechaFormatted}?`
+        );
+        if (!ok) return;
+
+        try {
+            await onEliminarMovimiento(mov.id);
+            // La lista se actualizará automáticamente desde el hook padre
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            alert("No se pudo eliminar el movimiento.");
+        }
+    };
+
     return (
         <div className={s.panel}>
             <div className={s.panelHeader}>
@@ -59,11 +164,19 @@ export default function MovimientosTab({ movimientos }) {
                         {movimientosFiltrados.length} registros · {totales.unidades} unidades · {formatCurrency(totales.valor)}
                     </p>
                 </div>
+                <div className={s.panelActions}>
+                    <button
+                        className={`${s.actionBtn} ${s.btn_secondary}`}
+                        onClick={descargarCSV}
+                        disabled={movimientosFiltrados.length === 0}
+                    >
+                        ⬇️ Descargar CSV
+                    </button>
+                </div>
             </div>
 
             {/* Filtros */}
             <div className={s.filtersRow}>
-                {/* Buscador */}
                 <div className={s.searchWrap}>
                     <span className={`${s.searchIconInner} ${s.svgIc}`}>
                         <Icon name="search" size={18} />
@@ -76,7 +189,6 @@ export default function MovimientosTab({ movimientos }) {
                     />
                 </div>
 
-                {/* Selector de tipo */}
                 <select
                     className={s.filterSelect}
                     value={filtroTipo}
@@ -87,7 +199,6 @@ export default function MovimientosTab({ movimientos }) {
                     <option value="egresos">📤 Egresos (repartos)</option>
                 </select>
 
-                {/* Fecha inicio */}
                 <input
                     type="date"
                     className={s.filterSelect}
@@ -96,7 +207,6 @@ export default function MovimientosTab({ movimientos }) {
                     title="Fecha desde"
                 />
 
-                {/* Fecha fin */}
                 <input
                     type="date"
                     className={s.filterSelect}
@@ -105,7 +215,6 @@ export default function MovimientosTab({ movimientos }) {
                     title="Fecha hasta"
                 />
 
-                {/* Botón limpiar filtros */}
                 {(filtroTipo !== "todos" || fechaInicio || fechaFin || busqueda) && (
                     <button
                         className={`${s.actionBtn} ${s.btnCancel}`}
@@ -130,7 +239,12 @@ export default function MovimientosTab({ movimientos }) {
             ) : (
                 <div className={s.movimientosList}>
                     {movimientosFiltrados.map((mov) => (
-                        <MovCard key={mov.id} mov={mov} />
+                        <MovCard
+                            key={mov.id}
+                            mov={mov}
+                            puedeEliminar={puedeEliminar}
+                            onEliminar={() => confirmarEliminar(mov)}
+                        />
                     ))}
                 </div>
             )}
@@ -138,7 +252,7 @@ export default function MovimientosTab({ movimientos }) {
     );
 }
 
-function MovCard({ mov }) {
+function MovCard({ mov, puedeEliminar, onEliminar }) {
     const isIn = mov.tipo === "ingreso";
     const total = mov.valorTotal || 0;
 
@@ -169,6 +283,16 @@ function MovCard({ mov }) {
                     <Icon name="calendar" size={14} style={{ marginRight: 4 }} />
                     {mov.fechaFormatted}
                 </span>
+
+                {puedeEliminar && (
+                    <button
+                        className={s.movDeleteBtn}
+                        onClick={onEliminar}
+                        title="Eliminar movimiento"
+                    >
+                        <Icon name="trash" size={16} />
+                    </button>
+                )}
             </div>
 
             {/* Resumen */}

@@ -54,13 +54,14 @@ export default function LoginPage() {
             const esRoot = userData.root === true || userData.TipoEmpleado === 'ROOT';
 
             const routes = {
-                ADM: '/admin',
-                RECEPCION: '/historia-clinica',
-                MDE: '/mesa-de-entrada',
-                FARM: '/farmacia',
-                UTI: '/uti/admin',
-                MEDICO: '/foja/medicos',
-                ROOT: '/admin', // o un panel propio
+                'ADM': '/admin',
+                'ADM Farmacia': '/farmacia',
+                'Farmacia': '/farmacia',
+                'RECEPCION': '/historia-clinica',
+                'MDE': '/mesa-de-entrada',
+                'UTI': '/uti/admin',
+                'MEDICO': '/foja/medicos',
+                'ROOT': '/admin',
             };
 
             const destino = esRoot ? '/admin' : (routes[userData.TipoEmpleado] || '/admin');

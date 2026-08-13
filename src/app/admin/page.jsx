@@ -153,7 +153,6 @@ export default function AdminDashboard() {
 
         setRecent({
           fojas: mapRecentFojas(fojasData),
-          historias: mapRecentHistorias(historiasData, historiasUtiData),
           facturas: mapRecentFacturas(facturasData),
         });
       } catch (error) {

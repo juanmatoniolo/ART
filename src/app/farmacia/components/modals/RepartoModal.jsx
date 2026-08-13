@@ -8,6 +8,14 @@ import s from "../../farmaciaDashboard.module.css";
 const DESTINOS = ["Guardia", "Primer Piso", "Segundo Piso", "Quirófano", "UTI",
     "Pediatría", "Maternidad", "Administración", "Depósito", "Otro"];
 
+// Función para obtener el color según el stock
+const getStockColor = (stock, min = 10) => {
+    if (stock === 0) return "#d32f2f"; // rojo
+    if (stock < min) return "#f57c00"; // naranja
+    if (stock < min * 3) return "#fbc02d"; // amarillo
+    return "#2e7d32"; // verde
+};
+
 export default function RepartoModal({ onClose, onSubmit, items }) {
     const [paso, setPaso] = useState("datos");
     const [destino, setDestino] = useState("Guardia");
@@ -18,17 +26,48 @@ export default function RepartoModal({ onClose, onSubmit, items }) {
     const [seleccionados, setSel] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // 1. Sugerencias iniciales (productos con mayor stock) cuando no hay búsqueda
     useEffect(() => {
-        if (!busqueda.trim()) { setSug([]); return; }
+        if (!busqueda.trim()) {
+            const topStock = (items || [])
+                .filter(i => i.stockActual > 0)
+                .sort((a, b) => b.stockActual - a.stockActual)
+                .slice(0, 8);
+            setSug(topStock);
+            return;
+        }
+
+        // 2. Búsqueda con filtro y orden
         const q = normalizeText(busqueda);
-        setSug(items.filter(i => i.stockActual > 0 && normalizeText(i.nombre).includes(q)).slice(0, 8));
+        const filtrados = (items || [])
+            .filter(i => i.stockActual > 0 && normalizeText(i.nombre.replace(/_/g, ' ')).includes(q))
+            .sort((a, b) => {
+                // Priorizar coincidencia exacta al inicio
+                const aName = normalizeText(a.nombre.replace(/_/g, ' '));
+                const bName = normalizeText(b.nombre.replace(/_/g, ' '));
+                const aStarts = aName.startsWith(q);
+                const bStarts = bName.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                // Luego por stock (mayor primero)
+                return b.stockActual - a.stockActual;
+            })
+            .slice(0, 8);
+        setSug(filtrados);
     }, [busqueda, items]);
 
     const agregar = (item) => {
-        setBusqueda(""); setSug([]);
+        setBusqueda("");
+        setSug([]);
         if (seleccionados.find(p => p.id === item.id)) return;
-        setSel(prev => [...prev, { ...item, cantidad: 1, stockAnterior: item.stockActual, stockNuevo: item.stockActual - 1 }]);
+        setSel(prev => [...prev, {
+            ...item,
+            cantidad: 1,
+            stockAnterior: item.stockActual,
+            stockNuevo: item.stockActual - 1
+        }]);
     };
+
     const setCantidad = (id, val) => {
         setSel(prev => prev.map(p => {
             if (p.id !== id) return p;
@@ -36,11 +75,12 @@ export default function RepartoModal({ onClose, onSubmit, items }) {
             return { ...p, cantidad: n, stockNuevo: p.stockAnterior - n };
         }));
     };
+
     const quitar = (id) => setSel(prev => prev.filter(p => p.id !== id));
 
     const totales = useMemo(() => seleccionados.reduce((a, p) => ({
         unidades: a.unidades + p.cantidad,
-        valor: a.valor + p.cantidad * (p.precioCosto || 0)
+        valor: a.valor + p.cantidad * (p.precioCosto || p.precioReferencia || 0)
     }), { unidades: 0, valor: 0 }), [seleccionados]);
 
     const handleSubmit = async () => {
@@ -51,7 +91,6 @@ export default function RepartoModal({ onClose, onSubmit, items }) {
         if (ok) onClose();
     };
 
-    // Helper de steps (usamos clases del módulo: .stepIndicator, .stepDot, .stepLine)
     const Steps = ({ n }) => (
         <div className={s.stepIndicator}>
             {[1, 2, 3].map((i, idx) => (
@@ -106,31 +145,73 @@ export default function RepartoModal({ onClose, onSubmit, items }) {
                                     </button>
                                 )}
                             </div>
+
+                            {/* Lista de sugerencias */}
                             {sugerencias.length > 0 && (
                                 <div className={s.autocompleteList}>
+                                    {/* Cabecera con recomendación si no hay búsqueda */}
+                                    {!busqueda && (
+                                        <div style={{ padding: '8px 16px', fontSize: '13px', color: '#666', borderBottom: '1px solid #eee' }}>
+                                            <Icon name="star" size={14} style={{ marginRight: 6 }} />
+                                            Productos con mayor stock
+                                        </div>
+                                    )}
                                     {sugerencias.map(item => (
                                         <button key={item.id} className={s.autocompleteItem} onClick={() => agregar(item)}>
-                                            <span className={s.autocompleteIcon}><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={22} /></span>
-                                            <div className={s.autocompleteInfo}>
-                                                <p className={s.autocompleteName}>{item.nombre.replace(/_/g, " ")}</p>
-                                                <p className={s.autocompleteMeta}>{item.presentacion} · Stock: {item.stockActual}</p>
+                                            <span className={s.autocompleteIcon}>
+                                                <Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={24} />
+                                            </span>
+                                            <div className={s.autocompleteInfo} style={{ flex: 1, textAlign: 'left' }}>
+                                                <p className={s.autocompleteName} style={{ fontWeight: 500 }}>
+                                                    {item.nombre.replace(/_/g, " ")}
+                                                </p>
+                                                <p className={s.autocompleteMeta} style={{ fontSize: '12px', color: '#777', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <span>{item.presentacion}</span>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            width: 10,
+                                                            height: 10,
+                                                            borderRadius: '50%',
+                                                            backgroundColor: getStockColor(item.stockActual, item.stockMinimo),
+                                                            marginRight: 4
+                                                        }} />
+                                                        Stock: <strong>{item.stockActual}</strong>
+                                                    </span>
+                                                </p>
                                             </div>
-                                            <span className={s.autocompleteAdd}><Icon name="plus" size={20} /></span>
+                                            <span className={s.autocompleteAdd} style={{ color: 'var(--c-primary)' }}>
+                                                <Icon name="plus" size={22} />
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
                             )}
+
+                            {/* Si no hay sugerencias y hay búsqueda, mostrar mensaje */}
+                            {busqueda && sugerencias.length === 0 && (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                                    <Icon name="search" size={32} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.5 }} />
+                                    No se encontraron productos con ese nombre
+                                </div>
+                            )}
                         </div>
 
+                        {/* Lista de seleccionados */}
                         {seleccionados.length === 0 ? (
-                            <div className={s.emptyState}><span><Icon name="search" size={36} /></span><p>Buscá productos para agregar</p></div>
+                            <div className={s.emptyState}>
+                                <span><Icon name="search" size={36} /></span>
+                                <p>{busqueda ? 'No hay coincidencias' : 'Buscá productos para agregar'}</p>
+                            </div>
                         ) : (
                             <div className={s.repartoList}>
                                 {seleccionados.map(p => (
                                     <div key={p.id} className={s.repartoItem}>
                                         <div className={s.repartoItemInfo}>
                                             <p className={s.repartoItemName}>{p.nombre.replace(/_/g, " ")}</p>
-                                            <p className={s.repartoItemMeta}>Queda: <strong style={{ color: "var(--c-red)" }}>{p.stockNuevo}</strong> de {p.stockAnterior}</p>
+                                            <p className={s.repartoItemMeta}>
+                                                Queda: <strong style={{ color: "var(--c-red)" }}>{p.stockNuevo}</strong> de {p.stockAnterior}
+                                            </p>
                                         </div>
                                         <div className={s.repartoCantControls}>
                                             <button className={s.cantBtn} onClick={() => setCantidad(p.id, p.cantidad - 1)} disabled={p.cantidad <= 1} aria-label="Menos">
