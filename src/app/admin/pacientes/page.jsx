@@ -33,10 +33,9 @@ export default function PacientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
 
-  const [filtroEstado, setFiltroEstado] = useState("abierto");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroArt, setFiltroArt] = useState("todas");
   const [filtroCompletitud, setFiltroCompletitud] = useState("todos");
-  const [filtroSexo, setFiltroSexo] = useState("todos");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
 
@@ -131,7 +130,6 @@ export default function PacientesPage() {
       const artNombre = p.ART?.nombre || "";
       const estado = p.estado || "abierto";
       const incompleto = pacienteIncompleto(p);
-      const sexo = String(p.trabajador?.sexo || "").toUpperCase().trim();
 
       const matchSearch = fullName.includes(searchTerm.toLowerCase()) || dni.includes(searchTerm);
       const matchEstado = filtroEstado === "todos" || estado === filtroEstado;
@@ -141,12 +139,6 @@ export default function PacientesPage() {
         (filtroCompletitud === "completos" && !incompleto) ||
         (filtroCompletitud === "incompletos" && !!incompleto);
 
-      let matchSexo = true;
-      if (filtroSexo === "M") matchSexo = sexo === "M" || sexo === "MASCULINO";
-      else if (filtroSexo === "F") matchSexo = sexo === "F" || sexo === "FEMENINO";
-      else if (filtroSexo === "sinDato")
-        matchSexo = !sexo || (sexo !== "M" && sexo !== "MASCULINO" && sexo !== "F" && sexo !== "FEMENINO");
-
       if (tsDesde !== null || tsHasta !== null) {
         const tsIngreso = fechaIngresoToTs(p.fechaIngreso);
         if (tsIngreso === null) return false;
@@ -154,7 +146,7 @@ export default function PacientesPage() {
         if (tsHasta !== null && tsIngreso > tsHasta) return false;
       }
 
-      return matchSearch && matchEstado && matchArt && matchCompletitud && matchSexo;
+      return matchSearch && matchEstado && matchArt && matchCompletitud;
     });
 
     const sorted = [...filtrados];
@@ -202,54 +194,8 @@ export default function PacientesPage() {
     return sorted;
   }, [
     pacientes, searchTerm, filtroEstado, filtroArt, filtroCompletitud,
-    filtroSexo, filtroFechaDesde, filtroFechaHasta, ordenColumna, ordenDireccion,
+    filtroFechaDesde, filtroFechaHasta, ordenColumna, ordenDireccion,
   ]);
-
-  // ---- Chips de filtros activos ----
-  const filtrosActivos = useMemo(() => {
-    const activos = [];
-    if (filtroEstado !== "todos")
-      activos.push({
-        key: "estado",
-        label: filtroEstado === "abierto" ? "🟢 Abierto" : "🔴 Cerrado",
-        clear: () => setFiltroEstado("todos"),
-      });
-    if (filtroArt !== "todas")
-      activos.push({
-        key: "art",
-        label: `🏥 ${filtroArt}`,
-        clear: () => setFiltroArt("todas"),
-      });
-    if (filtroCompletitud !== "todos")
-      activos.push({
-        key: "completitud",
-        label: filtroCompletitud === "completos" ? "✅ Completos" : "⚠️ Incompletos",
-        clear: () => setFiltroCompletitud("todos"),
-      });
-    if (filtroSexo !== "todos") {
-      const labelSexo = filtroSexo === "M" ? "👨 Masculino" : filtroSexo === "F" ? "👩 Femenino" : "❔ Sin dato";
-      activos.push({ key: "sexo", label: labelSexo, clear: () => setFiltroSexo("todos") });
-    }
-    if (filtroFechaDesde)
-      activos.push({
-        key: "fechaDesde",
-        label: `📅 Desde ${filtroFechaDesde}`,
-        clear: () => setFiltroFechaDesde(""),
-      });
-    if (filtroFechaHasta)
-      activos.push({
-        key: "fechaHasta",
-        label: `📅 Hasta ${filtroFechaHasta}`,
-        clear: () => setFiltroFechaHasta(""),
-      });
-    if (searchTerm.trim())
-      activos.push({
-        key: "search",
-        label: `🔍 "${searchTerm}"`,
-        clear: () => setSearchTerm(""),
-      });
-    return activos;
-  }, [filtroEstado, filtroArt, filtroCompletitud, filtroSexo, filtroFechaDesde, filtroFechaHasta, searchTerm]);
 
   // ---- Pacientes para estadísticas ----
   const filteredPatientsForStats = useMemo(() => {
@@ -635,22 +581,12 @@ export default function PacientesPage() {
     }
   };
 
-  const verSinDatoSexo = () => {
-    setFiltroSexo("sinDato");
-    setActiveView("listado");
-    setFiltroEstado("todos");
-    setFiltroArt("todas");
-    setFiltroCompletitud("todos");
-    setSearchTerm("");
-  };
-
   const verEstosPacientes = () => {
     setFiltroFechaDesde(statsFechaDesde);
     setFiltroFechaHasta(statsFechaHasta);
     setFiltroArt(statsFiltroArt);
     setFiltroEstado("todos");
     setFiltroCompletitud("todos");
-    setFiltroSexo("todos");
     setSearchTerm("");
     setActiveView("listado");
   };
@@ -764,29 +700,43 @@ export default function PacientesPage() {
         </button>
       </header>
 
-      {/* Tabs de vista */}
-      <nav className={styles.viewTabs}>
-        <button className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("listado")}>📋 Listado</button>
-        <button className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("estadisticas")}>📊 Estadísticas</button>
+      {/* Tabs de vista + filtro de estado (switch) */}
+      <nav className={styles.viewTabs} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("listado")}>📋 Listado</button>
+          <button className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("estadisticas")}>📊 Estadísticas</button>
+        </div>
+        <div style={{ display: "flex", gap: "0.25rem", background: "var(--tab-bg)", padding: "0.2rem", borderRadius: "0.6rem", border: "1px solid var(--border-color)" }}>
+          <button
+            className={`${styles.tab} ${filtroEstado === "todos" ? styles.tabActive : ""}`}
+            onClick={() => setFiltroEstado("todos")}
+            style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem" }}
+          >
+            Todos
+          </button>
+          <button
+            className={`${styles.tab} ${filtroEstado === "abierto" ? styles.tabActive : ""}`}
+            onClick={() => setFiltroEstado("abierto")}
+            style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem" }}
+          >
+            🟢 Abiertos
+          </button>
+          <button
+            className={`${styles.tab} ${filtroEstado === "cerrado" ? styles.tabActive : ""}`}
+            onClick={() => setFiltroEstado("cerrado")}
+            style={{ fontSize: "0.8rem", padding: "0.3rem 0.8rem" }}
+          >
+            🔴 Cerrados
+          </button>
+        </div>
       </nav>
 
       {activeView === "listado" ? (
         <>
           {/* Filtros del listado */}
           <section className={styles.filterBarNew}>
-            <div className={styles.filterRow}>
-              <div className={styles.filterInputGroup}>
-                <span className={styles.filterLabel}>🔍</span>
-                <input type="search" placeholder="Buscar por nombre o DNI..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInputNew} />
-              </div>
-              <div className={styles.filterInputGroup}>
-                <span className={styles.filterLabel}>Estado</span>
-                <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className={styles.selectInputNew}>
-                  <option value="todos">Todos</option>
-                  <option value="abierto">🟢 Abierto</option>
-                  <option value="cerrado">🔴 Cerrado</option>
-                </select>
-              </div>
+            {/* Fila 1: Filtros (ART, Carga, Ingreso) + botones de acción */}
+            <div className={styles.filterRow} style={{ flexWrap: "wrap" }}>
               <div className={styles.filterInputGroup}>
                 <span className={styles.filterLabel}>ART</span>
                 <select value={filtroArt} onChange={(e) => setFiltroArt(e.target.value)} className={styles.selectInputNew}>
@@ -803,15 +753,6 @@ export default function PacientesPage() {
                 </select>
               </div>
               <div className={styles.filterInputGroup}>
-                <span className={styles.filterLabel}>Sexo</span>
-                <select value={filtroSexo} onChange={(e) => setFiltroSexo(e.target.value)} className={styles.selectInputNew}>
-                  <option value="todos">Todos</option>
-                  <option value="M">👨 Masculino</option>
-                  <option value="F">👩 Femenino</option>
-                  <option value="sinDato">❔ Sin dato</option>
-                </select>
-              </div>
-              <div className={styles.filterInputGroup}>
                 <span className={styles.filterLabel}>📅 Ingreso</span>
                 <div className={styles.dateRangeGroup}>
                   <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} className={styles.dateInput} max={filtroFechaHasta || undefined} />
@@ -819,26 +760,34 @@ export default function PacientesPage() {
                   <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} className={styles.dateInput} min={filtroFechaDesde || undefined} />
                 </div>
               </div>
-              <div className={styles.filterActions}>
-                {filtrosActivos.length > 0 && (
-                  <button type="button" className={styles.clearAllBtn} onClick={() => {
-                    setFiltroEstado("todos"); setFiltroArt("todas"); setFiltroCompletitud("todos");
-                    setFiltroSexo("todos"); setFiltroFechaDesde(""); setFiltroFechaHasta(""); setSearchTerm("");
-                  }}>✕ Limpiar filtros</button>
-                )}
-                <button type="button" className={styles.duplicadosBtnNew} onClick={handleUnionClickGlobal}>🔍 Duplicados</button>
+              {/* Botones de acción en la misma fila */}
+              <button type="button" className={styles.clearAllBtn} onClick={() => {
+                setFiltroEstado("todos");
+                setFiltroArt("todas");
+                setFiltroCompletitud("todos");
+                setFiltroFechaDesde("");
+                setFiltroFechaHasta("");
+                setSearchTerm("");
+              }}>
+                ✕ Limpiar filtros
+              </button>
+              <button type="button" className={styles.duplicadosBtnNew} onClick={handleUnionClickGlobal}>🔍 Duplicados</button>
+            </div>
+
+            {/* Fila 2: Buscador (ocupa todo el ancho) */}
+            <div className={styles.filterRow} style={{ marginTop: "0.5rem" }}>
+              <div className={styles.filterInputGroup} style={{ flex: "1 1 100%", minWidth: "200px" }}>
+                <span className={styles.filterLabel}>🔍</span>
+                <input
+                  type="search"
+                  placeholder="Buscar por nombre o DNI..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={styles.searchInputNew}
+                  style={{ width: "100%", minWidth: "unset" }}
+                />
               </div>
             </div>
-            {filtrosActivos.length > 0 && (
-              <div className={styles.activeFiltersRow}>
-                <span className={styles.activeFiltersLabel}>Filtros activos ({filtrosActivos.length}):</span>
-                {filtrosActivos.map((f) => (
-                  <button key={f.key} type="button" className={styles.filterChip} onClick={f.clear} title={`Quitar filtro: ${f.label}`}>
-                    {f.label} <span className={styles.chipClose}>✕</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </section>
 
           <div className={styles.resultsSummary}>
@@ -972,7 +921,7 @@ export default function PacientesPage() {
               <div className={styles.compactList}>
                 <div className={styles.compactItem}><span>👨 Masculino</span><strong>{stats.sexos.m} <small>({stats.total ? ((stats.sexos.m / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
                 <div className={styles.compactItem}><span>👩 Femenino</span><strong>{stats.sexos.f} <small>({stats.total ? ((stats.sexos.f / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
-                <div className={styles.compactItem} onClick={verSinDatoSexo} style={{ cursor: "pointer", background: "var(--btn-ghost-hover)" }} title="Ver pacientes sin dato de sexo">
+                <div className={styles.compactItem} style={{ background: "var(--btn-ghost-hover)" }} title="Sin dato de sexo">
                   <span>❔ Sin dato</span><strong>{stats.sexos.sinDato} <small>({stats.total ? ((stats.sexos.sinDato / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
                 </div>
               </div>
