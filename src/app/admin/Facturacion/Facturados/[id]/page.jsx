@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ref, get } from 'firebase/database';
@@ -8,10 +8,9 @@ import { db } from '@/lib/firebase';
 import { money, parseNumber } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
 import { useReactToPrint } from 'react-to-print';
-import getArtImage from '../lib/artImages'; // <-- importamos la función compartida
-
+import getArtImage from '../lib/artImages';
 // ─────────────────────────────────────────────────────────────────────────────
-//  Función para formatear DNI con puntos (separadores de miles) o CUIL con guiones
+//  Función para formatear DNI con puntos o CUIL con guiones
 // ─────────────────────────────────────────────────────────────────────────────
 const formatDNI = (dni) => {
   if (!dni || dni === '—') return '—';
@@ -40,18 +39,6 @@ const safeNum = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-function csvEscape(s) {
-  const str = String(s ?? '');
-  const needsQuotes = /[;"\n\r]/.test(str);
-  const escaped = str.replace(/"/g, '""');
-  return needsQuotes ? `"${escaped}"` : escaped;
-}
-
-function buildCsv({ paciente, estado, item, honorRows, gastoRows }) {
-  // Pendiente de implementar
-  return '';
-}
-
 function ShortText({ text, max = 30 }) {
   const [open, setOpen] = useState(false);
   const str = String(text ?? '');
@@ -76,7 +63,38 @@ const truncate = (str, max = 40) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Vista en pantalla (ScreenView) – con DNI formateado
+//  Mapeo de IVA según ART (para el script de ARCA)
+// ─────────────────────────────────────────────────────────────────────────────
+const getIvaForArt = (artNombre) => {
+  const key = (artNombre || '').toUpperCase().trim();
+  const facturaAGroup = new Set([
+    'SEGUNDA PERSONAS',
+    'FEDERACION PATRONAL ART',
+    'FEDERACION PATRONAL AP',
+    'VICTORIA SEGUROS',
+    'IAPS ART',
+    'COMFYE',
+    'IAPS APS'
+  ]);
+  const facturaBGroup = new Set([
+    'RECONQUISTA ART',
+    'MEDICAL WORK ASOCIART',
+    'LA SEGUNDA ART'
+  ]);
+
+  if (facturaAGroup.has(key)) {
+    if (key === 'VICTORIA SEGUROS' || key === 'IAPS ART') return 'Exento';
+    if (key === 'COMFYE') return '10.5%';
+    return '21%';
+  }
+  if (facturaBGroup.has(key)) {
+    return 'Exento';
+  }
+  return '21%';
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Vista en pantalla (ScreenView)
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenView({
   paciente,
@@ -95,6 +113,7 @@ function ScreenView({
   onPrint,
   onDownloadCsv,
   onPrintMedDescLab,
+  onGenerarARCA,
 }) {
   const renderTable = (items, columns) => {
     if (items.length === 0) return <div className={styles.emptySmall}>Sin datos.</div>;
@@ -170,6 +189,7 @@ function ScreenView({
             </Link>
             <button className={styles.btn} onClick={onPrint}>🖨️ Imprimir todo</button>
             <button className={styles.btn} onClick={onPrintMedDescLab}>📋 Med+Desc+Lab</button>
+            <button className={`${styles.btn} ${styles.btnArca}`} onClick={onGenerarARCA}>📋 ARCA Script</button>
           </div>
         </div>
       </header>
@@ -417,13 +437,12 @@ PrintView.displayName = 'PrintView';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Vista de impresión solo Medicamentos + Descartables + Laboratorio
-//  (con pie institucional de la clínica)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrintMedDescLabView = React.forwardRef(({
   paciente,
   medicamentos,
   descartables,
-  laboratorios,  // ← ahora recibe el array ya procesado (honorLaboratorios)
+  laboratorios,
   artNombre,
 }, ref) => {
   const artImageUrl = getArtImage(artNombre);
@@ -436,7 +455,6 @@ const PrintMedDescLabView = React.forwardRef(({
   const dniFormateado = formatDNI(paciente?.dni);
   const siniestro = paciente?.nroSiniestro || '—';
 
-  // Medicamentos y descartables unidos (vienen procesados como gasto)
   const medDesc = [
     ...(Array.isArray(medicamentos) ? medicamentos : []),
     ...(Array.isArray(descartables) ? descartables : []),
@@ -449,7 +467,6 @@ const PrintMedDescLabView = React.forwardRef(({
     { label: 'Total', field: 'total', className: styles.printNumber }
   ];
 
-  // Laboratorio procesado: tiene desc, origen, unidades, unit, total
   const labColumns = [
     { label: 'Código – Estudio', field: 'desc' },
     { label: 'Bioquímico/a', field: 'origen' },
@@ -513,7 +530,7 @@ const PrintMedDescLabView = React.forwardRef(({
         </div>
       )}
 
-      {/* Laboratorio (procesado) */}
+      {/* Laboratorio */}
       {Array.isArray(laboratorios) && laboratorios.length > 0 && (
         <div className={styles.printSectionCompact}>
           <div className={styles.printSectionTitle}>
@@ -561,7 +578,7 @@ const PrintMedDescLabView = React.forwardRef(({
         </div>
       </div>
 
-      {/* Firma institucional (Clínica de la Unión) */}
+      {/* Firma institucional */}
       <div style={{ marginTop: 40, textAlign: 'center' }}>
         <div
           style={{
@@ -593,6 +610,11 @@ export default function FacturadoDetallePage() {
   const [item, setItem] = useState(null);
   const printRef = useRef(null);
   const printMedDescRef = useRef(null);
+
+  // Estados para el modal de ARCA Script
+  const [showArcaModal, setShowArcaModal] = useState(false);
+  const [arcaScript, setArcaScript] = useState('');
+  const [arcaCopied, setArcaCopied] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -767,7 +789,286 @@ export default function FacturadoDetallePage() {
     alert('Función CSV no implementada aún.');
   };
 
-  // ── Renderizado condicional ───────────────────────────────────────────────
+  // ── Generar Script ARCA (MEJORADO) ──────────────────────────────────────
+  const generarARCA = useCallback(() => {
+    if (!item) return;
+
+    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const practicas = toArr(item.practicas);
+    const cirugias = toArr(item.cirugias);
+    const laboratorios = toArr(item.laboratorios);
+    const medicamentos = toArr(item.medicamentos);
+    const descartables = toArr(item.descartables);
+
+    if (
+      practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
+      medicamentos.length === 0 && descartables.length === 0
+    ) {
+      alert('No hay datos para generar el script.');
+      return;
+    }
+
+    const art = item.artNombre || item.paciente?.artSeguro || '';
+    const iva = getIvaForArt(art);
+
+    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+    const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+    const pickPrestador = (x) =>
+      x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
+      x?.prestadorNombre || x?.prestador || 'Médico';
+    // 👇 CONFIRMAR: nombre real del campo de rol quirúrgico en item.cirugias
+    const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
+    const pickCantidad = (x) => {
+      const c = x?.cantidad ?? x?.unidades ?? 1;
+      const n = safeNum(c);
+      return n > 0 ? n : 1;
+    };
+
+    // ✅ MODIFICADO: truncar a 55 caracteres (antes 40)
+    const truncar55 = (desc) => (desc.length > 55 ? desc.slice(0, 52) + '...' : desc);
+
+    // ✅ SEPARAMOS EN DOS ARREGLOS: honorarios (código 2) y gastos (código 7)
+    const rowsHonorarios = [];
+    const rowsGastos = [];
+
+    // ── Prácticas: honorario y gasto ──────────────────────────────────────
+    practicas.forEach((x) => {
+      const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+
+      if (honorario > 0) {
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+        });
+      }
+    });
+
+    // ── Cx y/o Prácticas nomecladas: honorario con rol, gasto ─────────────
+    cirugias.forEach((x) => {
+      const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+      const rol = pickRol(x);
+
+      if (honorario > 0) {
+        const desc = rol
+          ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
+          : `Dr ${prestador} - ${codigo} ${descripcion}`;
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(desc),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+        });
+      }
+    });
+
+    // ── Laboratorio: honorarios consolidados en UNA fila por médico ───────
+    const labHonorPorDoctor = new Map(); // prestador -> total honorario
+    laboratorios.forEach((x) => {
+      const honorario = safeNum(x.honorarioMedico);
+      if (honorario > 0) {
+        const prestador = pickPrestador(x);
+        labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
+      }
+      // Gasto de laboratorio (si existe) va a gastos
+      const gasto = safeNum(x.gastoSanatorial);
+      if (gasto > 0) {
+        const codigo = pickCode(x);
+        const descripcion = pickDescripcion(x);
+        const cantidad = pickCantidad(x);
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+        });
+      }
+    });
+    labHonorPorDoctor.forEach((total, prestador) => {
+      rowsHonorarios.push({
+        codigo: '2',
+        descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
+        cantidad: 1,
+        precio: total.toFixed(2),
+      });
+    });
+
+    // ── Medicación y Descartables: UNA sola fila con el total ─────────────
+    const totalMedDesc = [...medicamentos, ...descartables].reduce(
+      (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
+      0
+    );
+    if (totalMedDesc > 0) {
+      rowsGastos.push({
+        codigo: '7',
+        descripcion: 'Medicación y Descartables',
+        cantidad: 1,
+        precio: totalMedDesc.toFixed(2),
+      });
+    }
+
+    // ✅ CONCATENAMOS: primero honorarios, después gastos
+    const rowsData = [...rowsHonorarios, ...rowsGastos];
+
+    if (rowsData.length === 0) {
+      alert('No se generaron filas.');
+      return;
+    }
+
+    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+    const ivaValue = ivaMapSelect[iva] || '0';
+    const rowsDataJson = JSON.stringify(rowsData);
+
+    const script = `
+  (function() {
+    const rowsData = ${rowsDataJson};
+    const ivaValue = '${ivaValue}';
+    const MEDIDA_UNIDADES = '7';
+
+    function getTable() {
+      let table = document.querySelector('table#idoperacion tbody');
+      if (!table) table = document.querySelector('table.jig_formvertical tbody');
+      if (!table) {
+        const allTables = document.querySelectorAll('table tbody');
+        for (const t of allTables) {
+          if (t.querySelector('input[name="detalleCodigoArticulo"]')) { table = t; break; }
+        }
+      }
+      return table;
+    }
+
+    function getDataRows(table) {
+      const rows = [];
+      for (let i = 0; i < table.rows.length; i++) {
+        if (table.rows[i].querySelector('input[name="detalleCodigoArticulo"]')) {
+          rows.push(table.rows[i]);
+        }
+      }
+      return rows;
+    }
+
+    function getAddButton() {
+      return document.querySelector('input[value="Agregar línea descripción"]');
+    }
+
+    function fireChange(el) {
+      if (!el) return;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new Event('keyup', { bubbles: true }));
+    }
+
+    function setRowValues(row, data) {
+      const codigoInput = row.querySelector('input[name="detalleCodigoArticulo"]');
+      if (codigoInput) codigoInput.value = data.codigo;
+
+      const descTextarea = row.querySelector('textarea[name="detalleDescripcion"]');
+      if (descTextarea) descTextarea.value = data.descripcion;
+
+      const cantInput = row.querySelector('input[name="detalleCantidad"]');
+      if (cantInput) cantInput.value = data.cantidad;
+
+      const medidaSelect = row.querySelector('select[name="detalleMedida"]');
+      if (medidaSelect) {
+        medidaSelect.value = MEDIDA_UNIDADES;
+        fireChange(medidaSelect);
+      }
+
+      const precioInput = row.querySelector('input[name="detallePrecio"]');
+      if (precioInput) precioInput.value = data.precio;
+
+      const ivaSelect = row.querySelector('select[name="detalleTipoIVA"]');
+      if (ivaSelect) ivaSelect.value = ivaValue;
+
+      // Disparar recálculo en orden: cantidad, precio, IVA
+      fireChange(cantInput);
+      fireChange(precioInput);
+      fireChange(ivaSelect);
+    }
+
+    const table = getTable();
+    if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+
+    const addBtn = getAddButton();
+    if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
+
+    let dataRows = getDataRows(table);
+    const targetCount = rowsData.length;
+
+    // Agregar filas faltantes usando el botón real de la página
+    let guard = 0;
+    while (dataRows.length < targetCount && guard < 200) {
+      addBtn.click();
+      dataRows = getDataRows(table);
+      guard++;
+    }
+
+    // Eliminar filas sobrantes usando el botón "X" real de cada fila
+    guard = 0;
+    while (dataRows.length > targetCount && guard < 200) {
+      const lastRow = dataRows[dataRows.length - 1];
+      const delBtn = lastRow.querySelector('input[name="Eliminar"]');
+      if (delBtn) delBtn.click();
+      else break;
+      dataRows = getDataRows(table);
+      guard++;
+    }
+
+    if (dataRows.length !== targetCount) {
+      alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+      return;
+    }
+
+    // Cargar solo los campos necesarios para facturar
+    for (let i = 0; i < targetCount; i++) {
+      setRowValues(dataRows[i], rowsData[i]);
+    }
+
+    console.log('✅ Se procesaron ' + targetCount + ' filas.');
+    alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+  })();
+  `;
+
+    setArcaScript(script);
+    setShowArcaModal(true);
+  }, [item]);
+  // Copiar al portapapeles (desde el modal)
+  const handleCopyArca = useCallback(() => {
+    navigator.clipboard.writeText(arcaScript)
+      .then(() => {
+        setArcaCopied(true);
+        setTimeout(() => setArcaCopied(false), 3000);
+      })
+      .catch(() => alert('No se pudo copiar el texto.'));
+  }, [arcaScript]);
+
+  // ── Render ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className={styles.container}>
@@ -814,6 +1115,7 @@ export default function FacturadoDetallePage() {
           onPrint={onPrint}
           onDownloadCsv={onDownloadCsv}
           onPrintMedDescLab={onPrintMedDescLab}
+          onGenerarARCA={generarARCA}
         />
       </div>
 
@@ -839,7 +1141,7 @@ export default function FacturadoDetallePage() {
         artNombre={artNombre}
       />
 
-      {/* Vista impresión Med+Desc+Lab: arrays procesados + pie institucional */}
+      {/* Vista impresión Med+Desc+Lab */}
       <PrintMedDescLabView
         ref={printMedDescRef}
         paciente={paciente}
@@ -848,6 +1150,55 @@ export default function FacturadoDetallePage() {
         laboratorios={honorLaboratorios}
         artNombre={artNombre}
       />
+
+      {/* ─── MODAL ARCA SCRIPT SIMPLIFICADO ─── */}
+      {showArcaModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowArcaModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <h2>📋 ARCA Script</h2>
+            <p style={{ marginBottom: '20px' }}>
+              Copiá el siguiente script y pegálo en la consola de ARCA (F12) para cargar los detalles automáticamente.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                className={styles.btnPrimary}
+                onClick={handleCopyArca}
+                disabled={arcaCopied}
+                style={{ minWidth: '150px' }}
+              >
+                {arcaCopied ? '✅ ¡Copiado!' : '📋 Copiar script'}
+              </button>
+              <button
+                className={styles.btnGhost}
+                onClick={() => setShowArcaModal(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+            {arcaCopied && (
+              <p style={{ marginTop: '12px', color: '#22c55e', fontWeight: 'bold' }}>
+                ✅ Script copiado al portapapeles. Ahora pegálo en la consola de ARCA.
+              </p>
+            )}
+            <details style={{ marginTop: '20px', textAlign: 'left' }}>
+              <summary style={{ cursor: 'pointer', color: '#64748b' }}>Ver script (opcional)</summary>
+              <pre style={{
+                background: '#f1f5f9',
+                padding: '12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                overflow: 'auto',
+                maxHeight: '200px',
+                marginTop: '8px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
+              }}>
+                {arcaScript}
+              </pre>
+            </details>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
