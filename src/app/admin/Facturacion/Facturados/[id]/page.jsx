@@ -9,6 +9,7 @@ import { money, parseNumber } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
 import { useReactToPrint } from 'react-to-print';
 import getArtImage from '../lib/artImages';
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Función para formatear DNI con puntos o CUIL con guiones
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,29 +68,38 @@ const truncate = (str, max = 40) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getIvaForArt = (artNombre) => {
   const key = (artNombre || '').toUpperCase().trim();
-  const facturaAGroup = new Set([
-    'SEGUNDA PERSONAS',
-    'FEDERACION PATRONAL ART',
+
+  // Factura A – IVA 21%
+  const iva21Group = new Set([
+    'IAPS AP',
     'FEDERACION PATRONAL AP',
-    'VICTORIA SEGUROS',
-    'IAPS ART',
-    'COMFYE',
-    'IAPS APS'
+    'LA SEGUNDA PERSONAS'
   ]);
+
+  // Factura A – Exento
+  const exentoGroup = new Set([
+    'IAPS ART',
+    'VICTORIA SEGUROS',
+    'FEDERACION PATRONAL ART'
+  ]);
+
+  // Factura A – IVA 10.5%
+  const iva105Group = new Set([
+    'COMFYE'
+  ]);
+
+  // Factura B – No llevan IVA en la tabla (se comportan como Exento)
   const facturaBGroup = new Set([
     'RECONQUISTA ART',
-    'MEDICAL WORK ASOCIART',
+    'MEDICAR WORK',
+    'ASOCIART',
     'LA SEGUNDA ART'
   ]);
 
-  if (facturaAGroup.has(key)) {
-    if (key === 'VICTORIA SEGUROS' || key === 'IAPS ART') return 'Exento';
-    if (key === 'COMFYE') return '10.5%';
-    return '21%';
-  }
-  if (facturaBGroup.has(key)) {
-    return 'Exento';
-  }
+  if (iva21Group.has(key)) return '21%';
+  if (exentoGroup.has(key) || facturaBGroup.has(key)) return 'Exento';
+  if (iva105Group.has(key)) return '10.5%';
+
   return '21%';
 };
 
@@ -611,7 +621,6 @@ export default function FacturadoDetallePage() {
   const printRef = useRef(null);
   const printMedDescRef = useRef(null);
 
-  // Estados para el modal de ARCA Script
   const [showArcaModal, setShowArcaModal] = useState(false);
   const [arcaScript, setArcaScript] = useState('');
   const [arcaCopied, setArcaCopied] = useState(false);
@@ -774,7 +783,6 @@ export default function FacturadoDetallePage() {
     };
   }, [item]);
 
-  // ── Handlers de impresión ─────────────────────────────────────────────────
   const onPrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Factura_${id}_${item?.paciente?.dni || 'sin_dni'}`,
@@ -816,7 +824,6 @@ export default function FacturadoDetallePage() {
     const pickPrestador = (x) =>
       x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
       x?.prestadorNombre || x?.prestador || 'Médico';
-    // 👇 CONFIRMAR: nombre real del campo de rol quirúrgico en item.cirugias
     const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
     const pickCantidad = (x) => {
       const c = x?.cantidad ?? x?.unidades ?? 1;
@@ -824,10 +831,12 @@ export default function FacturadoDetallePage() {
       return n > 0 ? n : 1;
     };
 
-    // ✅ MODIFICADO: truncar a 55 caracteres (antes 40)
     const truncar55 = (desc) => (desc.length > 55 ? desc.slice(0, 52) + '...' : desc);
 
-    // ✅ SEPARAMOS EN DOS ARREGLOS: honorarios (código 2) y gastos (código 7)
+    // Mapeo de IVA a los valores del select de ARCA
+    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+    const ivaValue = ivaMapSelect[iva] || '0'; // valor para las filas normales
+
     const rowsHonorarios = [];
     const rowsGastos = [];
 
@@ -846,6 +855,7 @@ export default function FacturadoDetallePage() {
           descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
           cantidad,
           precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
         });
       }
       if (gasto > 0) {
@@ -854,6 +864,7 @@ export default function FacturadoDetallePage() {
           descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
           cantidad,
           precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
         });
       }
     });
@@ -877,6 +888,7 @@ export default function FacturadoDetallePage() {
           descripcion: truncar55(desc),
           cantidad,
           precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
         });
       }
       if (gasto > 0) {
@@ -885,19 +897,19 @@ export default function FacturadoDetallePage() {
           descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
           cantidad,
           precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
         });
       }
     });
 
     // ── Laboratorio: honorarios consolidados en UNA fila por médico ───────
-    const labHonorPorDoctor = new Map(); // prestador -> total honorario
+    const labHonorPorDoctor = new Map();
     laboratorios.forEach((x) => {
       const honorario = safeNum(x.honorarioMedico);
       if (honorario > 0) {
         const prestador = pickPrestador(x);
         labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
       }
-      // Gasto de laboratorio (si existe) va a gastos
       const gasto = safeNum(x.gastoSanatorial);
       if (gasto > 0) {
         const codigo = pickCode(x);
@@ -908,6 +920,7 @@ export default function FacturadoDetallePage() {
           descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
           cantidad,
           precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
         });
       }
     });
@@ -917,6 +930,7 @@ export default function FacturadoDetallePage() {
         descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
         cantidad: 1,
         precio: total.toFixed(2),
+        iva: ivaValue,
       });
     });
 
@@ -931,10 +945,24 @@ export default function FacturadoDetallePage() {
         descripcion: 'Medicación y Descartables',
         cantidad: 1,
         precio: totalMedDesc.toFixed(2),
+        iva: ivaValue,
       });
     }
 
-    // ✅ CONCATENAMOS: primero honorarios, después gastos
+    // ── FILA ADICIONAL DEL PACIENTE ────────────────────────────────────────
+    const paciente = item.paciente || {};
+    const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
+    const dniPaciente = paciente.dni || '';
+    const pacienteDesc = `Pte ${nombrePaciente} - dni ${dniPaciente} - ${art} -`;
+    rowsGastos.push({
+      codigo: '',
+      descripcion: pacienteDesc,   // ✅ Sin truncar
+      cantidad: 1,
+      precio: '0.00',
+      iva: '2', // Exento
+    });
+
+    // ── UNIMOS: primero honorarios, después gastos (incluye la fila paciente) ──
     const rowsData = [...rowsHonorarios, ...rowsGastos];
 
     if (rowsData.length === 0) {
@@ -942,14 +970,11 @@ export default function FacturadoDetallePage() {
       return;
     }
 
-    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
-    const ivaValue = ivaMapSelect[iva] || '0';
     const rowsDataJson = JSON.stringify(rowsData);
 
     const script = `
   (function() {
     const rowsData = ${rowsDataJson};
-    const ivaValue = '${ivaValue}';
     const MEDIDA_UNIDADES = '7';
 
     function getTable() {
@@ -1004,9 +1029,8 @@ export default function FacturadoDetallePage() {
       if (precioInput) precioInput.value = data.precio;
 
       const ivaSelect = row.querySelector('select[name="detalleTipoIVA"]');
-      if (ivaSelect) ivaSelect.value = ivaValue;
+      if (ivaSelect) ivaSelect.value = data.iva; // ✅ IVA por fila
 
-      // Disparar recálculo en orden: cantidad, precio, IVA
       fireChange(cantInput);
       fireChange(precioInput);
       fireChange(ivaSelect);
@@ -1021,7 +1045,6 @@ export default function FacturadoDetallePage() {
     let dataRows = getDataRows(table);
     const targetCount = rowsData.length;
 
-    // Agregar filas faltantes usando el botón real de la página
     let guard = 0;
     while (dataRows.length < targetCount && guard < 200) {
       addBtn.click();
@@ -1029,7 +1052,6 @@ export default function FacturadoDetallePage() {
       guard++;
     }
 
-    // Eliminar filas sobrantes usando el botón "X" real de cada fila
     guard = 0;
     while (dataRows.length > targetCount && guard < 200) {
       const lastRow = dataRows[dataRows.length - 1];
@@ -1045,7 +1067,6 @@ export default function FacturadoDetallePage() {
       return;
     }
 
-    // Cargar solo los campos necesarios para facturar
     for (let i = 0; i < targetCount; i++) {
       setRowValues(dataRows[i], rowsData[i]);
     }
@@ -1058,7 +1079,7 @@ export default function FacturadoDetallePage() {
     setArcaScript(script);
     setShowArcaModal(true);
   }, [item]);
-  // Copiar al portapapeles (desde el modal)
+
   const handleCopyArca = useCallback(() => {
     navigator.clipboard.writeText(arcaScript)
       .then(() => {
@@ -1068,7 +1089,6 @@ export default function FacturadoDetallePage() {
       .catch(() => alert('No se pudo copiar el texto.'));
   }, [arcaScript]);
 
-  // ── Render ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className={styles.container}>
@@ -1119,7 +1139,6 @@ export default function FacturadoDetallePage() {
         />
       </div>
 
-      {/* Vista impresión principal */}
       <PrintView
         ref={printRef}
         paciente={paciente}
@@ -1141,7 +1160,6 @@ export default function FacturadoDetallePage() {
         artNombre={artNombre}
       />
 
-      {/* Vista impresión Med+Desc+Lab */}
       <PrintMedDescLabView
         ref={printMedDescRef}
         paciente={paciente}
@@ -1151,7 +1169,6 @@ export default function FacturadoDetallePage() {
         artNombre={artNombre}
       />
 
-      {/* ─── MODAL ARCA SCRIPT SIMPLIFICADO ─── */}
       {showArcaModal && (
         <div className={styles.modalOverlay} onClick={() => setShowArcaModal(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -1183,7 +1200,7 @@ export default function FacturadoDetallePage() {
             <details style={{ marginTop: '20px', textAlign: 'left' }}>
               <summary style={{ cursor: 'pointer', color: '#64748b' }}>Ver script (opcional)</summary>
               <pre style={{
-                background: '#f1f5f9',
+                background: '#04060B',
                 padding: '12px',
                 borderRadius: '6px',
                 fontSize: '12px',
