@@ -4,10 +4,47 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ref, update, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money } from '../utils/calculos';
+import { money, parseNumber } from '../utils/calculos'; // 🔹 Importamos parseNumber
 import { cerrarPacientePorFactura } from '../utils/siniestroPacienteSync';
 import useFacturados from './Hook/useFacturados';
 import styles from './facturados.module.css';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Utilidades para el script ARCA
+// ─────────────────────────────────────────────────────────────────────────────
+const safeNum = (v) => {
+  const n = typeof v === 'number' ? v : parseNumber(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const getIvaForArt = (artNombre) => {
+  const key = (artNombre || '').toUpperCase().trim();
+
+  const iva21Group = new Set([
+    'IAPS AP',
+    'FEDERACION PATRONAL AP',
+    'LA SEGUNDA PERSONAS'
+  ]);
+  const exentoGroup = new Set([
+    'IAPS ART',
+    'VICTORIA SEGUROS',
+    'FEDERACION PATRONAL ART'
+  ]);
+  const iva105Group = new Set([
+    'COMFYE'
+  ]);
+  const facturaBGroup = new Set([
+    'RECONQUISTA ART',
+    'MEDICAR WORK',
+    'ASOCIART',
+    'LA SEGUNDA ART'
+  ]);
+
+  if (iva21Group.has(key)) return '21%';
+  if (exentoGroup.has(key) || facturaBGroup.has(key)) return 'Exento';
+  if (iva105Group.has(key)) return '10.5%';
+  return '21%';
+};
 
 const fmtDate = (ms) => {
   if (!ms) return '—';
@@ -29,7 +66,7 @@ export default function FacturadosPage() {
     fechaHasta, setFechaHasta,
     selectedIds, toggleSelect, toggleSelectAll,
     deleting, deleteSelected,
-    exportCompleto, exportJson, printART,
+    exportCompleto, exportJson,
     counts, arts, filtered,
   } = useFacturados();
 
@@ -37,7 +74,13 @@ export default function FacturadosPage() {
   const [busyId, setBusyId] = useState('');
   const [showIapsModal, setShowIapsModal] = useState(false);
   const [cmdScript, setCmdScript] = useState('');
-  const [copied, setCopied] = useState(false); // 🔹 AGREGADO
+  const [copied, setCopied] = useState(false);
+
+  // 🔹 Estados para ARCA Script
+  const [showArcaModal, setShowArcaModal] = useState(false);
+  const [arcaScript, setArcaScript] = useState('');
+  const [arcaCopied, setArcaCopied] = useState(false);
+  const [arcaLoadingId, setArcaLoadingId] = useState('');
 
   const allSelected = selectedIds.size === filtered.length && filtered.length > 0;
   const haySeleccion = selectedIds.size > 0;
@@ -130,13 +173,10 @@ export default function FacturadosPage() {
       alert('No hay registros para generar carpetas.');
       return;
     }
-    // Ordenar por nombre
     items = items.sort((a, b) => (a.pacienteNombre || '').localeCompare(b.pacienteNombre || ''));
 
-    // PDF vacío mínimo en Base64
     const base64PDF = "JVBERi0xLjQKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQo+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTcgMDAwMDAgbiAKMDAwMDAwMDExMyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDQKL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjE5MAolJUVPRg==";
 
-    // Escapar los % para que CMD los pase intactos a PowerShell
     const escapedBase64 = base64PDF.replace(/%/g, '%%');
 
     const lines = items.map(it => {
@@ -154,7 +194,306 @@ export default function FacturadosPage() {
     setShowIapsModal(true);
   }, [selectedIds, filtered]);
 
-  // 🔹 FUNCIÓN handleCopy AGREGADA
+  // 🔹 Función para generar el script ARCA de un item completo
+  const generateArcaScript = useCallback((fullItem) => {
+    if (!fullItem) return '';
+
+    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const practicas = toArr(fullItem.practicas);
+    const cirugias = toArr(fullItem.cirugias);
+    const laboratorios = toArr(fullItem.laboratorios);
+    const medicamentos = toArr(fullItem.medicamentos);
+    const descartables = toArr(fullItem.descartables);
+
+    if (
+      practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
+      medicamentos.length === 0 && descartables.length === 0
+    ) {
+      alert('No hay datos para generar el script.');
+      return '';
+    }
+
+    const art = fullItem.artNombre || fullItem.paciente?.artSeguro || '';
+    const iva = getIvaForArt(art);
+
+    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+    const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+    const pickPrestador = (x) =>
+      x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
+      x?.prestadorNombre || x?.prestador || 'Médico';
+    const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
+    const pickCantidad = (x) => {
+      const c = x?.cantidad ?? x?.unidades ?? 1;
+      const n = safeNum(c);
+      return n > 0 ? n : 1;
+    };
+
+    const truncar55 = (desc) => (desc.length > 55 ? desc.slice(0, 52) + '...' : desc);
+
+    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+    const ivaValue = ivaMapSelect[iva] || '0';
+
+    const rowsHonorarios = [];
+    const rowsGastos = [];
+
+    practicas.forEach((x) => {
+      const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+
+      if (honorario > 0) {
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    cirugias.forEach((x) => {
+      const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+      const rol = pickRol(x);
+
+      if (honorario > 0) {
+        const desc = rol
+          ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
+          : `Dr ${prestador} - ${codigo} ${descripcion}`;
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(desc),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    const labHonorPorDoctor = new Map();
+    laboratorios.forEach((x) => {
+      const honorario = safeNum(x.honorarioMedico);
+      if (honorario > 0) {
+        const prestador = pickPrestador(x);
+        labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
+      }
+      const gasto = safeNum(x.gastoSanatorial);
+      if (gasto > 0) {
+        const codigo = pickCode(x);
+        const descripcion = pickDescripcion(x);
+        const cantidad = pickCantidad(x);
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+    labHonorPorDoctor.forEach((total, prestador) => {
+      rowsHonorarios.push({
+        codigo: '2',
+        descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
+        cantidad: 1,
+        precio: total.toFixed(2),
+        iva: ivaValue,
+      });
+    });
+
+    const totalMedDesc = [...medicamentos, ...descartables].reduce(
+      (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
+      0
+    );
+    if (totalMedDesc > 0) {
+      rowsGastos.push({
+        codigo: '7',
+        descripcion: 'Medicación y Descartables',
+        cantidad: 1,
+        precio: totalMedDesc.toFixed(2),
+        iva: ivaValue,
+      });
+    }
+
+    const paciente = fullItem.paciente || {};
+    const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
+    const dniPaciente = paciente.dni || '';
+    const pacienteDesc = `Pte ${nombrePaciente} - dni ${dniPaciente} - ${art} -`;
+    rowsGastos.push({
+      codigo: '',
+      descripcion: pacienteDesc,
+      cantidad: 1,
+      precio: '0.00',
+      iva: '2',
+    });
+
+    const rowsData = [...rowsHonorarios, ...rowsGastos];
+    if (rowsData.length === 0) return '';
+
+    const rowsDataJson = JSON.stringify(rowsData);
+    return `
+  (function() {
+    const rowsData = ${rowsDataJson};
+    const MEDIDA_UNIDADES = '7';
+
+    function getTable() {
+      let table = document.querySelector('table#idoperacion tbody');
+      if (!table) table = document.querySelector('table.jig_formvertical tbody');
+      if (!table) {
+        const allTables = document.querySelectorAll('table tbody');
+        for (const t of allTables) {
+          if (t.querySelector('input[name="detalleCodigoArticulo"]')) { table = t; break; }
+        }
+      }
+      return table;
+    }
+
+    function getDataRows(table) {
+      const rows = [];
+      for (let i = 0; i < table.rows.length; i++) {
+        if (table.rows[i].querySelector('input[name="detalleCodigoArticulo"]')) {
+          rows.push(table.rows[i]);
+        }
+      }
+      return rows;
+    }
+
+    function getAddButton() {
+      return document.querySelector('input[value="Agregar línea descripción"]');
+    }
+
+    function fireChange(el) {
+      if (!el) return;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new Event('keyup', { bubbles: true }));
+    }
+
+    function setRowValues(row, data) {
+      const codigoInput = row.querySelector('input[name="detalleCodigoArticulo"]');
+      if (codigoInput) codigoInput.value = data.codigo;
+
+      const descTextarea = row.querySelector('textarea[name="detalleDescripcion"]');
+      if (descTextarea) descTextarea.value = data.descripcion;
+
+      const cantInput = row.querySelector('input[name="detalleCantidad"]');
+      if (cantInput) cantInput.value = data.cantidad;
+
+      const medidaSelect = row.querySelector('select[name="detalleMedida"]');
+      if (medidaSelect) {
+        medidaSelect.value = MEDIDA_UNIDADES;
+        fireChange(medidaSelect);
+      }
+
+      const precioInput = row.querySelector('input[name="detallePrecio"]');
+      if (precioInput) precioInput.value = data.precio;
+
+      const ivaSelect = row.querySelector('select[name="detalleTipoIVA"]');
+      if (ivaSelect) ivaSelect.value = data.iva;
+
+      fireChange(cantInput);
+      fireChange(precioInput);
+      fireChange(ivaSelect);
+    }
+
+    const table = getTable();
+    if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+
+    const addBtn = getAddButton();
+    if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
+
+    let dataRows = getDataRows(table);
+    const targetCount = rowsData.length;
+
+    let guard = 0;
+    while (dataRows.length < targetCount && guard < 200) {
+      addBtn.click();
+      dataRows = getDataRows(table);
+      guard++;
+    }
+
+    guard = 0;
+    while (dataRows.length > targetCount && guard < 200) {
+      const lastRow = dataRows[dataRows.length - 1];
+      const delBtn = lastRow.querySelector('input[name="Eliminar"]');
+      if (delBtn) delBtn.click();
+      else break;
+      dataRows = getDataRows(table);
+      guard++;
+    }
+
+    if (dataRows.length !== targetCount) {
+      alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+      return;
+    }
+
+    for (let i = 0; i < targetCount; i++) {
+      setRowValues(dataRows[i], rowsData[i]);
+    }
+
+    console.log('✅ Se procesaron ' + targetCount + ' filas.');
+    alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+  })();
+  `;
+  }, []);
+
+  // 🔹 Función que obtiene el item completo y abre el modal ARCA
+  const handleGenerarARCA = useCallback(async (id) => {
+    setArcaLoadingId(id);
+    try {
+      const snap = await get(ref(db, `Facturacion/${id}`));
+      if (!snap.exists()) {
+        alert('No existe el registro.');
+        return;
+      }
+      const fullItem = snap.val();
+      const script = generateArcaScript(fullItem);
+      if (script) {
+        setArcaScript(script);
+        setShowArcaModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || 'Error al obtener los datos.');
+    } finally {
+      setArcaLoadingId('');
+    }
+  }, [generateArcaScript]);
+
+  const handleCopyArca = useCallback(() => {
+    navigator.clipboard.writeText(arcaScript)
+      .then(() => {
+        setArcaCopied(true);
+        setTimeout(() => setArcaCopied(false), 3000);
+      })
+      .catch(() => alert('No se pudo copiar el texto.'));
+  }, [arcaScript]);
+
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(cmdScript)
       .then(() => {
@@ -319,8 +658,13 @@ export default function FacturadosPage() {
                     <Link className={`${styles.btn} ${styles.btnGhost}`} href={`/admin/Facturacion/Facturados/${it.id}`}>
                       👁 Ver
                     </Link>
-                    <button className={`${styles.btn} ${styles.btnGhost}`} onClick={() => printART(it.id)} disabled={busy}>
-                      🖨️ Imprimir
+                    {/* 🔹 Reemplazamos el botón Imprimir por ARCA Script */}
+                    <button
+                      className={`${styles.btn} ${styles.btnGhost}`}
+                      onClick={() => handleGenerarARCA(it.id)}
+                      disabled={busy || arcaLoadingId === it.id}
+                    >
+                      {arcaLoadingId === it.id ? '⏳ Generando…' : '📋 ARCA Script'}
                     </button>
                     {!esCerrado && (
                       <button className={`${styles.btn} ${styles.btnSuccess}`} onClick={() => marcarFacturado(it.id)} disabled={busy}>
@@ -376,6 +720,51 @@ export default function FacturadosPage() {
                 )}
               </div>
               <button className={styles.btnPrimary} onClick={() => setShowIapsModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ARCA SCRIPT */}
+      {showArcaModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowArcaModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
+            <h2>📋 ARCA Script</h2>
+            <p>Copiá el siguiente script y pegálo en la consola de ARCA (F12) para cargar los detalles automáticamente.</p>
+            <pre className={styles.cmdScript} style={{ background: '#04060B', color: '#e2e8f0' }}>
+              {arcaScript}
+            </pre>
+            <div className={styles.modalActions}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  className={styles.btnPrimary}
+                  onClick={handleCopyArca}
+                  disabled={arcaCopied}
+                >
+                  {arcaCopied ? '✅ ¡Copiado!' : '📋 Copiar script'}
+                </button>
+                {arcaCopied && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.8em',
+                    whiteSpace: 'nowrap',
+                    zIndex: 10,
+                    opacity: 1,
+                    transition: 'opacity 0.3s',
+                  }}>
+                    ✅ ¡Copiado al portapapeles!
+                  </span>
+                )}
+              </div>
+              <button className={styles.btnGhost} onClick={() => setShowArcaModal(false)}>Cerrar</button>
             </div>
           </div>
         </div>
