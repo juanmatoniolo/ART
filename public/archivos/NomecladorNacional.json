@@ -104,7 +104,7 @@
       },
       {
         "codigo": "010206",
-        "descripcion": "Tratamiento quirúrgico de los aneurismas y malformaciones arteriovenosas intracraneales (aneurismas, malformaciones rateriovenosas,fístula carótidocavernosa). (X)",
+        "descripcion": "Tratamiento quirúrgico de los aneurismas y malformaciones arteriovenosas intracraneales (aneurismas, malformaciones rateriovenosas,fístula carótidocavernosa). ",
         "q_gal": 797.25,
         "gto": 366,
         "subcapitulo": "01.02",
@@ -122,7 +122,7 @@
       },
       {
         "codigo": "010208",
-        "descripcion": "Craneotomía exploradora, con o sin biopsia, evacuación de colección intracerebral, epídural,subdural y/o subaracnoidea, extracción de cuerpo extraño, etc. (X)",
+        "descripcion": "Craneotomía exploradora, con o sin biopsia, evacuación de colección intracerebral, epídural,subdural y/o subaracnoidea, extracción de cuerpo extraño, etc. ",
         "q_gal": 531.75,
         "gto": 276,
         "subcapitulo": "01.02",
@@ -266,7 +266,7 @@
       },
       {
         "codigo": "010309",
-        "descripcion": "Punción lumbar con o sin manometría. (X)",
+        "descripcion": "Punción lumbar con o sin manometría. ",
         "q_gal": 0,
         "gto": 7,
         "subcapitulo": "01.03",
@@ -500,7 +500,7 @@
       },
       {
         "codigo": "010703",
-        "descripcion": "Arteriografía carotídea o vertebral. Por disección o punción directa. (X)",
+        "descripcion": "Arteriografía carotídea o vertebral. Por disección o punción directa. ",
         "q_gal": 66,
         "gto": 78,
         "subcapitulo": "01.07",
@@ -518,7 +518,7 @@
       },
       {
         "codigo": "010705",
-        "descripcion": "Mielografía ascendente o descendente. Cisternografía. Mielografía. Radiculografía. (X)",
+        "descripcion": "Mielografía ascendente o descendente. Cisternografía. Mielografía. Radiculografía. ",
         "q_gal": 66,
         "gto": 36,
         "subcapitulo": "01.07",
@@ -722,7 +722,7 @@
       },
       {
         "codigo": "020305",
-        "descripcion": "Sutura de conjuntiva ( incluída extracción de cuerpo extraño). Cuerpo extraño subconjuntival. Biopsia de conjuntiva. (X)",
+        "descripcion": "Sutura de conjuntiva ( incluída extracción de cuerpo extraño). Cuerpo extraño subconjuntival. Biopsia de conjuntiva. ",
         "q_gal": 21.75,
         "gto": 89,
         "subcapitulo": "02.03",
@@ -794,7 +794,7 @@
       },
       {
         "codigo": "020501",
-        "descripcion": "Tratamiento quirúrgico del glaucoma. (X)",
+        "descripcion": "Tratamiento quirúrgico del glaucoma. ",
         "q_gal": 303,
         "gto": 268,
         "subcapitulo": "02.05",
@@ -830,7 +830,7 @@
       },
       {
         "codigo": "020602",
-        "descripcion": "Fotocoagulación con rayo laser. (X)",
+        "descripcion": "Fotocoagulación con rayo laser. ",
         "q_gal": 159.75,
         "gto": 407,
         "subcapitulo": "02.06",
@@ -875,7 +875,7 @@
       },
       {
         "codigo": "020701",
-        "descripcion": "Extracción del cristalino (cataratas). (X)",
+        "descripcion": "Extracción del cristalino (cataratas). ",
         "q_gal": 345,
         "gto": 228,
         "subcapitulo": "02.07",
@@ -920,7 +920,7 @@
       },
       {
         "codigo": "020803",
-        "descripcion": "Drenaje de glándula o saco lagrimal (abceso). Sección de papila lagrimal (estricturotomía). (X)",
+        "descripcion": "Drenaje de glándula o saco lagrimal (abceso). Sección de papila lagrimal (estricturotomía). ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "02.08",
@@ -1034,7 +1034,7 @@
       },
       {
         "codigo": "030202",
-        "descripcion": "Tímpanoplastia. (X)",
+        "descripcion": "Tímpanoplastia. ",
         "q_gal": 425.25,
         "gto": 281,
         "subcapitulo": "03.02",
@@ -1043,7 +1043,7 @@
       },
       {
         "codigo": "030203",
-        "descripcion": "Miringotomía con o sin colocación de tubo drenaje.(uni o bilateral). (X)",
+        "descripcion": "Miringotomía con o sin colocación de tubo drenaje.(uni o bilateral). ",
         "q_gal": 0,
         "gto": 26,
         "subcapitulo": "03.02",
@@ -1223,7 +1223,7 @@
       },
       {
         "codigo": "030406",
-        "descripcion": "Resección de lesión local endonasal (de septum. de cornete hematoma septal, drenaje de septum)Ext. de pólipos nasales. (X)",
+        "descripcion": "Resección de lesión local endonasal (de septum. de cornete hematoma septal, drenaje de septum)Ext. de pólipos nasales. ",
         "q_gal": 12.75,
         "gto": 45,
         "subcapitulo": "03.04",
@@ -1403,7 +1403,7 @@
       },
       {
         "codigo": "030513",
-        "descripcion": "Sinusotomía maxilar simple bilateral. (X)",
+        "descripcion": "Sinusotomía maxilar simple bilateral. ",
         "q_gal": 119.25,
         "gto": 124,
         "subcapitulo": "03.05",
@@ -1421,7 +1421,7 @@
       },
       {
         "codigo": "030515",
-        "descripcion": "Punción de seno con o sin inserción de sonda dentro del seno paranasal o biopsia de seno paranasal (uni o bilateral). (X)",
+        "descripcion": "Punción de seno con o sin inserción de sonda dentro del seno paranasal o biopsia de seno paranasal (uni o bilateral). ",
         "q_gal": 21.75,
         "gto": 7,
         "subcapitulo": "03.05",
@@ -1430,7 +1430,7 @@
       },
       {
         "codigo": "030516",
-        "descripcion": "Cirugía de la fosa pterigomaxilar (exploración, escisión de tumor, etc). (X)",
+        "descripcion": "Cirugía de la fosa pterigomaxilar (exploración, escisión de tumor, etc). ",
         "q_gal": 252.75,
         "gto": 220,
         "subcapitulo": "03.05",
@@ -1502,7 +1502,7 @@
       },
       {
         "codigo": "030608",
-        "descripcion": "Microcirugía de laringe. (X)",
+        "descripcion": "Microcirugía de laringe. ",
         "q_gal": 252.75,
         "gto": 361,
         "subcapitulo": "03.06",
@@ -1664,7 +1664,7 @@
       },
       {
         "codigo": "030904",
-        "descripcion": "Incisión y drenaje de piso de boca-biopsia de mucosa bucal. Sutura de boca (piso o cara mucosa de mejilla). (X)",
+        "descripcion": "Incisión y drenaje de piso de boca-biopsia de mucosa bucal. Sutura de boca (piso o cara mucosa de mejilla). ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "03.09",
@@ -1772,7 +1772,7 @@
       },
       {
         "codigo": "031103",
-        "descripcion": "Escisión local de lesión de lengua. (X)",
+        "descripcion": "Escisión local de lesión de lengua. ",
         "q_gal": 61.5,
         "gto": 162,
         "subcapitulo": "03.11",
@@ -1790,7 +1790,7 @@
       },
       {
         "codigo": "031105",
-        "descripcion": "Glosotomía con drenaje de absceso, con extracción de cuerpo extraño. Sección frenillo lingual. Sutura de lengua. Biopsia de lengua. (X)",
+        "descripcion": "Glosotomía con drenaje de absceso, con extracción de cuerpo extraño. Sección frenillo lingual. Sutura de lengua. Biopsia de lengua. ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "03.11",
@@ -1862,7 +1862,7 @@
       },
       {
         "codigo": "031302",
-        "descripcion": "Escisión o electrocoagulación de amígdala lingual, resto amigdalino o tegido linfoideo-faríngeo. (X)",
+        "descripcion": "Escisión o electrocoagulación de amígdala lingual, resto amigdalino o tegido linfoideo-faríngeo. ",
         "q_gal": 39.75,
         "gto": 65,
         "subcapitulo": "03.13",
@@ -1871,7 +1871,7 @@
       },
       {
         "codigo": "031303",
-        "descripcion": "Incisión y drenaje de amígdalas o tejidos periamigdalinos. (X)",
+        "descripcion": "Incisión y drenaje de amígdalas o tejidos periamigdalinos. ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "03.13",
@@ -2003,7 +2003,7 @@
       },
       {
         "codigo": "040104",
-        "descripcion": "Tiroidectomía sub-total-hemitiroidectomía. (X)",
+        "descripcion": "Tiroidectomía sub-total-hemitiroidectomía. ",
         "q_gal": 252.75,
         "gto": 223,
         "subcapitulo": "04.01",
@@ -2225,7 +2225,7 @@
       },
       {
         "codigo": "050407",
-        "descripcion": "Drenaje de pleura con trocard, por toracotomía mínima. (X)",
+        "descripcion": "Drenaje de pleura con trocard, por toracotomía mínima. ",
         "q_gal": 39.75,
         "gto": 89,
         "subcapitulo": "05.04",
@@ -2234,7 +2234,7 @@
       },
       {
         "codigo": "050408",
-        "descripcion": "Punción de cavidad pleural para lavaje, para instilación de substancias terapéuticas. Punción pleural y/o pulmonar diagnostica, evacuadora. (X)",
+        "descripcion": "Punción de cavidad pleural para lavaje, para instilación de substancias terapéuticas. Punción pleural y/o pulmonar diagnostica, evacuadora. ",
         "q_gal": 0,
         "gto": 7,
         "subcapitulo": "05.04",
@@ -2243,7 +2243,7 @@
       },
       {
         "codigo": "050409",
-        "descripcion": "Punción biopsia de pleura o pulmón con agujas especiales -Vim-Sylverman, Coper o similares. (X)",
+        "descripcion": "Punción biopsia de pleura o pulmón con agujas especiales -Vim-Sylverman, Coper o similares. ",
         "q_gal": 39.75,
         "gto": 26,
         "subcapitulo": "05.04",
@@ -2276,7 +2276,7 @@
     "practicas": [
       {
         "codigo": "060101",
-        "descripcion": "Mastectomía radial (resección del pectoral mayor, pectoral menor y vaciamiento axilar). Incluye la eventual toma biopsia para congelación. (X)",
+        "descripcion": "Mastectomía radial (resección del pectoral mayor, pectoral menor y vaciamiento axilar). Incluye la eventual toma biopsia para congelación. ",
         "q_gal": 372.75,
         "gto": 323,
         "subcapitulo": "06.01",
@@ -2285,7 +2285,7 @@
       },
       {
         "codigo": "060102",
-        "descripcion": "Mastectomía subradical (con conservación del pectoral mayor y vaciamiento axilar ). Incluye la eventual toma biopsia para congelación. (X)",
+        "descripcion": "Mastectomía subradical (con conservación del pectoral mayor y vaciamiento axilar ). Incluye la eventual toma biopsia para congelación. ",
         "q_gal": 303,
         "gto": 271,
         "subcapitulo": "06.01",
@@ -2339,7 +2339,7 @@
       },
       {
         "codigo": "060108",
-        "descripcion": "Escisión local de lesión de mama (quiste, fibroadenoma o tejido mamario aberrante) de lesión de conducto de pezón. Escisión de lesión de mama o pezón para biopsia. (X)",
+        "descripcion": "Escisión local de lesión de mama (quiste, fibroadenoma o tejido mamario aberrante) de lesión de conducto de pezón. Escisión de lesión de mama o pezón para biopsia. ",
         "q_gal": 61.5,
         "gto": 122,
         "subcapitulo": "06.01",
@@ -2348,7 +2348,7 @@
       },
       {
         "codigo": "060109",
-        "descripcion": "Escisión de cuadrante mamario (biopsia sectorial o cuadrantectomía). (X)",
+        "descripcion": "Escisión de cuadrante mamario (biopsia sectorial o cuadrantectomía). ",
         "q_gal": 80.25,
         "gto": 122,
         "subcapitulo": "06.01",
@@ -2357,7 +2357,7 @@
       },
       {
         "codigo": "060110",
-        "descripcion": "Drenaje de absceso mamario. (X)",
+        "descripcion": "Drenaje de absceso mamario. ",
         "q_gal": 21.75,
         "gto": 45,
         "subcapitulo": "06.01",
@@ -2366,7 +2366,7 @@
       },
       {
         "codigo": "060111",
-        "descripcion": "Punción quiste mamario. Punción biopsia de mama. (X)",
+        "descripcion": "Punción quiste mamario. Punción biopsia de mama. ",
         "q_gal": 9,
         "gto": 26,
         "subcapitulo": "06.01",
@@ -2399,7 +2399,7 @@
       },
       {
         "codigo": "070103",
-        "descripcion": "Colocación de marcapaso definitivo con electrodo endocavitario. (X)",
+        "descripcion": "Colocación de marcapaso definitivo con electrodo endocavitario. ",
         "q_gal": 201.75,
         "gto": 270,
         "subcapitulo": "07.01",
@@ -2777,7 +2777,7 @@
       },
       {
         "codigo": "070607",
-        "descripcion": "Shunt o fístula arteriovenosa periférica para hemodiálisis. (X)",
+        "descripcion": "Shunt o fístula arteriovenosa periférica para hemodiálisis. ",
         "q_gal": 178.5,
         "gto": 120,
         "subcapitulo": "07.06",
@@ -2849,7 +2849,7 @@
       },
       {
         "codigo": "070615",
-        "descripcion": "Flebotomía con colocación de catéter. Disección de venas para perfusión (canalización venosa con catéter). (X)",
+        "descripcion": "Flebotomía con colocación de catéter. Disección de venas para perfusión (canalización venosa con catéter). ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "07.06",
@@ -2876,7 +2876,7 @@
       },
       {
         "codigo": "070702",
-        "descripcion": "Cardiografía-Angiocardiografía (incluye cateterismo de corazón toma de presiones, y obtención de sangre para oximetría. Incluye monitoreo cardíaco). (X)",
+        "descripcion": "Cardiografía-Angiocardiografía (incluye cateterismo de corazón toma de presiones, y obtención de sangre para oximetría. Incluye monitoreo cardíaco). ",
         "q_gal": 212.25,
         "gto": 284,
         "subcapitulo": "07.07",
@@ -2930,7 +2930,7 @@
       },
       {
         "codigo": "070708",
-        "descripcion": "Aortografía abdominal y estudio selectivo de tronco celíaco, mesentérica superior e inferior, renales y/o sus ramas, por cateterismo humeral o femoral (tiempo arterial, parenquimatoso y venoso). (X)",
+        "descripcion": "Aortografía abdominal y estudio selectivo de tronco celíaco, mesentérica superior e inferior, renales y/o sus ramas, por cateterismo humeral o femoral (tiempo arterial, parenquimatoso y venoso). ",
         "q_gal": 106.5,
         "gto": 220,
         "subcapitulo": "07.07",
@@ -2984,7 +2984,7 @@
       },
       {
         "codigo": "070714",
-        "descripcion": "Arteriografía periférica por punción. (X)",
+        "descripcion": "Arteriografía periférica por punción. ",
         "q_gal": 39.75,
         "gto": 7,
         "subcapitulo": "07.07",
@@ -3188,7 +3188,7 @@
       },
       {
         "codigo": "080207",
-        "descripcion": "Cierre de pared abdominal por evisceración. (X)",
+        "descripcion": "Cierre de pared abdominal por evisceración. ",
         "q_gal": 119.25,
         "gto": 124,
         "subcapitulo": "08.02",
@@ -3197,7 +3197,7 @@
       },
       {
         "codigo": "080208",
-        "descripcion": "Laparatomía exploradora-evacuadora-extracción cuerpo extracción con o sin toma de biopsia. (X)",
+        "descripcion": "Laparatomía exploradora-evacuadora-extracción cuerpo extracción con o sin toma de biopsia. ",
         "q_gal": 119.25,
         "gto": 218,
         "subcapitulo": "08.02",
@@ -3206,7 +3206,7 @@
       },
       {
         "codigo": "080209",
-        "descripcion": "Enterolisis (debridamiento intestinal) como única operación. (X)",
+        "descripcion": "Enterolisis (debridamiento intestinal) como única operación. ",
         "q_gal": 201.75,
         "gto": 218,
         "subcapitulo": "08.02",
@@ -3215,7 +3215,7 @@
       },
       {
         "codigo": "080210",
-        "descripcion": "Laparascopía con luz fría (incluye biopsia). (X)",
+        "descripcion": "Laparascopía con luz fría (incluye biopsia). ",
         "q_gal": 66,
         "gto": 100,
         "subcapitulo": "08.02",
@@ -3233,7 +3233,7 @@
       },
       {
         "codigo": "080212",
-        "descripcion": "Peritoneocentesis evacuadora, diagnóstica o para neumoperitoneo retroneumoperitoneo (por sesión). (X)",
+        "descripcion": "Peritoneocentesis evacuadora, diagnóstica o para neumoperitoneo retroneumoperitoneo (por sesión). ",
         "q_gal": 0,
         "gto": 7,
         "subcapitulo": "08.02",
@@ -3269,7 +3269,7 @@
       },
       {
         "codigo": "080302",
-        "descripcion": "Gastrectomía subtotal o regastrectomía (con o sin vagotomía). (X)",
+        "descripcion": "Gastrectomía subtotal o regastrectomía (con o sin vagotomía). ",
         "q_gal": 303,
         "gto": 271,
         "subcapitulo": "08.03",
@@ -3359,7 +3359,7 @@
       },
       {
         "codigo": "080401",
-        "descripcion": "Enterectomía de yeyuno o ileon. (X)",
+        "descripcion": "Enterectomía de yeyuno o ileon. ",
         "q_gal": 228,
         "gto": 268,
         "subcapitulo": "08.04",
@@ -3377,7 +3377,7 @@
       },
       {
         "codigo": "080403",
-        "descripcion": "Enterostomía. Esterostomía temporaria o definitiva. Enterorrafía.ñ Cierre de enterostomias. Cierre de fístulas enterocutáneas. Devolvulación y desinvaginación intestinal (como únicas operaciones). (X)",
+        "descripcion": "Enterostomía. Esterostomía temporaria o definitiva. Enterorrafía.ñ Cierre de enterostomias. Cierre de fístulas enterocutáneas. Devolvulación y desinvaginación intestinal (como únicas operaciones). ",
         "q_gal": 228,
         "gto": 223,
         "subcapitulo": "08.04",
@@ -3431,7 +3431,7 @@
       },
       {
         "codigo": "080503",
-        "descripcion": "Hemicolectomía (derecha o izquierda). (X)",
+        "descripcion": "Hemicolectomía (derecha o izquierda). ",
         "q_gal": 372.75,
         "gto": 233,
         "subcapitulo": "08.05",
@@ -3440,7 +3440,7 @@
       },
       {
         "codigo": "080504",
-        "descripcion": "Colectomía segmentaria (resección segmentaria de colon, colectomía transversa - operación de Hartman). (X)",
+        "descripcion": "Colectomía segmentaria (resección segmentaria de colon, colectomía transversa - operación de Hartman). ",
         "q_gal": 252.75,
         "gto": 225,
         "subcapitulo": "08.05",
@@ -3620,7 +3620,7 @@
       },
       {
         "codigo": "080521",
-        "descripcion": "Colostomía temporaria o definitiva (como única intervención). (X)",
+        "descripcion": "Colostomía temporaria o definitiva (como única intervención). ",
         "q_gal": 228,
         "gto": 178,
         "subcapitulo": "08.05",
@@ -3647,7 +3647,7 @@
       },
       {
         "codigo": "080524",
-        "descripcion": "Apendicectomía. (X)",
+        "descripcion": "Apendicectomía. ",
         "q_gal": 168,
         "gto": 179,
         "subcapitulo": "08.05",
@@ -3665,7 +3665,7 @@
       },
       {
         "codigo": "080526",
-        "descripcion": "Extracción manual de fecaloma. (X)",
+        "descripcion": "Extracción manual de fecaloma. ",
         "q_gal": 39.75,
         "gto": 7,
         "subcapitulo": "08.05",
@@ -3728,7 +3728,7 @@
       },
       {
         "codigo": "080607",
-        "descripcion": "Trombectomía, infartectomía (trombosis hemorrodaria). (X)",
+        "descripcion": "Trombectomía, infartectomía (trombosis hemorrodaria). ",
         "q_gal": 21.75,
         "gto": 26,
         "subcapitulo": "08.06",
@@ -3764,7 +3764,7 @@
       },
       {
         "codigo": "080611",
-        "descripcion": "Fistulectomía o fistulotomía (fístula del canal anal o fistulete). (X)",
+        "descripcion": "Fistulectomía o fistulotomía (fístula del canal anal o fistulete). ",
         "q_gal": 101.25,
         "gto": 120,
         "subcapitulo": "08.06",
@@ -3809,7 +3809,7 @@
       },
       {
         "codigo": "080616",
-        "descripcion": "Incisión y drenaje de absceso perianal. (X)",
+        "descripcion": "Incisión y drenaje de absceso perianal. ",
         "q_gal": 30,
         "gto": 45,
         "subcapitulo": "08.06",
@@ -3899,7 +3899,7 @@
       },
       {
         "codigo": "080709",
-        "descripcion": "Colecistectomía (con o sin coledocotomía). (X)",
+        "descripcion": "Colecistectomía (con o sin coledocotomía). ",
         "q_gal": 279,
         "gto": 271,
         "subcapitulo": "08.07",
@@ -3908,7 +3908,7 @@
       },
       {
         "codigo": "080710",
-        "descripcion": "Sección de ampolla Vater, transduodenal. Papilotomía : con o sin colecistectomía o coledocotomía. (X)",
+        "descripcion": "Sección de ampolla Vater, transduodenal. Papilotomía : con o sin colecistectomía o coledocotomía. ",
         "q_gal": 372.75,
         "gto": 356,
         "subcapitulo": "08.07",
@@ -3926,7 +3926,7 @@
       },
       {
         "codigo": "080712",
-        "descripcion": "Anastomosis biliodigestivas simples( colecistoyeyunostomía, coledocoduodenostomía). (X)",
+        "descripcion": "Anastomosis biliodigestivas simples( colecistoyeyunostomía, coledocoduodenostomía). ",
         "q_gal": 372.75,
         "gto": 356,
         "subcapitulo": "08.07",
@@ -4067,7 +4067,7 @@
       },
       {
         "codigo": "090105",
-        "descripcion": "Linfadenectomía-Biopsia de ganglio linfático. (X)",
+        "descripcion": "Linfadenectomía-Biopsia de ganglio linfático. ",
         "q_gal": 39.75,
         "gto": 45,
         "subcapitulo": "09.01",
@@ -4226,7 +4226,7 @@
       },
       {
         "codigo": "100114",
-        "descripcion": "Pielotomía. Pielolitotomía. Ureterotomía. Ureterostomía. Ureterolitotomía. (X)",
+        "descripcion": "Pielotomía. Pielolitotomía. Ureterotomía. Ureterostomía. Ureterolitotomía. ",
         "q_gal": 201.75,
         "gto": 225,
         "subcapitulo": "10.01",
@@ -4433,7 +4433,7 @@
       },
       {
         "codigo": "100402",
-        "descripcion": "Adenomectomía de próstata con o sin vasectomía bilateral o meatotomía. (X)",
+        "descripcion": "Adenomectomía de próstata con o sin vasectomía bilateral o meatotomía. ",
         "q_gal": 303,
         "gto": 266,
         "subcapitulo": "10.04",
@@ -4451,7 +4451,7 @@
       },
       {
         "codigo": "100404",
-        "descripcion": "Resección endoscópica (transuretral) de próstata. Resección endoscópica de fibrosis y cicatrices del cuello de la vejiga postadenomectomía. (X)",
+        "descripcion": "Resección endoscópica (transuretral) de próstata. Resección endoscópica de fibrosis y cicatrices del cuello de la vejiga postadenomectomía. ",
         "q_gal": 201.75,
         "gto": 268,
         "subcapitulo": "10.04",
@@ -4514,7 +4514,7 @@
       },
       {
         "codigo": "100504",
-        "descripcion": "Orquidopexia unilateral (Cualquiera fuera la técnica empleada) con o sin tratamiento de hernia concomitante. (X)",
+        "descripcion": "Orquidopexia unilateral (Cualquiera fuera la técnica empleada) con o sin tratamiento de hernia concomitante. ",
         "q_gal": 201.75,
         "gto": 179,
         "subcapitulo": "10.05",
@@ -4532,7 +4532,7 @@
       },
       {
         "codigo": "100506",
-        "descripcion": "Tratamiento quirúrgico del hidrocele, varicocele, torsión, quiste de cordón. (X)",
+        "descripcion": "Tratamiento quirúrgico del hidrocele, varicocele, torsión, quiste de cordón. ",
         "q_gal": 80.25,
         "gto": 120,
         "subcapitulo": "10.05",
@@ -4790,7 +4790,7 @@
       },
       {
         "codigo": "110201",
-        "descripcion": "Histerectomía radical; colpoanexohisterectomía total ampliada. (Operación de Werthein o de Meigs). (X)",
+        "descripcion": "Histerectomía radical; colpoanexohisterectomía total ampliada. (Operación de Werthein o de Meigs). ",
         "q_gal": 425.25,
         "gto": 366,
         "subcapitulo": "11.02",
@@ -4808,7 +4808,7 @@
       },
       {
         "codigo": "110203",
-        "descripcion": "Histerectomía con o sin anexectomía, por vía abdominal o vaginal con o sin colpoperineorrafía. (X)",
+        "descripcion": "Histerectomía con o sin anexectomía, por vía abdominal o vaginal con o sin colpoperineorrafía. ",
         "q_gal": 201.75,
         "gto": 271,
         "subcapitulo": "11.02",
@@ -4871,7 +4871,7 @@
       },
       {
         "codigo": "110210",
-        "descripcion": "Raspado uterino terapéutico. (X)",
+        "descripcion": "Raspado uterino terapéutico. ",
         "q_gal": 39.75,
         "gto": 122,
         "subcapitulo": "11.02",
@@ -4880,7 +4880,7 @@
       },
       {
         "codigo": "110211",
-        "descripcion": "Raspado uterino diagnóstico, con o sin biopsia de cuello o aspiración endometrial para citología exfoliativa. (X)",
+        "descripcion": "Raspado uterino diagnóstico, con o sin biopsia de cuello o aspiración endometrial para citología exfoliativa. ",
         "q_gal": 12.75,
         "gto": 122,
         "subcapitulo": "11.02",
@@ -4898,7 +4898,7 @@
       },
       {
         "codigo": "110213",
-        "descripcion": "Conización de cuello (como única práctica). (X)",
+        "descripcion": "Conización de cuello (como única práctica). ",
         "q_gal": 101.25,
         "gto": 122,
         "subcapitulo": "11.02",
@@ -4907,7 +4907,7 @@
       },
       {
         "codigo": "110214",
-        "descripcion": "Traquelorrafía (fuera del parto). Cerclaje de cuello uterino. (X)",
+        "descripcion": "Traquelorrafía (fuera del parto). Cerclaje de cuello uterino. ",
         "q_gal": 61.5,
         "gto": 68,
         "subcapitulo": "11.02",
@@ -4916,7 +4916,7 @@
       },
       {
         "codigo": "110215",
-        "descripcion": "Escisión local de lesión de cuello (pólipo). Electrocuagulación de cuello o cauterización quimica (tratamiento completo). Biopsia de cuello (como única operación). (X)",
+        "descripcion": "Escisión local de lesión de cuello (pólipo). Electrocuagulación de cuello o cauterización quimica (tratamiento completo). Biopsia de cuello (como única operación). ",
         "q_gal": 21.75,
         "gto": 26,
         "subcapitulo": "11.02",
@@ -5015,7 +5015,7 @@
       },
       {
         "codigo": "110309",
-        "descripcion": "Colpotomía: Vaginotomía de drenaje (absceso pelviano). Escicsión Local de lesión de vagina. (X)",
+        "descripcion": "Colpotomía: Vaginotomía de drenaje (absceso pelviano). Escicsión Local de lesión de vagina. ",
         "q_gal": 39.75,
         "gto": 89,
         "subcapitulo": "11.03",
@@ -5033,7 +5033,7 @@
       },
       {
         "codigo": "110311",
-        "descripcion": "Biopsia de vagina. Punción de vagina, (diagnóstica exploradora). Punción de fondo de saco de Douglas. (X)",
+        "descripcion": "Biopsia de vagina. Punción de vagina, (diagnóstica exploradora). Punción de fondo de saco de Douglas. ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "11.03",
@@ -5060,7 +5060,7 @@
       },
       {
         "codigo": "110314",
-        "descripcion": "Escisión de labios mayores, labios menores, de glándulas de Bartholino, de glándulas de Skene, Clitoridectomía. (X)",
+        "descripcion": "Escisión de labios mayores, labios menores, de glándulas de Bartholino, de glándulas de Skene, Clitoridectomía. ",
         "q_gal": 39.75,
         "gto": 73,
         "subcapitulo": "11.03",
@@ -5069,7 +5069,7 @@
       },
       {
         "codigo": "110315",
-        "descripcion": "Himenotomía. incisión y drenaje de vulva, glándula Bartholino, glándula Skene (Absceso). (X)",
+        "descripcion": "Himenotomía. incisión y drenaje de vulva, glándula Bartholino, glándula Skene (Absceso). ",
         "q_gal": 12.75,
         "gto": 89,
         "subcapitulo": "11.03",
@@ -5096,7 +5096,7 @@
       },
       {
         "codigo": "110401",
-        "descripcion": "Parto. (X)",
+        "descripcion": "Parto. ",
         "q_gal": 228,
         "gto": 166,
         "subcapitulo": "11.04",
@@ -5105,7 +5105,7 @@
       },
       {
         "codigo": "110402",
-        "descripcion": "Evacuación uterina en el segundo trimestre del embarazo, con mecanismo de parto. (X)",
+        "descripcion": "Evacuación uterina en el segundo trimestre del embarazo, con mecanismo de parto. ",
         "q_gal": 119.25,
         "gto": 89,
         "subcapitulo": "11.04",
@@ -5114,7 +5114,7 @@
       },
       {
         "codigo": "110403",
-        "descripcion": "Operación cesarea clásica, extraperitoneal, vaginal. (X)",
+        "descripcion": "Operación cesarea clásica, extraperitoneal, vaginal. ",
         "q_gal": 228,
         "gto": 166,
         "subcapitulo": "11.04",
@@ -5132,7 +5132,7 @@
       },
       {
         "codigo": "110405",
-        "descripcion": "Amniocentésis transabdominal o vía vaginal. (X)",
+        "descripcion": "Amniocentésis transabdominal o vía vaginal. ",
         "q_gal": 39.75,
         "gto": 16,
         "subcapitulo": "11.04",
@@ -5147,7 +5147,7 @@
     "practicas": [
       {
         "codigo": "120201",
-        "descripcion": "Columna cervical, dorsal o lumbar. (X)",
+        "descripcion": "Columna cervical, dorsal o lumbar. ",
         "q_gal": 178.5,
         "gto": 26,
         "subcapitulo": "12.02",
@@ -5165,7 +5165,7 @@
       },
       {
         "codigo": "120203",
-        "descripcion": "Pelvis, femur, tibia y peroné, astrágalo, calcáneo supracondilea de húmero. (X)",
+        "descripcion": "Pelvis, femur, tibia y peroné, astrágalo, calcáneo supracondilea de húmero. ",
         "q_gal": 119.25,
         "gto": 23,
         "subcapitulo": "12.02",
@@ -5174,7 +5174,7 @@
       },
       {
         "codigo": "120204",
-        "descripcion": "Clavícula, costillas, rótula, metacarpianos o metatarsianos (de un mismo miembro), falanges (de un mismo dedo), huesos propios de la nariz, malar. (X)",
+        "descripcion": "Clavícula, costillas, rótula, metacarpianos o metatarsianos (de un mismo miembro), falanges (de un mismo dedo), huesos propios de la nariz, malar. ",
         "q_gal": 26.25,
         "gto": 0,
         "subcapitulo": "12.02",
@@ -5192,7 +5192,7 @@
       },
       {
         "codigo": "120302",
-        "descripcion": "Reducción osteosintesis de Húmero, pelvis, sacro, femur, tibia, tibia y peroné, cúbito y radio. Disyunción craneofacial (Lefor III). (X)",
+        "descripcion": "Reducción osteosintesis de Húmero, pelvis, sacro, femur, tibia, tibia y peroné, cúbito y radio. Disyunción craneofacial (Lefor III). ",
         "q_gal": 228,
         "gto": 271,
         "subcapitulo": "12.03",
@@ -5201,7 +5201,7 @@
       },
       {
         "codigo": "120303",
-        "descripcion": "Reducción osteosintesis de Cúbito radio, tercio inferior, uno o más huesos del carpo, primer metacarpiano, uno o mas huesos del tarso, maxilar inferior o superior. (X)",
+        "descripcion": "Reducción osteosintesis de Cúbito radio, tercio inferior, uno o más huesos del carpo, primer metacarpiano, uno o mas huesos del tarso, maxilar inferior o superior. ",
         "q_gal": 119.25,
         "gto": 220,
         "subcapitulo": "12.03",
@@ -5219,7 +5219,7 @@
       },
       {
         "codigo": "120305",
-        "descripcion": "Reducción osteosintesis de  Metacarpiano (excepto el primer metacarpiano)o metatarsiano falanges (de un mismo dedo), malar, huesos propios de la nariz. (X)",
+        "descripcion": "Reducción osteosintesis de  Metacarpiano (excepto el primer metacarpiano)o metatarsiano falanges (de un mismo dedo), malar, huesos propios de la nariz. ",
         "q_gal": 61.5,
         "gto": 171,
         "subcapitulo": "12.03",
@@ -5264,7 +5264,7 @@
       },
       {
         "codigo": "120405",
-        "descripcion": "Punción biopsia de vértebra. (X)",
+        "descripcion": "Punción biopsia de vértebra. ",
         "q_gal": 80.25,
         "gto": 26,
         "subcapitulo": "12.04",
@@ -5273,7 +5273,7 @@
       },
       {
         "codigo": "120406",
-        "descripcion": "Punción biopsia de cualquier otro hueso. (X)",
+        "descripcion": "Punción biopsia de cualquier otro hueso. ",
         "q_gal": 21.75,
         "gto": 20,
         "subcapitulo": "12.04",
@@ -5390,7 +5390,7 @@
       },
       {
         "codigo": "120706",
-        "descripcion": "Femur, tibia, peroné. (X)",
+        "descripcion": "Femur, tibia, peroné. ",
         "q_gal": 252.75,
         "gto": 330,
         "subcapitulo": "12.07",
@@ -5561,7 +5561,7 @@
       },
       {
         "codigo": "121201",
-        "descripcion": "Esterno-clavicular, acromio-clavicular, codo, muñeca, carpo, carpo-metacarpiana, tobillo, tarso, tarso-metatarsiana. (X)",
+        "descripcion": "Esterno-clavicular, acromio-clavicular, codo, muñeca, carpo, carpo-metacarpiana, tobillo, tarso, tarso-metatarsiana. ",
         "q_gal": 80.25,
         "gto": 177,
         "subcapitulo": "12.12",
@@ -5570,7 +5570,7 @@
       },
       {
         "codigo": "121202",
-        "descripcion": "Hombro, cadera, rodilla, témporo maxilar. (X)",
+        "descripcion": "Hombro, cadera, rodilla, témporo maxilar. ",
         "q_gal": 119.25,
         "gto": 222,
         "subcapitulo": "12.12",
@@ -5597,7 +5597,7 @@
       },
       {
         "codigo": "121301",
-        "descripcion": "Columna cervical, dorsal o lumbar. Tratamiento incruento e inmovilización. (X)",
+        "descripcion": "Columna cervical, dorsal o lumbar. Tratamiento incruento e inmovilización. ",
         "q_gal": 61.5,
         "gto": 150,
         "subcapitulo": "12.13",
@@ -5606,7 +5606,7 @@
       },
       {
         "codigo": "121302",
-        "descripcion": "Cadera, rodilla.Tratamiento incruento e inmovilización. (X)",
+        "descripcion": "Cadera, rodilla.Tratamiento incruento e inmovilización. ",
         "q_gal": 48,
         "gto": 97,
         "subcapitulo": "12.13",
@@ -5615,7 +5615,7 @@
       },
       {
         "codigo": "121303",
-        "descripcion": "Clavícula, hombro, codo, muñeca, metacarpo, tobillo, tarso y metatarso.Tratamiento incruento e inmovilización. (X)",
+        "descripcion": "Clavícula, hombro, codo, muñeca, metacarpo, tobillo, tarso y metatarso.Tratamiento incruento e inmovilización. ",
         "q_gal": 39.75,
         "gto": 97,
         "subcapitulo": "12.13",
@@ -5624,7 +5624,7 @@
       },
       {
         "codigo": "121304",
-        "descripcion": "Metacarpo o metatarso-falángicas (una o más luxaciones de un mismo miembro), témporo maxilar.Tratamiento incruento e inmovilización. (X)",
+        "descripcion": "Metacarpo o metatarso-falángicas (una o más luxaciones de un mismo miembro), témporo maxilar.Tratamiento incruento e inmovilización. ",
         "q_gal": 21.75,
         "gto": 51,
         "subcapitulo": "12.13",
@@ -5687,7 +5687,7 @@
       },
       {
         "codigo": "121501",
-        "descripcion": "Exploración, drenaje, extracción, Incisión, escisión, biopsia, tenotomía, fasciotomía. (X)",
+        "descripcion": "Exploración, drenaje, extracción, Incisión, escisión, biopsia, tenotomía, fasciotomía. ",
         "q_gal": 39.75,
         "gto": 219,
         "subcapitulo": "12.15",
@@ -5696,7 +5696,7 @@
       },
       {
         "codigo": "121502",
-        "descripcion": "Reparación y sutura (tenorrafia) de tendón flexor de la muñeca o de dedo de la mano. (X)",
+        "descripcion": "Reparación y sutura (tenorrafia) de tendón flexor de la muñeca o de dedo de la mano. ",
         "q_gal": 80.25,
         "gto": 184,
         "subcapitulo": "12.15",
@@ -5714,7 +5714,7 @@
       },
       {
         "codigo": "121504",
-        "descripcion": "Reparacion y sutura (tenorrafia) en tendón extensor de la muñeca o de dedo de la mano. (X)",
+        "descripcion": "Reparacion y sutura (tenorrafia) en tendón extensor de la muñeca o de dedo de la mano. ",
         "q_gal": 61.5,
         "gto": 178,
         "subcapitulo": "12.15",
@@ -5732,7 +5732,7 @@
       },
       {
         "codigo": "121506",
-        "descripcion": "Reparación y sutura (tenorrafia) de otro tendón que no sea de la muñeca o de dedo de la mano. (X)",
+        "descripcion": "Reparación y sutura (tenorrafia) de otro tendón que no sea de la muñeca o de dedo de la mano. ",
         "q_gal": 61.5,
         "gto": 179,
         "subcapitulo": "12.15",
@@ -6164,7 +6164,7 @@
       },
       {
         "codigo": "121906",
-        "descripcion": "Corsét. (X)",
+        "descripcion": "Corsét. ",
         "q_gal": 39.75,
         "gto": 110,
         "subcapitulo": "12.19",
@@ -6182,7 +6182,7 @@
       },
       {
         "codigo": "121908",
-        "descripcion": "Corset de Risser o similares. (X)",
+        "descripcion": "Corset de Risser o similares. ",
         "q_gal": 106.5,
         "gto": 162,
         "subcapitulo": "12.19",
@@ -6209,7 +6209,7 @@
       },
       {
         "codigo": "121911",
-        "descripcion": "Vendaje de Cíngulo para costilla. (X)",
+        "descripcion": "Vendaje de Cíngulo para costilla. ",
         "q_gal": 9,
         "gto": 30,
         "subcapitulo": "12.19",
@@ -6218,7 +6218,7 @@
       },
       {
         "codigo": "121912",
-        "descripcion": "Vendaje en ocho enyesado. (X)",
+        "descripcion": "Vendaje en ocho enyesado. ",
         "q_gal": 12.75,
         "gto": 20,
         "subcapitulo": "12.19",
@@ -6236,7 +6236,7 @@
       },
       {
         "codigo": "121914",
-        "descripcion": "Velpeau de yeso. (X)",
+        "descripcion": "Velpeau de yeso. ",
         "q_gal": 12.75,
         "gto": 30,
         "subcapitulo": "12.19",
@@ -6254,7 +6254,7 @@
       },
       {
         "codigo": "121916",
-        "descripcion": "Yeso tóraco-branquial. (X)",
+        "descripcion": "Yeso tóraco-branquial. ",
         "q_gal": 54,
         "gto": 110,
         "subcapitulo": "12.19",
@@ -6263,7 +6263,7 @@
       },
       {
         "codigo": "121917",
-        "descripcion": "Yeso branquipalmar. (X)",
+        "descripcion": "Yeso branquipalmar. ",
         "q_gal": 26.25,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6281,7 +6281,7 @@
       },
       {
         "codigo": "121919",
-        "descripcion": "Yeso antebraquipalmar. (X)",
+        "descripcion": "Yeso antebraquipalmar. ",
         "q_gal": 12.75,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6290,7 +6290,7 @@
       },
       {
         "codigo": "121920",
-        "descripcion": "Mano de yeso. (X)",
+        "descripcion": "Mano de yeso. ",
         "q_gal": 9,
         "gto": 20,
         "subcapitulo": "12.19",
@@ -6299,7 +6299,7 @@
       },
       {
         "codigo": "121921",
-        "descripcion": "Valva larga de miembro superior. (X)",
+        "descripcion": "Valva larga de miembro superior. ",
         "q_gal": 12.75,
         "gto": 20,
         "subcapitulo": "12.19",
@@ -6308,7 +6308,7 @@
       },
       {
         "codigo": "121922",
-        "descripcion": "Valva corta de miembro superior. (X)",
+        "descripcion": "Valva corta de miembro superior. ",
         "q_gal": 9,
         "gto": 20,
         "subcapitulo": "12.19",
@@ -6317,7 +6317,7 @@
       },
       {
         "codigo": "121923",
-        "descripcion": "Yeso pelvipédico. (X)",
+        "descripcion": "Yeso pelvipédico. ",
         "q_gal": 54,
         "gto": 110,
         "subcapitulo": "12.19",
@@ -6335,7 +6335,7 @@
       },
       {
         "codigo": "121925",
-        "descripcion": "Calza de yeso (yeso cruropédico). (X)",
+        "descripcion": "Calza de yeso (yeso cruropédico). ",
         "q_gal": 26.25,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6344,7 +6344,7 @@
       },
       {
         "codigo": "121926",
-        "descripcion": "Bota larga de yeso. (X)",
+        "descripcion": "Bota larga de yeso. ",
         "q_gal": 39.75,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6353,7 +6353,7 @@
       },
       {
         "codigo": "121927",
-        "descripcion": "Bota corta de yeso. (X)",
+        "descripcion": "Bota corta de yeso. ",
         "q_gal": 26.25,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6371,7 +6371,7 @@
       },
       {
         "codigo": "121929",
-        "descripcion": "Valva larga de miembro inferior. (X)",
+        "descripcion": "Valva larga de miembro inferior. ",
         "q_gal": 26.25,
         "gto": 20,
         "subcapitulo": "12.19",
@@ -6398,7 +6398,7 @@
       },
       {
         "codigo": "121932",
-        "descripcion": "Tracción contínua cutánea, tracción de partes blandas con frondas, vendajes, adhesivos, etc. (X)",
+        "descripcion": "Tracción contínua cutánea, tracción de partes blandas con frondas, vendajes, adhesivos, etc. ",
         "q_gal": 26.25,
         "gto": 50,
         "subcapitulo": "12.19",
@@ -6434,7 +6434,7 @@
       },
       {
         "codigo": "121936",
-        "descripcion": "Tracción contínua esquelética de miembro superior o inferior. (X)",
+        "descripcion": "Tracción contínua esquelética de miembro superior o inferior. ",
         "q_gal": 26.25,
         "gto": 60,
         "subcapitulo": "12.19",
@@ -6458,7 +6458,7 @@
       },
       {
         "codigo": "130102",
-        "descripcion": "Escisión amplia de lesión de piel comprendiendo estructuras vecinas por tumor maligno (incluye reparación plástica). (X)",
+        "descripcion": "Escisión amplia de lesión de piel comprendiendo estructuras vecinas por tumor maligno (incluye reparación plástica). ",
         "q_gal": 61.5,
         "gto": 120,
         "subcapitulo": "13.01",
@@ -6476,7 +6476,7 @@
       },
       {
         "codigo": "130104",
-        "descripcion": "Escisión local de lesión de piel o glándula de piel cicatrizal, inflamatoria o tumoral benigna (quiste sebáceo, antrax, nevus, etc.). (X)",
+        "descripcion": "Escisión local de lesión de piel o glándula de piel cicatrizal, inflamatoria o tumoral benigna (quiste sebáceo, antrax, nevus, etc.). ",
         "q_gal": 21.75,
         "gto": 45,
         "subcapitulo": "13.01",
@@ -6485,7 +6485,7 @@
       },
       {
         "codigo": "130105",
-        "descripcion": "Incisión y drenaje de abceso, superficial, hidrosadenitis, quiste sebáseo infectado, forúnculo, panadizo, hematoma, antrax, etc. Extracción de cuerpo extraño superficial. (X)",
+        "descripcion": "Incisión y drenaje de abceso, superficial, hidrosadenitis, quiste sebáseo infectado, forúnculo, panadizo, hematoma, antrax, etc. Extracción de cuerpo extraño superficial. ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "13.01",
@@ -6512,7 +6512,7 @@
       },
       {
         "codigo": "130108",
-        "descripcion": "Biopsia de piel y/o tejido celular subcutáneo y/o muscular. (X)",
+        "descripcion": "Biopsia de piel y/o tejido celular subcutáneo y/o muscular. ",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "13.01",
@@ -6521,7 +6521,7 @@
       },
       {
         "codigo": "130109",
-        "descripcion": "Escisión de uña lecho o repliegue ungueneal. (X)",
+        "descripcion": "Escisión de uña lecho o repliegue ungueneal. ",
         "q_gal": 21.75,
         "gto": 26,
         "subcapitulo": "13.01",
@@ -6530,7 +6530,7 @@
       },
       {
         "codigo": "130110",
-        "descripcion": "Sutura de herida. (X)",
+        "descripcion": "Sutura de herida. ",
         "q_gal": 30,
         "gto": 45,
         "subcapitulo": "13.01",
@@ -6557,7 +6557,7 @@
       },
       {
         "codigo": "130114",
-        "descripcion": "Incisión y drenaje de abceso profundo subaponeurótico. Extracción de cuerpo extraño profundo. (X)",
+        "descripcion": "Incisión y drenaje de abceso profundo subaponeurótico. Extracción de cuerpo extraño profundo. ",
         "q_gal": 30,
         "gto": 45,
         "subcapitulo": "13.01",
@@ -6575,7 +6575,7 @@
       },
       {
         "codigo": "130201",
-        "descripcion": "Injerto libre de grasa, dermigrasa o piel total. (X)",
+        "descripcion": "Injerto libre de grasa, dermigrasa o piel total. ",
         "q_gal": 80.25,
         "gto": 218,
         "subcapitulo": "13.02",
@@ -6602,7 +6602,7 @@
       },
       {
         "codigo": "130204",
-        "descripcion": "Cierre plástico de herida por colgajo. (X)",
+        "descripcion": "Cierre plástico de herida por colgajo. ",
         "q_gal": 61.5,
         "gto": 176,
         "subcapitulo": "13.02",
@@ -6674,7 +6674,7 @@
       },
       {
         "codigo": "130301",
-        "descripcion": "Atención del paciente con quemaduras de 2∞ y 3∞ grado, hasta el 5% de superficie corporal (tome o no zonas funcionales). (X)",
+        "descripcion": "Atención del paciente con quemaduras de 2∞ y 3∞ grado, hasta el 5% de superficie corporal (tome o no zonas funcionales). ",
         "q_gal": 39.75,
         "gto": 20,
         "subcapitulo": "13.03",
@@ -6683,7 +6683,7 @@
       },
       {
         "codigo": "130302",
-        "descripcion": "Atención del paciente con quemaduras de 2∞ y 3∞ grado, de más de 5% y por cada 10% o fracción de superficie corporal. (X)",
+        "descripcion": "Atención del paciente con quemaduras de 2∞ y 3∞ grado, de más de 5% y por cada 10% o fracción de superficie corporal. ",
         "q_gal": 80.25,
         "gto": 30,
         "subcapitulo": "13.03",
@@ -6692,7 +6692,7 @@
       },
       {
         "codigo": "130303",
-        "descripcion": "Atencion del paciente con quemaduras de 2∞ y 3∞ grado que comprometen zonas funcionales, articulaciones, cara, genitales, de más del 5% y por cada 10% o fracción de superficie corporal. (X)",
+        "descripcion": "Atencion del paciente con quemaduras de 2∞ y 3∞ grado que comprometen zonas funcionales, articulaciones, cara, genitales, de más del 5% y por cada 10% o fracción de superficie corporal. ",
         "q_gal": 101.25,
         "gto": 40,
         "subcapitulo": "13.03",
@@ -6701,7 +6701,7 @@
       },
       {
         "codigo": "130304",
-        "descripcion": "Escisión de escaras postquemaduras y/o curación del paciente quemado en quirófano con anestesia general (por sesión y por cada 10% de superficie corporal). (X)",
+        "descripcion": "Escisión de escaras postquemaduras y/o curación del paciente quemado en quirófano con anestesia general (por sesión y por cada 10% de superficie corporal). ",
         "q_gal": 39.75,
         "gto": 160,
         "subcapitulo": "13.03",
@@ -6758,7 +6758,7 @@
     "practicas": [
       {
         "codigo": "150101",
-        "descripcion": "Biopsia por incisión o por punción. Ganglio, lesión de piel, trozo de ovario, cilindro de hígado,etc. (X)",
+        "descripcion": "Biopsia por incisión o por punción. Ganglio, lesión de piel, trozo de ovario, cilindro de hígado,etc. ",
         "q_gal": 26.25,
         "gto": 4,
         "subcapitulo": "15.01",
@@ -6767,7 +6767,7 @@
       },
       {
         "codigo": "150102",
-        "descripcion": "Estudio macro y microscópico de pieza operatoria simple. Vesícula simple. Vesícula biliar, ovario, placenta, estómago, etc. (los cortes que fueran necesarios). (X)",
+        "descripcion": "Estudio macro y microscópico de pieza operatoria simple. Vesícula simple. Vesícula biliar, ovario, placenta, estómago, etc. (los cortes que fueran necesarios). ",
         "q_gal": 39.75,
         "gto": 8,
         "subcapitulo": "15.01",
@@ -6776,7 +6776,7 @@
       },
       {
         "codigo": "150103",
-        "descripcion": "Estudio macro y microscópico de pieza de resección oncológica ampliada. Organo y sus ganglios regionales. (los cortes que fueran necesarios). (X)",
+        "descripcion": "Estudio macro y microscópico de pieza de resección oncológica ampliada. Organo y sus ganglios regionales. (los cortes que fueran necesarios). ",
         "q_gal": 66,
         "gto": 9,
         "subcapitulo": "15.01",
@@ -6785,7 +6785,7 @@
       },
       {
         "codigo": "150104",
-        "descripcion": "Biopsia por congelación y estudio diferido del corte. (X)",
+        "descripcion": "Biopsia por congelación y estudio diferido del corte. ",
         "q_gal": 54,
         "gto": 8,
         "subcapitulo": "15.01",
@@ -6794,7 +6794,7 @@
       },
       {
         "codigo": "150105",
-        "descripcion": "Estudio biópsico seriado y semiseriado, mínimo quince. Con autorización previa de la obra social. (X)",
+        "descripcion": "Estudio biópsico seriado y semiseriado, mínimo quince. Con autorización previa de la obra social. ",
         "q_gal": 54,
         "gto": 8,
         "subcapitulo": "15.01",
@@ -6803,7 +6803,7 @@
       },
       {
         "codigo": "150106",
-        "descripcion": "Citología exfoliativa oncológica. (X)",
+        "descripcion": "Citología exfoliativa oncológica. ",
         "q_gal": 21.75,
         "gto": 4,
         "subcapitulo": "15.01",
@@ -6839,7 +6839,7 @@
       },
       {
         "codigo": "150110",
-        "descripcion": "Citología exfoliativa oncológica bronquial. Por tres muestras. (X)",
+        "descripcion": "Citología exfoliativa oncológica bronquial. Por tres muestras. ",
         "q_gal": 36.75,
         "gto": 8,
         "subcapitulo": "15.01",
@@ -6848,7 +6848,7 @@
       },
       {
         "codigo": "150111",
-        "descripcion": "Citología exfoliativa oncológica de líquidos. Lavados, trasudados, exudados, orinas, etc. (X)",
+        "descripcion": "Citología exfoliativa oncológica de líquidos. Lavados, trasudados, exudados, orinas, etc. ",
         "q_gal": 26.25,
         "gto": 4,
         "subcapitulo": "15.01",
@@ -6863,7 +6863,7 @@
     "practicas": [
       {
         "codigo": "160101",
-        "descripcion": "Anestesia mínima para procedimientos diagnósticos o terapéuticos. (Incluye anestesia general y regional excluye anestesia local). (X)",
+        "descripcion": "Anestesia mínima para procedimientos diagnósticos o terapéuticos. (Incluye anestesia general y regional excluye anestesia local). ",
         "q_gal": 120.38,
         "gto": 20,
         "subcapitulo": "16.01",
@@ -6914,7 +6914,7 @@
     "practicas": [
       {
         "codigo": "170101",
-        "descripcion": "Electrocardiograma en consultorio (con o sin prueba de esfuerzo). (X)",
+        "descripcion": "Electrocardiograma en consultorio (con o sin prueba de esfuerzo). ",
         "q_gal": 7.5,
         "gto": 20,
         "subcapitulo": "17.01",
@@ -6986,7 +6986,7 @@
       },
       {
         "codigo": "170109",
-        "descripcion": "Monitoraje operatorio (incluye el control osciloscópico, marcapaso externo, desfibrilador, respiración con presión posistiva). (X)",
+        "descripcion": "Monitoraje operatorio (incluye el control osciloscópico, marcapaso externo, desfibrilador, respiración con presión posistiva). ",
         "q_gal": 25.5,
         "gto": 90,
         "subcapitulo": "17.01",
@@ -7004,7 +7004,7 @@
       },
       {
         "codigo": "170111",
-        "descripcion": "Ergometría. (X)",
+        "descripcion": "Ergometría. ",
         "q_gal": 15,
         "gto": 60,
         "subcapitulo": "17.01",
@@ -7058,7 +7058,7 @@
       },
       {
         "codigo": "170117",
-        "descripcion": "Rehabilitacón del cardiópata. Arancel global por un mes. (De ocho a doce sesiones). (X)",
+        "descripcion": "Rehabilitacón del cardiópata. Arancel global por un mes. (De ocho a doce sesiones). ",
         "q_gal": 45,
         "gto": 100,
         "subcapitulo": "17.01",
@@ -7067,7 +7067,7 @@
       },
       {
         "codigo": "170118",
-        "descripcion": "Electrocardiograma de Holter por veinticuatro horas dos canales. (X)",
+        "descripcion": "Electrocardiograma de Holter por veinticuatro horas dos canales. ",
         "q_gal": 60,
         "gto": 300,
         "subcapitulo": "17.01",
@@ -7082,7 +7082,7 @@
     "practicas": [
       {
         "codigo": "180101",
-        "descripcion": "Ecocardiograma: Incluye electrocardiograma sincrónico de referencia con sin otros parámetros. (modo A y M). (X)",
+        "descripcion": "Ecocardiograma: Incluye electrocardiograma sincrónico de referencia con sin otros parámetros. (modo A y M). ",
         "q_gal": 27,
         "gto": 51,
         "subcapitulo": "18.01",
@@ -7127,7 +7127,7 @@
       },
       {
         "codigo": "180107",
-        "descripcion": "Ecografía cerebral (con modo B y A). (X)",
+        "descripcion": "Ecografía cerebral (con modo B y A). ",
         "q_gal": 27,
         "gto": 51,
         "subcapitulo": "18.01",
@@ -7163,7 +7163,7 @@
       },
       {
         "codigo": "180112",
-        "descripcion": "Ecografía completa de abdomen. (X)",
+        "descripcion": "Ecografía completa de abdomen. ",
         "q_gal": 37.5,
         "gto": 71,
         "subcapitulo": "18.01",
@@ -7190,7 +7190,7 @@
       },
       {
         "codigo": "180116",
-        "descripcion": "Ecografía renal bilateral. (X)",
+        "descripcion": "Ecografía renal bilateral. ",
         "q_gal": 27,
         "gto": 61,
         "subcapitulo": "18.01",
@@ -7445,7 +7445,7 @@
       },
       {
         "codigo": "200122",
-        "descripcion": "Esofagogastrduodenofibroscopía. (X)",
+        "descripcion": "Esofagogastrduodenofibroscopía. ",
         "q_gal": 45,
         "gto": 342,
         "subcapitulo": "20.01",
@@ -7463,7 +7463,7 @@
       },
       {
         "codigo": "200124",
-        "descripcion": "Colonofibrscopía . (X)",
+        "descripcion": "Colonofibrscopía . ",
         "q_gal": 52.5,
         "gto": 456,
         "subcapitulo": "20.01",
@@ -7472,7 +7472,7 @@
       },
       {
         "codigo": "200125",
-        "descripcion": "Rectosigmoidoscopía con instrumental rígido. (X)",
+        "descripcion": "Rectosigmoidoscopía con instrumental rígido. ",
         "q_gal": 15,
         "gto": 30,
         "subcapitulo": "20.01",
@@ -7481,7 +7481,7 @@
       },
       {
         "codigo": "200126",
-        "descripcion": "Rectosigmoidofibroscopía. (X)",
+        "descripcion": "Rectosigmoidofibroscopía. ",
         "q_gal": 15,
         "gto": 228,
         "subcapitulo": "20.01",
@@ -7709,7 +7709,7 @@
     "practicas": [
       {
         "codigo": "220101",
-        "descripcion": "Colposcopía-Traqueloscopía. (X)",
+        "descripcion": "Colposcopía-Traqueloscopía. ",
         "q_gal": 4.5,
         "gto": 18,
         "subcapitulo": "22.01",
@@ -7781,7 +7781,7 @@
       },
       {
         "codigo": "220202",
-        "descripcion": "Monitoreo fetal. (X)",
+        "descripcion": "Monitoreo fetal. ",
         "q_gal": 15,
         "gto": 50,
         "subcapitulo": "22.02",
@@ -7841,7 +7841,7 @@
       },
       {
         "codigo": "230104",
-        "descripcion": "Investigación de aglutinas. En medio salino, en medio albuminoso y prueba de Coombs indirecta. Prueba de compatibilidad. (X)",
+        "descripcion": "Investigación de aglutinas. En medio salino, en medio albuminoso y prueba de Coombs indirecta. Prueba de compatibilidad. ",
         "q_gal": 4.5,
         "gto": 2,
         "subcapitulo": "23.01",
@@ -7850,7 +7850,7 @@
       },
       {
         "codigo": "230105",
-        "descripcion": "Aglutininas del sistema ABO. En medio salino, en medio albuminoso y cuantitativo. (X)",
+        "descripcion": "Aglutininas del sistema ABO. En medio salino, en medio albuminoso y cuantitativo. ",
         "q_gal": 6,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -7985,7 +7985,7 @@
       },
       {
         "codigo": "230120",
-        "descripcion": "Coombs directa. Prueba de (X)",
+        "descripcion": "Coombs directa. Prueba de ",
         "q_gal": 3,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -7994,7 +7994,7 @@
       },
       {
         "codigo": "230121",
-        "descripcion": "Coombs indirecta. Pruba de, culitativa (X)",
+        "descripcion": "Coombs indirecta. Pruba de, culitativa ",
         "q_gal": 3,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -8003,7 +8003,7 @@
       },
       {
         "codigo": "230122",
-        "descripcion": "Coombs indirecta. Prueba de, cuantitativa. (X)",
+        "descripcion": "Coombs indirecta. Prueba de, cuantitativa. ",
         "q_gal": 4.5,
         "gto": 2.5,
         "subcapitulo": "23.01",
@@ -8102,7 +8102,7 @@
       },
       {
         "codigo": "230133",
-        "descripcion": "Eritrosedimentación. (X)",
+        "descripcion": "Eritrosedimentación. ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.01",
@@ -8255,7 +8255,7 @@
       },
       {
         "codigo": "230150",
-        "descripcion": "Ferremia. Sideremia. (X)",
+        "descripcion": "Ferremia. Sideremia. ",
         "q_gal": 3,
         "gto": 2.5,
         "subcapitulo": "23.01",
@@ -8264,7 +8264,7 @@
       },
       {
         "codigo": "230151",
-        "descripcion": "Fibrinógeno (sangre). (X)",
+        "descripcion": "Fibrinógeno (sangre). ",
         "q_gal": 6,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -8273,7 +8273,7 @@
       },
       {
         "codigo": "230152",
-        "descripcion": "Fibronilisina (lisis de eugobulinas). (X)",
+        "descripcion": "Fibronilisina (lisis de eugobulinas). ",
         "q_gal": 6,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -8291,7 +8291,7 @@
       },
       {
         "codigo": "230154",
-        "descripcion": "Fórmula leucocitaria. (X)",
+        "descripcion": "Fórmula leucocitaria. ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.01",
@@ -8327,7 +8327,7 @@
       },
       {
         "codigo": "230158",
-        "descripcion": "Glóbulos blancos. Recuento (X)",
+        "descripcion": "Glóbulos blancos. Recuento ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.01",
@@ -8372,7 +8372,7 @@
       },
       {
         "codigo": "230163",
-        "descripcion": "Grupo sanguíneo ABO. (X)",
+        "descripcion": "Grupo sanguíneo ABO. ",
         "q_gal": 1.5,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -8417,7 +8417,7 @@
       },
       {
         "codigo": "230168",
-        "descripcion": "Hematocrito. (X)",
+        "descripcion": "Hematocrito. ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.01",
@@ -8444,7 +8444,7 @@
       },
       {
         "codigo": "230171",
-        "descripcion": "Hemoaglutinógenos (subtipos del sistema ABO). Cada determinación. (X)",
+        "descripcion": "Hemoaglutinógenos (subtipos del sistema ABO). Cada determinación. ",
         "q_gal": 3,
         "gto": 2,
         "subcapitulo": "23.01",
@@ -8453,7 +8453,7 @@
       },
       {
         "codigo": "230172",
-        "descripcion": "Hemoaglutinógenos DU. (X)",
+        "descripcion": "Hemoaglutinógenos DU. ",
         "q_gal": 4.5,
         "gto": 2,
         "subcapitulo": "23.01",
@@ -8462,7 +8462,7 @@
       },
       {
         "codigo": "230173",
-        "descripcion": "Hemoglubilina. Dosaje (X)",
+        "descripcion": "Hemoglubilina. Dosaje ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.01",
@@ -8480,7 +8480,7 @@
       },
       {
         "codigo": "230175",
-        "descripcion": "Hemoglobina en plasma. (X)",
+        "descripcion": "Hemoglobina en plasma. ",
         "q_gal": 3,
         "gto": 2,
         "subcapitulo": "23.01",
@@ -8507,7 +8507,7 @@
       },
       {
         "codigo": "230178",
-        "descripcion": "Hemograma. Incluye recuento de hematíes, leucocitos, fórmula leucocitaria y morfología, hematocrito y dosaje de hemoglobina. (X)",
+        "descripcion": "Hemograma. Incluye recuento de hematíes, leucocitos, fórmula leucocitaria y morfología, hematocrito y dosaje de hemoglobina. ",
         "q_gal": 3,
         "gto": 1.3,
         "subcapitulo": "23.01",
@@ -8525,7 +8525,7 @@
       },
       {
         "codigo": "230180",
-        "descripcion": "Hemosiderina. Investigación (citoquímica). (X)",
+        "descripcion": "Hemosiderina. Investigación (citoquímica). ",
         "q_gal": 3,
         "gto": 1.5,
         "subcapitulo": "23.01",
@@ -8561,7 +8561,7 @@
       },
       {
         "codigo": "230184",
-        "descripcion": "IBC (Iron Binding Capacity). (X)",
+        "descripcion": "IBC (Iron Binding Capacity). ",
         "q_gal": 4.5,
         "gto": 2,
         "subcapitulo": "23.01",
@@ -8570,7 +8570,7 @@
       },
       {
         "codigo": "230185",
-        "descripcion": "Identificación de anticuerpos con panel en medio salino o albuminoso (las pruebas de Coombs indirectas se facturan por separado). (X)",
+        "descripcion": "Identificación de anticuerpos con panel en medio salino o albuminoso (las pruebas de Coombs indirectas se facturan por separado). ",
         "q_gal": 9,
         "gto": 8,
         "subcapitulo": "23.01",
@@ -8678,7 +8678,7 @@
       },
       {
         "codigo": "230197",
-        "descripcion": "Medulograma, mielograma. (X)",
+        "descripcion": "Medulograma, mielograma. ",
         "q_gal": 12,
         "gto": 4,
         "subcapitulo": "23.01",
@@ -8723,7 +8723,7 @@
       },
       {
         "codigo": "230203",
-        "descripcion": "Plaquetas. Recuento de (X)",
+        "descripcion": "Plaquetas. Recuento de ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.02",
@@ -8777,7 +8777,7 @@
       },
       {
         "codigo": "230209",
-        "descripcion": "Protrombina. Consumo de (X)",
+        "descripcion": "Protrombina. Consumo de ",
         "q_gal": 3,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8786,7 +8786,7 @@
       },
       {
         "codigo": "230210",
-        "descripcion": "Protrombina. Tiempo de -Quick- (X)",
+        "descripcion": "Protrombina. Tiempo de -Quick- ",
         "q_gal": 1.5,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8813,7 +8813,7 @@
       },
       {
         "codigo": "230213",
-        "descripcion": "RH. (X)",
+        "descripcion": "RH. ",
         "q_gal": 1.5,
         "gto": 1.5,
         "subcapitulo": "23.02",
@@ -8822,7 +8822,7 @@
       },
       {
         "codigo": "230214",
-        "descripcion": "RH factor C (mayúscula). (X)",
+        "descripcion": "RH factor C (mayúscula). ",
         "q_gal": 1.5,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8831,7 +8831,7 @@
       },
       {
         "codigo": "230215",
-        "descripcion": "RH factor C (minúscula). (X)",
+        "descripcion": "RH factor C (minúscula). ",
         "q_gal": 1.5,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8849,7 +8849,7 @@
       },
       {
         "codigo": "230217",
-        "descripcion": "RH factor E (mayúscula). (X)",
+        "descripcion": "RH factor E (mayúscula). ",
         "q_gal": 1.5,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8858,7 +8858,7 @@
       },
       {
         "codigo": "230218",
-        "descripcion": "RH factor E (minúscula). (X)",
+        "descripcion": "RH factor E (minúscula). ",
         "q_gal": 1.5,
         "gto": 1.5,
         "subcapitulo": "23.02",
@@ -8867,7 +8867,7 @@
       },
       {
         "codigo": "230219",
-        "descripcion": "Reticulocitos. (X)",
+        "descripcion": "Reticulocitos. ",
         "q_gal": 1.5,
         "gto": 1,
         "subcapitulo": "23.02",
@@ -8894,7 +8894,7 @@
       },
       {
         "codigo": "230222",
-        "descripcion": "Siderofilina. Capacidad de la saturación de la (X)",
+        "descripcion": "Siderofilina. Capacidad de la saturación de la ",
         "q_gal": 4.5,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8957,7 +8957,7 @@
       },
       {
         "codigo": "230229",
-        "descripcion": "Tromboplastina. Tiempo de -parcial-. (X)",
+        "descripcion": "Tromboplastina. Tiempo de -parcial-. ",
         "q_gal": 3,
         "gto": 2,
         "subcapitulo": "23.02",
@@ -8999,7 +8999,7 @@
     "practicas": [
       {
         "codigo": "240101",
-        "descripcion": "Transfusión de sangre total, por unidad de hasta 500 c.c. (X)",
+        "descripcion": "Transfusión de sangre total, por unidad de hasta 500 c.c. ",
         "q_gal": 8.25,
         "gto": 26,
         "subcapitulo": "24.01",
@@ -9008,7 +9008,7 @@
       },
       {
         "codigo": "240102",
-        "descripcion": "Transfusión de plasma, por unidad de hasta 300 c.c. (X)",
+        "descripcion": "Transfusión de plasma, por unidad de hasta 300 c.c. ",
         "q_gal": 8.25,
         "gto": 33,
         "subcapitulo": "24.01",
@@ -9017,7 +9017,7 @@
       },
       {
         "codigo": "240103",
-        "descripcion": "Transfusión de hematíes sediementados (concentrado globular), por unidad de hasta 300 c.c. (X)",
+        "descripcion": "Transfusión de hematíes sediementados (concentrado globular), por unidad de hasta 300 c.c. ",
         "q_gal": 8.25,
         "gto": 33,
         "subcapitulo": "24.01",
@@ -9026,7 +9026,7 @@
       },
       {
         "codigo": "240104",
-        "descripcion": "Transfusión de glóbulos rojos lavados, por unidad de hasta 300 c.c. (incluye suero fisiológico). (X)",
+        "descripcion": "Transfusión de glóbulos rojos lavados, por unidad de hasta 300 c.c. (incluye suero fisiológico). ",
         "q_gal": 11.25,
         "gto": 44,
         "subcapitulo": "24.01",
@@ -9044,7 +9044,7 @@
       },
       {
         "codigo": "240106",
-        "descripcion": "Transfusión de sangre sin leucocitos con o sin plaquetas, por unidad de hasta 500 c.c. (X)",
+        "descripcion": "Transfusión de sangre sin leucocitos con o sin plaquetas, por unidad de hasta 500 c.c. ",
         "q_gal": 11.25,
         "gto": 66,
         "subcapitulo": "24.01",
@@ -9116,7 +9116,7 @@
       },
       {
         "codigo": "240114",
-        "descripcion": "V.D.R.L. en dador. (X)",
+        "descripcion": "V.D.R.L. en dador. ",
         "q_gal": 1.5,
         "gto": 2,
         "subcapitulo": "24.01",
@@ -9125,7 +9125,7 @@
       },
       {
         "codigo": "240115",
-        "descripcion": "Huddlesson de dador. (X)",
+        "descripcion": "Huddlesson de dador. ",
         "q_gal": 1.5,
         "gto": 1.5,
         "subcapitulo": "24.01",
@@ -9143,7 +9143,7 @@
       },
       {
         "codigo": "240117",
-        "descripcion": "Chagas fijación del complemento en dador. (X)",
+        "descripcion": "Chagas fijación del complemento en dador. ",
         "q_gal": 4.5,
         "gto": 2,
         "subcapitulo": "24.01",
@@ -9152,7 +9152,7 @@
       },
       {
         "codigo": "240118",
-        "descripcion": "Chagas hemoaglutinación en dador. (X)",
+        "descripcion": "Chagas hemoaglutinación en dador. ",
         "q_gal": 1.5,
         "gto": 3,
         "subcapitulo": "24.01",
@@ -9161,7 +9161,7 @@
       },
       {
         "codigo": "240119",
-        "descripcion": "Antígeno de hepatitis B en dador. (X)",
+        "descripcion": "Antígeno de hepatitis B en dador. ",
         "q_gal": 3,
         "gto": 5,
         "subcapitulo": "24.01",
@@ -9179,7 +9179,7 @@
       },
       {
         "codigo": "240121",
-        "descripcion": "Anticuerpos anti VIH (metodo de aglutinación de partículas en gelatina) en dador. (X)",
+        "descripcion": "Anticuerpos anti VIH (metodo de aglutinación de partículas en gelatina) en dador. ",
         "q_gal": 2.25,
         "gto": 11,
         "subcapitulo": "24.01",
@@ -9203,7 +9203,7 @@
       },
       {
         "codigo": "250102",
-        "descripcion": "Terapia física o kinesiterapia; masajes, movilización pasiva o activa, reeducación, ejercicios terapéuticos, gimnasia médica, fortalecimiento muscular rehabilitación respiratoria por sesión. (X)",
+        "descripcion": "Terapia física o kinesiterapia; masajes, movilización pasiva o activa, reeducación, ejercicios terapéuticos, gimnasia médica, fortalecimiento muscular rehabilitación respiratoria por sesión. ",
         "q_gal": 5.5,
         "gto": 2,
         "subcapitulo": "25.01",
@@ -9221,7 +9221,7 @@
       },
       {
         "codigo": "250104",
-        "descripcion": "Rehabilitación del lenguaje. Por sesión y por beneficiario. (X)",
+        "descripcion": "Rehabilitación del lenguaje. Por sesión y por beneficiario. ",
         "q_gal": 7,
         "gto": 2,
         "subcapitulo": "25.01",
@@ -9239,7 +9239,7 @@
       },
       {
         "codigo": "250106",
-        "descripcion": "Kinesiterapia o fisiatria a domicilio. Al código correspondiente se le adicionará. (X)",
+        "descripcion": "Kinesiterapia o fisiatria a domicilio. Al código correspondiente se le adicionará. ",
         "q_gal": 2.5,
         "gto": 0,
         "subcapitulo": "25.01",
