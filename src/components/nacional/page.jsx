@@ -14,9 +14,7 @@ import {
   highlight,
   parseNumber,
   calcularPractica,
-
-} from '../../app/admin/Facturacion/utils/calculos';   // ✅ usamos las mismas utilidades que facturación
-
+} from '../../app/admin/Facturacion/utils/calculos';
 
 const formatConvenioLabel = (s) =>
   String(s ?? '')
@@ -24,7 +22,6 @@ const formatConvenioLabel = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-// ----- CÓDIGOS DE PRÁCTICAS COMUNES (accesos rápidos) -----
 const DEFAULT_CODES = [
   '42.01.01',
   '43.02.01',
@@ -39,23 +36,21 @@ const DEFAULT_CODES = [
 
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
 
-/**
- * Normaliza el objeto valores_generales del convenio a las claves
- * que espera la función calcularPractica (igual que en facturación).
- */
+const formatearCodigo = (codigo) => {
+  const s = String(codigo).replace(/\D/g, '');
+  if (s.length === 6) return `${s.slice(0,2)}.${s.slice(2,4)}.${s.slice(4,6)}`;
+  return s;
+};
+
 const normalizarValores = (vg) => {
   if (!vg) return {};
-
-  // Función para buscar un valor con múltiples nombres de clave posibles
   const buscar = (claves, defecto = 0) => {
     for (const c of claves) {
       if (vg[c] != null && vg[c] !== '') return parseNumber(vg[c]);
     }
     return defecto;
   };
-
   return {
-    // Campos que usa calcularPractica
     galenoRx: buscar(['Galeno_Rx_Practica', 'Galeno_Rx_y_Practica', 'Galeno_Rx', 'galeno_rx']),
     gastoRx: buscar(['Gasto_Rx', 'Gastos_Rx', 'Gasto Rx', 'gasto_rx']),
     galenoQuir: buscar(['Galeno_Quir', 'Galeno Quir', 'Galeno_Quirurgico', 'galeno_quir']),
@@ -64,8 +59,7 @@ const normalizarValores = (vg) => {
     otrosGastos: buscar(['Otros_Gastos', 'Otros gastos', 'Otros_Gastos_Medicos']),
     consulta: buscar(['Consulta', 'consulta', 'CONSULTA']),
     Curaciones_R: buscar(['Curaciones_R', 'CURACIONES_R', 'Curaciones']),
-    // También exponemos el objeto completo por si se necesita en otro lado
-    ...vg, // spread para mantener compatibilidad con búsquedas flexibles internas de calcularPractica
+    ...vg,
   };
 };
 
@@ -74,32 +68,34 @@ export default function NomencladorNacional() {
   const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
   const [modoBusqueda, setModoBusqueda] = useState(true);
-
   const [filtroCapitulo, setFiltroCapitulo] = useState('');
   const [capituloQueries, setCapituloQueries] = useState({});
-
   const [convenios, setConvenios] = useState({});
   const [convenioSel, setConvenioSel] = useState('');
-  const [valoresConvenio, setValoresConvenio] = useState({}); // ahora es el objeto normalizado
+  const [valoresConvenio, setValoresConvenio] = useState({});
   const [alerta, setAlerta] = useState('');
+  const [subcapitulos, setSubcapitulos] = useState({});
 
-  // Cargar JSON del nomenclador
+  useEffect(() => {
+    fetch('/archivos/subcapitulos.json')
+      .then((res) => res.json())
+      .then((json) => setSubcapitulos(json))
+      .catch(() => console.warn('No se pudo cargar subcapitulos.json'));
+  }, []);
+
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
       .then((json) => {
         setCapitulos(json);
-
         const counts = new Map();
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => {
             const cap = String(c.capitulo ?? '').trim();
             const cod = String(p.codigo ?? '').trim();
             const base = `${cap}|${cod}`;
-
             const n = (counts.get(base) ?? 0) + 1;
             counts.set(base, n);
-
             return {
               ...p,
               capitulo: c.capitulo,
@@ -108,7 +104,6 @@ export default function NomencladorNacional() {
             };
           })
         );
-
         setData(flat);
       })
       .catch((err) => {
@@ -117,27 +112,22 @@ export default function NomencladorNacional() {
       });
   }, []);
 
-  // Cargar convenios desde Firebase
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
       const val = snap.exists() ? snap.val() : {};
       const normalizado = Object.keys(val).reduce((acc, key) => {
-        const cleanKey = key.trim();
-        acc[cleanKey] = val[key];
+        acc[key.trim()] = val[key];
         return acc;
       }, {});
       setConvenios(normalizado);
-
       const stored = localStorage.getItem('convenioActivo');
       const elegir = stored && normalizado[stored] ? stored : Object.keys(normalizado)[0] || '';
       setConvenioSel(elegir);
     });
-
     return () => off();
   }, []);
 
-  // Cuando cambia el convenio seleccionado, normalizamos sus valores
   useEffect(() => {
     if (!convenioSel || !convenios[convenioSel]) {
       setValoresConvenio({});
@@ -148,82 +138,103 @@ export default function NomencladorNacional() {
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
 
-  // Fuse para búsqueda global
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
-      keys: ['descripcion', 'codigo', 'capitulo', 'capituloNombre'],
+      keys: [
+        { name: 'codigo', weight: 3 },
+        { name: 'capitulo', weight: 2 },
+        { name: 'descripcion', weight: 1 },
+      ],
       includeScore: true,
-      threshold: 0.18,
+      threshold: 0.25,
       ignoreLocation: true,
-      minMatchCharLength: 2,
+      minMatchCharLength: 1,
     });
   }, [data]);
 
-  // --- Prácticas predefinidas (accesos rápidos) ---
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
-
     const wanted = DEFAULT_CODES.map(normCode);
     const picked = [];
-
     for (const w of wanted) {
       const found = data.find((it) => normCode(it.codigo) === w);
       if (!found) continue;
       picked.push(...vincularSubsiguientes(found, data));
     }
-
     const seen = new Map();
     picked.forEach((it) => {
       const key = it.__key || `${it.capitulo}|${it.codigo}`;
       if (!seen.has(key)) seen.set(key, it);
     });
-
     return Array.from(seen.values());
   }, [data]);
 
-  // --- Resultados de búsqueda ---
-  const resultadosBusqueda = useMemo(() => {
-    const q = query.trim();
-    if (!q) return [];
-
-    const qNorm = normalize(q);
-
-    const exact = data.filter(
-      (it) =>
-        String(it.codigo ?? '').toLowerCase() === q.toLowerCase() ||
-        normalize(it.descripcion).includes(qNorm)
-    );
-
-    let results = [];
-
-    if (exact.length) {
-      for (const it of exact) results.push(...vincularSubsiguientes(it, data));
-    } else if (fuseGlobal) {
-      const found = fuseGlobal.search(q).map((r) => r.item);
-      for (const it of found) results.push(...vincularSubsiguientes(it, data));
+  const getResultadosBusqueda = (q) => {
+    const trimmed = q.trim();
+    if (!trimmed) return [];
+    const codigoLimpio = normCode(trimmed);
+    let exactos = data.filter((it) => normCode(it.codigo) === codigoLimpio);
+    const esNumeroCapitulo = /^\d{1,2}$/.test(trimmed);
+    let porCapitulo = [];
+    if (esNumeroCapitulo) {
+      const capNum = trimmed.padStart(2, '0');
+      porCapitulo = data.filter((it) => it.capitulo === capNum);
     }
-
+    const esSubcapitulo = /^\d{1,2}\.\d{1,2}$/.test(trimmed);
+    let porSubcapitulo = [];
+    if (esSubcapitulo) {
+      const [cap, sub] = trimmed.split('.');
+      const capPadded = cap.padStart(2, '0');
+      const subPadded = sub.padStart(2, '0');
+      const key = `${capPadded}.${subPadded}`;
+      porSubcapitulo = data.filter((it) => {
+        const itKey = it.codigo.slice(0,2) + '.' + it.codigo.slice(2,4);
+        return itKey === key;
+      });
+    }
+    let fuseResults = [];
+    if (fuseGlobal) {
+      const found = fuseGlobal.search(trimmed).map((r) => r.item);
+      fuseResults = found;
+    }
+    const combined = [...exactos, ...porCapitulo, ...porSubcapitulo, ...fuseResults];
     const unique = Array.from(
-      new Map(results.map((it) => [it.__key ?? `${it.capitulo}|${it.codigo}`, it])).values()
+      new Map(combined.map((it) => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
     );
+    let final = [];
+    for (const it of unique) {
+      final.push(...vincularSubsiguientes(it, data));
+    }
+    const finalUnique = Array.from(
+      new Map(final.map((it) => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
+    );
+    return finalUnique;
+  };
 
-    return unique.sort((a, b) => (isRadiografia(a) ? 0 : 1) - (isRadiografia(b) ? 0 : 1));
-  }, [query, data, fuseGlobal]);
+  const resultadosGlobales = useMemo(() => {
+    if (query.trim() === '') return defaultResultados;
+    return getResultadosBusqueda(query);
+  }, [query, data, defaultResultados]);
 
-  // Combina: si no hay query → defaultResultados, sino → resultadosBusqueda
-  const resultadosGlobales = query.trim() === '' ? defaultResultados : resultadosBusqueda;
-
-  // Función que calcula honorario/gasto usando la misma lógica de facturación
   const getCalculo = (practica) => {
-    if (!valoresConvenio || Object.keys(valoresConvenio).length === 0)
-      return { honorarioMedico: 0, gastoSanatorial: 0, total: 0 };
-    return calcularPractica(practica, valoresConvenio);
+    const q_gal = practica.q_gal || 0;
+    const gto = practica.gto || 0;
+    if (!valoresConvenio || Object.keys(valoresConvenio).length === 0) {
+      return { honorarioMedico: 0, gastoSanatorial: 0, total: 0, q_gal, gto };
+    }
+    const calculado = calcularPractica(practica, valoresConvenio);
+    return { ...calculado, q_gal, gto };
+  };
+
+  const getSubcapitulo = (codigo) => {
+    if (!codigo || codigo.length < 4) return '';
+    const key = codigo.substring(0, 2) + '.' + codigo.substring(2, 4);
+    return subcapitulos[key] || '';
   };
 
   const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
 
-  // Valores para los chips (tomados del objeto normalizado)
   const gastoRx = valoresConvenio?.gastoRx ?? 0;
   const galenoRxPractica = valoresConvenio?.galenoRx ?? 0;
   const gastoOperatorio = valoresConvenio?.gastoOperatorio ?? 0;
@@ -231,6 +242,81 @@ export default function NomencladorNacional() {
   const diaPension = valoresConvenio?.pension ?? 0;
   const otrosGastos = valoresConvenio?.otrosGastos ?? 0;
   const galenoComun = parseNumber(valoresConvenio?.['Galeno_Comun'] ?? 0);
+
+  // Componente de tarjeta móvil reutilizable para evitar duplicación
+  const MobileCard = ({ practica, qLocal = '' }) => {
+    const calc = getCalculo(practica);
+    const subNombre = getSubcapitulo(practica.codigo);
+    return (
+      <article className={`${styles.card} ${isRadiografia(practica) ? styles.rxCard : ''} ${isSubsiguiente(practica) ? styles.subsiguienteCard : ''}`}>
+        <div className={styles.cardTop}>
+          <div className={styles.code}>{formatearCodigo(practica.codigo)}</div>
+          <div className={styles.capCell}>
+            <span className={styles.capMain}>{capLabel(practica)}</span>
+            {subNombre && (
+              <span className={styles.capSub}>
+                {practica.codigo.slice(0,2)}.{practica.codigo.slice(2,4)} – {subNombre}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className={styles.desc}>{highlight(practica.descripcion, qLocal || query)}</div>
+        <div className={styles.costGrid}>
+          <div className={styles.costBox}>
+            <span className={styles.costLabel}>Honorario</span>
+            <span className={styles.costValue}>{money(calc.honorarioMedico)}</span>
+            <span className={styles.baseLine}>Gal: {money(calc.q_gal)}</span>
+          </div>
+          <div className={styles.costBox}>
+            <span className={styles.costLabel}>Gasto</span>
+            <span className={styles.costValue}>{money(calc.gastoSanatorial)}</span>
+            <span className={styles.baseLine}>Gto: {money(calc.gto)}</span>
+          </div>
+          <div className={styles.costBox}>
+            <span className={styles.costLabel}>Total</span>
+            <span className={styles.costValue}>{money(calc.total)}</span>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  // Componente de fila de tabla reutilizable
+  const TableRow = ({ practica, qLocal = '' }) => {
+    const calc = getCalculo(practica);
+    const subNombre = getSubcapitulo(practica.codigo);
+    return (
+      <tr className={`${isRadiografia(practica) ? styles.rxRow : ''} ${isSubsiguiente(practica) ? styles.subsiguienteRow : ''}`}>
+        <td className={styles.codeCell}>{formatearCodigo(practica.codigo)}</td>
+        <td className={styles.descCell}>{highlight(practica.descripcion, qLocal || query)}</td>
+        <td>
+          <div className={styles.capCell}>
+            <span className={styles.capMain}>{capLabel(practica)}</span>
+            {subNombre && (
+              <span className={styles.capSub}>
+                {practica.codigo.slice(0,2)}.{practica.codigo.slice(2,4)} – {subNombre}
+              </span>
+            )}
+          </div>
+        </td>
+        <td className={styles.tdNumeric}>
+          <div className={styles.valueWithBase}>
+            <span className={styles.valueBig}>{money(calc.honorarioMedico)}</span>
+            <span className={styles.baseLine}>Gal: {money(calc.q_gal)}</span>
+          </div>
+        </td>
+        <td className={styles.tdNumeric}>
+          <div className={styles.valueWithBase}>
+            <span className={styles.valueBig}>{money(calc.gastoSanatorial)}</span>
+            <span className={styles.baseLine}>Gto: {money(calc.gto)}</span>
+          </div>
+        </td>
+        <td className={styles.tdNumeric}>
+          <span className={styles.valueBig}>{money(calc.total)}</span>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -243,8 +329,8 @@ export default function NomencladorNacional() {
             </p>
           </div>
         </div>
-        {/* Chips de valores */}
-        <div className={styles.chips} aria-label="Valores del convenio">
+
+        <div className={styles.chips}>
           <span className={`${styles.chip} ${styles.chipGastoRx}`}>
             <b>Gasto Rx</b> <span className={styles.chipValue}>{money(gastoRx)}</span>
           </span>
@@ -272,21 +358,12 @@ export default function NomencladorNacional() {
           <div className={styles.controlBlock}>
             <label className={styles.label}>Convenio</label>
             <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
-              {Object.keys(convenios)
-                .sort()
-                .map((k) => (
-                  <option key={k} value={k}>
-                    {formatConvenioLabel(k)}
-                  </option>
-                ))}
+              {Object.keys(convenios).sort().map((k) => (
+                <option key={k} value={k}>{formatConvenioLabel(k)}</option>
+              ))}
             </select>
           </div>
-
-          <button
-            className={styles.switchButton}
-            onClick={() => setModoBusqueda((p) => !p)}
-            type="button"
-          >
+          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)} type="button">
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
         </div>
@@ -296,85 +373,41 @@ export default function NomencladorNacional() {
 
       {modoBusqueda ? (
         <>
-          <div className={styles.searchBar} role="search" aria-label="Buscar práctica">
+          <div className={styles.searchBar} role="search">
             <span className={styles.searchIcon} aria-hidden="true">
               <svg viewBox="0 0 24 24" width="18" height="18">
-                <path
-                  fill="currentColor"
-                  d="M10 4a6 6 0 104.472 10.03l3.749 3.75a1 1 0 001.414-1.415l-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"
-                />
+                <path fill="currentColor" d="M10 4a6 6 0 104.472 10.03l3.749 3.75a1 1 0 001.414-1.415l-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/>
               </svg>
             </span>
-
             <input
               type="text"
               className={styles.searchInput}
-              placeholder="Buscar por código o descripción…"
+              placeholder="Buscar por código, capítulo o descripción…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
               spellCheck={false}
               inputMode="search"
             />
-
             {query.trim() && (
-              <button
-                type="button"
-                className={styles.clearBtn}
-                onClick={() => setQuery('')}
-                aria-label="Limpiar búsqueda"
-              >
+              <button type="button" className={styles.clearBtn} onClick={() => setQuery('')}>
                 Limpiar
               </button>
             )}
           </div>
 
-          {/* ------ VISTA MOBILE (tarjetas) ------ */}
+          {/* Mobile cards */}
           <div className={styles.mobileList}>
             {resultadosGlobales.length === 0 ? (
               <div className={styles.noResults}>Sin resultados.</div>
             ) : (
-              resultadosGlobales.map((it) => {
-                const calc = getCalculo(it);
-                const key = it.__key ?? `${it.capitulo}|${it.codigo}`;
-
-                return (
-                  <article
-                    key={key}
-                    className={`${styles.card} ${isRadiografia(it) ? styles.rxCard : ''} ${
-                      isSubsiguiente(it) ? styles.subsiguienteCard : ''
-                    }`}
-                  >
-                    <div className={styles.cardTop}>
-                      <div className={styles.code}>{highlight(it.codigo, query)}</div>
-                      <span className={styles.capBadge}>{capLabel(it)}</span>
-                    </div>
-
-                    <div className={styles.desc}>{highlight(it.descripcion, query)}</div>
-
-                    <div className={styles.costGrid}>
-                      <div className={styles.costBox}>
-                        <span className={styles.costLabel}>Honorario</span>
-                        <span className={styles.costValue}>{money(calc.honorarioMedico)}</span>
-                      </div>
-
-                      <div className={styles.costBox}>
-                        <span className={styles.costLabel}>Gasto</span>
-                        <span className={styles.costValue}>{money(calc.gastoSanatorial)}</span>
-                      </div>
-
-                      <div className={styles.costBox}>
-                        <span className={styles.costLabel}>Total</span>
-                        <span className={styles.costValue}>{money(calc.total)}</span>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })
+              resultadosGlobales.map((it) => (
+                <MobileCard key={it.__key || `${it.capitulo}|${it.codigo}`} practica={it} />
+              ))
             )}
           </div>
 
-          {/* ------ VISTA ESCRITORIO (tabla) ------ */}
+          {/* Desktop table */}
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -389,43 +422,11 @@ export default function NomencladorNacional() {
               </thead>
               <tbody>
                 {resultadosGlobales.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className={styles.noResultsCell}>
-                      Sin resultados.
-                    </td>
-                  </tr>
+                  <tr><td colSpan={6} className={styles.noResultsCell}>Sin resultados.</td></tr>
                 ) : (
-                  resultadosGlobales.map((it) => {
-                    const calc = getCalculo(it);
-                    const key = it.__key ?? `${it.capitulo}|${it.codigo}`;
-
-                    return (
-                      <tr
-                        key={key}
-                        className={`${isRadiografia(it) ? styles.rxRow : ''} ${
-                          isSubsiguiente(it) ? styles.subsiguienteRow : ''
-                        }`}
-                      >
-                        <td className={styles.codeCell}>{highlight(it.codigo, query)}</td>
-                        <td className={styles.descCell}>{highlight(it.descripcion, query)}</td>
-                        <td>
-                          <span className={styles.capBadge}>{capLabel(it)}</span>
-                        </td>
-
-                        <td className={styles.tdNumeric}>
-                          <span className={styles.valueBig}>{money(calc.honorarioMedico)}</span>
-                        </td>
-
-                        <td className={styles.tdNumeric}>
-                          <span className={styles.valueBig}>{money(calc.gastoSanatorial)}</span>
-                        </td>
-
-                        <td className={styles.tdNumeric}>
-                          <span className={styles.valueBig}>{money(calc.total)}</span>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  resultadosGlobales.map((it) => (
+                    <TableRow key={it.__key || `${it.capitulo}|${it.codigo}`} practica={it} />
+                  ))
                 )}
               </tbody>
             </table>
@@ -439,11 +440,7 @@ export default function NomencladorNacional() {
             placeholder="Buscar capítulo…"
             value={filtroCapitulo}
             onChange={(e) => setFiltroCapitulo(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            inputMode="search"
           />
-
           {capitulos
             .filter((c) => {
               if (!filtroCapitulo) return true;
@@ -457,7 +454,6 @@ export default function NomencladorNacional() {
               const practicas = c.practicas || [];
               const qLocal = capituloQueries[c.capitulo] || '';
               const qLocalNorm = normalize(qLocal);
-
               const practicasFiltradas =
                 qLocal.trim().length === 0
                   ? practicas
@@ -468,7 +464,6 @@ export default function NomencladorNacional() {
                   <summary className={styles.accordionHeader}>
                     {c.capitulo} — {c.descripcion}
                   </summary>
-
                   <div className={styles.accordionBody}>
                     <input
                       type="text"
@@ -481,105 +476,37 @@ export default function NomencladorNacional() {
                           [c.capitulo]: e.target.value,
                         }))
                       }
-                      autoComplete="off"
-                      spellCheck={false}
-                      inputMode="search"
                     />
-
                     <div className={styles.mobileList}>
                       {practicasFiltradas.length === 0 ? (
                         <div className={styles.noResults}>Sin resultados.</div>
                       ) : (
                         practicasFiltradas.map((it, j) => {
                           const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
-                          const calc = getCalculo(itFull);
                           const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
-
-                          return (
-                            <article
-                              key={key}
-                              className={`${styles.card} ${isRadiografia(itFull) ? styles.rxCard : ''} ${
-                                isSubsiguiente(itFull) ? styles.subsiguienteCard : ''
-                              }`}
-                            >
-                              <div className={styles.cardTop}>
-                                <div className={styles.code}>{highlight(itFull.codigo, qLocal)}</div>
-                                <span className={styles.capBadge}>
-                                  {c.capitulo} – {c.descripcion}
-                                </span>
-                              </div>
-
-                              <div className={styles.desc}>{highlight(itFull.descripcion, qLocal)}</div>
-
-                              <div className={styles.costGrid}>
-                                <div className={styles.costBox}>
-                                  <span className={styles.costLabel}>Honorario</span>
-                                  <span className={styles.costValue}>{money(calc.honorarioMedico)}</span>
-                                </div>
-
-                                <div className={styles.costBox}>
-                                  <span className={styles.costLabel}>Gasto</span>
-                                  <span className={styles.costValue}>{money(calc.gastoSanatorial)}</span>
-                                </div>
-
-                                <div className={styles.costBox}>
-                                  <span className={styles.costLabel}>Total</span>
-                                  <span className={styles.costValue}>{money(calc.total)}</span>
-                                </div>
-                              </div>
-                            </article>
-                          );
+                          return <MobileCard key={key} practica={itFull} qLocal={qLocal} />;
                         })
                       )}
                     </div>
-
                     <div className={styles.tableWrapper}>
                       <table className={styles.table}>
                         <thead>
                           <tr>
                             <th>Código</th>
                             <th>Descripción</th>
-                            <th className={styles.thNumeric}>Honorario</th>
-                            <th className={styles.thNumeric}>Gasto</th>
-                            <th className={styles.thNumeric}>Total</th>
+                            <th>Honorario</th>
+                            <th>Gasto</th>
+                            <th>Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {practicasFiltradas.length === 0 ? (
-                            <tr>
-                              <td colSpan={5} className={styles.noResultsCell}>
-                                Sin resultados.
-                              </td>
-                            </tr>
+                            <tr><td colSpan={5} className={styles.noResultsCell}>Sin resultados.</td></tr>
                           ) : (
                             practicasFiltradas.map((it, j) => {
                               const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
-                              const calc = getCalculo(itFull);
                               const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
-
-                              return (
-                                <tr
-                                  key={key}
-                                  className={`${isRadiografia(itFull) ? styles.rxRow : ''} ${
-                                    isSubsiguiente(itFull) ? styles.subsiguienteRow : ''
-                                  }`}
-                                >
-                                  <td className={styles.codeCell}>{highlight(itFull.codigo, qLocal)}</td>
-                                  <td className={styles.descCell}>{highlight(itFull.descripcion, qLocal)}</td>
-
-                                  <td className={styles.tdNumeric}>
-                                    <span className={styles.valueBig}>{money(calc.honorarioMedico)}</span>
-                                  </td>
-
-                                  <td className={styles.tdNumeric}>
-                                    <span className={styles.valueBig}>{money(calc.gastoSanatorial)}</span>
-                                  </td>
-
-                                  <td className={styles.tdNumeric}>
-                                    <span className={styles.valueBig}>{money(calc.total)}</span>
-                                  </td>
-                                </tr>
-                              );
+                              return <TableRow key={key} practica={itFull} qLocal={qLocal} />;
                             })
                           )}
                         </tbody>

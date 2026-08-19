@@ -122,7 +122,7 @@
       },
       {
         "codigo": "010208",
-        "descripcion": "Craneotomía exploradora, con o sin biopsia, evacuación de colección intracerebral, epídural,subdural y/o subaracnoidea, extracción de cuerpo extra�o, etc. (X)",
+        "descripcion": "Craneotomía exploradora, con o sin biopsia, evacuación de colección intracerebral, epídural,subdural y/o subaracnoidea, extracción de cuerpo extraño, etc. (X)",
         "q_gal": 531.75,
         "gto": 276,
         "subcapitulo": "01.02",
@@ -203,7 +203,7 @@
       },
       {
         "codigo": "010302",
-        "descripcion": "Tratamiento quirúrgico de las lesiones adquiridas del complejo vertebromeningomedular, (escisión, exploración,evacuaciones, liberación de adherencias, cuerpo extra�o.) lesiones únicas o múltiples por la misma incisión.",
+        "descripcion": "Tratamiento quirúrgico de las lesiones adquiridas del complejo vertebromeningomedular, (escisión, exploración,evacuaciones, liberación de adherencias, cuerpo extraño.) lesiones únicas o múltiples por la misma incisión.",
         "q_gal": 372.75,
         "gto": 352,
         "subcapitulo": "01.03",
@@ -473,7 +473,7 @@
       },
       {
         "codigo": "010606",
-        "descripcion": "Inyección paravertebral de troncos y ganglios simpáticos.� Simpático cervical, torácico, lumbar, esplácnico y semilunar..",
+        "descripcion": "Inyección paravertebral de troncos y ganglios simpáticos.ñ Simpático cervical, torácico, lumbar, esplácnico y semilunar..",
         "q_gal": 0,
         "gto": 7,
         "subcapitulo": "01.06",
@@ -560,7 +560,7 @@
       },
       {
         "codigo": "020103",
-        "descripcion": "Orbitotomía con escisión de lesión de órbita, con extracción de cuerpo extra�o, con exploración, biopsia, drenaje,etc. Con o sin apertura de pared de órbita.",
+        "descripcion": "Orbitotomía con escisión de lesión de órbita, con extracción de cuerpo extraño, con exploración, biopsia, drenaje,etc. Con o sin apertura de pared de órbita.",
         "q_gal": 178.5,
         "gto": 223,
         "subcapitulo": "02.01",
@@ -722,7 +722,7 @@
       },
       {
         "codigo": "020305",
-        "descripcion": "Sutura de conjuntiva ( incluída extracción de cuerpo extra�o). Cuerpo extra�o subconjuntival. Biopsia de conjuntiva. (X)",
+        "descripcion": "Sutura de conjuntiva ( incluída extracción de cuerpo extraño). Cuerpo extraño subconjuntival. Biopsia de conjuntiva. (X)",
         "q_gal": 21.75,
         "gto": 89,
         "subcapitulo": "02.03",
@@ -785,7 +785,7 @@
       },
       {
         "codigo": "020406",
-        "descripcion": "Sutura de herida de córnea con prolapso de iris y/o herida de cristalino. Extracción de cuerpo extra�o en cámara anterior.",
+        "descripcion": "Sutura de herida de córnea con prolapso de iris y/o herida de cristalino. Extracción de cuerpo extraño en cámara anterior.",
         "q_gal": 119.25,
         "gto": 124,
         "subcapitulo": "02.04",
@@ -866,7 +866,7 @@
       },
       {
         "codigo": "020606",
-        "descripcion": "Esclerectomía con extracción de cuerpo extra�o, intraocular",
+        "descripcion": "Esclerectomía con extracción de cuerpo extraño, intraocular",
         "q_gal": 201.75,
         "gto": 223,
         "subcapitulo": "02.06",
@@ -1160,7 +1160,7 @@
       },
       {
         "codigo": "030305",
-        "descripcion": "Tratamiento quirúrgico de fractura del pe�asco.",
+        "descripcion": "Tratamiento quirúrgico de fractura del peñasco.",
         "q_gal": 478.5,
         "gto": 223,
         "subcapitulo": "03.03",
@@ -1709,7 +1709,7 @@
       },
       {
         "codigo": "031004",
-        "descripcion": "Resección de labio (por escisión amplia de tumor maligno y sutural). Escisión en cu�a (como única operación).",
+        "descripcion": "Resección de labio (por escisión amplia de tumor maligno y sutural). Escisión en cuña (como única operación).",
         "q_gal": 101.25,
         "gto": 180,
         "subcapitulo": "03.10",
@@ -1790,7 +1790,7 @@
       },
       {
         "codigo": "031105",
-        "descripcion": "Glosotomía con drenaje de absceso, con extracción de cuerpo extra�o. Sección frenillo lingual. Sutura de lengua. Biopsia de lengua. (X)",
+        "descripcion": "Glosotomía con drenaje de absceso, con extracción de cuerpo extraño. Sección frenillo lingual. Sutura de lengua. Biopsia de lengua. (X)",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "03.11",
@@ -1916,7 +1916,7 @@
       },
       {
         "codigo": "031308",
-        "descripcion": "Faringotomía (exploración-extracción de cuerpo extra�o). Insición y drenaje de tejido retrofaríngeo (por vía bucal).",
+        "descripcion": "Faringotomía (exploración-extracción de cuerpo extraño). Insición y drenaje de tejido retrofaríngeo (por vía bucal).",
         "q_gal": 61.5,
         "gto": 121,
         "subcapitulo": "03.13",
@@ -2180,7 +2180,7 @@
       },
       {
         "codigo": "050402",
-        "descripcion": "Escisión local de lesión pulmonar, cuerpo extra�o, quistectomía o lesiones de enfisema.",
+        "descripcion": "Escisión local de lesión pulmonar, cuerpo extraño, quistectomía o lesiones de enfisema.",
         "q_gal": 252.75,
         "gto": 228,
         "subcapitulo": "05.04",
@@ -2189,7 +2189,7 @@
       },
       {
         "codigo": "050403",
-        "descripcion": "Operaciones en el mediastino (vía torácica o transesternal) tumores abscesos, drenajes, cuerpos extra�os, timo, etc.",
+        "descripcion": "Operaciones en el mediastino (vía torácica o transesternal) tumores abscesos, drenajes, cuerpos extraños, timo, etc.",
         "q_gal": 372.75,
         "gto": 361,
         "subcapitulo": "05.04",
@@ -2381,7 +2381,7 @@
     "practicas": [
       {
         "codigo": "070101",
-        "descripcion": "Septostomía interauricular (Blalock Halon) Cardiotomía (con exploración , con extracción de cuerpo extra�o.) Valvulotomía cardiaca, pulmonar, mitral, aórtica, comisurotomía. Pericardiectomía.",
+        "descripcion": "Septostomía interauricular (Blalock Halon) Cardiotomía (con exploración , con extracción de cuerpo extraño.) Valvulotomía cardiaca, pulmonar, mitral, aórtica, comisurotomía. Pericardiectomía.",
         "q_gal": 637.5,
         "gto": 366,
         "subcapitulo": "07.01",
@@ -2453,7 +2453,7 @@
       },
       {
         "codigo": "070109",
-        "descripcion": "Pericadiotomía con exploración, con drenaje con extracción de cuerpo extra�o, con descompresión, para evacuación de hematoma.",
+        "descripcion": "Pericadiotomía con exploración, con drenaje con extracción de cuerpo extraño, con descompresión, para evacuación de hematoma.",
         "q_gal": 303,
         "gto": 267,
         "subcapitulo": "07.01",
@@ -3080,7 +3080,7 @@
       },
       {
         "codigo": "080108",
-        "descripcion": "Esofagotomía exploradora por vía torácica o abdominal (con extracción de cuerpo extra�o, etc.). Esofagorrafia por herida, ruptura, etc.",
+        "descripcion": "Esofagotomía exploradora por vía torácica o abdominal (con extracción de cuerpo extraño, etc.). Esofagorrafia por herida, ruptura, etc.",
         "q_gal": 372.75,
         "gto": 221,
         "subcapitulo": "08.01",
@@ -3098,7 +3098,7 @@
       },
       {
         "codigo": "080110",
-        "descripcion": "Esofagotomía o esofagorrafía de esófago cervical (exploradora extracción de cuerpo extra�o, herida, ruptura).",
+        "descripcion": "Esofagotomía o esofagorrafía de esófago cervical (exploradora extracción de cuerpo extraño, herida, ruptura).",
         "q_gal": 252.75,
         "gto": 220,
         "subcapitulo": "08.01",
@@ -3116,7 +3116,7 @@
       },
       {
         "codigo": "080112",
-        "descripcion": "Intubación de esófago (por gastrotomía) (Op. de Go�i Moreno).",
+        "descripcion": "Intubación de esófago (por gastrotomía) (Op. de Goñi Moreno).",
         "q_gal": 201.75,
         "gto": 221,
         "subcapitulo": "08.01",
@@ -3242,7 +3242,7 @@
       },
       {
         "codigo": "080213",
-        "descripcion": "Escisión de tumor retroperitoneal (excluídos de ri�on y suprarrenal).",
+        "descripcion": "Escisión de tumor retroperitoneal (excluídos de riñon y suprarrenal).",
         "q_gal": 252.75,
         "gto": 266,
         "subcapitulo": "08.02",
@@ -3278,7 +3278,7 @@
       },
       {
         "codigo": "080303",
-        "descripcion": "Gastrotomía (exploración-extracción de cuerpo extra�o). Escisión local de úlcera o tumor benigno de estómago.",
+        "descripcion": "Gastrotomía (exploración-extracción de cuerpo extraño). Escisión local de úlcera o tumor benigno de estómago.",
         "q_gal": 201.75,
         "gto": 220,
         "subcapitulo": "08.03",
@@ -3377,7 +3377,7 @@
       },
       {
         "codigo": "080403",
-        "descripcion": "Enterostomía. Esterostomía temporaria o definitiva. Enterorrafía.� Cierre de enterostomias. Cierre de fístulas enterocutáneas. Devolvulación y desinvaginación intestinal (como únicas operaciones). (X)",
+        "descripcion": "Enterostomía. Esterostomía temporaria o definitiva. Enterorrafía.ñ Cierre de enterostomias. Cierre de fístulas enterocutáneas. Devolvulación y desinvaginación intestinal (como únicas operaciones). (X)",
         "q_gal": 228,
         "gto": 223,
         "subcapitulo": "08.04",
@@ -4172,7 +4172,7 @@
       },
       {
         "codigo": "100108",
-        "descripcion": "Tratmiento quirúrgico de la fístula lumbar con ri�ón funcionante.",
+        "descripcion": "Tratmiento quirúrgico de la fístula lumbar con riñón funcionante.",
         "q_gal": 303,
         "gto": 179,
         "subcapitulo": "10.01",
@@ -4235,7 +4235,7 @@
       },
       {
         "codigo": "100115",
-        "descripcion": "Extracción de cálculos ureterales o cuerpo extra�o por instrumentación (dormía o similares). Incluye citoscopía.",
+        "descripcion": "Extracción de cálculos ureterales o cuerpo extraño por instrumentación (dormía o similares). Incluye citoscopía.",
         "q_gal": 119.25,
         "gto": 118,
         "subcapitulo": "10.01",
@@ -4316,7 +4316,7 @@
       },
       {
         "codigo": "100208",
-        "descripcion": "Cistotomía cielo abierto (cuerpo extra�o-litiasis-drenaje). Sutura vesical.",
+        "descripcion": "Cistotomía cielo abierto (cuerpo extraño-litiasis-drenaje). Sutura vesical.",
         "q_gal": 119.25,
         "gto": 122,
         "subcapitulo": "10.02",
@@ -4388,7 +4388,7 @@
       },
       {
         "codigo": "100303",
-        "descripcion": "Uretromía externa (derivativa, por extracción de cálculo o de cuerpo extra�o). Uretromía interna. Biopsia uretral a cielo abierto.",
+        "descripcion": "Uretromía externa (derivativa, por extracción de cálculo o de cuerpo extraño). Uretromía interna. Biopsia uretral a cielo abierto.",
         "q_gal": 61.5,
         "gto": 117,
         "subcapitulo": "10.03",
@@ -5426,7 +5426,7 @@
       },
       {
         "codigo": "120901",
-        "descripcion": "Sacro-ilíaca, condro-costal, condro-esternal, esterno-clavicular, acromio-clavicular, codo, mu�eca, carpo-metacarpiana, tobillo, tarso-metatarsiana,témporo maxilar.",
+        "descripcion": "Sacro-ilíaca, condro-costal, condro-esternal, esterno-clavicular, acromio-clavicular, codo, muñeca, carpo-metacarpiana, tobillo, tarso-metatarsiana,témporo maxilar.",
         "q_gal": 101.25,
         "gto": 220,
         "subcapitulo": "12.09",
@@ -5471,7 +5471,7 @@
       },
       {
         "codigo": "121003",
-        "descripcion": "Hombro, codo, mu�eca, cuello de pie, témporo-maxilar.",
+        "descripcion": "Hombro, codo, muñeca, cuello de pie, témporo-maxilar.",
         "q_gal": 201.75,
         "gto": 312,
         "subcapitulo": "12.10",
@@ -5525,7 +5525,7 @@
       },
       {
         "codigo": "121104",
-        "descripcion": "Esterno-clavicular, mu�eca, tarso (simple, tibiotarsiana), tarso, metatarsiana, sínfisis pubiana.",
+        "descripcion": "Esterno-clavicular, muñeca, tarso (simple, tibiotarsiana), tarso, metatarsiana, sínfisis pubiana.",
         "q_gal": 178.5,
         "gto": 267,
         "subcapitulo": "12.11",
@@ -5561,7 +5561,7 @@
       },
       {
         "codigo": "121201",
-        "descripcion": "Esterno-clavicular, acromio-clavicular, codo, mu�eca, carpo, carpo-metacarpiana, tobillo, tarso, tarso-metatarsiana. (X)",
+        "descripcion": "Esterno-clavicular, acromio-clavicular, codo, muñeca, carpo, carpo-metacarpiana, tobillo, tarso, tarso-metatarsiana. (X)",
         "q_gal": 80.25,
         "gto": 177,
         "subcapitulo": "12.12",
@@ -5615,7 +5615,7 @@
       },
       {
         "codigo": "121303",
-        "descripcion": "Clavícula, hombro, codo, mu�eca, metacarpo, tobillo, tarso y metatarso.Tratamiento incruento e inmovilización. (X)",
+        "descripcion": "Clavícula, hombro, codo, muñeca, metacarpo, tobillo, tarso y metatarso.Tratamiento incruento e inmovilización. (X)",
         "q_gal": 39.75,
         "gto": 97,
         "subcapitulo": "12.13",
@@ -5651,7 +5651,7 @@
       },
       {
         "codigo": "121307",
-        "descripcion": "Clavícula, hombro, codo, mu�eca, metacarpo, tobillo, tarso y metatarso, témporo-maxilar. Tratamiento quirúrgico e inmovilización.",
+        "descripcion": "Clavícula, hombro, codo, muñeca, metacarpo, tobillo, tarso y metatarso, témporo-maxilar. Tratamiento quirúrgico e inmovilización.",
         "q_gal": 101.25,
         "gto": 179,
         "subcapitulo": "12.13",
@@ -5678,7 +5678,7 @@
       },
       {
         "codigo": "121402",
-        "descripcion": "Insición de músculos, escisión de lesión local (exploración, extracción de cuerpo extra�o, drenaje, biopsia, miorrafias).",
+        "descripcion": "Insición de músculos, escisión de lesión local (exploración, extracción de cuerpo extraño, drenaje, biopsia, miorrafias).",
         "q_gal": 61.5,
         "gto": 107,
         "subcapitulo": "12.14",
@@ -5696,7 +5696,7 @@
       },
       {
         "codigo": "121502",
-        "descripcion": "Reparación y sutura (tenorrafia) de tendón flexor de la mu�eca o de dedo de la mano. (X)",
+        "descripcion": "Reparación y sutura (tenorrafia) de tendón flexor de la muñeca o de dedo de la mano. (X)",
         "q_gal": 80.25,
         "gto": 184,
         "subcapitulo": "12.15",
@@ -5705,7 +5705,7 @@
       },
       {
         "codigo": "121503",
-        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferancia tendinosa de tendón flexor de la mu�eca o de dedo de la mano.",
+        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferancia tendinosa de tendón flexor de la muñeca o de dedo de la mano.",
         "q_gal": 119.25,
         "gto": 230,
         "subcapitulo": "12.15",
@@ -5714,7 +5714,7 @@
       },
       {
         "codigo": "121504",
-        "descripcion": "Reparacion y sutura (tenorrafia) en tendón extensor de la mu�eca o de dedo de la mano. (X)",
+        "descripcion": "Reparacion y sutura (tenorrafia) en tendón extensor de la muñeca o de dedo de la mano. (X)",
         "q_gal": 61.5,
         "gto": 178,
         "subcapitulo": "12.15",
@@ -5723,7 +5723,7 @@
       },
       {
         "codigo": "121505",
-        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferencia de tendón extensor de la mu�eca o de dedo de la mano.",
+        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferencia de tendón extensor de la muñeca o de dedo de la mano.",
         "q_gal": 80.25,
         "gto": 230,
         "subcapitulo": "12.15",
@@ -5732,7 +5732,7 @@
       },
       {
         "codigo": "121506",
-        "descripcion": "Reparación y sutura (tenorrafia) de otro tendón que no sea de la mu�eca o de dedo de la mano. (X)",
+        "descripcion": "Reparación y sutura (tenorrafia) de otro tendón que no sea de la muñeca o de dedo de la mano. (X)",
         "q_gal": 61.5,
         "gto": 179,
         "subcapitulo": "12.15",
@@ -5741,7 +5741,7 @@
       },
       {
         "codigo": "121507",
-        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferencia de otro tendón que no sea de la mu�eca o dedo de la mano.",
+        "descripcion": "Tenoplastia con alargamiento o acortamiento o injerto o transferencia de otro tendón que no sea de la muñeca o dedo de la mano.",
         "q_gal": 101.25,
         "gto": 180,
         "subcapitulo": "12.15",
@@ -5786,7 +5786,7 @@
       },
       {
         "codigo": "121603",
-        "descripcion": "Amputaciones y desarticulaciones : Brazo, codo, antebrazo, mu�eca, mano.",
+        "descripcion": "Amputaciones y desarticulaciones : Brazo, codo, antebrazo, muñeca, mano.",
         "q_gal": 119.25,
         "gto": 179,
         "subcapitulo": "12.16",
@@ -6485,7 +6485,7 @@
       },
       {
         "codigo": "130105",
-        "descripcion": "Incisión y drenaje de abceso, superficial, hidrosadenitis, quiste sebáseo infectado, forúnculo, panadizo, hematoma, antrax, etc. Extracción de cuerpo extra�o superficial. (X)",
+        "descripcion": "Incisión y drenaje de abceso, superficial, hidrosadenitis, quiste sebáseo infectado, forúnculo, panadizo, hematoma, antrax, etc. Extracción de cuerpo extraño superficial. (X)",
         "q_gal": 12.75,
         "gto": 26,
         "subcapitulo": "13.01",
@@ -6521,7 +6521,7 @@
       },
       {
         "codigo": "130109",
-        "descripcion": "Escisión de u�a lecho o repliegue ungueneal. (X)",
+        "descripcion": "Escisión de uña lecho o repliegue ungueneal. (X)",
         "q_gal": 21.75,
         "gto": 26,
         "subcapitulo": "13.01",
@@ -6557,7 +6557,7 @@
       },
       {
         "codigo": "130114",
-        "descripcion": "Incisión y drenaje de abceso profundo subaponeurótico. Extracción de cuerpo extra�o profundo. (X)",
+        "descripcion": "Incisión y drenaje de abceso profundo subaponeurótico. Extracción de cuerpo extraño profundo. (X)",
         "q_gal": 30,
         "gto": 45,
         "subcapitulo": "13.01",
@@ -8426,7 +8426,7 @@
       },
       {
         "codigo": "230169",
-        "descripcion": "Hemoaglutinación� pasiva. Prueba de, Hematíes tanados.",
+        "descripcion": "Hemoaglutinaciónñ pasiva. Prueba de, Hematíes tanados.",
         "q_gal": 6,
         "gto": 3,
         "subcapitulo": "23.01",
@@ -10583,7 +10583,7 @@
     "practicas": [
       {
         "codigo": "270101",
-        "descripcion": "Hemodiálisis con ri�ón artificial en insufuciencia aguda. Por sesión.",
+        "descripcion": "Hemodiálisis con riñón artificial en insufuciencia aguda. Por sesión.",
         "q_gal": 40,
         "gto": 440,
         "subcapitulo": "27.01",
@@ -10592,7 +10592,7 @@
       },
       {
         "codigo": "270102",
-        "descripcion": "Hemodiálisis con ri�ón artifcial en insufuciencia crónica. Por sesión.",
+        "descripcion": "Hemodiálisis con riñón artifcial en insufuciencia crónica. Por sesión.",
         "q_gal": 20,
         "gto": 440,
         "subcapitulo": "27.01",
@@ -10625,7 +10625,7 @@
       },
       {
         "codigo": "280102",
-        "descripcion": "Espirometría antes y después� de uso de broncodilatadores (incluye broncodilatadores).",
+        "descripcion": "Espirometría antes y despuésñ de uso de broncodilatadores (incluye broncodilatadores).",
         "q_gal": 12,
         "gto": 18,
         "subcapitulo": "28.01",
@@ -10844,7 +10844,7 @@
       },
       {
         "codigo": "300106",
-        "descripcion": "Tonometría en ni�os con anestesia general.- (bilateral)",
+        "descripcion": "Tonometría en niños con anestesia general.- (bilateral)",
         "q_gal": 22.5,
         "gto": 15,
         "subcapitulo": "30.01",
@@ -10925,7 +10925,7 @@
       },
       {
         "codigo": "300115",
-        "descripcion": "Extracción de cuerpo extra�o conjuntival.- (bilateral) - (Incluido en consulta)",
+        "descripcion": "Extracción de cuerpo extraño conjuntival.- (bilateral) - (Incluido en consulta)",
         "q_gal": 0,
         "gto": 0,
         "subcapitulo": "30.01",
@@ -10934,7 +10934,7 @@
       },
       {
         "codigo": "300116",
-        "descripcion": "Extracción de cuerpo extra�o en córnea.- (unilateral).",
+        "descripcion": "Extracción de cuerpo extraño en córnea.- (unilateral).",
         "q_gal": 4.5,
         "gto": 3,
         "subcapitulo": "30.01",
@@ -11084,7 +11084,7 @@
       },
       {
         "codigo": "310111",
-        "descripcion": "Extracción de cuerpo extra�o en oído. Extracción de tapón de cerumen. (Uni o bilateral).",
+        "descripcion": "Extracción de cuerpo extraño en oído. Extracción de tapón de cerumen. (Uni o bilateral).",
         "q_gal": 4.5,
         "gto": 5,
         "subcapitulo": "31.01",
@@ -11111,7 +11111,7 @@
       },
       {
         "codigo": "310114",
-        "descripcion": "Extracción de cuerpo extra�o en nariz.- (Incluido en consulta)",
+        "descripcion": "Extracción de cuerpo extraño en nariz.- (Incluido en consulta)",
         "q_gal": 0,
         "gto": 0,
         "subcapitulo": "31.01",
@@ -11156,7 +11156,7 @@
       },
       {
         "codigo": "310119",
-        "descripcion": "Expresión de adenoides o� lavaje rinoadenoideo.- (Incluido en consulta)",
+        "descripcion": "Expresión de adenoides oñ lavaje rinoadenoideo.- (Incluido en consulta)",
         "q_gal": 0,
         "gto": 0,
         "subcapitulo": "31.01",
@@ -11213,7 +11213,7 @@
     "practicas": [
       {
         "codigo": "330101",
-        "descripcion": "Psicoterapias individuales, ni�os o adultos, por sesión mínima de 40 minutos practicadas por especialistas (con o sin psicodiagnostico) debidamente autorizadas. Narcoterapia.",
+        "descripcion": "Psicoterapias individuales, niños o adultos, por sesión mínima de 40 minutos practicadas por especialistas (con o sin psicodiagnostico) debidamente autorizadas. Narcoterapia.",
         "q_gal": 19.5,
         "gto": 0,
         "subcapitulo": "33.01",
@@ -11222,7 +11222,7 @@
       },
       {
         "codigo": "330102",
-        "descripcion": "Psicoterapias grupales o colectivas, ni�os o adultos por sesión mínima de 60 minutos practicada por especialistas debidamente autorizados, por paciente.",
+        "descripcion": "Psicoterapias grupales o colectivas, niños o adultos por sesión mínima de 60 minutos practicada por especialistas debidamente autorizados, por paciente.",
         "q_gal": 3.75,
         "gto": 0,
         "subcapitulo": "33.01",
@@ -11249,7 +11249,7 @@
       },
       {
         "codigo": "330109",
-        "descripcion": "Sue�o prolongado. Por día. Incluye las visitas durante ese período.",
+        "descripcion": "Sueño prolongado. Por día. Incluye las visitas durante ese período.",
         "q_gal": 6,
         "gto": 0,
         "subcapitulo": "33.01",
@@ -11426,7 +11426,7 @@
       },
       {
         "codigo": "340213",
-        "descripcion": "Radiografía de codo, antebrazo, mu�eca, mano, dedos, rodilla, pierna, tobillo y pie: 2 por placa.A",
+        "descripcion": "Radiografía de codo, antebrazo, muñeca, mano, dedos, rodilla, pierna, tobillo y pie: 2 por placa.A",
         "q_gal": 6.75,
         "gto": 30,
         "subcapitulo": "34.02",
@@ -11579,7 +11579,7 @@
       },
       {
         "codigo": "340405",
-        "descripcion": "Estudio seriado esofagogastroduodenal (mínimo 12 exposiciones)� por estudio. C @",
+        "descripcion": "Estudio seriado esofagogastroduodenal (mínimo 12 exposiciones)ñ por estudio. C @",
         "q_gal": 24.75,
         "gto": 130,
         "subcapitulo": "34.04",
@@ -11705,7 +11705,7 @@
       },
       {
         "codigo": "340419",
-        "descripcion": "Colangiografía retrógrada por fibroscopía (mínimo tres placas) por estudio (sin honorario del especialista). D @� .(+ 20.01.23)",
+        "descripcion": "Colangiografía retrógrada por fibroscopía (mínimo tres placas) por estudio (sin honorario del especialista). D @ñ .(+ 20.01.23)",
         "q_gal": 9.75,
         "gto": 60,
         "subcapitulo": "34.04",
@@ -11714,7 +11714,7 @@
       },
       {
         "codigo": "340420",
-        "descripcion": "Neumoperitoneografía, retroneumoperitoneografía, uni o bilateral, (mínimo tres placas) por estudio (sin honorario del especialista). B� .(+ 22.01.07)",
+        "descripcion": "Neumoperitoneografía, retroneumoperitoneografía, uni o bilateral, (mínimo tres placas) por estudio (sin honorario del especialista). Bñ .(+ 22.01.07)",
         "q_gal": 9.75,
         "gto": 60,
         "subcapitulo": "34.04",
@@ -11777,7 +11777,7 @@
       },
       {
         "codigo": "340505",
-        "descripcion": "Pielografía ascendente (sin honorario del especialista) primera placa. B� .(+ 36.01.02)",
+        "descripcion": "Pielografía ascendente (sin honorario del especialista) primera placa. Bñ .(+ 36.01.02)",
         "q_gal": 5.25,
         "gto": 25,
         "subcapitulo": "34.05",
@@ -11840,7 +11840,7 @@
       },
       {
         "codigo": "340604",
-        "descripcion": "Histerosalpingografía con prueba de Cotte (sin honorarios del especialista) (mínimo tres placas) por estudio. C#� .(+ 22.01.07)",
+        "descripcion": "Histerosalpingografía con prueba de Cotte (sin honorarios del especialista) (mínimo tres placas) por estudio. C#ñ .(+ 22.01.07)",
         "q_gal": 7.5,
         "gto": 60,
         "subcapitulo": "34.06",
@@ -11849,7 +11849,7 @@
       },
       {
         "codigo": "340605",
-        "descripcion": "Pelvineumografía, (sin honorarios del especialista) (mínimo tres placas) por estudio. B� .(+ 22.01.07)",
+        "descripcion": "Pelvineumografía, (sin honorarios del especialista) (mínimo tres placas) por estudio. Bñ .(+ 22.01.07)",
         "q_gal": 7.5,
         "gto": 60,
         "subcapitulo": "34.06",
@@ -11858,7 +11858,7 @@
       },
       {
         "codigo": "340606",
-        "descripcion": "Ginecografía (sin honorarios del especialista) (mínimo seis placas) por estudio. C� .(+ 22.01.07)",
+        "descripcion": "Ginecografía (sin honorarios del especialista) (mínimo seis placas) por estudio. Cñ .(+ 22.01.07)",
         "q_gal": 15,
         "gto": 120,
         "subcapitulo": "34.06",
@@ -11894,7 +11894,7 @@
       },
       {
         "codigo": "340702",
-        "descripcion": "Ventriculografía por inyección de medio contrastante líquido o gaseoso (mínimo seis placas) por estudio. B� .(+ 01.07.01)",
+        "descripcion": "Ventriculografía por inyección de medio contrastante líquido o gaseoso (mínimo seis placas) por estudio. Bñ .(+ 01.07.01)",
         "q_gal": 9.75,
         "gto": 120,
         "subcapitulo": "34.07",
@@ -11903,7 +11903,7 @@
       },
       {
         "codigo": "340703",
-        "descripcion": "Arteriografía cerabral por cateterísmo (mínimo seis placas) por estudio. D� .(+ 01.07.02)",
+        "descripcion": "Arteriografía cerabral por cateterísmo (mínimo seis placas) por estudio. Dñ .(+ 01.07.02)",
         "q_gal": 12,
         "gto": 120,
         "subcapitulo": "34.07",
@@ -11912,7 +11912,7 @@
       },
       {
         "codigo": "340704",
-        "descripcion": "Arteriografía carotídea o vertebral (por punción directa) mínimo cuatro placas por estudio. B��� (+01.07.03)",
+        "descripcion": "Arteriografía carotídea o vertebral (por punción directa) mínimo cuatro placas por estudio. Bñ (+01.07.03)",
         "q_gal": 12,
         "gto": 100,
         "subcapitulo": "34.07",
@@ -11921,7 +11921,7 @@
       },
       {
         "codigo": "340705",
-        "descripcion": "Neumoencefaloventriculografía fraccionada, cisternografía, (mínimo ocho placas) por estudio .B� .(+ 01.07.04)",
+        "descripcion": "Neumoencefaloventriculografía fraccionada, cisternografía, (mínimo ocho placas) por estudio .Bñ .(+ 01.07.04)",
         "q_gal": 12,
         "gto": 120,
         "subcapitulo": "34.07",
@@ -11930,7 +11930,7 @@
       },
       {
         "codigo": "340706",
-        "descripcion": "Mielografía ascendente o descendente. Cisternomielografía, radiculografía (mínimo cuatro placas) por estudio. D� (+01.07.05)",
+        "descripcion": "Mielografía ascendente o descendente. Cisternomielografía, radiculografía (mínimo cuatro placas) por estudio. Dñ (+01.07.05)",
         "q_gal": 15,
         "gto": 80,
         "subcapitulo": "34.07",
@@ -11939,7 +11939,7 @@
       },
       {
         "codigo": "340707",
-        "descripcion": "Discografía. Neurografía. Epidurografía (mínimo dos placas) por estudio. D� .(+ 01.07.06)",
+        "descripcion": "Discografía. Neurografía. Epidurografía (mínimo dos placas) por estudio. Dñ .(+ 01.07.06)",
         "q_gal": 12,
         "gto": 40,
         "subcapitulo": "34.07",
@@ -11975,7 +11975,7 @@
       },
       {
         "codigo": "340804",
-        "descripcion": "Cardiografía o angiocardiografía (mínimo seis placas o quince metros de películas) por estudio. D @� (+07.07.02)",
+        "descripcion": "Cardiografía o angiocardiografía (mínimo seis placas o quince metros de películas) por estudio. D @ñ (+07.07.02)",
         "q_gal": 24.75,
         "gto": 180,
         "subcapitulo": "34.08",
@@ -11984,7 +11984,7 @@
       },
       {
         "codigo": "340805",
-        "descripcion": "Coronariografía, incluye ventriculografía (mínimo cuaretaycinco metros de película)por estudio. D @�� (+07.07.03)",
+        "descripcion": "Coronariografía, incluye ventriculografía (mínimo cuaretaycinco metros de película)por estudio. D @ñ (+07.07.03)",
         "q_gal": 36.75,
         "gto": 250,
         "subcapitulo": "34.08",
@@ -11993,7 +11993,7 @@
       },
       {
         "codigo": "340806",
-        "descripcion": "Investigación de fístulas vasculares pulmonares, comprende aortografía torácica selectiva de arterias y angioneumografía (mínimo doce placas o treinta metros de película) por estudio. D @� .(+07.07.07)",
+        "descripcion": "Investigación de fístulas vasculares pulmonares, comprende aortografía torácica selectiva de arterias y angioneumografía (mínimo doce placas o treinta metros de película) por estudio. D @ñ .(+07.07.07)",
         "q_gal": 24.75,
         "gto": 180,
         "subcapitulo": "34.08",
@@ -12002,7 +12002,7 @@
       },
       {
         "codigo": "340807",
-        "descripcion": "Panarteriografía del cayado aórtico y vasos del cuello, por cateterismo, (mínimo seis placas o quince metros de película) por estudio. D @� .(+ 07.07.06)",
+        "descripcion": "Panarteriografía del cayado aórtico y vasos del cuello, por cateterismo, (mínimo seis placas o quince metros de película) por estudio. D @ñ .(+ 07.07.06)",
         "q_gal": 12,
         "gto": 140,
         "subcapitulo": "34.08",
@@ -12011,7 +12011,7 @@
       },
       {
         "codigo": "340808",
-        "descripcion": "Aortografía por punción lumbar, primera exposición. B� .(+07.07.04)",
+        "descripcion": "Aortografía por punción lumbar, primera exposición. Bñ .(+07.07.04)",
         "q_gal": 9.75,
         "gto": 40,
         "subcapitulo": "34.08",
@@ -12029,7 +12029,7 @@
       },
       {
         "codigo": "340810",
-        "descripcion": "Arteriografía de arterias medulares y/o intercostales (por estudio completo cualquiera fuere el número de placas y/o sesiones). D� .(+ 07.07.12)",
+        "descripcion": "Arteriografía de arterias medulares y/o intercostales (por estudio completo cualquiera fuere el número de placas y/o sesiones). Dñ .(+ 07.07.12)",
         "q_gal": 36.75,
         "gto": 250,
         "subcapitulo": "34.08",
@@ -12038,7 +12038,7 @@
       },
       {
         "codigo": "340811",
-        "descripcion": "Arteriografía selectiva de las ramas de la aorta abdominal (mínimo seis placas o quince metros de película). D @�� (+07.07.05)",
+        "descripcion": "Arteriografía selectiva de las ramas de la aorta abdominal (mínimo seis placas o quince metros de película). D @ñ (+07.07.05)",
         "q_gal": 24.75,
         "gto": 140,
         "subcapitulo": "34.08",
@@ -12047,7 +12047,7 @@
       },
       {
         "codigo": "340812",
-        "descripcion": "Arteriografías periféricas de los miembros por punción. Primera exposición .B� .(+07.07.14)",
+        "descripcion": "Arteriografías periféricas de los miembros por punción. Primera exposición .Bñ .(+07.07.14)",
         "q_gal": 9.75,
         "gto": 35,
         "subcapitulo": "34.08",
@@ -12056,7 +12056,7 @@
       },
       {
         "codigo": "340813",
-        "descripcion": "Arteriografías periféricas de los miembros (por punción) por cada exposición subsiguiente y hasta cuatro exposiciones. B� .(+ 07.07.14)",
+        "descripcion": "Arteriografías periféricas de los miembros (por punción) por cada exposición subsiguiente y hasta cuatro exposiciones. Bñ .(+ 07.07.14)",
         "q_gal": 5.25,
         "gto": 25,
         "subcapitulo": "34.08",
@@ -12065,7 +12065,7 @@
       },
       {
         "codigo": "340814",
-        "descripcion": "Cavografía (primera exposición).� .(+ 07.07.09)",
+        "descripcion": "Cavografía (primera exposición).ñ .(+ 07.07.09)",
         "q_gal": 7.5,
         "gto": 35,
         "subcapitulo": "34.08",
@@ -12083,7 +12083,7 @@
       },
       {
         "codigo": "340816",
-        "descripcion": "Esplenoportografía por punción esplénica.� .(+ 08.09.02)",
+        "descripcion": "Esplenoportografía por punción esplénica.ñ .(+ 08.09.02)",
         "q_gal": 7.5,
         "gto": 35,
         "subcapitulo": "34.08",
@@ -12101,7 +12101,7 @@
       },
       {
         "codigo": "340818",
-        "descripcion": "Flebografía selectiva de afluentes abdominales o torácico de la vena cava (cavografía selectiva por cateterismo) primera exposición. D @� .(+ 07.07.13)",
+        "descripcion": "Flebografía selectiva de afluentes abdominales o torácico de la vena cava (cavografía selectiva por cateterismo) primera exposición. D @ñ .(+ 07.07.13)",
         "q_gal": 7.5,
         "gto": 35,
         "subcapitulo": "34.08",
@@ -12119,7 +12119,7 @@
       },
       {
         "codigo": "340820",
-        "descripcion": "Flebografía de miembro superior o inferior. primera exposición. B� .(+ 07.07.16)",
+        "descripcion": "Flebografía de miembro superior o inferior. primera exposición. Bñ .(+ 07.07.16)",
         "q_gal": 7.5,
         "gto": 35,
         "subcapitulo": "34.08",
@@ -12137,7 +12137,7 @@
       },
       {
         "codigo": "340822",
-        "descripcion": "Linfografía por exposición. B� .(+ 09.01.08)",
+        "descripcion": "Linfografía por exposición. Bñ .(+ 09.01.08)",
         "q_gal": 5.25,
         "gto": 25,
         "subcapitulo": "34.08",
@@ -12218,7 +12218,7 @@
       },
       {
         "codigo": "340909",
-        "descripcion": "Radiografía a domicilio, en radio urbano,� exposición subsiguiente, por cada una. A",
+        "descripcion": "Radiografía a domicilio, en radio urbano,ñ exposición subsiguiente, por cada una. A",
         "q_gal": 5.25,
         "gto": 30,
         "subcapitulo": "34.09",
@@ -12605,7 +12605,7 @@
     "practicas": [
       {
         "codigo": "430101",
-        "descripcion": "Una cama en habitación de dos con ba�o privado.",
+        "descripcion": "Una cama en habitación de dos con baño privado.",
         "q_gal": 0,
         "gto": 57,
         "subcapitulo": "43.01",
@@ -12614,7 +12614,7 @@
       },
       {
         "codigo": "430102",
-        "descripcion": "Una cama en habitación de dos con ba�o intermedio.",
+        "descripcion": "Una cama en habitación de dos con baño intermedio.",
         "q_gal": 0,
         "gto": 43,
         "subcapitulo": "43.01",
@@ -12623,7 +12623,7 @@
       },
       {
         "codigo": "430103",
-        "descripcion": "Una cama en habitación de tres con ba�o incluído.",
+        "descripcion": "Una cama en habitación de tres con baño incluído.",
         "q_gal": 0,
         "gto": 38,
         "subcapitulo": "43.01",
@@ -12632,7 +12632,7 @@
       },
       {
         "codigo": "430104",
-        "descripcion": "Una cama en habitación de más de tres con ba�o incluído.",
+        "descripcion": "Una cama en habitación de más de tres con baño incluído.",
         "q_gal": 0,
         "gto": 34,
         "subcapitulo": "43.01",
@@ -12650,7 +12650,7 @@
       },
       {
         "codigo": "430106",
-        "descripcion": "Una cama para acompa�ante en habitación de dos coamas con ba�o privado.",
+        "descripcion": "Una cama para acompañante en habitación de dos coamas con baño privado.",
         "q_gal": 0,
         "gto": 68,
         "subcapitulo": "43.01",
@@ -12659,7 +12659,7 @@
       },
       {
         "codigo": "430107",
-        "descripcion": "Una cama para acompa�ante en habitación de dos camas con ba�o intermedio.",
+        "descripcion": "Una cama para acompañante en habitación de dos camas con baño intermedio.",
         "q_gal": 0,
         "gto": 47,
         "subcapitulo": "43.01",
@@ -12668,7 +12668,7 @@
       },
       {
         "codigo": "430108",
-        "descripcion": "Una cama para acompa�ante en habitación de tres camas con ba�o incluido.",
+        "descripcion": "Una cama para acompañante en habitación de tres camas con baño incluido.",
         "q_gal": 0,
         "gto": 41,
         "subcapitulo": "43.01",
