@@ -1937,7 +1937,7 @@
 			},
 			{
 				"codigo": "070703",
-				"descripcion": "Coronariografía selectiva de coronaria izquierda y/o derecha incluye cateterismo cardíaco, toma de presiones, obtención de muestra de sangre para oximetría y ventriculograma, incluye monitoreo cardíaco.� (X)",
+				"descripcion": "Coronariografía selectiva de coronaria izquierda y/o derecha incluye cateterismo cardíaco, toma de presiones, obtención de muestra de sangre para oximetría y ventriculograma, incluye monitoreo cardíaco.",
 				"q_gal": 212.25,
 				"gto": 300.0
 			},
@@ -5357,7 +5357,7 @@
 			},
 			{
 				"codigo": "230118",
-				"descripcion": "Coagulación y sangría. Tiempo de� (X)",
+				"descripcion": "Coagulación y sangría. Tiempo de",
 				"q_gal": 1.5,
 				"gto": 1.0
 			},
@@ -6221,7 +6221,7 @@
 		"practicas": [
 			{
 				"codigo": "260101",
-				"descripcion": "Curva de captación tiroidea (tres determinaciones).� (X)",
+				"descripcion": "Curva de captación tiroidea (tres determinaciones).",
 				"q_gal": 10.5,
 				"gto": 20.0
 			},
@@ -6947,13 +6947,13 @@
 			},
 			{
 				"codigo": "260508",
-				"descripcion": "Centellograma óseo (un área).� (X)",
+				"descripcion": "Centellograma óseo (un área).",
 				"q_gal": 37.5,
 				"gto": 70.0
 			},
 			{
 				"codigo": "260509",
-				"descripcion": "Areas subsiguientes.� (X)",
+				"descripcion": "Areas subsiguientes.",
 				"q_gal": 15.0,
 				"gto": 15.0
 			},
@@ -7115,7 +7115,7 @@
 			},
 			{
 				"codigo": "270102",
-				"descripcion": "Hemodiálisis con ri�ón artifcial en insufuciencia crónica. Por sesión.� (X)",
+				"descripcion": "Hemodiálisis con ri�ón artifcial en insufuciencia crónica. Por sesión.",
 				"q_gal": 20.0,
 				"gto": 440.0
 			},
@@ -7133,13 +7133,13 @@
 		"practicas": [
 			{
 				"codigo": "280101",
-				"descripcion": "Espirometría. Comprende: Capacidad vital forzada, flujo espiratorio forzado, flujo medio forzado.� (X)",
+				"descripcion": "Espirometría. Comprende: Capacidad vital forzada, flujo espiratorio forzado, flujo medio forzado.",
 				"q_gal": 7.5,
 				"gto": 18.0
 			},
 			{
 				"codigo": "280102",
-				"descripcion": "Espirometría antes y después� de uso de broncodilatadores (incluye broncodilatadores).� (X)",
+				"descripcion": "Espirometría antes y después� de uso de broncodilatadores (incluye broncodilatadores).",
 				"q_gal": 12.0,
 				"gto": 18.0
 			},
@@ -7163,7 +7163,7 @@
 			},
 			{
 				"codigo": "280106",
-				"descripcion": "Broncofibroscopía.� (X)",
+				"descripcion": "Broncofibroscopía.",
 				"q_gal": 45.0,
 				"gto": 342.0
 			},
@@ -7199,7 +7199,7 @@
 		"practicas": [
 			{
 				"codigo": "290101",
-				"descripcion": "Electroencefalografía con activación simple.� (X)",
+				"descripcion": "Electroencefalografía con activación simple.",
 				"q_gal": 15.0,
 				"gto": 50.0
 			},
@@ -7217,7 +7217,7 @@
 			},
 			{
 				"codigo": "290104",
-				"descripcion": "Electromiografía de miembros superiores o inferiores o facial.� (X)",
+				"descripcion": "Electromiografía de miembros superiores o inferiores o facial.",
 				"q_gal": 12.0,
 				"gto": 60.0
 			},
@@ -7283,7 +7283,7 @@
 			},
 			{
 				"codigo": "300105",
-				"descripcion": "Tonometría.- (bilateral) - (Incluido en consulta).� (X)",
+				"descripcion": "Tonometría.- (bilateral) - (Incluido en consulta).",
 				"q_gal": 0.0,
 				"gto": 0.0
 			},
@@ -7349,7 +7349,7 @@
 			},
 			{
 				"codigo": "300116",
-				"descripcion": "Extracción de cuerpo extra�o en córnea.- (unilateral).� (X)",
+				"descripcion": "Extracción de cuerpo extra�o en córnea.- (unilateral).",
 				"q_gal": 4.5,
 				"gto": 3.0
 			},
@@ -7361,7 +7361,7 @@
 			},
 			{
 				"codigo": "300118",
-				"descripcion": "Dilatación de conducto lacrimonasal con intubación.- (unilateral)� (X)",
+				"descripcion": "Dilatación de conducto lacrimonasal con intubación.- (unilateral)",
 				"q_gal": 27.0,
 				"gto": 5.0
 			},
@@ -7385,7 +7385,7 @@
 			},
 			{
 				"codigo": "300122",
-				"descripcion": "Exoftalmología (incluye prescripción de cristales, su control posterior, tonometría y fondo de ojo).- (bilateral)� (X)",
+				"descripcion": "Exoftalmología (incluye prescripción de cristales, su control posterior, tonometría y fondo de ojo).- (bilateral)",
 				"q_gal": 18.0,
 				"gto": 6.0
 			}
@@ -7403,7 +7403,7 @@
 			},
 			{
 				"codigo": "310102",
-				"descripcion": "Audiometría.� (X)",
+				"descripcion": "Audiometría.",
 				"q_gal": 4.5,
 				"gto": 5.0
 			},
@@ -7451,7 +7451,7 @@
 			},
 			{
 				"codigo": "310111",
-				"descripcion": "Extracción de cuerpo extra�o en oído. Extracción de tapón de cerumen. (Uni o bilateral).� (X)",
+				"descripcion": "Extracción de cuerpo extra�o en oído. Extracción de tapón de cerumen. (Uni o bilateral).",
 				"q_gal": 4.5,
 				"gto": 5.0
 			},
@@ -7475,7 +7475,7 @@
 			},
 			{
 				"codigo": "310115",
-				"descripcion": "Cauterización de nariz.� (X)",
+				"descripcion": "Cauterización de nariz.",
 				"q_gal": 4.5,
 				"gto": 5.0
 			},
@@ -7493,7 +7493,7 @@
 			},
 			{
 				"codigo": "310118",
-				"descripcion": "Laringoscopía directa.� (X)",
+				"descripcion": "Laringoscopía directa.",
 				"q_gal": 15.0,
 				"gto": 30.0
 			},
@@ -7529,7 +7529,7 @@
 		"practicas": [
 			{
 				"codigo": "320104",
-				"descripcion": "Atención del recíen nacido normal o patológico en sala de partos.� (X)",
+				"descripcion": "Atención del recíen nacido normal o patológico en sala de partos.",
 				"q_gal": 87.75,
 				"gto": 0.0
 			}
@@ -7607,7 +7607,7 @@
 			},
 			{
 				"codigo": "340103",
-				"descripcion": "Radioscopía con circuito cerrado de televisión (agregar al código correspondiente).D.� (X)",
+				"descripcion": "Radioscopía con circuito cerrado de televisión (agregar al código correspondiente).D.",
 				"q_gal": 5.25,
 				"gto": 60.0
 			},
@@ -7673,7 +7673,7 @@
 			},
 			{
 				"codigo": "340211",
-				"descripcion": "Radiografía de hombro, húmero, pelvis, cadera y fémur primera exposición.A� (X)",
+				"descripcion": "Radiografía de hombro, húmero, pelvis, cadera y fémur primera exposición.A",
 				"q_gal": 6.75,
 				"gto": 30.0
 			},
@@ -7685,7 +7685,7 @@
 			},
 			{
 				"codigo": "340213",
-				"descripcion": "Radiografía de codo, antebrazo, mu�eca, mano, dedos, rodilla, pierna, tobillo y pie: 2 por placa.A� (X)",
+				"descripcion": "Radiografía de codo, antebrazo, mu�eca, mano, dedos, rodilla, pierna, tobillo y pie: 2 por placa.A",
 				"q_gal": 6.75,
 				"gto": 30.0
 			},
@@ -7739,7 +7739,7 @@
 			},
 			{
 				"codigo": "340301",
-				"descripcion": "Radiografía o telerradiografía de torax: con o sin trazado de diámetros cardíacos, con o sin relleno esofágico de primera exposición.A� (X)",
+				"descripcion": "Radiografía o telerradiografía de torax: con o sin trazado de diámetros cardíacos, con o sin relleno esofágico de primera exposición.A",
 				"q_gal": 6.75,
 				"gto": 25.0
 			},
@@ -7769,13 +7769,13 @@
 			},
 			{
 				"codigo": "340402",
-				"descripcion": "Esófago, estudio radiológico seriado (como mínimo 2 placas 4 expocsiciones) como único estudio.C @� (X)",
+				"descripcion": "Esófago, estudio radiológico seriado (como mínimo 2 placas 4 expocsiciones) como único estudio.C @",
 				"q_gal": 7.5,
 				"gto": 50.0
 			},
 			{
 				"codigo": "340403",
-				"descripcion": "Estómago y duodeno, estudio seriado (mínimo 10 exposiciones) por estudio.C @� (X)",
+				"descripcion": "Estómago y duodeno, estudio seriado (mínimo 10 exposiciones) por estudio.C @",
 				"q_gal": 15.0,
 				"gto": 100.0
 			},
@@ -7787,7 +7787,7 @@
 			},
 			{
 				"codigo": "340405",
-				"descripcion": "Estudio seriado esofagogastroduodenal (mínimo 12 exposiciones)� por estudio. C @� (X)",
+				"descripcion": "Estudio seriado esofagogastroduodenal (mínimo 12 exposiciones)� por estudio. C @",
 				"q_gal": 24.75,
 				"gto": 130.0
 			},
@@ -7817,7 +7817,7 @@
 			},
 			{
 				"codigo": "340410",
-				"descripcion": "Colon por enema y evacuado (mínimo 5 placas) por estudio.C @� (X)",
+				"descripcion": "Colon por enema y evacuado (mínimo 5 placas) por estudio.C @",
 				"q_gal": 24.75,
 				"gto": 60.0
 			},
@@ -7829,7 +7829,7 @@
 			},
 			{
 				"codigo": "340412",
-				"descripcion": "Colon por enema, evacuado y doble contraste (mínimo 8 placas) técnica de Malmo, por estudio.C @� (X)",
+				"descripcion": "Colon por enema, evacuado y doble contraste (mínimo 8 placas) técnica de Malmo, por estudio.C @",
 				"q_gal": 36.75,
 				"gto": 150.0
 			},
@@ -7853,19 +7853,19 @@
 			},
 			{
 				"codigo": "340416",
-				"descripcion": "Colangiografía operatoria (primera placa). A*� (X)",
+				"descripcion": "Colangiografía operatoria (primera placa). A*",
 				"q_gal": 9.75,
 				"gto": 40.0
 			},
 			{
 				"codigo": "340417",
-				"descripcion": "Colangiografía operatoria, por cada placa subsiguiente. A*� (X)",
+				"descripcion": "Colangiografía operatoria, por cada placa subsiguiente. A*",
 				"q_gal": 2.25,
 				"gto": 20.0
 			},
 			{
 				"codigo": "340418",
-				"descripcion": "Fistulocolangiografía, colangiografía postoperatoria, (mínimo tres placas) por estudio. A* @� (X)",
+				"descripcion": "Fistulocolangiografía, colangiografía postoperatoria, (mínimo tres placas) por estudio. A* @",
 				"q_gal": 9.75,
 				"gto": 60.0
 			},
@@ -7895,19 +7895,19 @@
 			},
 			{
 				"codigo": "340501",
-				"descripcion": "Radiografía simple de arbol urinario. B� (X)",
+				"descripcion": "Radiografía simple de arbol urinario. B",
 				"q_gal": 5.25,
 				"gto": 25.0
 			},
 			{
 				"codigo": "340502",
-				"descripcion": "Urograma excretor pielografía descendente, (mínimo simple y tres placas) por estudio. B� (X)",
+				"descripcion": "Urograma excretor pielografía descendente, (mínimo simple y tres placas) por estudio. B",
 				"q_gal": 9.75,
 				"gto": 100.0
 			},
 			{
 				"codigo": "340503",
-				"descripcion": "Urograma excretor con estudio vesical, pre y post miccional (mínimo simple y cinco placas) por estudio. B� (X)",
+				"descripcion": "Urograma excretor con estudio vesical, pre y post miccional (mínimo simple y cinco placas) por estudio. B",
 				"q_gal": 12.0,
 				"gto": 120.0
 			},
@@ -7943,13 +7943,13 @@
 			},
 			{
 				"codigo": "340601",
-				"descripcion": "Mamografía (senografía): Unicamente con mamógrafo original de fábrica con tubo de molibdeno y película de grano fino, por lado, cráneo-podal y perfil H.� (X)",
+				"descripcion": "Mamografía (senografía): Unicamente con mamógrafo original de fábrica con tubo de molibdeno y película de grano fino, por lado, cráneo-podal y perfil H.",
 				"q_gal": 5.25,
 				"gto": 60.0
 			},
 			{
 				"codigo": "340602",
-				"descripcion": "Mamografía, proyección axiar (únicamente con mamógrafo original de fábrica con tubo de molibdeno y película de grano fino) por lado. H� (X)",
+				"descripcion": "Mamografía, proyección axiar (únicamente con mamógrafo original de fábrica con tubo de molibdeno y película de grano fino) por lado. H",
 				"q_gal": 5.25,
 				"gto": 40.0
 			},
@@ -8009,7 +8009,7 @@
 			},
 			{
 				"codigo": "340704",
-				"descripcion": "Arteriografía carotídea o vertebral (por punción directa) mínimo cuatro placas por estudio. B��� (X)� (+01.07.03)",
+				"descripcion": "Arteriografía carotídea o vertebral (por punción directa) mínimo cuatro placas por estudio. B��� (+01.07.03)",
 				"q_gal": 12.0,
 				"gto": 100.0
 			},
@@ -8021,7 +8021,7 @@
 			},
 			{
 				"codigo": "340706",
-				"descripcion": "Mielografía ascendente o descendente. Cisternomielografía, radiculografía (mínimo cuatro placas) por estudio. D� (X)� (+01.07.05)",
+				"descripcion": "Mielografía ascendente o descendente. Cisternomielografía, radiculografía (mínimo cuatro placas) por estudio. D� (+01.07.05)",
 				"q_gal": 15.0,
 				"gto": 80.0
 			},
@@ -8033,13 +8033,13 @@
 			},
 			{
 				"codigo": "340801",
-				"descripcion": "Control radioscópico para colocación de marcapaso transitorio con electrodo endocavitario. D� (X)",
+				"descripcion": "Control radioscópico para colocación de marcapaso transitorio con electrodo endocavitario. D",
 				"q_gal": 7.5,
 				"gto": 50.0
 			},
 			{
 				"codigo": "340802",
-				"descripcion": "Control radioscópico para colocación de marcapaso definitivo con electrodo endocavitario. D� (X)",
+				"descripcion": "Control radioscópico para colocación de marcapaso definitivo con electrodo endocavitario. D",
 				"q_gal": 7.5,
 				"gto": 50.0
 			},
@@ -8051,13 +8051,13 @@
 			},
 			{
 				"codigo": "340804",
-				"descripcion": "Cardiografía o angiocardiografía (mínimo seis placas o quince metros de películas) por estudio. D @� (X)� (+07.07.02)",
+				"descripcion": "Cardiografía o angiocardiografía (mínimo seis placas o quince metros de películas) por estudio. D @� (+07.07.02)",
 				"q_gal": 24.75,
 				"gto": 180.0
 			},
 			{
 				"codigo": "340805",
-				"descripcion": "Coronariografía, incluye ventriculografía (mínimo cuaretaycinco metros de película)por estudio. D @� (X)�� (+07.07.03)",
+				"descripcion": "Coronariografía, incluye ventriculografía (mínimo cuaretaycinco metros de película)por estudio. D @�� (+07.07.03)",
 				"q_gal": 36.75,
 				"gto": 250.0
 			},
@@ -8093,7 +8093,7 @@
 			},
 			{
 				"codigo": "340811",
-				"descripcion": "Arteriografía selectiva de las ramas de la aorta abdominal (mínimo seis placas o quince metros de película). D @� (X)�� (+07.07.05)",
+				"descripcion": "Arteriografía selectiva de las ramas de la aorta abdominal (mínimo seis placas o quince metros de película). D @�� (+07.07.05)",
 				"q_gal": 24.75,
 				"gto": 140.0
 			},
@@ -8171,7 +8171,7 @@
 			},
 			{
 				"codigo": "340902",
-				"descripcion": "Tomografía hipocicloidal, politomografía, por estudio. E� (X)",
+				"descripcion": "Tomografía hipocicloidal, politomografía, por estudio. E",
 				"q_gal": 15.0,
 				"gto": 150.0
 			},
@@ -8225,7 +8225,7 @@
 			},
 			{
 				"codigo": "341002",
-				"descripcion": "T.A.C. Cerebral reforzada. I� (X)",
+				"descripcion": "T.A.C. Cerebral reforzada. I",
 				"q_gal": 60.75,
 				"gto": 750.0
 			},
@@ -8303,19 +8303,19 @@
 		"practicas": [
 			{
 				"codigo": "360101",
-				"descripcion": "Uretrocistoscopía con instrumental rígido.� (X)",
+				"descripcion": "Uretrocistoscopía con instrumental rígido.",
 				"q_gal": 15.0,
 				"gto": 40.0
 			},
 			{
 				"codigo": "360102",
-				"descripcion": "Uretrocistofibroscopía. (Ver norma idem cod. 36.01.01)� (X)",
+				"descripcion": "Uretrocistofibroscopía. (Ver norma idem cod. 36.01.01)",
 				"q_gal": 22.5,
 				"gto": 342.0
 			},
 			{
 				"codigo": "360103",
-				"descripcion": "Sondaje vesical-evacuador, para instilación terapéutiva. (Incluido en consulta)� (X)",
+				"descripcion": "Sondaje vesical-evacuador, para instilación terapéutiva. (Incluido en consulta)",
 				"q_gal": 0.0,
 				"gto": 0.0
 			},
@@ -8327,7 +8327,7 @@
 			},
 			{
 				"codigo": "360105",
-				"descripcion": "Cistotonomanometría.� (X)",
+				"descripcion": "Cistotonomanometría.",
 				"q_gal": 15.0,
 				"gto": 35.0
 			},
@@ -8339,7 +8339,7 @@
 			},
 			{
 				"codigo": "360107",
-				"descripcion": "Uretroscopía. (Ver norma idem código 36.01.01)� (X)",
+				"descripcion": "Uretroscopía. (Ver norma idem código 36.01.01)",
 				"q_gal": 7.5,
 				"gto": 30.0
 			}
@@ -8393,7 +8393,7 @@
 		"practicas": [
 			{
 				"codigo": "400101",
-				"descripcion": "Arancel global por cada veinticuatro horas de atención.� (X)",
+				"descripcion": "Arancel global por cada veinticuatro horas de atención.",
 				"q_gal": 39.75,
 				"gto": 196.0
 			},
@@ -8423,7 +8423,7 @@
 		"practicas": [
 			{
 				"codigo": "410101",
-				"descripcion": "Arancel global por cada veinticuatro horas de atención.� (X)",
+				"descripcion": "Arancel global por cada veinticuatro horas de atención.",
 				"q_gal": 8.5,
 				"gto": 90.0
 			}
@@ -8435,19 +8435,19 @@
 		"practicas": [
 			{
 				"codigo": "420101",
-				"descripcion": "Consulta médica.� (X)",
+				"descripcion": "Consulta médica.",
 				"q_gal": 10.0,
 				"gto": 0.0
 			},
 			{
 				"codigo": "420103",
-				"descripcion": "Consulta médica en horario nocturno y/o días feriados.� (X)",
+				"descripcion": "Consulta médica en horario nocturno y/o días feriados.",
 				"q_gal": 11.0,
 				"gto": 0.0
 			},
 			{
 				"codigo": "420201",
-				"descripcion": "Visita médica.� (X)",
+				"descripcion": "Visita médica.",
 				"q_gal": 12.0,
 				"gto": 0.0
 			},
@@ -8459,19 +8459,19 @@
 			},
 			{
 				"codigo": "420203",
-				"descripcion": "Visita médica en horario nocturno y/o días feriados.� (X)",
+				"descripcion": "Visita médica en horario nocturno y/o días feriados.",
 				"q_gal": 13.0,
 				"gto": 0.0
 			},
 			{
 				"codigo": "420301",
-				"descripcion": "Atención médica en internación clínica, por día de internación.� (X)",
+				"descripcion": "Atención médica en internación clínica, por día de internación.",
 				"q_gal": 10.0,
 				"gto": 0.0
 			},
 			{
 				"codigo": "420303",
-				"descripcion": "Interconsulta especializada en internación.� (X)",
+				"descripcion": "Interconsulta especializada en internación.",
 				"q_gal": 12.0,
 				"gto": 0.0
 			}
