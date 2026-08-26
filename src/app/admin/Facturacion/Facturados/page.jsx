@@ -195,272 +195,277 @@ export default function FacturadosPage() {
   }, [selectedIds, filtered]);
 
   // 🔹 Función para generar el script ARCA de un item completo
-  const generateArcaScript = useCallback((fullItem) => {
-    if (!fullItem) return '';
+const generateArcaScript = useCallback((fullItem) => {
+  if (!fullItem) return '';
 
-    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
-    const practicas = toArr(fullItem.practicas);
-    const cirugias = toArr(fullItem.cirugias);
-    const laboratorios = toArr(fullItem.laboratorios);
-    const medicamentos = toArr(fullItem.medicamentos);
-    const descartables = toArr(fullItem.descartables);
+  const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+  const practicas = toArr(fullItem.practicas);
+  const cirugias = toArr(fullItem.cirugias);
+  const laboratorios = toArr(fullItem.laboratorios);
+  const medicamentos = toArr(fullItem.medicamentos);
+  const descartables = toArr(fullItem.descartables);
 
-    if (
-      practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
-      medicamentos.length === 0 && descartables.length === 0
-    ) {
-      alert('No hay datos para generar el script.');
-      return '';
-    }
+  if (
+    practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
+    medicamentos.length === 0 && descartables.length === 0
+  ) {
+    alert('No hay datos para generar el script.');
+    return '';
+  }
 
-    const art = fullItem.artNombre || fullItem.paciente?.artSeguro || '';
-    const iva = getIvaForArt(art);
+  const art = fullItem.artNombre || fullItem.paciente?.artSeguro || '';
+  const iva = getIvaForArt(art);
 
-    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
-    const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
-    const pickPrestador = (x) =>
-      x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
-      x?.prestadorNombre || x?.prestador || 'Médico';
-    const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
-    const pickCantidad = (x) => {
-      const c = x?.cantidad ?? x?.unidades ?? 1;
-      const n = safeNum(c);
-      return n > 0 ? n : 1;
-    };
+  const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+  const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+  const pickPrestador = (x) =>
+    x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
+    x?.prestadorNombre || x?.prestador || 'Médico';
+  const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
+  const pickCantidad = (x) => {
+    const c = x?.cantidad ?? x?.unidades ?? 1;
+    const n = safeNum(c);
+    return n > 0 ? n : 1;
+  };
 
-    const truncar55 = (desc) => (desc.length > 55 ? desc.slice(0, 52) + '...' : desc);
+  // 🔹 MODIFICACIÓN: truncar55 convierte a MAYÚSCULAS
+  const truncar55 = (desc) => {
+    const upperDesc = String(desc).toUpperCase();
+    return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
+  };
 
-    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
-    const ivaValue = ivaMapSelect[iva] || '0';
+  const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+  const ivaValue = ivaMapSelect[iva] || '0';
 
-    const rowsHonorarios = [];
-    const rowsGastos = [];
+  const rowsHonorarios = [];
+  const rowsGastos = [];
 
-    practicas.forEach((x) => {
-      const cantidad = pickCantidad(x);
-      const codigo = pickCode(x);
-      const descripcion = pickDescripcion(x);
-      const honorario = safeNum(x.honorarioMedico);
-      const gasto = safeNum(x.gastoSanatorial);
-      const prestador = pickPrestador(x);
+  practicas.forEach((x) => {
+    const cantidad = pickCantidad(x);
+    const codigo = pickCode(x);
+    const descripcion = pickDescripcion(x);
+    const honorario = safeNum(x.honorarioMedico);
+    const gasto = safeNum(x.gastoSanatorial);
+    const prestador = pickPrestador(x);
 
-      if (honorario > 0) {
-        rowsHonorarios.push({
-          codigo: '2',
-          descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
-          cantidad,
-          precio: (honorario / cantidad).toFixed(2),
-          iva: ivaValue,
-        });
-      }
-      if (gasto > 0) {
-        rowsGastos.push({
-          codigo: '7',
-          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-          cantidad,
-          precio: (gasto / cantidad).toFixed(2),
-          iva: ivaValue,
-        });
-      }
-    });
-
-    cirugias.forEach((x) => {
-      const cantidad = pickCantidad(x);
-      const codigo = pickCode(x);
-      const descripcion = pickDescripcion(x);
-      const honorario = safeNum(x.honorarioMedico);
-      const gasto = safeNum(x.gastoSanatorial);
-      const prestador = pickPrestador(x);
-      const rol = pickRol(x);
-
-      if (honorario > 0) {
-        const desc = rol
-          ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
-          : `Dr ${prestador} - ${codigo} ${descripcion}`;
-        rowsHonorarios.push({
-          codigo: '2',
-          descripcion: truncar55(desc),
-          cantidad,
-          precio: (honorario / cantidad).toFixed(2),
-          iva: ivaValue,
-        });
-      }
-      if (gasto > 0) {
-        rowsGastos.push({
-          codigo: '7',
-          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-          cantidad,
-          precio: (gasto / cantidad).toFixed(2),
-          iva: ivaValue,
-        });
-      }
-    });
-
-    const labHonorPorDoctor = new Map();
-    laboratorios.forEach((x) => {
-      const honorario = safeNum(x.honorarioMedico);
-      if (honorario > 0) {
-        const prestador = pickPrestador(x);
-        labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
-      }
-      const gasto = safeNum(x.gastoSanatorial);
-      if (gasto > 0) {
-        const codigo = pickCode(x);
-        const descripcion = pickDescripcion(x);
-        const cantidad = pickCantidad(x);
-        rowsGastos.push({
-          codigo: '7',
-          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-          cantidad,
-          precio: (gasto / cantidad).toFixed(2),
-          iva: ivaValue,
-        });
-      }
-    });
-    labHonorPorDoctor.forEach((total, prestador) => {
+    if (honorario > 0) {
       rowsHonorarios.push({
         codigo: '2',
-        descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
-        cantidad: 1,
-        precio: total.toFixed(2),
+        descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
+        cantidad,
+        precio: (honorario / cantidad).toFixed(2),
         iva: ivaValue,
       });
-    });
-
-    const totalMedDesc = [...medicamentos, ...descartables].reduce(
-      (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
-      0
-    );
-    if (totalMedDesc > 0) {
+    }
+    if (gasto > 0) {
       rowsGastos.push({
         codigo: '7',
-        descripcion: 'Medicación y Descartables',
-        cantidad: 1,
-        precio: totalMedDesc.toFixed(2),
+        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+        cantidad,
+        precio: (gasto / cantidad).toFixed(2),
         iva: ivaValue,
       });
     }
+  });
 
-    const paciente = fullItem.paciente || {};
-    const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
-    const dniPaciente = paciente.dni || '';
-    const pacienteDesc = `Pte ${nombrePaciente} - dni ${dniPaciente} - ${art} -`;
-    rowsGastos.push({
-      codigo: '',
-      descripcion: pacienteDesc,
+  cirugias.forEach((x) => {
+    const cantidad = pickCantidad(x);
+    const codigo = pickCode(x);
+    const descripcion = pickDescripcion(x);
+    const honorario = safeNum(x.honorarioMedico);
+    const gasto = safeNum(x.gastoSanatorial);
+    const prestador = pickPrestador(x);
+    const rol = pickRol(x);
+
+    if (honorario > 0) {
+      const desc = rol
+        ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
+        : `Dr ${prestador} - ${codigo} ${descripcion}`;
+      rowsHonorarios.push({
+        codigo: '2',
+        descripcion: truncar55(desc),
+        cantidad,
+        precio: (honorario / cantidad).toFixed(2),
+        iva: ivaValue,
+      });
+    }
+    if (gasto > 0) {
+      rowsGastos.push({
+        codigo: '7',
+        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+        cantidad,
+        precio: (gasto / cantidad).toFixed(2),
+        iva: ivaValue,
+      });
+    }
+  });
+
+  const labHonorPorDoctor = new Map();
+  laboratorios.forEach((x) => {
+    const honorario = safeNum(x.honorarioMedico);
+    if (honorario > 0) {
+      const prestador = pickPrestador(x);
+      labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
+    }
+    const gasto = safeNum(x.gastoSanatorial);
+    if (gasto > 0) {
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const cantidad = pickCantidad(x);
+      rowsGastos.push({
+        codigo: '7',
+        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+        cantidad,
+        precio: (gasto / cantidad).toFixed(2),
+        iva: ivaValue,
+      });
+    }
+  });
+  labHonorPorDoctor.forEach((total, prestador) => {
+    rowsHonorarios.push({
+      codigo: '2',
+      descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
       cantidad: 1,
-      precio: '0.00',
-      iva: '2',
+      precio: total.toFixed(2),
+      iva: ivaValue,
     });
+  });
 
-    const rowsData = [...rowsHonorarios, ...rowsGastos];
-    if (rowsData.length === 0) return '';
+  const totalMedDesc = [...medicamentos, ...descartables].reduce(
+    (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
+    0
+  );
+  if (totalMedDesc > 0) {
+    rowsGastos.push({
+      codigo: '7',
+      descripcion: 'MEDICACIÓN Y DESCARTABLES', // ya en mayúsculas
+      cantidad: 1,
+      precio: totalMedDesc.toFixed(2),
+      iva: ivaValue,
+    });
+  }
 
-    const rowsDataJson = JSON.stringify(rowsData);
-    return `
-  (function() {
-    const rowsData = ${rowsDataJson};
-    const MEDIDA_UNIDADES = '7';
+  const paciente = fullItem.paciente || {};
+  const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
+  const dniPaciente = paciente.dni || '';
+  // 🔹 MODIFICACIÓN: convertir a MAYÚSCULAS
+  const pacienteDesc = `PTE ${nombrePaciente} - DNI ${dniPaciente} - ${art} -`.toUpperCase();
+  rowsGastos.push({
+    codigo: '',
+    descripcion: pacienteDesc,
+    cantidad: 1,
+    precio: '0.00',
+    iva: '2',
+  });
 
-    function getTable() {
-      let table = document.querySelector('table#idoperacion tbody');
-      if (!table) table = document.querySelector('table.jig_formvertical tbody');
-      if (!table) {
-        const allTables = document.querySelectorAll('table tbody');
-        for (const t of allTables) {
-          if (t.querySelector('input[name="detalleCodigoArticulo"]')) { table = t; break; }
-        }
+  const rowsData = [...rowsHonorarios, ...rowsGastos];
+  if (rowsData.length === 0) return '';
+
+  const rowsDataJson = JSON.stringify(rowsData);
+  return `
+(function() {
+  const rowsData = ${rowsDataJson};
+  const MEDIDA_UNIDADES = '7';
+
+  function getTable() {
+    let table = document.querySelector('table#idoperacion tbody');
+    if (!table) table = document.querySelector('table.jig_formvertical tbody');
+    if (!table) {
+      const allTables = document.querySelectorAll('table tbody');
+      for (const t of allTables) {
+        if (t.querySelector('input[name="detalleCodigoArticulo"]')) { table = t; break; }
       }
-      return table;
     }
+    return table;
+  }
 
-    function getDataRows(table) {
-      const rows = [];
-      for (let i = 0; i < table.rows.length; i++) {
-        if (table.rows[i].querySelector('input[name="detalleCodigoArticulo"]')) {
-          rows.push(table.rows[i]);
-        }
+  function getDataRows(table) {
+    const rows = [];
+    for (let i = 0; i < table.rows.length; i++) {
+      if (table.rows[i].querySelector('input[name="detalleCodigoArticulo"]')) {
+        rows.push(table.rows[i]);
       }
-      return rows;
+    }
+    return rows;
+  }
+
+  function getAddButton() {
+    return document.querySelector('input[value="Agregar línea descripción"]');
+  }
+
+  function fireChange(el) {
+    if (!el) return;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('keyup', { bubbles: true }));
+  }
+
+  function setRowValues(row, data) {
+    const codigoInput = row.querySelector('input[name="detalleCodigoArticulo"]');
+    if (codigoInput) codigoInput.value = data.codigo;
+
+    const descTextarea = row.querySelector('textarea[name="detalleDescripcion"]');
+    if (descTextarea) descTextarea.value = data.descripcion;
+
+    const cantInput = row.querySelector('input[name="detalleCantidad"]');
+    if (cantInput) cantInput.value = data.cantidad;
+
+    const medidaSelect = row.querySelector('select[name="detalleMedida"]');
+    if (medidaSelect) {
+      medidaSelect.value = MEDIDA_UNIDADES;
+      fireChange(medidaSelect);
     }
 
-    function getAddButton() {
-      return document.querySelector('input[value="Agregar línea descripción"]');
-    }
+    const precioInput = row.querySelector('input[name="detallePrecio"]');
+    if (precioInput) precioInput.value = data.precio;
 
-    function fireChange(el) {
-      if (!el) return;
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      el.dispatchEvent(new Event('keyup', { bubbles: true }));
-    }
+    const ivaSelect = row.querySelector('select[name="detalleTipoIVA"]');
+    if (ivaSelect) ivaSelect.value = data.iva;
 
-    function setRowValues(row, data) {
-      const codigoInput = row.querySelector('input[name="detalleCodigoArticulo"]');
-      if (codigoInput) codigoInput.value = data.codigo;
+    fireChange(cantInput);
+    fireChange(precioInput);
+    fireChange(ivaSelect);
+  }
 
-      const descTextarea = row.querySelector('textarea[name="detalleDescripcion"]');
-      if (descTextarea) descTextarea.value = data.descripcion;
+  const table = getTable();
+  if (!table) { alert('No se encontró la tabla de detalles.'); return; }
 
-      const cantInput = row.querySelector('input[name="detalleCantidad"]');
-      if (cantInput) cantInput.value = data.cantidad;
+  const addBtn = getAddButton();
+  if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
 
-      const medidaSelect = row.querySelector('select[name="detalleMedida"]');
-      if (medidaSelect) {
-        medidaSelect.value = MEDIDA_UNIDADES;
-        fireChange(medidaSelect);
-      }
+  let dataRows = getDataRows(table);
+  const targetCount = rowsData.length;
 
-      const precioInput = row.querySelector('input[name="detallePrecio"]');
-      if (precioInput) precioInput.value = data.precio;
+  let guard = 0;
+  while (dataRows.length < targetCount && guard < 200) {
+    addBtn.click();
+    dataRows = getDataRows(table);
+    guard++;
+  }
 
-      const ivaSelect = row.querySelector('select[name="detalleTipoIVA"]');
-      if (ivaSelect) ivaSelect.value = data.iva;
+  guard = 0;
+  while (dataRows.length > targetCount && guard < 200) {
+    const lastRow = dataRows[dataRows.length - 1];
+    const delBtn = lastRow.querySelector('input[name="Eliminar"]');
+    if (delBtn) delBtn.click();
+    else break;
+    dataRows = getDataRows(table);
+    guard++;
+  }
 
-      fireChange(cantInput);
-      fireChange(precioInput);
-      fireChange(ivaSelect);
-    }
+  if (dataRows.length !== targetCount) {
+    alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+    return;
+  }
 
-    const table = getTable();
-    if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+  for (let i = 0; i < targetCount; i++) {
+    setRowValues(dataRows[i], rowsData[i]);
+  }
 
-    const addBtn = getAddButton();
-    if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
-
-    let dataRows = getDataRows(table);
-    const targetCount = rowsData.length;
-
-    let guard = 0;
-    while (dataRows.length < targetCount && guard < 200) {
-      addBtn.click();
-      dataRows = getDataRows(table);
-      guard++;
-    }
-
-    guard = 0;
-    while (dataRows.length > targetCount && guard < 200) {
-      const lastRow = dataRows[dataRows.length - 1];
-      const delBtn = lastRow.querySelector('input[name="Eliminar"]');
-      if (delBtn) delBtn.click();
-      else break;
-      dataRows = getDataRows(table);
-      guard++;
-    }
-
-    if (dataRows.length !== targetCount) {
-      alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
-      return;
-    }
-
-    for (let i = 0; i < targetCount; i++) {
-      setRowValues(dataRows[i], rowsData[i]);
-    }
-
-    console.log('✅ Se procesaron ' + targetCount + ' filas.');
-    alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
-  })();
-  `;
-  }, []);
+  console.log('✅ Se procesaron ' + targetCount + ' filas.');
+  alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+})();
+`;
+}, []);
 
   // 🔹 Función que obtiene el item completo y abre el modal ARCA
   const handleGenerarARCA = useCallback(async (id) => {
