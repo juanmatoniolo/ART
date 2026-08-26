@@ -1740,3 +1740,48 @@
 .atajoChipDelete:hover {
   color: #f87171;
 }
+
+/* === ARTS GRID === */
+.artsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* === TARJETA === */
+.artCard {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: #0B1220;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 2px solid transparent;
+  /* min-height: 80px; lo sacamos para que se ajuste al contenido */
+  position: relative;
+}
+
+/* === CONTENEDOR DEL LOGO === */
+.artLogoContainer {
+  width: 80px;
+  height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+/* === NOMBRE === */
+.artName {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
