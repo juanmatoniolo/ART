@@ -1,10 +1,8 @@
 import styles from "../page.module.css";
 
-export default function ResumenEnvio({ canSend, gmailUrl, faltantes, adjuntosRecordatorio, asunto, emailsActivos, paciente }) {
+export default function ResumenEnvio({ canSend, gmailUrl, faltantes, asunto, emailsActivos, paciente }) {
   return (
     <>
-
-
       {!canSend && faltantes.length > 0 && (
         <div className={styles.requiredBox}>
           <p className={styles.requiredTitle}>⚠️ Faltan:</p>
@@ -17,12 +15,6 @@ export default function ResumenEnvio({ canSend, gmailUrl, faltantes, adjuntosRec
           <p className={styles.readyText}>Gmail se abrirá con todo listo. Solo adjuntá los archivos.</p>
         </div>
       )}
-      {adjuntosRecordatorio.length > 0 && (
-        <div className={styles.adjuntosBox}>
-          <p className={styles.adjuntosTitle}>📎 No olvides adjuntar:</p>
-          <ul className={styles.adjuntosList}>{adjuntosRecordatorio.map((a, i) => <li key={i}>{a}</li>)}</ul>
-        </div>
-      )}
       {paciente && (
         <div className={styles.resumenCard}>
           <p className={styles.resumenTitle}>📋 Resumen</p>
@@ -30,7 +22,7 @@ export default function ResumenEnvio({ canSend, gmailUrl, faltantes, adjuntosRec
           <div className={styles.resumenLine}><span className={styles.resumenLabel}>Asunto:</span><span className={styles.resumenValue}>{asunto}</span></div>
         </div>
       )}
-            <a
+      <a
         href={canSend ? gmailUrl : "#"}
         className={`${styles.sendBtn} ${!canSend ? styles.sendBtnOff : ""}`}
         onClick={e => !canSend && e.preventDefault()}

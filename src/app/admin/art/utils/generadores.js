@@ -15,104 +15,51 @@ export const buildGmailUrl = ({ to, subject, body }) => {
   return `https://mail.google.com/mail/?${params.toString()}`;
 };
 
-export const getAccionesTexto = (ids, accionesDisponibles) => {
-  const map = Object.fromEntries(accionesDisponibles.map(a => [a.id, a]));
-  const tieneFkt = ids.includes("fkt");
-  const tieneMgt = ids.includes("mgt");
-
-  const labels = ids.reduce((acc, id) => {
-    if (id === "fkt" || id === "mgt") return acc;
-    acc.push(map[id]?.short || id.toUpperCase());
-    return acc;
-  }, []);
-
-  if (tieneFkt && tieneMgt) {
-    labels.push("FKT + MGT");
-  } else {
-    if (tieneFkt) labels.push("FKT");
-    if (tieneMgt) labels.push("MGT");
+export const generarAsunto = (paciente, tab, atajosActivos) => {
+  if (tab === "facturacion") {
+    return "CLINICA DE LA UNION S.A CUIT 30707545301";
   }
-  return labels.join(" Y ");
-};
-
-export const buildSolicitudes = (ids, medico, accionesDisponibles) => {
-  const map = Object.fromEntries(accionesDisponibles.map(a => [a.id, a]));
-  const medicoTexto = medico?.trim() || "______";
-
-  const solicitudes = ids.map(id => {
-    const accion = map[id];
-    if (!accion) return "";
-    return accion.codigo.replace(/\{medico\}/g, medicoTexto);
-  }).filter(Boolean);
-
-  if (ids.includes("fkt") && ids.includes("mgt")) {
-    const lineasFiltradas = solicitudes.filter(linea =>
-      linea !== map["fkt"]?.codigo.replace("{medico}", medicoTexto) &&
-      linea !== map["mgt"]?.codigo.replace("{medico}", medicoTexto)
-    );
-    return [...lineasFiltradas, "SE SOLICITAN FKT + MGT POR 10 SESIONES"];
+  if (tab === "convenios") {
+    return "Nuevo convenio - Clínica de la Unión S.A.";
   }
-  return solicitudes;
-};
-
-export const generarAsunto = (paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles) => {
+  // siniestros
   if (!paciente) return "";
   const nombre = getPacienteNombre(paciente) || "";
   const dni = paciente?.trabajador?.dni || "";
-  
-  if (atajoActivo?.asunto) {
-    return atajoActivo.asunto
-      .replace(/\{nombre\}/g, nombre)
-      .replace(/\{dni\}/g, dni || "—")
-      .replace(/\{stro\}/g, paciente?.ART?.nroSiniestro || "—")
-      .replace(/\{art\}/g, paciente?.ART?.nombre || "—")
-      .replace(/\{medico\}/g, medico.trim() || "______");
-  }
-  if (tab === "facturacion") {
-    return `FACTURACION PTE ${nombre} - DNI ${dni || "—"}`;
-  }
-  const accionesTexto = getAccionesTexto(accionesSeleccionadas, accionesDisponibles);
-  return `SE ENVIA ${accionesTexto} PTE ${nombre} DNI ${dni || "—"}`;
+  const stro = paciente?.ART?.nroSiniestro || "—";
+
+  const partes = (atajosActivos || []).map(a => a.label.toUpperCase()).filter(Boolean);
+  const textoCombinado = partes.length ? partes.join(" + ") : "DOCUMENTACIÓN";
+
+  return `SE ENVIA ${textoCombinado} PTE ${nombre} DNI ${dni || "—"} STRO ${stro}`;
 };
 
-export const generarCuerpo = (paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles) => {
+export const generarCuerpo = (paciente, tab, atajosActivos, medico) => {
+  if (tab === "facturacion") {
+    return `Buen día.\n\nAdjunto factura y detalle de la misma para su auditoría y posterior pago.\n\nSaludos,\nJuanma – Área ART  \nClínica de la Unión S.A.  \nChajarí, Entre Ríos`;
+  }
+  if (tab === "convenios") {
+    return `Buen día.\n\nTenemos el agrado de informar que se ha formalizado un nuevo convenio con Clínica de la Unión S.A. para la atención de sus afiliados.\n\nAdjuntamos la documentación correspondiente para su conocimiento y registro.\n\nQuedamos a su disposición para cualquier consulta.\n\nSaludos,\nJuanma - Área de ART\nClínica de la Unión S.A.\nChajarí, Entre Ríos\nWhatsApp: 3456441580`;
+  }
+  // siniestros
   if (!paciente) return "";
   const nombre = getPacienteNombre(paciente) || "";
   const dni = paciente?.trabajador?.dni || "";
   const stro = paciente?.ART?.nroSiniestro || "";
   const artPaciente = paciente?.ART?.nombre || "";
-  const medicoTexto = medico.trim() || "______";
+  const medicoTexto = medico?.trim() || "______";
 
-  if (atajoActivo?.cuerpo) {
-    return atajoActivo.cuerpo
-      .replace(/\{nombre\}/g, nombre)
-      .replace(/\{dni\}/g, dni || "—")
-      .replace(/\{stro\}/g, stro || "—")
-      .replace(/\{art\}/g, artPaciente || "—")
-      .replace(/\{medico\}/g, medicoTexto)
-      .replace(/\{firma\}/g, FIRMA);
+  const adjuntos = (atajosActivos || []).map(a => a.adjunto).filter(Boolean);
+  const adjuntoTexto = adjuntos.length ? adjuntos.join(" + ") : "—";
+
+  const solicitudes = (atajosActivos || []).map(a => a.solicitud.replace(/\{medico\}/g, medicoTexto)).filter(Boolean);
+  const solicitudesTexto = solicitudes.length ? solicitudes.join("\n") : "—";
+
+  let base = `Buen día.\n\nPor medio del presente, se remite la documentación médica correspondiente al paciente en referencia.\n\nAdjunto: ${adjuntoTexto}\n\nSolicito autorización a la brevedad de lo/s siguiente/es código/s:\n${solicitudesTexto}\n\nSaludos,\nJuanma - Área de ART\nClínica de la Unión S.A.\nChajarí, Entre Ríos\nWhatsApp: 3456441580`;
+
+  if (!solicitudes.length) {
+    base = base.replace("Solicito autorización a la brevedad de lo/s siguiente/es código/s:\n—", "Solicito autorización a la brevedad.");
   }
 
-  let base = "";
-  if (tab === "facturacion") {
-    base = `Buen día.\n\nPor medio del presente, se adjunta facturación correspondiente al paciente:\n\nNombre completo: ${nombre}\nDNI: ${dni || "—"}\nN° de siniestro: ${stro || "—"}\nART: ${artPaciente || "—"}\nMédico: Dr/a. ${medicoTexto}\n\n${FIRMA}`;
-  } else {
-    const accionesTexto = getAccionesTexto(accionesSeleccionadas, accionesDisponibles);
-    base = `Buen día.\n\nPor medio del presente, se remite la documentación médica correspondiente al paciente en referencia.\n\nAdjunto: ${accionesTexto}\n\nSolicito autorización a la brevedad de lo/s siguiente/es código/s:\n${buildSolicitudes(accionesSeleccionadas, medicoTexto, accionesDisponibles).join("\n")}\n\n${FIRMA}`;
-  }
-
-  // ** LÍNEA OBLIGATORIA DE EVOLUCIÓN **
-  if (accionesSeleccionadas.includes("evolucion")) {
-    const codEvolucion = `/COD.: 42.01.01 CONSULTA MEDICA DR ${medicoTexto}`;
-    if (!base.includes(codEvolucion)) {
-      // Insertar después de "Solicito autorización..." o al final
-      const fraseAutorizacion = "Solicito autorización a la brevedad de lo/s siguiente/es código/s:";
-      if (base.includes(fraseAutorizacion)) {
-        base = base.replace(fraseAutorizacion, `${fraseAutorizacion}\n${codEvolucion}`);
-      } else {
-        base += `\n\nSolicito autorización para:\n${codEvolucion}`;
-      }
-    }
-  }
   return base;
 };

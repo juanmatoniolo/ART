@@ -1,4 +1,3 @@
-// src/app/admin/art/page.js
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -11,7 +10,6 @@ import PasoDestinatarios from "./components/PasoDestinatarios";
 import ResumenEnvio from "./components/ResumenEnvio";
 import GestionArts from "./components/GestionArts";
 import usePacientes from "./hooks/usePacientes";
-import useAcciones from "./hooks/useAcciones";
 import useAtajos from "./hooks/useAtajos";
 import useArts from "./hooks/useArts";
 import { generarAsunto, generarCuerpo, buildGmailUrl } from "./utils/generadores";
@@ -20,51 +18,26 @@ import { FIREBASE_URL } from "./utils/firebase";
 export default function ARTComunicador() {
   const [tab, setTab] = useState("siniestros");
   const [selectedArts, setSelectedArts] = useState(new Set());
-  const [accionesSeleccionadas, setAccionesSeleccionadas] = useState(["evolucion"]);
   const [destinatariosOff, setDestinatariosOff] = useState({});
   const [paciente, setPaciente] = useState(null);
   const [medico, setMedico] = useState("");
-  const [atajoActivo, setAtajoActivo] = useState(null);
+  const [atajosActivos, setAtajosActivos] = useState([]);
   const [cuerpoEditado, setCuerpoEditado] = useState("");
   const [copiado, setCopiado] = useState(false);
-
-  // Clave para forzar remontaje de los componentes de paciente y médico
   const [resetKey, setResetKey] = useState(0);
-
-  // Estados para modales
   const [mostrarGestionArts, setMostrarGestionArts] = useState(false);
-  const [mostrarGestionAcciones, setMostrarGestionAcciones] = useState(false);
   const [mostrarFormAtajo, setMostrarFormAtajo] = useState(false);
-  const [editActionId, setEditActionId] = useState(null);
-  const [formAction, setFormAction] = useState({
-    id: "",
-    label: "",
-    short: "",
-    emoji: "",
-    adjunto: "",
-    codigo: "",
-    defaultSelected: false,
-    categoria: "practica",
-  });
   const [editandoAtajo, setEditandoAtajo] = useState(null);
   const [nuevoAtajoLabel, setNuevoAtajoLabel] = useState("");
-  const [nuevoAtajoAsunto, setNuevoAtajoAsunto] = useState("");
-  const [nuevoAtajoAcciones, setNuevoAtajoAcciones] = useState(["evolucion"]);
-  const [nuevoAtajoCuerpo, setNuevoAtajoCuerpo] = useState("");
+  const [nuevoAtajoAdjunto, setNuevoAtajoAdjunto] = useState("");
+  const [nuevoAtajoSolicitud, setNuevoAtajoSolicitud] = useState("");
   const [guardandoAtajo, setGuardandoAtajo] = useState(false);
   const [errorAtajo, setErrorAtajo] = useState("");
 
-  // Hooks de datos
   const { pacientes, loading: loadingPacientes } = usePacientes();
-  const {
-    acciones: accionesDisponibles,
-    loading: loadingAcciones,
-    setAcciones: setAccionesDisponibles,
-  } = useAcciones();
   const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
   const { arts, loading: loadingArts, error: artsError, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
 
-  // 🆕 Filtrar ARTs para mostrar solo las que tienen al menos un mail en la categoría activa
   const filteredArts = useMemo(() => {
     return arts.filter(art => {
       let contacts;
@@ -81,7 +54,6 @@ export default function ARTComunicador() {
     });
   }, [arts, tab]);
 
-  // Si hay error cargando ARTs, mostrar mensaje
   if (artsError) {
     return (
       <main className={styles.page}>
@@ -99,61 +71,43 @@ export default function ARTComunicador() {
     );
   }
 
-  // Sincronizar defaults de acciones al cargar
-  useEffect(() => {
-    if (accionesDisponibles.length > 0) {
-      const defaults = accionesDisponibles
-        .filter((a) => a.defaultSelected)
-        .map((a) => a.id);
-      if (defaults.length > 0) setAccionesSeleccionadas(defaults);
-    }
-  }, [accionesDisponibles]);
-
-  // Generar asunto y cuerpo
-  const asunto = useMemo(
-    () =>
-      generarAsunto(paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles),
-    [paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles]
-  );
-  const cuerpo = useMemo(
-    () =>
-      generarCuerpo(paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles),
-    [paciente, tab, accionesSeleccionadas, medico, atajoActivo, accionesDisponibles]
-  );
-
-  const cuerpoEditadoPorUsuario = useRef(false);
-
-  // Función para limpiar absolutamente todos los campos
   const limpiarTodo = () => {
     setTab("siniestros");
     setSelectedArts(new Set());
-    setAccionesSeleccionadas(["evolucion"]);
     setDestinatariosOff({});
     setPaciente(null);
     setMedico("");
-    setAtajoActivo(null);
+    setAtajosActivos([]);
     cuerpoEditadoPorUsuario.current = false;
     setCuerpoEditado("");
     setCopiado(false);
-    // Forzar remontaje de los componentes de búsqueda
     setResetKey((prev) => prev + 1);
   };
+
+  const cuerpoEditadoPorUsuario = useRef(false);
+
+  const asunto = useMemo(
+    () => generarAsunto(paciente, tab, atajosActivos),
+    [paciente, tab, atajosActivos]
+  );
+  const cuerpo = useMemo(
+    () => generarCuerpo(paciente, tab, atajosActivos, medico),
+    [paciente, tab, atajosActivos, medico]
+  );
 
   useEffect(() => {
     if (!cuerpoEditadoPorUsuario.current) setCuerpoEditado(cuerpo);
   }, [cuerpo]);
   useEffect(() => {
     cuerpoEditadoPorUsuario.current = false;
-  }, [paciente, accionesSeleccionadas, medico, tab, atajoActivo]);
+  }, [paciente, medico, tab, atajosActivos]);
 
-  // Contactos y destinatarios (ahora desde arts dinámicas)
   const contactos = useMemo(() => {
     if (selectedArts.size === 0 || arts.length === 0) return [];
     const list = [];
     selectedArts.forEach((id) => {
       const art = arts.find((p) => p.id === id);
       if (art) {
-        // 1. Para "siniestros"
         if (tab === "siniestros") {
           let siniestros = art.siniestros;
           if (typeof siniestros === "object" && !Array.isArray(siniestros)) {
@@ -163,9 +117,7 @@ export default function ARTComunicador() {
           contactosArray.forEach((c) => {
             if (c && c.email) list.push({ ...c, artId: id });
           });
-        }
-        // 2. Para "facturacion"
-        else if (tab === "facturacion") {
+        } else if (tab === "facturacion") {
           let facturacion = art.facturacion;
           if (typeof facturacion === "object" && !Array.isArray(facturacion)) {
             facturacion = Object.values(facturacion);
@@ -174,9 +126,7 @@ export default function ARTComunicador() {
           contactosArray.forEach((c) => {
             if (c && c.email) list.push({ ...c, artId: id });
           });
-        }
-        // 3. Para "convenios"
-        else {
+        } else {
           let convenios = art.convenios;
           if (typeof convenios === "object" && !Array.isArray(convenios)) {
             convenios = Object.values(convenios);
@@ -202,24 +152,25 @@ export default function ARTComunicador() {
     return buildGmailUrl({ to: emailsActivos.join(","), subject: asunto, body: cuerpoEditado });
   }, [emailsActivos, asunto, cuerpoEditado]);
 
-  const adjuntosRecordatorio = useMemo(() => {
-    if (!paciente || tab !== "siniestros") return [];
-    return accionesSeleccionadas
-      .map((id) => accionesDisponibles.find((a) => a.id === id)?.adjunto)
-      .filter(Boolean);
-  }, [paciente, tab, accionesSeleccionadas, accionesDisponibles]);
+  const canSend = useMemo(() => {
+    if (selectedArts.size === 0) return false;
+    if (emailsActivos.length === 0) return false;
+    if (tab === "facturacion" || tab === "convenios") {
+      return true;
+    }
+    return paciente && asunto && cuerpoEditado;
+  }, [selectedArts, emailsActivos, tab, paciente, asunto, cuerpoEditado]);
 
-  // Validación de envío
-  const canSend = Boolean(
-    selectedArts.size > 0 && paciente && emailsActivos.length && asunto && cuerpoEditado
-  );
-  const faltantes = [];
-  if (selectedArts.size === 0) faltantes.push("🏢 Seleccionar al menos una ART");
-  if (!paciente) faltantes.push("👤 Seleccionar un paciente");
-  if (!emailsActivos.length && selectedArts.size > 0)
-    faltantes.push("📧 Activar al menos un destinatario");
+  const faltantes = useMemo(() => {
+    const f = [];
+    if (selectedArts.size === 0) f.push("🏢 Seleccionar al menos una ART");
+    if (emailsActivos.length === 0 && selectedArts.size > 0) f.push("📧 Activar al menos un destinatario");
+    if (tab === "siniestros") {
+      if (!paciente) f.push("👤 Seleccionar un paciente");
+    }
+    return f;
+  }, [selectedArts, emailsActivos, tab, paciente]);
 
-  // Handlers de ARTs
   const toggleArt = (id) =>
     setSelectedArts((prev) => {
       const next = new Set(prev);
@@ -229,7 +180,6 @@ export default function ARTComunicador() {
   const toggleAllArts = (all) =>
     setSelectedArts(all ? new Set(filteredArts.map((a) => a.id)) : new Set());
 
-  // Handlers de destinatarios
   const toggleDestinatario = (i) =>
     setDestinatariosOff((prev) => ({ ...prev, [`${i}`]: !prev[`${i}`] }));
   const toggleAllDestinatarios = (active) => {
@@ -242,7 +192,6 @@ export default function ARTComunicador() {
     });
   };
 
-  // Copiar y restaurar cuerpo
   const copiarCuerpo = async () => {
     try {
       await navigator.clipboard.writeText(cuerpoEditado);
@@ -255,99 +204,24 @@ export default function ARTComunicador() {
     cuerpoEditadoPorUsuario.current = false;
   };
 
-  // Funciones para atajos
   const aplicarAtajo = (atajo) => {
-    setAtajoActivo(atajo);
-    if (atajo.acciones?.length) {
-      setAccionesSeleccionadas(atajo.acciones);
-    }
+    setAtajosActivos((prev) =>
+      prev.some((a) => a.id === atajo.id) ? prev : [...prev, atajo]
+    );
   };
-  const desactivarAtajo = () => setAtajoActivo(null);
+  const quitarAtajo = (atajoId) => {
+    setAtajosActivos((prev) => prev.filter((a) => a.id !== atajoId));
+  };
+  const desactivarAtajo = () => setAtajosActivos([]);
 
-  // Gestión de acciones (modal)
-  const openNewAction = () => {
-    setEditActionId(null);
-    setFormAction({
-      id: "",
-      label: "",
-      short: "",
-      emoji: "📌",
-      adjunto: "",
-      codigo: "",
-      defaultSelected: false,
-      categoria: "practica",
-    });
-    setMostrarGestionAcciones(true);
-  };
-  const openEditAction = (accion) => {
-    setEditActionId(accion.id);
-    setFormAction({ ...accion });
-    setMostrarGestionAcciones(true);
-  };
-  const saveAction = async () => {
-    if (!formAction.id.trim() || !formAction.label.trim()) {
-      alert("ID y nombre son obligatorios");
-      return;
-    }
-    const url = `${FIREBASE_URL}/ART-MAILS/acciones/${formAction.id}.json`;
-    try {
-      await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          label: formAction.label,
-          short: formAction.short,
-          emoji: formAction.emoji,
-          adjunto: formAction.adjunto,
-          codigo: formAction.codigo,
-          defaultSelected: formAction.defaultSelected,
-          categoria: formAction.categoria,
-        }),
-      });
-      const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
-      const data = await res.json();
-      if (data) {
-        const lista = Object.entries(data).map(([id, val]) => ({
-          id,
-          label: val.label || id,
-          short: val.short || val.label?.toUpperCase() || id.toUpperCase(),
-          emoji: val.emoji || "📌",
-          adjunto: val.adjunto || "",
-          codigo: val.codigo || "",
-          defaultSelected: !!val.defaultSelected,
-          categoria: val.categoria || "practica",
-        }));
-        setAccionesDisponibles(lista);
-      }
-      setMostrarGestionAcciones(false);
-    } catch (err) {
-      alert("Error al guardar: " + err.message);
-    }
-  };
-  const deleteAction = async (id) => {
-    if (!confirm(`¿Eliminar la práctica "${id}"?`)) return;
-    await fetch(`${FIREBASE_URL}/ART-MAILS/acciones/${id}.json`, {
-      method: "DELETE",
-    });
-    const res = await fetch(`${FIREBASE_URL}/ART-MAILS/acciones.json`);
-    const data = await res.json();
-    if (data) {
-      const lista = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-      setAccionesDisponibles(lista);
-    } else {
-      setAccionesDisponibles([]);
-    }
-  };
-
-  // Gestión de atajos
   const guardarAtajo = async () => {
     setErrorAtajo("");
     if (!nuevoAtajoLabel.trim()) {
       setErrorAtajo("El nombre del atajo es obligatorio");
       return;
     }
-    if (!nuevoAtajoAsunto.trim() && !nuevoAtajoCuerpo.trim()) {
-      setErrorAtajo("Debés completar al menos el asunto o el cuerpo");
+    if (!nuevoAtajoAdjunto.trim() && !nuevoAtajoSolicitud.trim()) {
+      setErrorAtajo("Completá al menos Adjunto o Solicito");
       return;
     }
     setGuardandoAtajo(true);
@@ -355,17 +229,14 @@ export default function ARTComunicador() {
     try {
       const nuevoAtajo = {
         label: nuevoAtajoLabel.trim(),
-        asunto: nuevoAtajoAsunto.trim(),
-        acciones: nuevoAtajoAcciones,
-        cuerpo: nuevoAtajoCuerpo.trim(),
+        adjunto: nuevoAtajoAdjunto.trim(),
+        solicitud: nuevoAtajoSolicitud.trim(),
       };
 
       const method = editandoAtajo ? "PUT" : "POST";
       const url = editandoAtajo
         ? `${FIREBASE_URL}/ART-MAILS/atajos/${editandoAtajo.id}.json`
         : `${FIREBASE_URL}/ART-MAILS/atajos.json`;
-
-      console.log("📤 Enviando a:", url, "Método:", method);
 
       const response = await fetch(url, {
         method,
@@ -383,25 +254,20 @@ export default function ARTComunicador() {
       if (!editandoAtajo) {
         const data = await response.json();
         atajoGuardado = { id: data.name, ...nuevoAtajo };
-        console.log("✅ Atajo creado:", atajoGuardado);
       } else {
         atajoGuardado = { id: editandoAtajo.id, ...nuevoAtajo };
-        console.log("✅ Atajo actualizado:", atajoGuardado);
+        setAtajosActivos((prev) =>
+          prev.map((a) => (a.id === atajoGuardado.id ? atajoGuardado : a))
+        );
       }
 
       setNuevoAtajoLabel("");
-      setNuevoAtajoAsunto("");
-      setNuevoAtajoAcciones(["evolucion"]);
-      setNuevoAtajoCuerpo("");
+      setNuevoAtajoAdjunto("");
+      setNuevoAtajoSolicitud("");
       setMostrarFormAtajo(false);
       setEditandoAtajo(null);
 
-      if (!atajoActivo) {
-        aplicarAtajo(atajoGuardado);
-      }
-
       await recargarAtajos();
-
     } catch (err) {
       console.error("❌ Error completo:", err);
       setErrorAtajo("Error al guardar el atajo: " + err.message);
@@ -415,13 +281,12 @@ export default function ARTComunicador() {
     await fetch(`${FIREBASE_URL}/ART-MAILS/atajos/${id}.json`, {
       method: "DELETE",
     });
-    if (atajoActivo?.id === id) setAtajoActivo(null);
+    setAtajosActivos((prev) => prev.filter((a) => a.id !== id));
     recargarAtajos();
   };
 
   return (
     <main className={styles.page}>
-
       <header className={styles.topBar}>
         <div className={styles.topLeft}>
           <div className={styles.topIcon}>📧</div>
@@ -451,8 +316,8 @@ export default function ARTComunicador() {
           </button>
           <button
             className={styles.tinyBtn}
-            onClick={() => setMostrarGestionAcciones(true)}
-            title="Gestionar prácticas y prestaciones"
+            onClick={() => setMostrarFormAtajo(true)}
+            title="Gestionar atajos"
           >
             ⚙️
           </button>
@@ -460,9 +325,7 @@ export default function ARTComunicador() {
       </header>
 
       <div className={styles.pageLayout}>
-        {/* Columna principal */}
         <div className={styles.mainContent}>
-          {/* ARTS – ahora recibe filteredArts */}
           <PasoArtes
             arts={filteredArts}
             loading={loadingArts}
@@ -471,49 +334,54 @@ export default function ARTComunicador() {
             toggleAllArts={toggleAllArts}
             onManageArts={() => setMostrarGestionArts(true)}
           />
-          {/* Paciente + Médico (con key para forzar limpieza) */}
-          <div className={styles.pacienteMedicoRow}>
-            <PasoPaciente
-              key={`paciente-${resetKey}`}
-              pacientes={pacientes}
-              loading={loadingPacientes}
-              paciente={paciente}
-              setPaciente={setPaciente}
-            />
-            <PasoMedico
-              key={`medico-${resetKey}`}
-              medico={medico}
-              setMedico={setMedico}
-            />
-          </div>
-          
-          {/* ATAJOS DE MAIL – siempre expandido inicialmente */}
-          <AtajosDeMail
-            atajos={atajos}
-            loading={loadingAtajos}
-            atajoActivo={atajoActivo}
-            aplicarAtajo={aplicarAtajo}
-            desactivarAtajo={desactivarAtajo}
-            setMostrarFormAtajo={setMostrarFormAtajo}
-            setEditandoAtajo={setEditandoAtajo}
-            setNuevoAtajoLabel={setNuevoAtajoLabel}
-            setNuevoAtajoAsunto={setNuevoAtajoAsunto}
-            setNuevoAtajoAcciones={setNuevoAtajoAcciones}
-            setNuevoAtajoCuerpo={setNuevoAtajoCuerpo}
-            eliminarAtajo={eliminarAtajo}
-            defaultOpen={true}  // 🆕 Prop para iniciar expandido
-          />
 
-          {/* ASUNTO GENERADO */}
+          {tab === "siniestros" && (
+            <>
+              <div className={styles.pacienteMedicoRow}>
+                <PasoPaciente
+                  key={`paciente-${resetKey}`}
+                  pacientes={pacientes}
+                  loading={loadingPacientes}
+                  paciente={paciente}
+                  setPaciente={setPaciente}
+                />
+                <PasoMedico
+                  key={`medico-${resetKey}`}
+                  medico={medico}
+                  setMedico={setMedico}
+                />
+              </div>
+              <AtajosDeMail
+                atajos={atajos}
+                loading={loadingAtajos}
+                atajosActivos={atajosActivos}
+                aplicarAtajo={aplicarAtajo}
+                quitarAtajo={quitarAtajo}
+                desactivarAtajo={desactivarAtajo}
+                setMostrarFormAtajo={setMostrarFormAtajo}
+                setEditandoAtajo={setEditandoAtajo}
+                setNuevoAtajoLabel={setNuevoAtajoLabel}
+                setNuevoAtajoAdjunto={setNuevoAtajoAdjunto}
+                setNuevoAtajoSolicitud={setNuevoAtajoSolicitud}
+                eliminarAtajo={eliminarAtajo}
+              />
+            </>
+          )}
+
           <div className={styles.block}>
             <div className={styles.blockTop}>
               <p className={styles.blockLabel}>📝 Asunto generado</p>
-              {atajoActivo && <span className={styles.badge}>⚡ {atajoActivo.label}</span>}
+              {atajosActivos.length > 0 && tab === "siniestros" && (
+                <div className={styles.blockBadges}>
+                  {atajosActivos.map((a) => (
+                    <span key={a.id} className={styles.badge}>⚡ {a.label}</span>
+                  ))}
+                </div>
+              )}
             </div>
             <input className={`${styles.inp} ${styles.inpReadonly}`} value={asunto} readOnly />
           </div>
 
-          {/* CUERPO DEL MAIL */}
           <div className={styles.block}>
             <div className={styles.blockTop}>
               <p className={styles.blockLabel}>📄 Cuerpo del mail</p>
@@ -536,7 +404,6 @@ export default function ARTComunicador() {
             />
           </div>
 
-          {/* DESTINATARIOS */}
           <PasoDestinatarios
             contactos={contactos}
             destinatariosOff={destinatariosOff}
@@ -545,9 +412,7 @@ export default function ARTComunicador() {
           />
         </div>
 
-        {/* Sidebar derecha con resumen y botón de limpiar */}
         <aside className={styles.sidebar}>
-          {/* Botón para limpiar todo */}
           <button
             className={styles.clearSidebarBtn}
             onClick={limpiarTodo}
@@ -560,7 +425,6 @@ export default function ARTComunicador() {
             canSend={canSend}
             gmailUrl={gmailUrl}
             faltantes={faltantes}
-            adjuntosRecordatorio={adjuntosRecordatorio}
             asunto={asunto}
             emailsActivos={emailsActivos}
             paciente={paciente}
@@ -568,7 +432,6 @@ export default function ARTComunicador() {
         </aside>
       </div>
 
-      {/* MODAL GESTIONAR ARTs */}
       {mostrarGestionArts && (
         <GestionArts
           arts={arts}
@@ -580,115 +443,6 @@ export default function ARTComunicador() {
         />
       )}
 
-      {/* MODAL GESTIONAR PRÁCTICAS */}
-      {mostrarGestionAcciones && (
-        <div className={styles.formAtajoOverlay} onClick={() => setMostrarGestionAcciones(false)}>
-          <div className={styles.formAtajo} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.formAtajoTitle}>
-              {editActionId ? "✏️ Editar práctica" : "➕ Nueva práctica"}
-            </h3>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>ID (código interno) *</label>
-              <input
-                className={styles.inp}
-                value={formAction.id}
-                onChange={(e) => setFormAction({ ...formAction, id: e.target.value })}
-                disabled={!!editActionId}
-                placeholder="ej: evolucion"
-              />
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Nombre *</label>
-              <input
-                className={styles.inp}
-                value={formAction.label}
-                onChange={(e) => setFormAction({ ...formAction, label: e.target.value })}
-                placeholder="ej: Evolución"
-              />
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Texto corto (para asunto)</label>
-              <input
-                className={styles.inp}
-                value={formAction.short}
-                onChange={(e) => setFormAction({ ...formAction, short: e.target.value })}
-                placeholder="ej: EVOLUCIÓN"
-              />
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Categoría</label>
-              <select
-                className={styles.inp}
-                value={formAction.categoria}
-                onChange={(e) => setFormAction({ ...formAction, categoria: e.target.value })}
-              >
-                <option value="consulta">📋 Consultas</option>
-                <option value="practica">🏥 Prácticas</option>
-                <option value="estudio">🔬 Estudios</option>
-                <option value="sesion">🏃 Sesiones</option>
-              </select>
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Código (usa {"{medico}"} si es necesario)</label>
-              <textarea
-                className={styles.area}
-                rows={2}
-                value={formAction.codigo}
-                onChange={(e) => setFormAction({ ...formAction, codigo: e.target.value })}
-                placeholder="/COD.: ..."
-              />
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Emoji</label>
-              <input
-                className={styles.inp}
-                value={formAction.emoji}
-                onChange={(e) => setFormAction({ ...formAction, emoji: e.target.value })}
-                placeholder="📋"
-              />
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Adjunto recordatorio</label>
-              <input
-                className={styles.inp}
-                value={formAction.adjunto}
-                onChange={(e) => setFormAction({ ...formAction, adjunto: e.target.value })}
-                placeholder="ej: Evolución del paciente"
-              />
-            </div>
-            <label className={styles.recipientRow} style={{ marginTop: 8, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                className={styles.chk}
-                checked={formAction.defaultSelected}
-                onChange={(e) => setFormAction({ ...formAction, defaultSelected: e.target.checked })}
-              />
-              <span>Seleccionada por defecto</span>
-            </label>
-            <div className={styles.formAtajoBtns}>
-              <button className={styles.formBtnSave} onClick={saveAction}>
-                💾 Guardar
-              </button>
-              <button className={styles.formBtnCancel} onClick={() => setMostrarGestionAcciones(false)}>
-                Cancelar
-              </button>
-              {editActionId && (
-                <button
-                  className={styles.formBtnDelete}
-                  onClick={() => {
-                    deleteAction(editActionId);
-                    setMostrarGestionAcciones(false);
-                  }}
-                >
-                  🗑 Eliminar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CREAR/EDITAR ATAJO */}
       {mostrarFormAtajo && (
         <div
           className={styles.formAtajoOverlay}
@@ -707,62 +461,37 @@ export default function ARTComunicador() {
               <input
                 type="text"
                 className={styles.inp}
-                placeholder="Ej: Pedido de RMN urgente"
+                placeholder="Ej: RMN"
                 value={nuevoAtajoLabel}
                 onChange={(e) => setNuevoAtajoLabel(e.target.value)}
                 autoFocus
               />
+              <p className={styles.formAtajoHint}>
+                Se muestra en el asunto: "SE ENVIA ... + {nuevoAtajoLabel.toUpperCase() || "NOMBRE"} ..."
+              </p>
             </div>
             <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Asunto del mail</label>
+              <label className={styles.formAtajoLabel}>Adjunto:</label>
               <input
                 type="text"
                 className={styles.inp}
-                placeholder="Ej: SOLICITUD RMN - {nombre} - DNI {dni}"
-                value={nuevoAtajoAsunto}
-                onChange={(e) => setNuevoAtajoAsunto(e.target.value)}
+                placeholder="Ej: Pedido de RMN"
+                value={nuevoAtajoAdjunto}
+                onChange={(e) => setNuevoAtajoAdjunto(e.target.value)}
               />
-              <p className={styles.formAtajoHint}>
-                Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"}
-              </p>
+              <p className={styles.formAtajoHint}>Se suma a la línea "Adjunto:" del mail.</p>
             </div>
             <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Acciones incluidas</label>
-              <div className={styles.chips}>
-                {accionesDisponibles.map((accion) => (
-                  <button
-                    key={accion.id}
-                    type="button"
-                    className={`${styles.chip} ${nuevoAtajoAcciones.includes(accion.id) ? styles.chipOn : ""
-                      }`}
-                    onClick={() =>
-                      setNuevoAtajoAcciones((prev) =>
-                        prev.includes(accion.id)
-                          ? prev.filter((a) => a !== accion.id)
-                          : [...prev, accion.id]
-                      )
-                    }
-                  >
-                    {accion.emoji} {accion.label}
-                  </button>
-                ))}
-              </div>
-              <p className={styles.formAtajoHint}>
-                Estas acciones se seleccionan automáticamente al aplicar el atajo.
-              </p>
-            </div>
-            <div className={styles.formAtajoField}>
-              <label className={styles.formAtajoLabel}>Cuerpo del mail</label>
+              <label className={styles.formAtajoLabel}>Solicito:</label>
               <textarea
                 className={styles.area}
-                rows={8}
-                placeholder="Buen día,..."
-                value={nuevoAtajoCuerpo}
-                onChange={(e) => setNuevoAtajoCuerpo(e.target.value)}
+                rows={2}
+                placeholder="Ej: /COD.: AUTORIZACION RMN SIN CONTRASTE"
+                value={nuevoAtajoSolicitud}
+                onChange={(e) => setNuevoAtajoSolicitud(e.target.value)}
               />
               <p className={styles.formAtajoHint}>
-                Variables: {"{nombre}"}, {"{dni}"}, {"{stro}"}, {"{art}"}, {"{medico}"},{" "}
-                {"{firma}"}
+                Se suma como línea a "Solicito autorización...". Podés usar {"{medico}"}.
               </p>
             </div>
             {errorAtajo && <p className={styles.errorMsg}>{errorAtajo}</p>}
