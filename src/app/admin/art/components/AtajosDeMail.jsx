@@ -85,7 +85,6 @@ export default function AtajosDeMail({
           </div>
 
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
-       
             {atajosActivos.length > 0 && (
               <button className={styles.desactivarAtajoBtn} onClick={desactivarAtajo}>
                 ❌ Desactivar todos ({atajosActivos.length})
