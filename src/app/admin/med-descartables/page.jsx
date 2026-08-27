@@ -42,6 +42,9 @@ export default function PreciosPage() {
     const [busqueda, setBusqueda] = useState("");
     const [mensaje, setMensaje] = useState("");
 
+    // Estado para selección múltiple
+    const [seleccionados, setSeleccionados] = useState(new Set());
+
     // Modal de edición
     const [modalAbierto, setModalAbierto] = useState(false);
     const [itemEditando, setItemEditando] = useState(null);
@@ -113,6 +116,42 @@ export default function PreciosPage() {
         });
     }, [items, tipo, busqueda]);
 
+    // ─── Manejo de selección ────────────────────────────────────
+    const idItem = (item) => `${item.categoria}|${item.key}`;
+
+    const toggleSeleccion = (item) => {
+        const id = idItem(item);
+        setSeleccionados(prev => {
+            const nuevo = new Set(prev);
+            if (nuevo.has(id)) {
+                nuevo.delete(id);
+            } else {
+                nuevo.add(id);
+            }
+            return nuevo;
+        });
+    };
+
+    const todosSeleccionados = filtrados.length > 0 && filtrados.every(item => seleccionados.has(idItem(item)));
+
+    const toggleSeleccionarTodos = () => {
+        if (todosSeleccionados) {
+            // Quitar todos los filtrados
+            setSeleccionados(prev => {
+                const nuevo = new Set(prev);
+                filtrados.forEach(item => nuevo.delete(idItem(item)));
+                return nuevo;
+            });
+        } else {
+            // Agregar todos los filtrados
+            setSeleccionados(prev => {
+                const nuevo = new Set(prev);
+                filtrados.forEach(item => nuevo.add(idItem(item)));
+                return nuevo;
+            });
+        }
+    };
+
     // ─── Abrir modal ─────────────────────────────────────────────
     const abrirModal = (item) => {
         setItemEditando(item);
@@ -157,12 +196,19 @@ export default function PreciosPage() {
         }
     };
 
-    // ─── Eliminar ─────────────────────────────────────────────────
+    // ─── Eliminar individual ─────────────────────────────────────
     const eliminarProducto = async (key, categoria) => {
         const nombre = items.find((i) => i.key === key)?.nombre || key;
         if (!confirm(`¿Eliminar "${nombre}"?`)) return;
         try {
             await remove(ref(db, `medydescartables/${categoria}/${key}`));
+            // Limpiar selección si este elemento estaba seleccionado
+            const id = `${categoria}|${key}`;
+            setSeleccionados(prev => {
+                const nuevo = new Set(prev);
+                nuevo.delete(id);
+                return nuevo;
+            });
             setMensaje("🗑️ Producto eliminado.");
             setTimeout(() => setMensaje(""), 2000);
         } catch (error) {
@@ -172,14 +218,36 @@ export default function PreciosPage() {
         }
     };
 
+    // ─── Eliminar seleccionados ─────────────────────────────────
+    const eliminarSeleccionados = async () => {
+        const ids = Array.from(seleccionados);
+        if (ids.length === 0) return;
+        if (!confirm(`¿Eliminar ${ids.length} producto(s) seleccionado(s)?`)) return;
+
+        try {
+            for (const id of ids) {
+                const [categoria, key] = id.split('|');
+                await remove(ref(db, `medydescartables/${categoria}/${key}`));
+            }
+            setSeleccionados(new Set());
+            setMensaje(`🗑️ ${ids.length} producto(s) eliminado(s).`);
+            setTimeout(() => setMensaje(""), 2000);
+        } catch (error) {
+            console.error(error);
+            setMensaje("❌ Error al eliminar seleccionados.");
+            setTimeout(() => setMensaje(""), 3000);
+        }
+    };
+
     // ─── Estilos para alinear columnas ──────────────────────────
     const colStyles = {
         table: { tableLayout: "fixed", width: "100%", borderCollapse: "collapse" },
-        colNombre: { width: "28%" },
-        colPresentacion: { width: "18%", textAlign: "center" },
-        colTipo: { width: "14%", textAlign: "center" },
-        colPrecio: { width: "14%", textAlign: "right" },
-        colAcciones: { width: "12%", textAlign: "center" },
+        colSeleccion: { width: "5%", textAlign: "center" },
+        colNombre: { width: "25%" },
+        colPresentacion: { width: "15%", textAlign: "center" },
+        colTipo: { width: "12%", textAlign: "center" },
+        colPrecio: { width: "12%", textAlign: "right" },
+        colAcciones: { width: "14%", textAlign: "center" },
     };
 
     // ─── Render ──────────────────────────────────────────────────
@@ -210,12 +278,29 @@ export default function PreciosPage() {
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                     />
+
+                    {seleccionados.size > 0 && (
+                        <button
+                            className={`${styles.btnDanger} ${styles.btnEliminarSeleccionados}`}
+                            onClick={eliminarSeleccionados}
+                        >
+                            🗑️ Eliminar seleccionados ({seleccionados.size})
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ overflowX: "auto", width: "100%" }}>
                     <table style={colStyles.table} className={styles.table}>
                         <thead>
                             <tr>
+                                <th style={colStyles.colSeleccion}>
+                                    <input
+                                        type="checkbox"
+                                        checked={todosSeleccionados}
+                                        onChange={toggleSeleccionarTodos}
+                                        title="Seleccionar todos los visibles"
+                                    />
+                                </th>
                                 <th style={colStyles.colNombre}>Producto</th>
                                 <th style={colStyles.colPresentacion}>Presentación</th>
                                 <th style={colStyles.colTipo}>Tipo</th>
@@ -227,55 +312,67 @@ export default function PreciosPage() {
                         <tbody>
                             {filtrados.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" style={{ textAlign: "center", padding: "2rem" }}>
+                                    <td colSpan="7" style={{ textAlign: "center", padding: "2rem" }}>
                                         No hay productos.
                                     </td>
                                 </tr>
                             ) : (
-                                filtrados.map((item) => (
-                                    <tr key={`${item.categoria}_${item.key}`}>
-                                        <td style={colStyles.colNombre}>{item.nombre}</td>
-                                        <td style={colStyles.colPresentacion}>
-                                            {PRESENTACIONES[item.categoria].find(
-                                                ([v]) => v === item.presentacion
-                                            )?.[1] || item.presentacion}
-                                        </td>
-                                        <td style={colStyles.colTipo}>
-                                            <span
-                                                className={
-                                                    item.tipo === "medicamento"
-                                                        ? styles.badgeMed
-                                                        : styles.badgeDesc
-                                                }
-                                            >
-                                                {item.tipo === "medicamento"
-                                                    ? "Medicamento"
-                                                    : "Descartable"}
-                                            </span>
-                                        </td>
-                                        <td style={colStyles.colPrecio}>
-                                            {formatCurrency(item.precioCosto)}
-                                        </td>
-                                        <td style={colStyles.colPrecio}>
-                                            {formatCurrency(item.precioFacturacion)}
-                                        </td>
-                                        <td style={colStyles.colAcciones}>
-                                            <button
-                                                className={styles.btnPrimary}
-                                                onClick={() => abrirModal(item)}
-                                                style={{ marginRight: "5px" }}
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
-                                                className={styles.btnDanger}
-                                                onClick={() => eliminarProducto(item.key, item.categoria)}
-                                            >
-                                                🗑️
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                filtrados.map((item) => {
+                                    const id = idItem(item);
+                                    const estaSeleccionado = seleccionados.has(id);
+                                    return (
+                                        <tr key={id} className={estaSeleccionado ? styles.filaSeleccionada : ""}>
+                                            <td style={colStyles.colSeleccion}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={estaSeleccionado}
+                                                    onChange={() => toggleSeleccion(item)}
+                                                />
+                                            </td>
+                                            <td style={colStyles.colNombre}>{item.nombre}</td>
+                                            <td style={colStyles.colPresentacion}>
+                                                {PRESENTACIONES[item.categoria].find(
+                                                    ([v]) => v === item.presentacion
+                                                )?.[1] || item.presentacion}
+                                            </td>
+                                            <td style={colStyles.colTipo}>
+                                                <span
+                                                    className={
+                                                        item.tipo === "medicamento"
+                                                            ? styles.badgeMed
+                                                            : styles.badgeDesc
+                                                    }
+                                                >
+                                                    {item.tipo === "medicamento"
+                                                        ? "Medicamento"
+                                                        : "Descartable"}
+                                                </span>
+                                            </td>
+                                            <td style={colStyles.colPrecio}>
+                                                {formatCurrency(item.precioCosto)}
+                                            </td>
+                                            <td style={colStyles.colPrecio}>
+                                                {formatCurrency(item.precioFacturacion)}
+                                            </td>
+                                            <td style={colStyles.colAcciones}>
+                                                <button
+                                                    className={styles.btnAccion}
+                                                    onClick={() => abrirModal(item)}
+                                                    title="Editar"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    className={styles.btnAccionDanger}
+                                                    onClick={() => eliminarProducto(item.key, item.categoria)}
+                                                    title="Eliminar"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

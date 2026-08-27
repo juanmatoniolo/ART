@@ -368,6 +368,27 @@
     transform: translateY(-1px);
 }
 
+/* Botón eliminar seleccionados (nuevo estilo mejorado) */
+.btnEliminarSeleccionados {
+    margin-left: auto;
+    padding: 0.65rem 1.2rem;
+    background-color: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-text);
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.btnEliminarSeleccionados:hover {
+    background-color: var(--warn-border);
+    border-color: var(--warn-border);
+    transform: translateY(-1px);
+}
+
 /* =========================
    Tabla (sobria, como el Nomenclador)
    ========================= */
@@ -410,6 +431,19 @@
 
 .table tr:hover td {
     background-color: var(--accent-weak);
+}
+
+/* Fila seleccionada (fondo sutil, no rojo) */
+.filaSeleccionada {
+    background-color: var(--accent-weak) !important;
+}
+
+/* Checkbox con color de acento (clase local) */
+.checkbox {
+    accent-color: var(--accent);
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
 }
 
 .inputPrecio {
@@ -481,6 +515,51 @@
     flex-direction: column;
     gap: 0.8rem;
     margin-bottom: 1.2rem;
+}
+
+/* =========================
+   Modal (adaptado a variables)
+   ========================= */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.modalContent {
+    background: var(--surface);
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.modalBody .fieldGroup {
+    margin-bottom: 1rem;
+}
+
+.modalBody label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--muted);
+}
+
+.modalFooter {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
 }
 
 /* =========================
@@ -572,58 +651,46 @@
 }
 
 
-.wrapper.dark {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-}
-.wrapper.dark .table {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-}
-.wrapper.dark .table th {
-    background-color: #333;
-}
-.wrapper.dark .table td {
-    border-bottom: 1px solid #444;
-}
-.wrapper.dark .input,
-.wrapper.dark .selectTipo,
-.wrapper.dark .search {
-    background-color: #333;
-    color: #e0e0e0;
-    border: 1px solid #555;
-}
-.modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
+/* Botones de acción compactos en tabla */
+.btnAccion,
+.btnAccionDanger {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    z-index: 999;
-}
-.modalContent {
-    background: #2a2a2a;
-    padding: 2rem;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border-radius: 8px;
-    max-width: 500px;
-    width: 90%;
-    color: #e0e0e0;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+    margin: 0 2px;
 }
-.modalBody .fieldGroup {
-    margin-bottom: 1rem;
+
+.btnAccion {
+    background-color: var(--accent-weak);
+    color: var(--accent);
+    border-color: var(--accent-border);
 }
-.modalBody label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 4px;
+
+.btnAccion:hover {
+    background-color: var(--accent);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
-.modalFooter {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 1.5rem;
+
+.btnAccionDanger {
+    background-color: rgba(192, 57, 43, 0.1);
+    color: var(--danger);
+    border-color: rgba(192, 57, 43, 0.2);
+}
+
+.btnAccionDanger:hover {
+    background-color: var(--danger);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
