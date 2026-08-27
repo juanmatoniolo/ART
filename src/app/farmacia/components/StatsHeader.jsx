@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import s from "../farmaciaDashboard.module.css";
 import { formatCurrency } from "../utils/farmacia";
 
@@ -6,7 +7,7 @@ export default function StatsHeader({
   estadisticas,
   onAgregar,
   onCargaMasiva,
-  onReparto,
+  repartoHref, // ← nueva prop para el enlace de reparto
   onExportar,
   theme,
   toggleTheme,
@@ -72,13 +73,14 @@ export default function StatsHeader({
             <span>📤</span> <span className={s.actionBtnLabel}>Carga masiva</span>
           </button>
 
-          <button
+          {/* ✅ Reparto como Link (en lugar de botón) */}
+          <Link
+            href={repartoHref}
             className={`${s.actionBtn} ${s.btn_danger}`}
-            onClick={onReparto}
             title="Repartir"
           >
             <span>🚚</span> <span className={s.actionBtnLabel}>Reparto</span>
-          </button>
+          </Link>
 
           <button
             className={`${s.actionBtn} ${s.btn_import}`}

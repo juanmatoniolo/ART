@@ -1,0 +1,921 @@
+/* ============================================
+   PÁGINA DE REPARTO - ESTILOS ESPECÍFICOS
+   ============================================ */
+
+/* Contenedor principal de la página */
+.pageContainer {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-body, #f8f9fc);
+}
+
+/* Cabecera con título y botón volver */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Formulario general */
+.repartoForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Campos superiores (destino, responsable, nota) */
+.formFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldGroup label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.fieldGroup input,
+.fieldGroup textarea {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
+  width: 100%;
+}
+
+.fieldGroup input:focus,
+.fieldGroup textarea:focus {
+  border-color: #2a7de1;
+  box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.15);
+  outline: none;
+}
+
+.fieldGroup textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Grid de destinos (chips) */
+.destinoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.destinoChip {
+  background: #f0f2f5;
+  border: 1px solid #d0d7de;
+  border-radius: 20px;
+  padding: 0.35rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #333;
+}
+
+.destinoChip:hover {
+  background: #e2e6ea;
+}
+
+.destinoChipActive {
+  background: #2a7de1;
+  color: #fff;
+  border-color: #2a7de1;
+}
+
+/* Mensaje de error */
+.errorMsg {
+  background: #fde8e8;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border-left: 4px solid #b91c1c;
+}
+
+/* Grid principal: dos columnas (buscador + carrito) */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  min-height: 400px;
+}
+
+/* Columnas */
+.column {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== COLUMNA IZQUIERDA: BUSCADOR Y SUGERENCIAS ===== */
+.searchWrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.7rem 2.5rem 0.7rem 2.6rem;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  border-color: #2a7de1;
+  box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.15);
+  outline: none;
+}
+
+.searchClear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.searchClear:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Lista de sugerencias */
+.suggestionsList {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+  margin-top: 0.5rem;
+}
+
+.suggestionsList ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.4rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+  gap: 0.75rem;
+}
+
+.suggestionItem:hover {
+  background: #f0f7ff;
+}
+
+.productInfo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.productName {
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.productPresentation {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.productStock {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #444;
+}
+
+.stockIndicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.productPrice {
+  font-weight: 600;
+  color: #0d7c3f;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.btnAdd {
+  background: #2a7de1;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.btnAdd:hover {
+  background: #1a5fb0;
+}
+
+.emptyText {
+  color: #999;
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.95rem;
+}
+
+/* ===== COLUMNA DERECHA: CARRITO ===== */
+.cartSummary {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cartSummary span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.totalValue {
+  font-weight: 700;
+  color: #0d7c3f;
+}
+
+.cartList {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.cartList ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cartItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cartItemName {
+  flex: 1;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.cartItemControls {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.cartItemControls button {
+  background: #f0f2f5;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: #333;
+}
+
+.cartItemControls button:hover:not(:disabled) {
+  background: #e2e6ea;
+}
+
+.cartItemControls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cartItemControls input {
+  width: 45px;
+  text-align: center;
+  padding: 0.2rem;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.stockInfo {
+  font-size: 0.8rem;
+  color: #555;
+  min-width: 50px;
+  text-align: center;
+}
+
+.cartItemSubtotal {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+  color: #0d7c3f;
+}
+
+.btnRemove {
+  background: transparent;
+  border: none;
+  color: #b33;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.btnRemove:hover {
+  color: #d00;
+}
+
+/* Acciones del carrito (botones) */
+.cartActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 2px solid #e9ecef;
+}
+
+/* Botones reutilizables (si no los tienes en el módulo global) */
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  text-decoration: none;
+}
+
+.btnCancel {
+  background: #f0f2f5;
+  color: #333;
+}
+.btnCancel:hover {
+  background: #e2e6ea;
+}
+
+.btnPrimary {
+  background: #2a7de1;
+  color: #fff;
+}
+.btnPrimary:hover:not(:disabled) {
+  background: #1a5fb0;
+}
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 992px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .suggestionsList {
+    max-height: 250px;
+  }
+  .cartList {
+    max-height: 250px;
+  }
+  .pageContainer {
+    padding: 1rem;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .formFields {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .destinoGrid {
+    gap: 0.3rem;
+  }
+  .destinoChip {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.7rem;
+  }
+  .cartItem {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .cartItemName {
+    flex-basis: 100%;
+  }
+  .cartItemControls input {
+    width: 35px;
+  }
+  .stockInfo {
+    min-width: 40px;
+  }
+  .cartItemSubtotal {
+    min-width: 60px;
+  }
+  .cartActions {
+    flex-direction: column-reverse;
+  }
+  .cartActions .actionBtn {
+    justify-content: center;
+    width: 100%;
+  }
+  .headerTitle {
+    font-size: 1.4rem;
+  }
+  .suggestionsList {
+    max-height: 200px;
+  }
+  .cartList {
+    max-height: 200px;
+  }
+}
+
+
+/* ── Mejoras para el carrito de reparto ── */
+.itemSeleccionado {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--c-surface);
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow);
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+.itemSeleccionado:hover {
+  box-shadow: var(--c-shadow-md);
+  transform: translateY(-1px);
+}
+.itemMedicamento {
+  border-left: 4px solid var(--c-primary) !important;
+}
+.itemDescartable {
+  border-left: 4px solid var(--c-green) !important;
+}
+.itemSeleccionado .nombreProducto {
+  flex: 1;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.itemSeleccionado .controlesCantidad {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.itemSeleccionado .controlesCantidad button {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--c-text);
+  transition: 0.15s;
+}
+.itemSeleccionado .controlesCantidad button:hover:not(:disabled) {
+  background: var(--c-hover-surface);
+}
+.itemSeleccionado .controlesCantidad button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.itemSeleccionado .controlesCantidad input {
+  width: 45px;
+  text-align: center;
+  padding: 0.2rem 0;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-weight: 600;
+}
+.itemSeleccionado .stockInfo {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  min-width: 70px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.itemSeleccionado .subtotal {
+  font-weight: 700;
+  color: var(--c-green);
+  min-width: 80px;
+  text-align: right;
+}
+.itemSeleccionado .btnEliminar {
+  background: transparent;
+  border: none;
+  color: var(--c-red);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: 0.15s;
+}
+.itemSeleccionado .btnEliminar:hover {
+  background: var(--c-badge-out);
+  color: var(--c-red2);
+}
+
+
+
+
+/* ===== REPARTO MODAL ===== */
+.repartoModal {
+  max-width: 1100px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.repartoForm {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.repartoCampos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.fieldGroup label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.fieldGroup input,
+.fieldGroup textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.destinoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.destinoChip {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.destinoChipActive {
+  background: #2a7de1;
+  color: #fff;
+  border-color: #2a7de1;
+}
+
+.errorMsg {
+  background: #ffebee;
+  color: #b71c1c;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+}
+
+.repartoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.repartoDisponibles,
+.repartoSeleccionados {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9f9f9;
+  padding: 0.8rem;
+  overflow: hidden;
+}
+
+.listaDisponibles,
+.listaSeleccionados {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  max-height: 300px;
+}
+.listaDisponibles ul,
+.listaSeleccionados ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.listaDisponibles li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.listaDisponibles li:hover {
+  background: #eef6ff;
+}
+.productoInfo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.productoNombre {
+  font-weight: 500;
+}
+.productoPresentacion {
+  color: #666;
+  font-size: 0.8rem;
+}
+.productoStock {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stockIndicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.productoPrecio {
+  font-weight: 600;
+  color: #0d7c3f;
+  font-size: 0.9rem;
+}
+
+.btnAgregar {
+  background: #2a7de1;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.btnAgregar:hover {
+  background: #1a5fb0;
+}
+
+.resumenSeleccion {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #ddd;
+  margin-bottom: 0.5rem;
+}
+.valorTotal {
+  font-weight: 700;
+  color: #0d7c3f;
+}
+
+.listaSeleccionados li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+.nombreProducto {
+  flex: 1;
+}
+.controlesCantidad {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.controlesCantidad input {
+  width: 45px;
+  text-align: center;
+  padding: 0.2rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.controlesCantidad button {
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.controlesCantidad button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.stockInfo {
+  font-size: 0.8rem;
+  color: #555;
+  min-width: 50px;
+  text-align: center;
+}
+.subtotal {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+}
+.btnEliminar {
+  background: transparent;
+  border: none;
+  color: #b33;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.btnEliminar:hover {
+  color: #d00;
+}
+
+.repartoActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 2px solid #ddd;
+}
+
+.emptyText {
+  color: #999;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.searchIconInner {
+  position: absolute;
+  left: 10px;
+  color: #888;
+}
+.searchInput {
+  width: 100%;
+  padding: 0.6rem 0.8rem 0.6rem 2.4rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.searchClear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .repartoGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .repartoCampos {
+    grid-template-columns: 1fr;
+  }
+  .listaDisponibles,
+  .listaSeleccionados {
+    max-height: 180px;
+  }
+  .repartoModal {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+}

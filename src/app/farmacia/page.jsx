@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -11,7 +12,6 @@ import MovimientosTab from "./components/MovimientosTab";
 import ExportarTab from "./components/ExportarTab";
 import AgregarModal from "./components/modals/AgregarModal";
 import CargaMasivaModal from "./components/modals/CargaMasivaModal";
-import RepartoModal from "./components/modals/RepartoModal";
 import ImportarExcelModal from "./components/modals/ImportarExcelModal";
 import MensajeModal from "./components/modals/MensajeModal";
 import ListasPreciosTab from "./components/ListasPreciosTab";
@@ -113,17 +113,11 @@ export default function FarmaciaDashboard() {
   } = hook;
 
   const handleCloseModal = () => setModal(null);
-  const handleSubmitReparto = async (productos, datos) => {
-    const ok = await procesarReparto(productos, datos);
-    return ok;
-  };
 
-  // ✅ LOGOUT FUNCIONAL: redirige a la raíz
   const handleLogout = () => {
     setLoadingLogout(true);
-    // Simular un pequeño retraso para mostrar el estado de carga
     setTimeout(() => {
-      window.location.href = '/'; // 👈 Cambia esta ruta según tu estructura
+      window.location.href = '/';
     }, 300);
   };
 
@@ -151,7 +145,7 @@ export default function FarmaciaDashboard() {
         estadisticas={estadisticas}
         onAgregar={() => setModal("agregar")}
         onCargaMasiva={() => setModal("masiva")}
-        onReparto={() => setModal("reparto")}
+        repartoHref="/farmacia/reparto"
         onExportar={() => setActiveTab("exportar")}
         theme={theme}
         toggleTheme={toggleTheme}
@@ -231,14 +225,6 @@ export default function FarmaciaDashboard() {
           onClose={handleCloseModal}
           onSubmit={procesarCargaMasiva}
           cargarCatalogo={cargarCatalogo}
-        />
-      )}
-
-      {modal === "reparto" && (
-        <RepartoModal
-          onClose={handleCloseModal}
-          onSubmit={handleSubmitReparto}
-          items={items}
         />
       )}
 
