@@ -46,31 +46,31 @@ export default function useFarmacia(usuarioActual = null) {
 	}, []);
 
 	// ─── items: array plano normalizado ───────────────────────────────────
-	const items = useMemo(() => {
-		const map = (obj, tipo) =>
-			Object.entries(obj).map(([key, v]) => {
-				const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
-				return {
-					...v,
-					id: key,
-					nombre: v.nombre || 'Sin nombre', // 🔥 NUNCA undefined
-					tipo: v.tipo || tipo,
-					tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
-					precioCosto: pcosto,
-					precioFacturacion: Number(v.precioFacturacion) || 0,
-					precioOtros: Number(v.precioOtros) || 0,
-					precio: pcosto,
-					precioReferencia: pcosto,
-					stockActual: Number(v.stockActual) || 0,
-					stockMinimo: Number(v.stockMinimo) || 0,
-					activo: v.activo !== false,
-				};
-			});
-		return [
-			...map(medicamentos, "medicamento"),
-			...map(descartables, "descartable"),
-		].sort((a, b) => a.nombre.localeCompare(b.nombre));
-	}, [medicamentos, descartables]);
+const items = useMemo(() => {
+  const map = (obj, tipo) =>
+    Object.entries(obj).map(([key, v]) => {
+      const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+      return {
+        ...v,
+        id: `${key}_${tipo}`, // 🔥 ID único combinando key + tipo
+        nombre: v.nombre || 'Sin nombre',
+        tipo: v.tipo || tipo,
+        tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
+        precioCosto: pcosto,
+        precioFacturacion: Number(v.precioFacturacion) || 0,
+        precioOtros: Number(v.precioOtros) || 0,
+        precio: pcosto,
+        precioReferencia: pcosto,
+        stockActual: Number(v.stockActual) || 0,
+        stockMinimo: Number(v.stockMinimo) || 0,
+        activo: v.activo !== false,
+      };
+    });
+  return [
+    ...map(medicamentos, "medicamento"),
+    ...map(descartables, "descartable"),
+  ].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}, [medicamentos, descartables]);
 
 	// ─── movimientos: ingresos + repartos unificados ──────────────────────
 	const movimientos = useMemo(() => {
@@ -140,32 +140,32 @@ export default function useFarmacia(usuarioActual = null) {
 	);
 
 	// ─── Catálogo para Carga Masiva ───────────────────────────────────────
-	const cargarCatalogo = useCallback(async () => {
-		const snap = await get(ref(db, "medydescartables"));
-		const data = snap.val() || {};
-		const map = (obj = {}, tipo) =>
-			Object.entries(obj)
-				.map(([key, v]) => {
-					const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
-					return {
-						...v,
-						id: key,
-						nombre: v.nombre || 'Sin nombre', // 🔥 NUNCA undefined
-						tipo: v.tipo || tipo,
-						tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
-						precioCosto: pcosto,
-						precioFacturacion: Number(v.precioFacturacion) || 0,
-						precioOtros: Number(v.precioOtros) || 0,
-						precio: pcosto,
-						stockActual: Number(v.stockActual) || 0,
-					};
-				})
-				.filter((i) => i.activo !== false);
-		return [
-			...map(data.medicamentos, "medicamento"),
-			...map(data.descartables, "descartable"),
-		].sort((a, b) => a.nombre.localeCompare(b.nombre));
-	}, []);
+const cargarCatalogo = useCallback(async () => {
+  const snap = await get(ref(db, "medydescartables"));
+  const data = snap.val() || {};
+  const map = (obj = {}, tipo) =>
+    Object.entries(obj)
+      .map(([key, v]) => {
+        const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+        return {
+          ...v,
+          id: `${key}_${tipo}`, // 🔥 ID único
+          nombre: v.nombre || 'Sin nombre',
+          tipo: v.tipo || tipo,
+          tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
+          precioCosto: pcosto,
+          precioFacturacion: Number(v.precioFacturacion) || 0,
+          precioOtros: Number(v.precioOtros) || 0,
+          precio: pcosto,
+          stockActual: Number(v.stockActual) || 0,
+        };
+      })
+      .filter((i) => i.activo !== false);
+  return [
+    ...map(data.medicamentos, "medicamento"),
+    ...map(data.descartables, "descartable"),
+  ].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}, []);
 	// ─── Agregar producto ─────────────────────────────────────────────────
 	const agregarProducto = useCallback(
 		async (form) => {
@@ -408,16 +408,23 @@ export default function useFarmacia(usuarioActual = null) {
 					mostrarMensaje(
 						"warning",
 						"Sin datos válidos",
-						"No hay filas válidas para importar.",
+						"No hay filas válidas para importar."
 					);
 					return false;
 				}
 
+				// 🔥 1. Eliminar TODO el catálogo actual
+				await remove(ref(db, "medydescartables"));
+
+				// 2. Guardar los nuevos productos
 				const updates = {};
+				const medicamentos = {};
+				const descartables = {};
+
 				validos.forEach((p) => {
 					const key = buildItemKey(p.nombre);
-					const grupo = grupoDe(p.tipo);
-					updates[`medydescartables/${grupo}/${key}`] = {
+					const grupo = p.tipo === "descartable" ? "descartables" : "medicamentos";
+					const data = {
 						activo: true,
 						nombre: key,
 						tipo: p.tipo,
@@ -428,12 +435,22 @@ export default function useFarmacia(usuarioActual = null) {
 						stockActual: parseInt(p.stockInicial) || 0,
 						stockMinimo: parseInt(p.stockMinimo) || 10,
 					};
+					if (grupo === "medicamentos") {
+						medicamentos[key] = data;
+					} else {
+						descartables[key] = data;
+					}
 				});
+
+				updates["medydescartables/medicamentos"] = medicamentos;
+				updates["medydescartables/descartables"] = descartables;
+
 				await update(ref(db), updates);
+
 				mostrarMensaje(
 					"success",
 					"Importación completa",
-					`${validos.length} productos importados.`,
+					`${validos.length} productos importados. Catálogo anterior reemplazado.`
 				);
 				return true;
 			} catch (e) {
@@ -441,14 +458,13 @@ export default function useFarmacia(usuarioActual = null) {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo importar el archivo.",
+					"No se pudo importar el archivo."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
-
 	// ─── Exportar inventario / movimientos (CSV, Excel-compatible) ────────
 	const exportarDatos = useCallback(
 		(opciones, movs = movimientos) => {

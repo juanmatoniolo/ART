@@ -1084,7 +1084,7 @@ const generarARCA = useCallback(() => {
 
   setArcaScript(script);
   setShowArcaModal(true);
-}, [item]);s
+}, [item]);
 
   const handleCopyArca = useCallback(() => {
     navigator.clipboard.writeText(arcaScript)
