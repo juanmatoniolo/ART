@@ -7,7 +7,6 @@ import Icon from "../components/Icon";
 import { normalizeText, formatCurrency } from "../utils/farmacia";
 import s from "./repartoPage.module.css";
 import useFarmacia from "../hooks/useFarmacia";
-import StatsHeader from "../components/StatsHeader";
 
 const DESTINOS = [
   "Guardia", "Primer Piso", "Segundo Piso", "Quirófano", "UTI",
@@ -33,14 +32,23 @@ export default function RepartoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 🔥 Normalización de items: evitar duplicados por id
   const itemsNormalizados = useMemo(() => {
-    return (items || []).map(item => ({
-      ...item,
-      stock: item.stockActual ?? item.stock ?? 0,
-      precio: item.precioUnitario ?? item.precioCosto ?? item.precioReferencia ?? 0,
-      nombreLimpio: (item.nombre || "").replace(/_/g, " "),
-      tipo: item.tipo || "medicamento",
-    }));
+    const map = new Map();
+    (items || []).forEach(item => {
+      // Usar el id como clave única
+      const key = item.id || item.nombre;
+      if (!map.has(key)) {
+        map.set(key, {
+          ...item,
+          stock: item.stockActual ?? item.stock ?? 0,
+          precio: item.precioUnitario ?? item.precioCosto ?? item.precioReferencia ?? 0,
+          nombreLimpio: (item.nombre || "").replace(/_/g, " "),
+          tipo: item.tipo || "medicamento",
+        });
+      }
+    });
+    return Array.from(map.values());
   }, [items]);
 
   const disponibles = useMemo(() => {
@@ -110,11 +118,17 @@ export default function RepartoPage() {
     setError("");
     setLoading(true);
 
+    // 🔥 Enviar TODOS los datos que el hook necesita
     const productos = seleccionados.map(p => ({
       id: p.id,
       cantidad: p.cantidad,
       stockAnterior: p.stockAnterior,
       stockNuevo: p.stockNuevo,
+      nombre: p.nombre,           // 🔥 Importante: el hook usa p.nombre
+      tipo: p.tipo,               // 🔥 Importante: el hook usa p.tipo
+      precioCosto: p.precioCosto ?? p.precio,  // 🔥 El hook usa precioCosto
+      precio: p.precio,
+      presentacion: p.presentacion,
     }));
 
     const ok = await procesarReparto(productos, { destino, responsable, nota });
@@ -124,7 +138,6 @@ export default function RepartoPage() {
 
   return (
     <div className={s.pageContainer} style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* ═══ HEADER ESTILO DASHBOARD ═══ */}
       <header className={s.dashboardHeader}>
         <div className={s.headerTop}>
           <div className={s.titleGroup}>
@@ -142,10 +155,8 @@ export default function RepartoPage() {
         </div>
       </header>
 
-      {/* ═══ CONTENIDO PRINCIPAL ═══ */}
       <div className={s.panel} style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
         <div className={s.repartoForm} style={{ padding: 0 }}>
-          {/* Campos superiores */}
           <div className={s.repartoCampos}>
             <div className={s.fieldGroup}>
               <label>Destino *</label>
@@ -185,9 +196,7 @@ export default function RepartoPage() {
 
           {error && <div className={s.errorMsg}>{error}</div>}
 
-          {/* Grid dos columnas */}
           <div className={s.repartoGrid}>
-            {/* Columna izquierda: buscador + lista */}
             <div className={s.repartoDisponibles}>
               <div className={s.searchWrap}>
                 <span className={s.searchIconInner}><Icon name="search" size={18} /></span>
@@ -218,6 +227,7 @@ export default function RepartoPage() {
                 ) : (
                   <ul>
                     {disponibles.map(item => (
+                      // 🔥 Usar item.id como key (es único después de la normalización)
                       <li key={item.id} onClick={() => agregarProducto(item)}>
                         <div className={s.productoInfo}>
                           <span className={s.productoNombre}>
@@ -256,7 +266,6 @@ export default function RepartoPage() {
               </div>
             </div>
 
-            {/* Columna derecha: carrito con estilo dashboard */}
             <div className={s.repartoSeleccionados}>
               <div className={s.resumenSeleccion}>
                 <span><Icon name="list" size={16} /> {seleccionados.length} productos</span>

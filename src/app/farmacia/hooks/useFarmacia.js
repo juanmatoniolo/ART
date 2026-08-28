@@ -53,11 +53,9 @@ export default function useFarmacia(usuarioActual = null) {
 				return {
 					...v,
 					id: key,
+					nombre: v.nombre || 'Sin nombre', // 🔥 NUNCA undefined
 					tipo: v.tipo || tipo,
-					tipoLabel:
-						(v.tipo || tipo) === "medicamento"
-							? "Medicamento"
-							: "Descartable",
+					tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
 					precioCosto: pcosto,
 					precioFacturacion: Number(v.precioFacturacion) || 0,
 					precioOtros: Number(v.precioOtros) || 0,
@@ -90,7 +88,7 @@ export default function useFarmacia(usuarioActual = null) {
 					(acc, p) =>
 						acc +
 						(Number(p.cantidad) || 0) *
-							(Number(p.precioUnitario) || 0),
+						(Number(p.precioUnitario) || 0),
 					0,
 				);
 				return {
@@ -152,11 +150,9 @@ export default function useFarmacia(usuarioActual = null) {
 					return {
 						...v,
 						id: key,
+						nombre: v.nombre || 'Sin nombre', // 🔥 NUNCA undefined
 						tipo: v.tipo || tipo,
-						tipoLabel:
-							(v.tipo || tipo) === "medicamento"
-								? "Medicamento"
-								: "Descartable",
+						tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
 						precioCosto: pcosto,
 						precioFacturacion: Number(v.precioFacturacion) || 0,
 						precioOtros: Number(v.precioOtros) || 0,
@@ -170,7 +166,6 @@ export default function useFarmacia(usuarioActual = null) {
 			...map(data.descartables, "descartable"),
 		].sort((a, b) => a.nombre.localeCompare(b.nombre));
 	}, []);
-
 	// ─── Agregar producto ─────────────────────────────────────────────────
 	const agregarProducto = useCallback(
 		async (form) => {
@@ -360,23 +355,21 @@ export default function useFarmacia(usuarioActual = null) {
 				const lineas = [];
 
 				for (const p of productos) {
-					const cantidad =
-						parseInt(p.cantidadReparto ?? p.cantidad) || 0;
+					const cantidad = parseInt(p.cantidadReparto ?? p.cantidad) || 0;
 					if (cantidad <= 0) continue;
 					const stockAnterior = Number(p.stockAnterior) || 0;
 					const stockNuevo = Math.max(0, stockAnterior - cantidad);
 					const grupo = grupoDe(p.tipo);
-					updates[`medydescartables/${grupo}/${p.id}/stockActual`] =
-						stockNuevo;
+					updates[`medydescartables/${grupo}/${p.id}/stockActual`] = stockNuevo;
 					lineas.push({
 						cantidad,
 						itemId: p.id,
-						itemNombre: p.nombre,
+						itemNombre: String(p.nombre || 'Sin nombre').trim(), // 🔥 NUNCA undefined
 						precioUnitario: Number(p.precioCosto ?? p.precio) || 0,
 						presentacion: p.presentacion || "unidad",
 						stockAnterior,
 						stockNuevo,
-						tipo: p.tipo,
+						tipo: p.tipo || 'medicamento', // 🔥 NUNCA undefined
 					});
 				}
 
@@ -399,11 +392,7 @@ export default function useFarmacia(usuarioActual = null) {
 				return true;
 			} catch (e) {
 				console.error(e);
-				mostrarMensaje(
-					"error",
-					"Error",
-					"No se pudo procesar el reparto.",
-				);
+				mostrarMensaje("error", "Error", "No se pudo procesar el reparto.");
 				return false;
 			}
 		},
@@ -523,7 +512,7 @@ export default function useFarmacia(usuarioActual = null) {
 							p.cantidad,
 							p.precioUnitario,
 							(Number(p.cantidad) || 0) *
-								(Number(p.precioUnitario) || 0),
+							(Number(p.precioUnitario) || 0),
 						]);
 					});
 				});
