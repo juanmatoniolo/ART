@@ -24,21 +24,21 @@ export default function useFarmacia(usuarioActual = null) {
 	useEffect(() => {
 		const subs = [
 			onValue(ref(db, "medydescartables/medicamentos"), (s) =>
-				setMedicamentos(s.val() || {}),
+				setMedicamentos(s.val() || {})
 			),
 			onValue(ref(db, "medydescartables/descartables"), (s) =>
-				setDescartables(s.val() || {}),
+				setDescartables(s.val() || {})
 			),
 			onValue(ref(db, "ingresos_farmacia"), (s) =>
-				setIngresos(s.val() || {}),
+				setIngresos(s.val() || {})
 			),
 			onValue(ref(db, "repartos_farmacia"), (s) =>
-				setRepartos(s.val() || {}),
+				setRepartos(s.val() || {})
 			),
 			onValue(ref(db, "listas_precios"), (s) => {
 				const v = s.val() || {};
 				setListasPrecios(
-					Object.entries(v).map(([id, val]) => ({ id, ...val })),
+					Object.entries(v).map(([id, val]) => ({ id, ...val }))
 				);
 			}),
 		];
@@ -46,31 +46,34 @@ export default function useFarmacia(usuarioActual = null) {
 	}, []);
 
 	// ─── items: array plano normalizado ───────────────────────────────────
-const items = useMemo(() => {
-  const map = (obj, tipo) =>
-    Object.entries(obj).map(([key, v]) => {
-      const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
-      return {
-        ...v,
-        id: `${key}_${tipo}`, // 🔥 ID único combinando key + tipo
-        nombre: v.nombre || 'Sin nombre',
-        tipo: v.tipo || tipo,
-        tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
-        precioCosto: pcosto,
-        precioFacturacion: Number(v.precioFacturacion) || 0,
-        precioOtros: Number(v.precioOtros) || 0,
-        precio: pcosto,
-        precioReferencia: pcosto,
-        stockActual: Number(v.stockActual) || 0,
-        stockMinimo: Number(v.stockMinimo) || 0,
-        activo: v.activo !== false,
-      };
-    });
-  return [
-    ...map(medicamentos, "medicamento"),
-    ...map(descartables, "descartable"),
-  ].sort((a, b) => a.nombre.localeCompare(b.nombre));
-}, [medicamentos, descartables]);
+	// ─── items: array plano normalizado ───────────────────────────────────
+	const items = useMemo(() => {
+		const map = (obj, tipo) =>
+			Object.entries(obj).map(([key, v]) => {
+				// 🔥 Asegurar que nombre siempre tenga un valor
+				const nombre = v.nombre || key || 'Sin nombre';
+				const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+				return {
+					...v,
+					id: key,
+					nombre: nombre,
+					tipo: v.tipo || tipo,
+					tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
+					precioCosto: pcosto,
+					precioFacturacion: Number(v.precioFacturacion) || 0,
+					precioOtros: Number(v.precioOtros) || 0,
+					precio: pcosto,
+					precioReferencia: pcosto,
+					stockActual: Number(v.stockActual) || 0,
+					stockMinimo: Number(v.stockMinimo) || 0,
+					activo: v.activo !== false,
+				};
+			});
+		return [
+			...map(medicamentos, "medicamento"),
+			...map(descartables, "descartable"),
+		].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+	}, [medicamentos, descartables]);
 
 	// ─── movimientos: ingresos + repartos unificados ──────────────────────
 	const movimientos = useMemo(() => {
@@ -82,14 +85,14 @@ const items = useMemo(() => {
 				const productos = m.productos || [];
 				const totalUnidades = productos.reduce(
 					(acc, p) => acc + (Number(p.cantidad) || 0),
-					0,
+					0
 				);
 				const valorTotal = productos.reduce(
 					(acc, p) =>
 						acc +
 						(Number(p.cantidad) || 0) *
 						(Number(p.precioUnitario) || 0),
-					0,
+					0
 				);
 				return {
 					...m,
@@ -118,11 +121,11 @@ const items = useMemo(() => {
 			totalItems: activos.length,
 			itemsSinStock: activos.filter((i) => i.stockActual === 0).length,
 			itemsBajoStock: activos.filter(
-				(i) => i.stockActual > 0 && i.stockActual < i.stockMinimo,
+				(i) => i.stockActual > 0 && i.stockActual < i.stockMinimo
 			).length,
 			valorTotalStock: activos.reduce(
 				(acc, i) => acc + i.stockActual * i.precioCosto,
-				0,
+				0
 			),
 		};
 	}, [items]);
@@ -134,38 +137,39 @@ const items = useMemo(() => {
 				.sort(
 					(a, b) =>
 						a.stockActual / (a.stockMinimo || 1) -
-						b.stockActual / (b.stockMinimo || 1),
+						b.stockActual / (b.stockMinimo || 1)
 				),
-		[items],
+		[items]
 	);
 
 	// ─── Catálogo para Carga Masiva ───────────────────────────────────────
-const cargarCatalogo = useCallback(async () => {
-  const snap = await get(ref(db, "medydescartables"));
-  const data = snap.val() || {};
-  const map = (obj = {}, tipo) =>
-    Object.entries(obj)
-      .map(([key, v]) => {
-        const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
-        return {
-          ...v,
-          id: `${key}_${tipo}`, // 🔥 ID único
-          nombre: v.nombre || 'Sin nombre',
-          tipo: v.tipo || tipo,
-          tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
-          precioCosto: pcosto,
-          precioFacturacion: Number(v.precioFacturacion) || 0,
-          precioOtros: Number(v.precioOtros) || 0,
-          precio: pcosto,
-          stockActual: Number(v.stockActual) || 0,
-        };
-      })
-      .filter((i) => i.activo !== false);
-  return [
-    ...map(data.medicamentos, "medicamento"),
-    ...map(data.descartables, "descartable"),
-  ].sort((a, b) => a.nombre.localeCompare(b.nombre));
-}, []);
+	const cargarCatalogo = useCallback(async () => {
+		const snap = await get(ref(db, "medydescartables"));
+		const data = snap.val() || {};
+		const map = (obj = {}, tipo) =>
+			Object.entries(obj)
+				.map(([key, v]) => {
+					const pcosto = Number(v.precioCosto ?? v.precioReferencia) || 0;
+					return {
+						...v,
+						id: key, // clave real
+						nombre: v.nombre || "Sin nombre",
+						tipo: v.tipo || tipo,
+						tipoLabel: (v.tipo || tipo) === "medicamento" ? "Medicamento" : "Descartable",
+						precioCosto: pcosto,
+						precioFacturacion: Number(v.precioFacturacion) || 0,
+						precioOtros: Number(v.precioOtros) || 0,
+						precio: pcosto,
+						stockActual: Number(v.stockActual) || 0,
+					};
+				})
+				.filter((i) => i.activo !== false);
+		return [
+			...map(data.medicamentos, "medicamento"),
+			...map(data.descartables, "descartable"),
+		].sort((a, b) => a.nombre.localeCompare(b.nombre));
+	}, []);
+
 	// ─── Agregar producto ─────────────────────────────────────────────────
 	const agregarProducto = useCallback(
 		async (form) => {
@@ -175,7 +179,7 @@ const cargarCatalogo = useCallback(async () => {
 					mostrarMensaje(
 						"warning",
 						"Falta el nombre",
-						"Ingresá un nombre de producto.",
+						"Ingresá un nombre de producto."
 					);
 					return false;
 				}
@@ -184,7 +188,7 @@ const cargarCatalogo = useCallback(async () => {
 					mostrarMensaje(
 						"warning",
 						"Precio de costo inválido",
-						"El precio de costo debe ser mayor a 0.",
+						"El precio de costo debe ser mayor a 0."
 					);
 					return false;
 				}
@@ -205,7 +209,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"success",
 					"Producto agregado",
-					`${nombre} se cargó correctamente.`,
+					`${nombre} se cargó correctamente.`
 				);
 				return true;
 			} catch (e) {
@@ -213,33 +217,69 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo agregar el producto.",
+					"No se pudo agregar el producto."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
 
-	// ─── Editar producto ──────────────────────────────────────────────────
+	// ─── Editar producto (con corrección de ID y generación de movimiento) ──
 	const editarProducto = useCallback(
-		async (item) => {
+		async (id, nuevosDatos) => {
 			try {
-				const grupo = grupoDe(item.tipo);
-				await update(ref(db, `medydescartables/${grupo}/${item.id}`), {
-					nombre: item.nombre,
-					tipo: item.tipo,
-					presentacion: item.presentacion,
-					precioCosto: parseFloat(item.precioCosto) || 0,
-					precioFacturacion: parseFloat(item.precioFacturacion) || 0,
-					precioOtros: parseFloat(item.precioOtros) || 0,
-					stockActual: parseInt(item.stockActual) || 0,
-					stockMinimo: parseInt(item.stockMinimo) || 0,
-				});
+				// 1. Obtener el producto actual para comparar stock
+				const productoRef = ref(db, `medydescartables/${grupoDe(nuevosDatos.tipo)}/${id}`);
+				const snapshot = await get(productoRef);
+				const productoActual = snapshot.val();
+
+				if (!productoActual) {
+					mostrarMensaje("error", "Error", "Producto no encontrado.");
+					return false;
+				}
+
+				// 2. Preparar datos para actualizar (sin modificar campos no enviados)
+				const datosActualizados = {
+					nombre: nuevosDatos.nombre,
+					tipo: nuevosDatos.tipo,
+					presentacion: nuevosDatos.presentacion,
+					precioCosto: parseFloat(nuevosDatos.precioCosto) || 0,
+					precioFacturacion: parseFloat(nuevosDatos.precioFacturacion) || 0,
+					precioOtros: parseFloat(nuevosDatos.precioOtros) || 0,
+					stockActual: parseInt(nuevosDatos.stockActual) || 0,
+					stockMinimo: parseInt(nuevosDatos.stockMinimo) || 0,
+				};
+
+				// 3. Calcular diferencia de stock
+				const stockAnterior = productoActual.stockActual || 0;
+				const stockNuevo = datosActualizados.stockActual;
+				const diferencia = stockNuevo - stockAnterior;
+
+				// 4. Actualizar el producto
+				await update(productoRef, datosActualizados);
+
+				// 5. Si hubo cambio de stock, registrar movimiento de ajuste
+				if (diferencia !== 0) {
+					const movRef = ref(db, "movimientos");
+					const nuevoMov = {
+						productoId: id,
+						tipo: "ajuste",
+						cantidad: diferencia,
+						stockAnterior,
+						stockNuevo,
+						fecha: new Date().toISOString(),
+						usuario: usuarioActual?.nombre || "Sistema",
+						detalle: `Edición manual de stock (${diferencia > 0 ? "+" : ""}${diferencia})`,
+						productoNombre: productoActual.nombre || id,
+					};
+					await push(movRef, nuevoMov);
+				}
+
 				mostrarMensaje(
 					"success",
 					"Producto actualizado",
-					"Los cambios se guardaron.",
+					`Se guardaron los cambios${diferencia !== 0 ? ` y se registró un movimiento de ajuste` : ""}.`
 				);
 				return true;
 			} catch (e) {
@@ -247,12 +287,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo editar el producto.",
+					"No se pudo editar el producto."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[usuarioActual, mostrarMensaje]
 	);
 
 	// ─── Eliminar producto (baja lógica) ──────────────────────────────────
@@ -266,7 +306,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"success",
 					"Producto eliminado",
-					`${String(item.nombre).replace(/_/g, " ")} se dio de baja.`,
+					`${String(item.nombre).replace(/_/g, " ")} se dio de baja.`
 				);
 				return true;
 			} catch (e) {
@@ -274,12 +314,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo eliminar el producto.",
+					"No se pudo eliminar el producto."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
 
 	// ─── Carga masiva (ingreso de stock) ──────────────────────────────────
@@ -298,7 +338,7 @@ const cargarCatalogo = useCallback(async () => {
 					if (cantidad <= 0) return;
 					const stockAnterior = Number(p.stockAnterior) || 0;
 					const stockNuevo = Number(
-						p.stockNuevo ?? stockAnterior + cantidad,
+						p.stockNuevo ?? stockAnterior + cantidad
 					);
 					const grupo = grupoDe(p.tipo);
 					updates[`medydescartables/${grupo}/${p.id}/stockActual`] =
@@ -327,7 +367,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"success",
 					"Ingreso registrado",
-					`${productos.length} productos cargados.`,
+					`${productos.length} productos cargados.`
 				);
 				return true;
 			} catch (e) {
@@ -335,12 +375,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo procesar la carga masiva.",
+					"No se pudo procesar la carga masiva."
 				);
 				return false;
 			}
 		},
-		[usuarioActual, mostrarMensaje],
+		[usuarioActual, mostrarMensaje]
 	);
 
 	// ─── Reparto (despacho a un sector) ───────────────────────────────────
@@ -364,12 +404,12 @@ const cargarCatalogo = useCallback(async () => {
 					lineas.push({
 						cantidad,
 						itemId: p.id,
-						itemNombre: String(p.nombre || 'Sin nombre').trim(), // 🔥 NUNCA undefined
+						itemNombre: String(p.nombre || "Sin nombre").trim(),
 						precioUnitario: Number(p.precioCosto ?? p.precio) || 0,
 						presentacion: p.presentacion || "unidad",
 						stockAnterior,
 						stockNuevo,
-						tipo: p.tipo || 'medicamento', // 🔥 NUNCA undefined
+						tipo: p.tipo || "medicamento",
 					});
 				}
 
@@ -387,7 +427,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"success",
 					"Reparto registrado",
-					`Despacho a ${datos?.destino} confirmado.`,
+					`Despacho a ${datos?.destino} confirmado.`
 				);
 				return true;
 			} catch (e) {
@@ -396,7 +436,7 @@ const cargarCatalogo = useCallback(async () => {
 				return false;
 			}
 		},
-		[usuarioActual, mostrarMensaje],
+		[usuarioActual, mostrarMensaje]
 	);
 
 	// ─── Importar desde CSV/Excel ─────────────────────────────────────────
@@ -413,7 +453,7 @@ const cargarCatalogo = useCallback(async () => {
 					return false;
 				}
 
-				// 🔥 1. Eliminar TODO el catálogo actual
+				// 1. Eliminar TODO el catálogo actual
 				await remove(ref(db, "medydescartables"));
 
 				// 2. Guardar los nuevos productos
@@ -465,6 +505,7 @@ const cargarCatalogo = useCallback(async () => {
 		},
 		[mostrarMensaje]
 	);
+
 	// ─── Exportar inventario / movimientos (CSV, Excel-compatible) ────────
 	const exportarDatos = useCallback(
 		(opciones, movs = movimientos) => {
@@ -549,10 +590,10 @@ const cargarCatalogo = useCallback(async () => {
 			mostrarMensaje(
 				"success",
 				"Exportado",
-				`Se descargó ${nombreArchivo}.`,
+				`Se descargó ${nombreArchivo}.`
 			);
 		},
-		[items, movimientos, mostrarMensaje],
+		[items, movimientos, mostrarMensaje]
 	);
 
 	// ─── Listas de precios ────────────────────────────────────────────────
@@ -571,12 +612,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo guardar la lista.",
+					"No se pudo guardar la lista."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
 
 	const eliminarListaPrecio = useCallback(
@@ -589,12 +630,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo eliminar la lista.",
+					"No se pudo eliminar la lista."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
 
 	// ─── Exportar listas de precios ───────────────────────────────────────
@@ -607,7 +648,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"warning",
 					"Sin selección",
-					"Elegí al menos una lista.",
+					"Elegí al menos una lista."
 				);
 				return;
 			}
@@ -630,7 +671,7 @@ const cargarCatalogo = useCallback(async () => {
 						i.presentacion,
 						c,
 						...sel.map((l) =>
-							Math.round(c * Number(l.multiplicador || 1)),
+							Math.round(c * Number(l.multiplicador || 1))
 						),
 					];
 				});
@@ -652,23 +693,20 @@ const cargarCatalogo = useCallback(async () => {
 			mostrarMensaje(
 				"success",
 				"Exportado",
-				`${sel.length} lista(s) exportada(s).`,
+				`${sel.length} lista(s) exportada(s).`
 			);
 		},
-		[items, listasPrecios, mostrarMensaje],
+		[items, listasPrecios, mostrarMensaje]
 	);
 
 	// ─── ELIMINAR MOVIMIENTO ──────────────────────────────────────────────
 	const eliminarMovimiento = useCallback(
 		async (id) => {
 			try {
-				let tipo = null;
 				let refPath = null;
 				if (id.startsWith("ingreso_")) {
-					tipo = "ingreso";
 					refPath = `ingresos_farmacia/${id}`;
 				} else if (id.startsWith("reparto_")) {
-					tipo = "reparto";
 					refPath = `repartos_farmacia/${id}`;
 				} else {
 					mostrarMensaje("error", "Error", "ID de movimiento no válido.");
@@ -677,7 +715,8 @@ const cargarCatalogo = useCallback(async () => {
 
 				await remove(ref(db, refPath));
 
-				if (tipo === "ingreso") {
+				// Actualizar estados locales
+				if (id.startsWith("ingreso_")) {
 					setIngresos((prev) => {
 						const newIngresos = { ...prev };
 						delete newIngresos[id];
@@ -694,7 +733,7 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"success",
 					"Movimiento eliminado",
-					"El movimiento fue eliminado correctamente.",
+					"El movimiento fue eliminado correctamente."
 				);
 				return true;
 			} catch (error) {
@@ -702,12 +741,12 @@ const cargarCatalogo = useCallback(async () => {
 				mostrarMensaje(
 					"error",
 					"Error",
-					"No se pudo eliminar el movimiento.",
+					"No se pudo eliminar el movimiento."
 				);
 				return false;
 			}
 		},
-		[mostrarMensaje],
+		[mostrarMensaje]
 	);
 
 	// ─── API del hook ─────────────────────────────────────────────────────

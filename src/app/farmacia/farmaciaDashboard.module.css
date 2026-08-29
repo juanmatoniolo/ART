@@ -2208,3 +2208,20 @@
   text-transform: uppercase;
 }
 
+.btn_reparto {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+}
+.btn_reparto:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+.mainNav {
+  padding: 0; /* quita el padding existente */
+}
+.tabBtn {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}

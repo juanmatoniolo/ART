@@ -91,28 +91,32 @@ export default function StockTab({
         <>
             <div className={s.panel}>
                 {/* HEADER */}
+             
                 <div className={s.panelHeader}>
                     <div>
                         <h3 className={s.panelTitle}>
                             <Icon name="box" size={20} /> Control de Stock
                         </h3>
                         <p className={s.panelSub}>
-                            {filtrados.length} productos ·{" "}
-                            {formatCurrency(estadisticas.valorTotalStock)}
+                            {filtrados.length} productos · {formatCurrency(estadisticas.valorTotalStock)}
                         </p>
                     </div>
                     <div className={s.panelActions}>
                         <button className={`${s.actionBtn} ${s.btn_primary}`} onClick={onAgregar}>
                             <Icon name="plus" size={18} />
-                            <span className={s.actionBtnLabel}>Producto</span>
+                            <span className={s.actionBtnLabel}>Nuevo producto</span>
                         </button>
                         <button className={`${s.actionBtn} ${s.btn_secondary}`} onClick={onCargaMasiva}>
                             <Icon name="download" size={18} />
-                            <span className={s.actionBtnLabel}>Masiva</span>
+                            <span className={s.actionBtnLabel}>Ingreso de mercadería</span>
                         </button>
                         <button className={`${s.actionBtn} ${s.btn_import}`} onClick={onImportar}>
                             <Icon name="file" size={18} />
                             <span className={s.actionBtnLabel}>CSV</span>
+                        </button>
+                        <button className={`${s.actionBtn} ${s.btn_reparto}`} onClick={() => window.location.href = '/farmacia/reparto'}>
+                            <Icon name="truck" size={18} /> {/* O usa 🚚 si no tienes Icon */}
+                            <span className={s.actionBtnLabel}>Repartir mercadería</span>
                         </button>
                     </div>
                 </div>
@@ -327,13 +331,13 @@ export default function StockTab({
             </div>
 
             {/* MODALES */}
-            {editItem && (
-                <EditarProductoModal
-                    item={editItem}
-                    onClose={() => setEditItem(null)}
-                    onSubmit={editarProducto}
-                />
-            )}
+      {editItem && (
+  <EditarProductoModal
+    item={editItem}
+    onClose={() => setEditItem(null)}
+    onSubmit={(data) => editarProducto(editItem.id, data)} // 👈 clave
+  />
+)}
             {deleteItem && (
                 <EliminarModal
                     item={deleteItem}
