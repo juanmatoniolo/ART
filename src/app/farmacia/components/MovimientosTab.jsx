@@ -375,16 +375,14 @@ export default function MovimientosTab({
               <span class="label">Fecha</span>
               <span class="value">${fecha}</span>
             </div>
-            ${
-              mov.tipo === "reparto"
-                ? `<div class="info-item"><span class="label">Destino</span><span class="value">${destino}</span></div>`
-                : ""
-            }
-            ${
-              mov.tipo === "reparto"
-                ? `<div class="info-item"><span class="label">Responsable de recepción</span><span class="value">${responsable}</span></div>`
-                : ""
-            }
+            ${mov.tipo === "reparto"
+        ? `<div class="info-item"><span class="label">Destino</span><span class="value">${destino}</span></div>`
+        : ""
+      }
+            ${mov.tipo === "reparto"
+        ? `<div class="info-item"><span class="label">Responsable de recepción</span><span class="value">${responsable}</span></div>`
+        : ""
+      }
             <div class="info-item">
               <span class="label">Usuario que registró</span>
               <span class="value">${usuario}</span>
@@ -409,11 +407,10 @@ export default function MovimientosTab({
               <span class="label">Total unidades</span>
               <div class="value">${totalUnidades}</div>
             </div>
-            ${
-              mov.tipo !== "ajuste"
-                ? `<div class="total-item"><span class="label">Valor total</span><div class="value">${formatCurrency(valorTotal)}</div></div>`
-                : ""
-            }
+            ${mov.tipo !== "ajuste"
+        ? `<div class="total-item"><span class="label">Valor total</span><div class="value">${formatCurrency(valorTotal)}</div></div>`
+        : ""
+      }
           </div>
           <div class="firmas">
             <div class="firma">
@@ -568,15 +565,13 @@ function MovCard({
 
   return (
     <div
-      className={`${s.movCard} ${
-        isIn ? s.movCardIn : isOut ? s.movCardOut : s.movCardAdjust
-      }`}
+      className={`${s.movCard} ${isIn ? s.movCardIn : isOut ? s.movCardOut : s.movCardAdjust
+        }`}
     >
       <div className={s.movCardHead}>
         <span
-          className={`${s.movBadge} ${
-            isIn ? s.movBadgeIn : isOut ? s.movBadgeOut : s.movBadgeAdjust
-          }`}
+          className={`${s.movBadge} ${isIn ? s.movBadgeIn : isOut ? s.movBadgeOut : s.movBadgeAdjust
+            }`}
         >
           <Icon
             name={isIn ? "download" : isOut ? "truck" : "wrench"}
@@ -599,15 +594,14 @@ function MovCard({
           </span>
         )}
 
-        {mov.usuario && (
-          <span
-            className={s.movChip}
-            style={{ background: "#e3f2fd", color: "#0d47a1", fontWeight: 600 }}
-          >
-            <Icon name="user" size={14} />
-            {mov.usuario}
-          </span>
-        )}
+        {/* 👇 CAMBIO AQUÍ: siempre mostrar el usuario, sin condicional */}
+        <span
+          className={s.movChip}
+          style={{ background: "#e3f2fd", color: "#0d47a1", fontWeight: 600 }}
+        >
+          <Icon name="user" size={14} />
+          {mov.usuario || "Usuario no disponible"}
+        </span>
 
         <span className={s.movCardDate}>
           <Icon name="calendar" size={14} style={{ marginRight: 4 }} />
@@ -633,13 +627,13 @@ function MovCard({
               <Icon name="trash" size={16} />
             </button>
           )}
-      <button
-  className={s.movPrintBtn}
-  onClick={onImprimir}
-  title="Imprimir comprobante"
->
-  <span style={{ fontSize: "16px", color: "#000" }}>🖨️</span>
-</button>
+          <button
+            className={s.movPrintBtn}
+            onClick={onImprimir}
+            title="Imprimir comprobante"
+          >
+            <span style={{ fontSize: "16px", color: "#000" }}>🖨️</span>
+          </button>
         </div>
       </div>
 

@@ -3,6 +3,8 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import MensajeModal from '../components/modals/MensajeModal';
 
+export const dynamic = 'force-dynamic'; // 👈 evita el prerenderizado
+
 export default function MensajePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
