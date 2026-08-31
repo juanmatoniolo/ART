@@ -1,0 +1,276 @@
+/* ═══════════════════════════════════════════════
+   FARMACIA DASHBOARD — Variables y utilidades globales
+   ═══════════════════════════════════════════════ */
+
+/* ── Variables por defecto (claro) ── */
+.light {
+    --c-bg: #dce3ec;
+    --c-surface: #f0f4f8;
+    --c-border: #b8c5d6;
+    --c-text: #0f172a;
+    --c-muted: #2d3a4f;
+    --c-primary: #1d4ed8;
+    --c-primary2: #1e3a8a;
+    --c-green: #059669;
+    --c-green2: #047857;
+    --c-red: #dc2626;
+    --c-red2: #991b1b;
+    --c-amber: #d97706;
+    --c-blue: #2563eb;
+    --c-hover-bg: #dbeafe;
+    --c-hover-surface: #e2e8f0;
+    --c-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 1px 2px rgba(15, 23, 42, .08);
+    --c-shadow-md: 0 4px 6px rgba(15, 23, 42, .10), 0 2px 4px rgba(15, 23, 42, .08);
+    --c-shadow-lg: 0 10px 15px rgba(15, 23, 42, .15), 0 4px 6px rgba(15, 23, 42, .08);
+    --c-overlay: rgba(15, 23, 42, .7);
+    --c-badge-in: #bfdbfe;
+    --c-badge-out: #fecaca;
+    --c-badge-in-text: #1e3a8a;
+    --c-badge-out-text: #991b1b;
+    --c-alert-bg: #fefce8;
+    --c-alert-border: #f59e0b;
+    --c-export-info: #dbeafe;
+    --c-export-info-border: #3b82f6;
+}
+
+/* ── Variables para modo oscuro ── */
+.dark {
+    --c-bg: #0f172a;
+    --c-surface: #1e293b;
+    --c-border: #334155;
+    --c-text: #f1f5f9;
+    --c-muted: #94a3b8;
+    --c-primary: #3b82f6;
+    --c-primary2: #2563eb;
+    --c-green: #10b981;
+    --c-green2: #059669;
+    --c-red: #ef4444;
+    --c-red2: #dc2626;
+    --c-amber: #f59e0b;
+    --c-blue: #60a5fa;
+    --c-hover-bg: #1e293b;
+    --c-hover-surface: #334155;
+    --c-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .2);
+    --c-shadow-md: 0 4px 6px rgba(0, 0, 0, .4), 0 2px 4px rgba(0, 0, 0, .3);
+    --c-shadow-lg: 0 10px 15px rgba(0, 0, 0, .5), 0 4px 6px rgba(0, 0, 0, .3);
+    --c-overlay: rgba(0, 0, 0, .8);
+    --c-badge-in: #1e3a8a;
+    --c-badge-out: #7f1d1d;
+    --c-badge-in-text: #bfdbfe;
+    --c-badge-out-text: #fecaca;
+    --c-alert-bg: #422006;
+    --c-alert-border: #f59e0b;
+    --c-export-info: #1e293b;
+    --c-export-info-border: #3b82f6;
+}
+
+/* ── Base ───────────────────────────────────── */
+.dashboardContainer {
+    min-height: 100vh;
+    background: var(--c-bg);
+    color: var(--c-text);
+    transition: background .3s, color .3s;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow-x: hidden;
+    padding-bottom: 70px; /* espacio para nav inferior en móvil */
+}
+
+/* ── Utilidades comunes ─────────────────────── */
+.panel {
+    background: var(--c-surface);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: var(--c-shadow);
+    border: 1px solid var(--c-border);
+    transition: background .3s, border .3s;
+}
+
+.panelHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.panelTitle {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.panelSub { margin: .25rem 0 0; font-size: .8rem; color: var(--c-muted); }
+.panelActions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+/* ── Botones genéricos ──────────────────────── */
+.actionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .65rem 1.1rem;
+    border: none;
+    border-radius: 12px;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+}
+.actionBtn:hover { transform: translateY(-2px); box-shadow: var(--c-shadow-md); }
+.actionBtn:active { transform: translateY(0); }
+.actionBtn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn_primary   { background: linear-gradient(135deg, var(--c-primary), var(--c-primary2)); color: #fff; }
+.btn_secondary { background: linear-gradient(135deg, var(--c-green), var(--c-green2)); color: #fff; }
+.btn_danger    { background: linear-gradient(135deg, var(--c-red), var(--c-red2)); color: #fff; }
+.btn_success   { background: linear-gradient(135deg, var(--c-green), var(--c-green2)); color: #fff; }
+.btn_import    { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+.btn_reparto   { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; }
+.btnCancel     { background: var(--c-surface); border: 1.5px solid var(--c-border); color: var(--c-text); }
+.btnCancel:hover { background: var(--c-hover-surface); }
+
+/* ── Elementos de búsqueda y filtros ────────── */
+.searchWrap { flex: 1 1 100%; min-width: 220px; position: relative; }
+.searchIconInner {
+    position: absolute;
+    left: .875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--c-muted);
+}
+.searchInput {
+    width: 100%;
+    padding: .75rem .875rem .75rem 2.5rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 12px;
+    font-size: .9rem;
+    transition: all .2s;
+    background: var(--c-surface);
+    color: var(--c-text);
+    box-sizing: border-box;
+}
+.searchInput:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .2);
+}
+.filterSelect {
+    padding: .75rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 12px;
+    font-size: .9rem;
+    background: var(--c-surface);
+    color: var(--c-text);
+    cursor: pointer;
+    transition: all .2s;
+    min-width: 0;
+}
+.filterSelect:focus {
+    outline: none;
+    border-color: var(--c-primary);
+}
+
+/* ── Formularios ─────────────────────────────── */
+.formField { display: flex; flex-direction: column; gap: .4rem; }
+.formLabel { font-size: .85rem; font-weight: 600; color: var(--c-text); }
+.formInput, .formSelect, .formTextarea {
+    padding: .7rem .875rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 12px;
+    font-size: .9rem;
+    width: 100%;
+    transition: all .2s;
+    background: var(--c-surface);
+    color: var(--c-text);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.formInput:focus, .formSelect:focus, .formTextarea:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .2);
+}
+.formTextarea { resize: vertical; min-height: 80px; }
+
+/* ── Estado vacío ────────────────────────────── */
+.emptyState {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--c-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .75rem;
+}
+.emptyState span { font-size: 2.5rem; opacity: .5; }
+.emptyState p { margin: 0; font-size: .95rem; }
+
+/* ── Botones de icono ────────────────────────── */
+.iconBtn {
+    border: none;
+    background: var(--c-bg);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+}
+.iconBtn:hover { background: var(--c-hover-bg); }
+.iconBtnDanger:hover { background: var(--c-badge-out); }
+
+/* ── Modales genéricos ───────────────────────── */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+.modalContent {
+    background: var(--c-surface);
+    padding: 2rem;
+    border-radius: 12px;
+    min-width: 400px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: var(--c-text);
+}
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .8rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+/* ── Ajustes responsivos globales ────────────── */
+@media (max-width: 640px) {
+    .actionBtn, .logoutBtn, .iconBtn, .precioChip, .destinoChip {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .searchInput, .filterSelect, .formInput, .formSelect, .formTextarea {
+        font-size: 16px; /* evita zoom automático en iOS */
+    }
+    .panel {
+        padding: 1rem;
+        border-radius: 16px;
+    }
+    .modalContent {
+        min-width: auto;
+        width: 100%;
+        padding: 1.5rem;
+    }
+}

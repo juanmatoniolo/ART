@@ -1,0 +1,74 @@
+/* MedicacionyDescartables.module.css */
+.tableWrap {
+    border-radius: 12px;
+    border: 1px solid var(--c-border);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.stockTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px; /* scroll horizontal en móvil */
+}
+
+.stockTable th {
+    background: var(--c-hover-surface);
+    padding: .875rem 1rem;
+    text-align: left;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 2px solid var(--c-border);
+}
+
+.stockTable td {
+    padding: .875rem 1rem;
+    border-bottom: 1px solid var(--c-border);
+    font-size: .875rem;
+}
+
+.stockRow:hover { background: var(--c-hover-surface); }
+
+.productCell {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.productCellName {
+    margin: 0;
+    font-weight: 600;
+    font-size: .875rem;
+}
+
+.badgeMed {
+    display: inline-block;
+    padding: .25rem .6rem;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    background: var(--c-badge-in);
+    color: var(--c-badge-in-text);
+}
+
+.badgeDesc {
+    display: inline-block;
+    padding: .25rem .6rem;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    background: #e9d5ff;
+    color: #5b21b6;
+}
+
+.valueCell { font-weight: 600; color: var(--c-green); }
+
+/* Responsive */
+@media (max-width: 640px) {
+    .stockTable {
+        min-width: 500px;
+    }
+}

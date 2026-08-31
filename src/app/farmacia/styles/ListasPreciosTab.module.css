@@ -1,0 +1,176 @@
+/* ListasPreciosTab.module.css */
+.precioChips {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+.precioChip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .6rem 1rem;
+    border: 1.5px solid var(--c-border);
+    border-radius: 20px;
+    background: var(--c-surface);
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--c-muted);
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+}
+
+.precioChip:hover { border-color: var(--c-primary); }
+.precioChipActive {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+    color: #fff;
+}
+
+.precioChipMult { opacity: .8; font-weight: 500; }
+
+/* Tabla optimizada */
+.precioTableWrapper {
+    border-radius: 12px;
+    border: 1px solid var(--c-border);
+    overflow: auto;
+    max-height: 600px;
+    box-shadow: var(--c-shadow);
+    background: var(--c-surface);
+    -webkit-overflow-scrolling: touch;
+}
+
+.precioTableOptimizada {
+    width: 100%;
+    min-width: 900px; /* scroll horizontal en móvil */
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.precioTableOptimizada thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--c-hover-surface);
+    padding: 0.9rem 0.75rem;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-muted);
+    border-bottom: 2px solid var(--c-border);
+    white-space: nowrap;
+}
+
+.thLeft,
+.tdLeft { text-align: left; }
+.thRight,
+.tdRight { text-align: right; }
+.thAcciones,
+.tdAcciones { text-align: center; width: 70px; }
+
+.precioTableOptimizada tbody td {
+    padding: 0.8rem 0.75rem;
+    border-bottom: 1px solid var(--c-border);
+    vertical-align: middle;
+}
+
+.filaZebra { background: var(--c-bg); }
+.precioTableOptimizada tbody tr:hover { background: var(--c-hover-bg); }
+
+.badgeMed,
+.badgeDesc {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.badgeMed {
+    background: var(--c-badge-in);
+    color: var(--c-badge-in-text);
+}
+.badgeDesc {
+    background: #e9d5ff;
+    color: #5b21b6;
+}
+
+.thListaNombre { display: block; font-weight: 700; }
+.thListaMult { display: block; font-size: 0.7rem; opacity: 0.7; font-weight: 500; }
+
+.tdPrecio { min-width: 110px; }
+.tdPrecioLista { min-width: 100px; font-weight: 700; color: var(--c-primary); }
+
+.inputPrecioOptimizado {
+    width: 100%;
+    max-width: 120px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 2px solid var(--c-primary);
+    background: var(--c-surface);
+    color: var(--c-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: right;
+    outline: none;
+    transition: box-shadow 0.2s;
+    box-sizing: border-box;
+}
+.inputPrecioOptimizado:focus { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
+
+.precioClickableOptimizado {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--c-text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    width: 100%;
+    text-align: right;
+}
+.precioClickableOptimizado:hover { background: var(--c-hover-surface); }
+
+.accionesInline {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btnEditarOptimizado,
+.btnGuardarOptimizado,
+.btnCancelarOptimizado {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.btnEditarOptimizado {
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+}
+.btnEditarOptimizado:hover { background: var(--c-hover-bg); border-color: var(--c-primary); }
+.btnGuardarOptimizado { background: var(--c-green); color: #fff; }
+.btnGuardarOptimizado:hover { background: var(--c-green2); }
+.btnCancelarOptimizado { background: var(--c-red); color: #fff; }
+.btnCancelarOptimizado:hover { background: var(--c-red2); }
+
+/* Responsive: ya se maneja con overflow-x */

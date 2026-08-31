@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
-import s from '../farmaciaDashboard.module.css';
+import s from '../styles/StatsHeader.module.css';
 
 export default function StatsHeader({
   theme,
@@ -18,7 +18,6 @@ export default function StatsHeader({
     router.push('/login');
   };
 
-  const inicial = usuario?.nombre ? usuario.nombre.charAt(0).toUpperCase() : '?';
   const nombreUsuario = usuario?.nombre || 'Usuario';
   const rolUsuario = usuario?.TipoEmpleado || 'Sin rol';
 
@@ -28,14 +27,20 @@ export default function StatsHeader({
         <div className={s.titleGroup}>
           <div>
             <h1 className={s.dashboardTitle}>Dashboard Farmacia</h1>
-            <div className={s.userInfo}>
-          
-              <span className={s.userName}>{nombreUsuario}</span>
-            
-            </div>
+          </div>
+          <div className={s.userInfo}>
+            <span className={s.userName}>{nombreUsuario}</span>
+
           </div>
         </div>
-
+        <button
+          onClick={handleLogout}
+          className={s.logoutBtn}
+          disabled={loadingLogout}
+          title="Salir"
+        >
+          {loadingLogout ? '⏳' : '🚪'} Salir
+        </button>
         <div className={s.headerActions}>
           <button
             onClick={toggleTheme}
@@ -58,14 +63,7 @@ export default function StatsHeader({
             🚚 Reparto
           </Link>
 
-          <button
-            onClick={handleLogout}
-            className={s.logoutBtn}
-            disabled={loadingLogout}
-            title="Salir"
-          >
-            {loadingLogout ? '⏳' : '🚪'} Salir
-          </button>
+
         </div>
       </div>
     </header>

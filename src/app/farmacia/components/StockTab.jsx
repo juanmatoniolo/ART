@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import s from "../farmaciaDashboard.module.css";
+import s from "../styles/StockTab.module.css";
 import Icon from "./Icon";
 import {
     formatCurrency,

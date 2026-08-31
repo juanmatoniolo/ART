@@ -1,0 +1,502 @@
+/* StockTab.module.css */
+
+/* ===== Panel contenedor ===== */
+.panel {
+  background: var(--c-surface);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--c-shadow);
+  border: 1px solid var(--c-border);
+  transition: background 0.3s, border 0.3s;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.panelSub {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+
+.panelActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ===== Botones de acción ===== */
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.1rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+
+.actionBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--c-shadow-md);
+}
+
+.actionBtn:active {
+  transform: scale(0.97);
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn_primary {
+  background: linear-gradient(135deg, var(--c-primary), var(--c-primary2));
+  color: #fff;
+}
+
+.btn_secondary {
+  background: linear-gradient(135deg, var(--c-green), var(--c-green2));
+  color: #fff;
+}
+
+.btn_import {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+}
+
+.btn_reparto {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+}
+
+.btnCancel {
+  background: var(--c-surface);
+  border: 2px solid var(--c-border);
+  color: var(--c-text);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+
+.btnCancel:hover {
+  background: var(--c-hover-surface);
+}
+
+.actionBtnLabel {
+  display: inline;
+}
+
+/* ===== Filtros ===== */
+.filtersRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  align-items: flex-end;
+}
+
+.searchWrap {
+  flex: 1 1 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.searchIconInner {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--c-muted);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  border: 2px solid var(--c-border);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: var(--c-surface);
+  color: var(--c-text);
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: var(--c-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.filterSelect {
+  flex: 1 1 calc(50% - 0.5rem);
+  min-width: 0;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.85rem;
+  border: 2px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.6-3.6%205.4-7.9%205.4-12.9%200-5-1.8-9.3-5.4-12.7z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem top 50%;
+  background-size: 0.65rem auto;
+  padding-right: 1.5rem;
+}
+
+.filterSelect:focus {
+  border-color: var(--c-primary);
+  outline: none;
+}
+
+/* ===== Tarjetas móviles ===== */
+.stockCards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.stockCard {
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-border);
+  border-radius: 16px;
+  padding: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stockCard:hover {
+  box-shadow: var(--c-shadow-md);
+  transform: translateY(-2px);
+}
+
+.stockCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.stockCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.stockCardIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg);
+  border-radius: 10px;
+}
+
+.stockCardName {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stockCardMeta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--c-muted);
+}
+
+.stockCardActions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  border: none;
+  background: var(--c-bg);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  background: var(--c-hover-bg);
+}
+
+.iconBtnDanger:hover {
+  background: var(--c-badge-out);
+}
+
+.stockCardPrecios {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  flex-wrap: wrap;
+  background: var(--c-bg);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.precioCosto {
+  color: var(--c-green);
+  font-weight: 600;
+}
+
+.precioFact {
+  color: var(--c-primary);
+  font-weight: 600;
+}
+
+.precioOtros {
+  color: var(--c-amber);
+  font-weight: 600;
+}
+
+.stockCardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stockCardBar {
+  height: 6px;
+  background: var(--c-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stockCardBarFill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.stockCardNums {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.stockCardMin {
+  color: var(--c-muted);
+}
+
+.stockCardValor {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-green);
+  text-align: right;
+}
+
+.statusChip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ===== Tabla desktop ===== */
+.tableWrap {
+  display: none;
+  border-radius: 12px;
+  border: 1px solid var(--c-border);
+  overflow: auto;
+  min-height: 200px;
+}
+
+.stockTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.stockTable th {
+  background: var(--c-hover-surface);
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--c-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.stockTable td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 0.875rem;
+}
+
+.stockRow:hover {
+  background: var(--c-hover-surface);
+}
+
+.productCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.productCellIcon {
+  font-size: 1.25rem;
+  background: var(--c-bg);
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.productCellName {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.badgeMed {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--c-badge-in);
+  color: var(--c-badge-in-text);
+}
+
+.badgeDesc {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e9d5ff;
+  color: #5b21b6;
+}
+
+.badgePres {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  background: #a7f3d0;
+  color: #064e3b;
+}
+
+.stockNum {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.thCenter {
+  text-align: center;
+}
+
+.tableActions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 400px) {
+  .filterSelect {
+    flex: 1 1 100%;
+  }
+
+  .stockCard {
+    padding: 0.75rem;
+  }
+
+  .stockCardPrecios {
+    gap: 0.5rem;
+  }
+
+  .stockCardActions .iconBtn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .actionBtn {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .tableWrap {
+    display: block;
+  }
+
+  .stockCards {
+    display: none;
+  }
+
+  .filtersRow {
+    flex-wrap: nowrap;
+  }
+
+  .searchWrap {
+    flex: 1 1 auto;
+  }
+
+  .filterSelect {
+    flex: 0 0 auto;
+  }
+}
