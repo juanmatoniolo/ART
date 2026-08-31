@@ -3,109 +3,204 @@ import Icon from "./Icon";
 import { formatCurrency, getStockColor } from "../utils/farmacia";
 
 export default function DashboardTab({ estadisticas, itemsBajoStockList, movimientos }) {
-    const cards = [
-        { icon: "box", label: "Total productos", value: estadisticas.totalItems, color: "var(--c-primary)" },
-        { icon: "alert", label: "Bajo stock", value: estadisticas.itemsBajoStock, color: "var(--c-amber)" },
-        { icon: "close", label: "Sin stock", value: estadisticas.itemsSinStock, color: "var(--c-red)" },
-        { icon: "money", label: "Valor total", value: formatCurrency(estadisticas.valorTotalStock), color: "var(--c-green)" },
-    ];
+  const cards = [
+    { icon: "box", label: "Total productos", value: estadisticas.totalItems, color: "var(--c-primary)" },
+    { icon: "alert", label: "Bajo stock", value: estadisticas.itemsBajoStock, color: "var(--c-amber)" },
+    { icon: "close", label: "Sin stock", value: estadisticas.itemsSinStock, color: "var(--c-red)" },
+    { icon: "money", label: "Valor total", value: formatCurrency(estadisticas.valorTotalStock), color: "var(--c-green)" },
+  ];
 
-    return (
-        <div className="fxdash">
-            <div className="fxdash-stats">
-                {cards.map(c => (
-                    <div key={c.label} className="fxdash-card">
-                        <span className="fxdash-card-ic" style={{ background: c.color + "1a", color: c.color }}>
-                            <Icon name={c.icon} size={24} />
-                        </span>
-                        <div className="fxdash-card-val">{c.value}</div>
-                        <div className="fxdash-card-lbl">{c.label}</div>
-                    </div>
-                ))}
-            </div>
+  return (
+    <div className="fxdash">
+      {/* Tarjetas de estadísticas */}
+      <div className="fxdash-stats">
+        {cards.map(c => (
+          <div key={c.label} className="fxdash-card">
+            <span className="fxdash-card-ic" style={{ background: c.color + "1a", color: c.color }}>
+              <Icon name={c.icon} size={24} />
+            </span>
+            <div className="fxdash-card-val">{c.value}</div>
+            <div className="fxdash-card-lbl">{c.label}</div>
+          </div>
+        ))}
+      </div>
 
-            <div className="fxdash-cols">
-                <section className="fxpanel">
-                    <div className="fxpanel-head">
-                        <h3><Icon name="alert" size={22} /> Alertas de stock</h3>
-                        {itemsBajoStockList.length > 0 && <span className="fxbadge-danger">{itemsBajoStockList.length}</span>}
-                    </div>
-                    {itemsBajoStockList.length === 0 ? (
-                        <div className="fxempty2"><Icon name="check" size={32} /><p>Todo el stock está en niveles óptimos</p></div>
-                    ) : itemsBajoStockList.slice(0, 6).map(item => {
-                        const color = getStockColor(item.stockActual, item.stockMinimo);
-                        const pct = Math.min(100, (item.stockActual / (item.stockMinimo || 1)) * 100);
-                        return (
-                            <div key={item.id} className="fxalert">
-                                <span style={{ color }}><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={22} /></span>
-                                <div className="fxalert-body">
-                                    <p>{item.nombre.replace(/_/g, " ")}</p>
-                                    <div className="fxalert-bar"><div style={{ width: pct + "%", background: color }} /></div>
-                                </div>
-                                <span className="fxalert-num"><strong style={{ color }}>{item.stockActual}</strong>/{item.stockMinimo}</span>
-                            </div>
-                        );
-                    })}
-                </section>
+      {/* Columnas: alertas + movimientos */}
+      <div className="fxdash-cols">
+        {/* Panel de alertas de stock */}
+        <section className="fxpanel">
+          <div className="fxpanel-head">
+            <h3><Icon name="alert" size={22} /> Alertas de stock</h3>
+            {itemsBajoStockList.length > 0 && <span className="fxbadge-danger">{itemsBajoStockList.length}</span>}
+          </div>
+          {itemsBajoStockList.length === 0 ? (
+            <div className="fxempty2"><Icon name="check" size={32} /><p>Todo el stock está en niveles óptimos</p></div>
+          ) : (
+            itemsBajoStockList.slice(0, 6).map(item => {
+              const color = getStockColor(item.stockActual, item.stockMinimo);
+              const pct = Math.min(100, (item.stockActual / (item.stockMinimo || 1)) * 100);
+              return (
+                <div key={item.id} className="fxalert">
+                  <span style={{ color }}><Icon name={item.tipo === "medicamento" ? "pills" : "box"} size={22} /></span>
+                  <div className="fxalert-body">
+                    <p>{item.nombre.replace(/_/g, " ")}</p>
+                    <div className="fxalert-bar"><div style={{ width: pct + "%", background: color }} /></div>
+                  </div>
+                  <span className="fxalert-num"><strong style={{ color }}>{item.stockActual}</strong>/{item.stockMinimo}</span>
+                </div>
+              );
+            })
+          )}
+        </section>
 
-                <section className="fxpanel">
-                    <div className="fxpanel-head"><h3><Icon name="list" size={22} /> Últimos movimientos</h3></div>
-                    {movimientos.length === 0 ? (
-                        <div className="fxempty2"><Icon name="inbox" size={32} /><p>Sin movimientos aún</p></div>
-                    ) : movimientos.slice(0, 5).map(mov => {
-                        const isIn = mov.tipo === "ingreso";
-                        const total = mov.valorTotal || 0;
-                        return (
-                            <div key={mov.id} className="fxmovmini">
-                                <span className={"fxmovbadge " + (isIn ? "in" : "out")}>
-                                    <Icon name={isIn ? "download" : "truck"} size={16} /> {isIn ? "Ingreso" : "Reparto"}
-                                </span>
-                                {!isIn && <span className="fxmovmini-dest"><Icon name="pin" size={15} /> {mov.destino}</span>}
-                                <span className="fxmovmini-val">{formatCurrency(total)}</span>
-                                <span className="fxmovmini-date">{mov.fechaLegible}</span>
-                            </div>
-                        );
-                    })}
-                </section>
-            </div>
+        {/* Panel de últimos movimientos */}
+        <section className="fxpanel">
+          <div className="fxpanel-head"><h3><Icon name="list" size={22} /> Últimos movimientos</h3></div>
+          {movimientos.length === 0 ? (
+            <div className="fxempty2"><Icon name="inbox" size={32} /><p>Sin movimientos aún</p></div>
+          ) : (
+            movimientos.slice(0, 5).map(mov => {
+              const isIn = mov.tipo === "ingreso";
+              const isOut = mov.tipo === "reparto";
+              const isAdjust = mov.tipo === "ajuste";
+              const total = mov.valorTotal || 0;
 
-            <style>{`
-                .fxdash { display: flex; flex-direction: column; gap: 14px; color: var(--c-text); }
-                .fxdash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-                .fxdash-card { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-                .fxdash-card-ic { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-                .fxdash-card-val { font-size: 24px; font-weight: 800; }
-                .fxdash-card-lbl { font-size: 14px; color: var(--c-muted); }
+              // Badge según tipo
+              let badgeClass = "fxmovbadge";
+              let badgeIcon = "download";
+              let badgeText = "Ingreso";
+              if (isOut) {
+                badgeClass += " out";
+                badgeIcon = "truck";
+                badgeText = "Reparto";
+              } else if (isAdjust) {
+                badgeClass += " adjust";
+                badgeIcon = "wrench";
+                badgeText = "Ajuste";
+              } else {
+                badgeClass += " in";
+              }
 
-                .fxdash-cols { display: grid; grid-template-columns: 1fr; gap: 14px; }
-                .fxpanel { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; }
-                .fxpanel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-                .fxpanel-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 800; }
-                .fxbadge-danger { background: var(--c-badge-out); color: var(--c-badge-out-text); font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 999px; }
+              return (
+                <div key={mov.id} className="fxmovmini">
+                  <span className={badgeClass}>
+                    <Icon name={badgeIcon} size={16} /> {badgeText}
+                  </span>
 
-                .fxalert { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--c-border); }
-                .fxalert-body { flex: 1; min-width: 0; }
-                .fxalert-body p { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-                .fxalert-bar { height: 8px; background: var(--c-border); border-radius: 999px; overflow: hidden; }
-                .fxalert-bar div { height: 100%; border-radius: 999px; }
-                .fxalert-num { font-size: 16px; color: var(--c-muted); white-space: nowrap; }
+                  {/* Destino (solo para repartos) */}
+                  {isOut && mov.destino && (
+                    <span className="fxmovmini-dest">
+                      <Icon name="pin" size={15} /> {mov.destino}
+                    </span>
+                  )}
 
-                .fxmovmini { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--c-border); font-size: 14px; }
-                .fxmovbadge { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 13px; padding: 5px 10px; border-radius: 999px; }
-                .fxmovbadge.in { background: var(--c-badge-in); color: var(--c-badge-in-text); }
-                .fxmovbadge.out { background: var(--c-badge-out); color: var(--c-badge-out-text); }
-                .fxmovmini-dest { display: inline-flex; align-items: center; gap: 4px; color: var(--c-muted); }
-                .fxmovmini-val { margin-left: auto; font-weight: 800; }
-                .fxmovmini-date { width: 100%; color: var(--c-muted); font-size: 13px; }
+                  {/* 👇 USUARIO QUE REGISTRÓ EL MOVIMIENTO (SIEMPRE VISIBLE) */}
+                  <span className="fxmovmini-user">
+                    <Icon name="user" size={14} /> {mov.usuario || "Usuario desconocido"}
+                  </span>
 
-                .fxempty2 { text-align: center; padding: 28px 8px; color: var(--c-muted); }
-                .fxempty2 p { margin: 8px 0 0; }
+                  {/* Valor total (excepto ajustes) */}
+                  {!isAdjust && (
+                    <span className="fxmovmini-val">{formatCurrency(total)}</span>
+                  )}
 
-                @media (min-width: 768px) {
-                    .fxdash-stats { grid-template-columns: repeat(4, 1fr); }
-                    .fxdash-cols { grid-template-columns: 1fr 1fr; }
-                }
-            `}</style>
-        </div>
-    );
+                  <span className="fxmovmini-date">{mov.fechaLegible}</span>
+                </div>
+              );
+            })
+          )}
+        </section>
+      </div>
+
+      {/* Estilos inline (se mantienen los existentes y se agrega el nuevo para el usuario) */}
+      <style>{`
+        .fxdash { display: flex; flex-direction: column; gap: 14px; color: var(--c-text); }
+        .fxdash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .fxdash-card { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .fxdash-card-ic { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .fxdash-card-val { font-size: 24px; font-weight: 800; }
+        .fxdash-card-lbl { font-size: 14px; color: var(--c-muted); }
+
+        .fxdash-cols { display: grid; grid-template-columns: 1fr; gap: 14px; }
+        .fxpanel { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; }
+        .fxpanel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .fxpanel-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 800; }
+        .fxbadge-danger { background: var(--c-badge-out); color: var(--c-badge-out-text); font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 999px; }
+
+        .fxalert { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--c-border); }
+        .fxalert-body { flex: 1; min-width: 0; }
+        .fxalert-body p { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+        .fxalert-bar { height: 8px; background: var(--c-border); border-radius: 999px; overflow: hidden; }
+        .fxalert-bar div { height: 100%; border-radius: 999px; }
+        .fxalert-num { font-size: 16px; color: var(--c-muted); white-space: nowrap; }
+
+        .fxmovmini {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          padding: 10px 0;
+          border-bottom: 1px solid var(--c-border);
+          font-size: 14px;
+        }
+        .fxmovbadge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-weight: 700;
+          font-size: 13px;
+          padding: 5px 10px;
+          border-radius: 999px;
+        }
+        .fxmovbadge.in {
+          background: var(--c-badge-in, #d4edda);
+          color: var(--c-badge-in-text, #155724);
+        }
+        .fxmovbadge.out {
+          background: var(--c-badge-out, #f8d7da);
+          color: var(--c-badge-out-text, #721c24);
+        }
+        .fxmovbadge.adjust {
+          background: #fff3cd;
+          color: #856404;
+        }
+        .fxmovmini-dest {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--c-muted);
+        }
+        /* 👇 Nuevo estilo para el chip de usuario */
+        .fxmovmini-user {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: #e3f2fd;
+          color: #0d47a1;
+          font-weight: 600;
+          padding: 2px 10px;
+          border-radius: 999px;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+        .fxmovmini-val {
+          margin-left: auto;
+          font-weight: 800;
+        }
+        .fxmovmini-date {
+          width: 100%;
+          color: var(--c-muted);
+          font-size: 13px;
+        }
+
+        .fxempty2 { text-align: center; padding: 28px 8px; color: var(--c-muted); }
+        .fxempty2 p { margin: 8px 0 0; }
+
+        @media (min-width: 768px) {
+          .fxdash-stats { grid-template-columns: repeat(4, 1fr); }
+          .fxdash-cols { grid-template-columns: 1fr 1fr; }
+        }
+      `}</style>
+    </div>
+  );
 }
