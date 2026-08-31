@@ -1,19 +1,10 @@
-﻿'use client';
+﻿import { Suspense } from 'react';
+import MensajePageClient from './MensajePageClient';
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import MensajeModal from '../components/modals/MensajeModal';
-
-export default function MensajePageClient() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const mensaje = {
-    texto: searchParams.get('texto') || '',
-    tipo: searchParams.get('tipo') || 'info',
-  };
-
-  const handleClose = () => {
-    router.back();
-  };
-
-  return <MensajeModal data={mensaje} onClose={handleClose} />;
+export default function MensajePage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <MensajePageClient />
+    </Suspense>
+  );
 }
