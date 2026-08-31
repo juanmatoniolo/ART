@@ -1,19 +1,27 @@
-'use client';
+"use client";
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/context/SessionContext';
 import s from '../farmaciaDashboard.module.css';
 
 export default function StatsHeader({
   theme,
   toggleTheme,
-  onLogout,
   loadingLogout,
-  usuario,
-  rol,
-  usuarios,
-  onSelectUser,
-  usuarioSeleccionado,
   onIngresoMercaderia,
 }) {
+  const { usuario, logout } = useSession();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  const inicial = usuario?.nombre ? usuario.nombre.charAt(0).toUpperCase() : '?';
+  const nombreUsuario = usuario?.nombre || 'Usuario';
+  const rolUsuario = usuario?.TipoEmpleado || 'Sin rol';
+
   return (
     <header className={s.dashboardHeader}>
       <div className={s.headerTop}>
@@ -21,8 +29,9 @@ export default function StatsHeader({
           <div>
             <h1 className={s.dashboardTitle}>Dashboard Farmacia</h1>
             <div className={s.userInfo}>
-              <span className={s.userName}>{usuario}</span>
-              <span className={s.userRole}>{rol}</span>
+          
+              <span className={s.userName}>{nombreUsuario}</span>
+            
             </div>
           </div>
         </div>
@@ -50,7 +59,7 @@ export default function StatsHeader({
           </Link>
 
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className={s.logoutBtn}
             disabled={loadingLogout}
             title="Salir"
@@ -59,22 +68,6 @@ export default function StatsHeader({
           </button>
         </div>
       </div>
-
-      {usuarios && usuarios.length > 1 && (
-        <div style={{ marginTop: '0.5rem' }}>
-          <select
-            className={s.filterSelect}
-            value={usuarioSeleccionado?.id || ''}
-            onChange={(e) => onSelectUser(e.target.value)}
-          >
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nombre} ({u.TipoEmpleado})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
     </header>
   );
 }

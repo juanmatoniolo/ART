@@ -1,34 +1,34 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { ref, get } from 'firebase/database';
-import { setSession } from '@/utils/session';
-import Link from 'next/link';
-import styles from './login.module.css';
-import { Stethoscope, LogIn } from 'lucide-react';
-import Header from '@/components/Header/Header';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { ref, get } from "firebase/database";
+import { useSession } from "@/context/SessionContext";
+import Link from "next/link";
+import styles from "./login.module.css";
+import { LogIn } from "lucide-react";
+import Header from "@/components/Header/Header";
 
 export default function LoginPage() {
-    const [user, setUser] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [user, setUser] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
     const router = useRouter();
+    const { login } = useSession();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setError("");
 
         const inputUser = user.trim().toLowerCase();
         const inputPass = password.trim();
 
         try {
-            const snapshot = await get(ref(db, 'users'));
+            const snapshot = await get(ref(db, "users"));
             const users = snapshot.val();
 
             if (!users) {
-                setError('No se encontraron usuarios en la base de datos.');
+                setError("No se encontraron usuarios en la base de datos.");
                 return;
             }
 
@@ -39,50 +39,43 @@ export default function LoginPage() {
             );
 
             if (!found) {
-                setError('Usuario o contraseña incorrectos');
+                setError("Usuario o contraseña incorrectos");
                 return;
             }
 
             const [id, userData] = found;
 
-            // Guardamos la sesión con todos los datos del usuario.
-            // Si en la base tiene root:true o TipoEmpleado:'ROOT',
-            // queda en la sesión y hasAccess() lo deja entrar a todo.
-            setSession({ ...userData, id });
+            // Usar login del contexto (actualiza estado y localStorage)
+            login({ ...userData, id });
 
-            // ¿Es root? -> entra siempre, y lo mandamos a /admin
-            const esRoot = userData.root === true || userData.TipoEmpleado === 'ROOT';
-
+            const esRoot = userData.root === true || userData.TipoEmpleado === "ROOT";
             const routes = {
-                'ADM': '/admin',
-                'ADM Farmacia': '/farmacia',
-                'Farmacia': '/farmacia',
-                'RECEPCION': '/historia-clinica',
-                'MDE': '/mesa-de-entrada',
-                'UTI': '/uti/admin',
-                'MEDICO': '/foja/medicos',
-                'ROOT': '/admin',
+                ADM: "/admin",
+                "ADM Farmacia": "/farmacia",
+                Farmacia: "/farmacia",
+                RECEPCION: "/historia-clinica",
+                MDE: "/mesa-de-entrada",
+                UTI: "/uti/admin",
+                MEDICO: "/foja/medicos",
+                ROOT: "/admin",
             };
-
-            const destino = esRoot ? '/admin' : (routes[userData.TipoEmpleado] || '/admin');
+            const destino = esRoot ? "/admin" : routes[userData.TipoEmpleado] || "/admin";
             router.push(destino);
         } catch (err) {
-            console.error('Error en login:', err);
-            setError('Error al conectarse al servidor');
+            console.error("Error en login:", err);
+            setError("Error al conectarse al servidor");
         }
     };
 
     return (
         <div className={styles.wrapper}>
             <Header />
-
             <main className={styles.main}>
                 <section className={styles.card} aria-labelledby="login-title">
                     <h1 id="login-title" className={styles.title}>Iniciar sesión</h1>
                     <p className={styles.subtitle}>
                         Acceda para gestionar pacientes y registros clínicos.
                     </p>
-
                     <form onSubmit={handleSubmit} className={styles.form}>
                         <div className="mb-3">
                             <label className="form-label">Usuario</label>
@@ -95,7 +88,6 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
-
                         <div className="mb-3">
                             <label className="form-label">Contraseña</label>
                             <input
@@ -107,15 +99,12 @@ export default function LoginPage() {
                                 required
                             />
                         </div>
-
                         {error && <div className="alert alert-danger">{error}</div>}
-
                         <button type="submit" className={`${styles.btn} ${styles.btnPrimary} w-100`}>
                             <LogIn size={18} aria-hidden="true" />
                             Ingresar
                         </button>
                     </form>
-
                     <div className={styles.registerHint}>
                         <small className={styles.muted}>
                             ¿No tienes cuenta? <Link className={styles.link} href="/register">Regístrate aquí</Link>
@@ -123,7 +112,6 @@ export default function LoginPage() {
                     </div>
                 </section>
             </main>
-
             <footer className={styles.footer}>
                 © {new Date().getFullYear()} Clínica de la Unión S.A.
             </footer>

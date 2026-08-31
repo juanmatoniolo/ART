@@ -2225,3 +2225,95 @@
   justify-content: center;
   text-align: center;
 }
+
+.movCardAdjust { border-left: 4px solid #f59e0b; }
+.movBadgeAdjust { background: #fef3c7; color: #92400e; }
+.movQtyAdj { color: #d97706; font-weight: bold; }
+
+
+.movCardActions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+.movEditBtn,
+.movDeleteBtn,
+.movPrintBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.movEditBtn {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.movEditBtn:hover {
+  background: #bae6fd;
+  border-color: #7dd3fc;
+}
+.movDeleteBtn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.movDeleteBtn:hover {
+  background: #fecaca;
+  border-color: #fca5a5;
+}
+.movPrintBtn {
+  background: #f1f5f9;      /* gris muy claro */
+  color: #000000;           /* icono y texto en negro */
+  border-color: #cbd5e1;    /* borde gris claro */
+}
+.movPrintBtn:hover {
+  background: #e2e8f0;      /* un poco más oscuro al pasar el mouse */
+  color: #000000;           /* se mantiene negro */
+}
+.movCardUser {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modalContent {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  min-width: 400px;
+}
+.modalContent form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.modalContent input,
+.modalContent select,
+.modalContent textarea {
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}

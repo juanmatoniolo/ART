@@ -598,3 +598,47 @@
     max-height: 200px;
   }
 }
+
+
+
+/* Animación de entrada para productos */
+.productoDisponible {
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.productoDisponible:hover {
+  background: #f0f7ff;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Spinner para botón de carga */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.6s ease-in-out infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mejoras en botones */
+.btnAgregar {
+  transition: all 0.2s;
+}
+.btnAgregar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+/* Estilo para el input de cantidad */
+.controlesCantidad input {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.controlesCantidad input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}

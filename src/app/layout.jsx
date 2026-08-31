@@ -1,7 +1,7 @@
 // src/app/layout.jsx
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BootstrapClient from '@/components/BootstrapClient'; // importación directa, sin dynamic
-
+import { SessionProvider } from "@/context/SessionContext";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://art-xi-six.vercel.app';
 
@@ -86,8 +86,10 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body suppressHydrationWarning={true}>
         <BootstrapClient />
-        {children}
+
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );
 }
+

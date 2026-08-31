@@ -23,8 +23,8 @@ function FarmaciaLayoutContent({ children }) {
 
   const getActiveTabFromPath = () => {
     const segments = pathname.split('/').filter(Boolean);
-    if (segments.length === 1) return 'dashboard'; // /farmacia
-    return segments[1]; // /farmacia/stock -> 'stock'
+    if (segments.length === 1) return 'dashboard';
+    return segments[1];
   };
 
   const activeTab = getActiveTabFromPath();

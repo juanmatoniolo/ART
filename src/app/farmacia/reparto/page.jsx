@@ -6,7 +6,7 @@ import Link from "next/link";
 import Icon from "../components/Icon";
 import { normalizeText, formatCurrency } from "../utils/farmacia";
 import s from "./repartoPage.module.css";
-import useFarmacia from "../hooks/useFarmacia";
+import { useFarmaciaContext } from "../context/FarmaciaContext"; // ✅ Cambio aquí
 
 const DESTINOS = [
   "Guardia", "Primer Piso", "Segundo Piso", "Quirófano", "UTI",
@@ -22,7 +22,7 @@ const getStockColor = (stock, min = 10) => {
 
 export default function RepartoPage() {
   const router = useRouter();
-  const { items, procesarReparto } = useFarmacia();
+  const { items, procesarReparto, usuarioActual } = useFarmaciaContext(); // ✅ usuarioActual disponible
 
   const [destino, setDestino] = useState("Guardia");
   const [responsable, setResponsable] = useState("");
@@ -32,17 +32,17 @@ export default function RepartoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔥 Normalización de items: evitar duplicados por id
-  const itemsNormalizados = useMemo(() => {
+  // Solo productos activos y sin duplicados
+  const itemsActivos = useMemo(() => {
     const map = new Map();
     (items || []).forEach(item => {
-      // Usar el id como clave única
+      if (item.activo === false) return;
       const key = item.id || item.nombre;
       if (!map.has(key)) {
         map.set(key, {
           ...item,
           stock: item.stockActual ?? item.stock ?? 0,
-          precio: item.precioUnitario ?? item.precioCosto ?? item.precioReferencia ?? 0,
+          precio: item.precioCosto ?? item.precio ?? 0,
           nombreLimpio: (item.nombre || "").replace(/_/g, " "),
           tipo: item.tipo || "medicamento",
         });
@@ -53,7 +53,7 @@ export default function RepartoPage() {
 
   const disponibles = useMemo(() => {
     const idsSeleccionados = new Set(seleccionados.map(p => p.id));
-    let filtrados = itemsNormalizados.filter(i => i.stock > 0 && !idsSeleccionados.has(i.id));
+    let filtrados = itemsActivos.filter(i => i.stock > 0 && !idsSeleccionados.has(i.id));
 
     if (busqueda.trim()) {
       const q = normalizeText(busqueda);
@@ -69,7 +69,7 @@ export default function RepartoPage() {
       filtrados.sort((a, b) => b.stock - a.stock);
     }
     return filtrados;
-  }, [itemsNormalizados, seleccionados, busqueda]);
+  }, [itemsActivos, seleccionados, busqueda]);
 
   const agregarProducto = (item) => {
     if (seleccionados.some(p => p.id === item.id)) return;
@@ -118,45 +118,51 @@ export default function RepartoPage() {
     setError("");
     setLoading(true);
 
-    // 🔥 Enviar TODOS los datos que el hook necesita
     const productos = seleccionados.map(p => ({
       id: p.id,
       cantidad: p.cantidad,
       stockAnterior: p.stockAnterior,
       stockNuevo: p.stockNuevo,
-      nombre: p.nombre,           // 🔥 Importante: el hook usa p.nombre
-      tipo: p.tipo,               // 🔥 Importante: el hook usa p.tipo
-      precioCosto: p.precioCosto ?? p.precio,  // 🔥 El hook usa precioCosto
+      nombre: p.nombre,
+      tipo: p.tipo,
+      precioCosto: p.precioCosto ?? p.precio,
       precio: p.precio,
       presentacion: p.presentacion,
     }));
 
+    // ✅ El usuario se tomará automáticamente dentro del hook
     const ok = await procesarReparto(productos, { destino, responsable, nota });
     setLoading(false);
     if (ok) router.push("/farmacia");
   };
 
   return (
-    <div className={s.pageContainer} style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className={s.pageContainer}>
       <header className={s.dashboardHeader}>
         <div className={s.headerTop}>
           <div className={s.titleGroup}>
             <span className={s.titleIcon}>🚚</span>
             <div>
               <h1 className={s.dashboardTitle}>Reparto a sector</h1>
-              <p className={s.dashboardSubtitle}>Selección de productos y asigná destino</p>
+              <p className={s.dashboardSubtitle}>Seleccioná productos y asigná destino</p>
             </div>
           </div>
           <div className={s.headerActions}>
-            <Link href="/farmacia" className={`${s.actionBtn} ${s.btnCancel}`}>
+            {/* Mostrar usuario actual */}
+            {usuarioActual && (
+              <span className={s.usuarioBadge}>
+                👤 {usuarioActual.nombre} ({usuarioActual.user})
+              </span>
+            )}
+            <Link href="/farmacia" className={`${s.actionBtn} ${s.btnCancel}`} title="Volver al inicio">
               <span>←</span> Volver
             </Link>
           </div>
         </div>
       </header>
 
-      <div className={s.panel} style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
-        <div className={s.repartoForm} style={{ padding: 0 }}>
+      <div className={s.panel}>
+        <div className={s.repartoForm}>
           <div className={s.repartoCampos}>
             <div className={s.fieldGroup}>
               <label>Destino *</label>
@@ -167,6 +173,7 @@ export default function RepartoPage() {
                     type="button"
                     className={`${s.destinoChip} ${destino === d ? s.destinoChipActive : ""}`}
                     onClick={() => setDestino(d)}
+                    title={`Seleccionar ${d}`}
                   >
                     {d}
                   </button>
@@ -197,6 +204,7 @@ export default function RepartoPage() {
           {error && <div className={s.errorMsg}>{error}</div>}
 
           <div className={s.repartoGrid}>
+            {/* Columna izquierda: productos disponibles */}
             <div className={s.repartoDisponibles}>
               <div className={s.searchWrap}>
                 <span className={s.searchIconInner}><Icon name="search" size={18} /></span>
@@ -212,6 +220,7 @@ export default function RepartoPage() {
                     type="button"
                     className={s.searchClear}
                     onClick={() => setBusqueda("")}
+                    title="Limpiar búsqueda"
                   >
                     <Icon name="close" size={18} />
                   </button>
@@ -225,10 +234,14 @@ export default function RepartoPage() {
                       : "No hay productos disponibles para repartir"}
                   </p>
                 ) : (
-                  <ul>
+                  <ul className={s.listaProductos}>
                     {disponibles.map(item => (
-                      // 🔥 Usar item.id como key (es único después de la normalización)
-                      <li key={item.id} onClick={() => agregarProducto(item)}>
+                      <li
+                        key={item.id}
+                        className={s.productoDisponible}
+                        onClick={() => agregarProducto(item)}
+                        title={`Agregar ${item.nombreLimpio}`}
+                      >
                         <div className={s.productoInfo}>
                           <span className={s.productoNombre}>
                             {item.nombreLimpio}
@@ -256,6 +269,7 @@ export default function RepartoPage() {
                             e.stopPropagation();
                             agregarProducto(item);
                           }}
+                          title="Agregar al reparto"
                         >
                           <Icon name="plus" size={16} /> Agregar
                         </button>
@@ -266,6 +280,7 @@ export default function RepartoPage() {
               </div>
             </div>
 
+            {/* Columna derecha: carrito */}
             <div className={s.repartoSeleccionados}>
               <div className={s.resumenSeleccion}>
                 <span><Icon name="list" size={16} /> {seleccionados.length} productos</span>
@@ -276,7 +291,7 @@ export default function RepartoPage() {
               </div>
 
               {seleccionados.length === 0 ? (
-                <p className={s.emptyText}>Haz clic en un producto de la izquierda para agregarlo.</p>
+                <p className={s.emptyText}>Hacé clic en un producto para agregarlo.</p>
               ) : (
                 <ul className={s.listaSeleccionados}>
                   {seleccionados.map(p => {
@@ -285,15 +300,6 @@ export default function RepartoPage() {
                       <li
                         key={p.id}
                         className={`${s.itemSeleccionado} ${isMed ? s.itemMedicamento : s.itemDescartable}`}
-                        style={{
-                          borderLeft: `4px solid ${isMed ? 'var(--c-primary)' : 'var(--c-green)'}`,
-                          background: 'var(--c-surface)',
-                          marginBottom: '0.5rem',
-                          borderRadius: '8px',
-                          padding: '0.75rem',
-                          boxShadow: 'var(--c-shadow)',
-                          transition: 'all 0.2s',
-                        }}
                       >
                         <span className={s.nombreProducto}>{p.nombreLimpio}</span>
                         <div className={s.controlesCantidad}>
@@ -301,6 +307,7 @@ export default function RepartoPage() {
                             type="button"
                             onClick={() => cambiarCantidad(p.id, p.cantidad - 1)}
                             disabled={p.cantidad <= 1}
+                            title="Disminuir cantidad"
                           >
                             <Icon name="minus" size={14} />
                           </button>
@@ -309,14 +316,14 @@ export default function RepartoPage() {
                             min="1"
                             max={p.stockAnterior}
                             value={p.cantidad}
-                            onChange={(e) =>
-                              cambiarCantidad(p.id, parseInt(e.target.value) || 1)
-                            }
+                            onChange={(e) => cambiarCantidad(p.id, parseInt(e.target.value) || 1)}
+                            title="Cantidad"
                           />
                           <button
                             type="button"
                             onClick={() => cambiarCantidad(p.id, p.cantidad + 1)}
                             disabled={p.cantidad >= p.stockAnterior}
+                            title="Aumentar cantidad"
                           >
                             <Icon name="plus" size={14} />
                           </button>
@@ -330,6 +337,7 @@ export default function RepartoPage() {
                           type="button"
                           className={s.btnEliminar}
                           onClick={() => quitarProducto(p.id)}
+                          title="Quitar del reparto"
                         >
                           <Icon name="trash" size={16} />
                         </button>
@@ -348,9 +356,17 @@ export default function RepartoPage() {
                   className={`${s.actionBtn} ${s.btnPrimary}`}
                   onClick={handleSubmit}
                   disabled={seleccionados.length === 0 || loading}
+                  title="Confirmar reparto"
                 >
-                  <Icon name="check" size={18} />
-                  {loading ? "Procesando..." : "Confirmar Reparto"}
+                  {loading ? (
+                    <>
+                      <span className={s.spinner} /> Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="check" size={18} /> Confirmar Reparto
+                    </>
+                  )}
                 </button>
               </div>
             </div>
