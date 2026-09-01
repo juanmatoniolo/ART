@@ -51,6 +51,7 @@ export default function LoginPage() {
             const esRoot = userData.root === true || userData.TipoEmpleado === "ROOT";
             const routes = {
                 ADM: "/admin",
+                ADMINISTRADOR: "/administrador", // ✅ Nuevo rol con ruta reducida
                 "ADM Farmacia": "/farmacia",
                 Farmacia: "/farmacia",
                 RECEPCION: "/historia-clinica",

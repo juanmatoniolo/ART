@@ -16,7 +16,20 @@ const EMPTY_FORM = {
   TipoEmpleado: "ADM",
 };
 
-const ROLES = ["ADM", "ADMIN", "ADM Farmacia","Farmacia", "RECEPCION", "ENFERMERIA", "UTI", "FARM", "MEDICO"];
+// ✅ Se agregó "ADMINISTRADOR" al listado de roles
+const ROLES = [
+  "ADM",
+  "ADMIN",
+  "ADMINISTRADOR",
+  "ADM Farmacia",
+  "Farmacia",
+  "RECEPCION",
+  "ENFERMERIA",
+  "UTI",
+  "FARM",
+  "MEDICO",
+];
+
 const normalizeText = (value = "") =>
   String(value)
     .normalize("NFD")
