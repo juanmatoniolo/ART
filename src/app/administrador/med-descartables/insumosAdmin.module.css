@@ -1,0 +1,696 @@
+/* =========================
+   insumosAdmin.module.css
+   Tokens compartidos con el sistema global (Nomenclador/Home)
+   Base = CLARO (sobrio) · .dark = contraparte oscura
+   ========================= */
+
+/* ----- CLARO (igual al sistema global) ----- */
+.wrapper {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #fbfbfc;
+    --border: #e6e8ee;
+
+    --text: #111827;
+    --muted: #6b7280;
+    --placeholder: #9ca3af;
+
+    --accent: #2f6f4e;
+    --accent-weak: rgba(47, 111, 78, 0.10);
+    --accent-border: rgba(47, 111, 78, 0.35);
+    --accent-ring: rgba(47, 111, 78, 0.15);
+
+    --danger: #c0392b;
+    --danger-strong: #a93226;
+
+    --warn-text: #92400e;
+    --warn-bg: rgba(245, 158, 11, 0.14);
+    --warn-border: rgba(245, 158, 11, 0.35);
+
+    --field: #ffffff;
+    --field-2: #fbfbfc;
+
+    --shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+    --shadow-sm: 0 2px 10px rgba(17, 24, 39, 0.06);
+
+    --arrow: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23111827%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+
+    padding: 1rem;
+    color: var(--text);
+    background-color: var(--bg);
+    min-height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ----- OSCURO (contraparte) ----- */
+.wrapper.dark {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c232c;
+    --border: #2a313c;
+
+    --text: #e6edf3;
+    --muted: #9aa4b2;
+    --placeholder: #6b7480;
+
+    --accent: #4f9e74;
+    --accent-weak: rgba(79, 158, 116, 0.16);
+    --accent-border: rgba(79, 158, 116, 0.45);
+    --accent-ring: rgba(79, 158, 116, 0.25);
+
+    --danger: #e5534b;
+    --danger-strong: #f0635c;
+
+    --warn-text: #f0c073;
+    --warn-bg: rgba(240, 168, 44, 0.16);
+    --warn-border: rgba(240, 168, 44, 0.40);
+
+    --field: #0f141b;
+    --field-2: #0f141b;
+
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+    --arrow: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23e6edf3%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* =========================
+   Header + toggle
+   ========================= */
+.headerBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    margin: 0;
+    color: var(--accent);
+}
+
+.themeToggle {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+}
+
+.themeToggle:hover {
+    border-color: var(--accent-border);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+}
+
+/* =========================
+   Toast
+   ========================= */
+.toast {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    z-index: 9999;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+    animation: slideIn 0.25s ease;
+}
+
+.toastSuccess {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+.toastInfo {
+    background: var(--warn-bg);
+    border-color: var(--warn-border);
+    color: var(--warn-text);
+}
+
+.toastError {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =========================
+   Tabs
+   ========================= */
+.tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tab {
+    padding: 0.8rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.tab:hover {
+    background: var(--surface-2);
+    border-color: var(--accent-border);
+    transform: translateY(-1px);
+}
+
+.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+/* =========================
+   Select de tipo
+   ========================= */
+.selectTipo {
+    background-color: var(--field);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.6rem 2rem 0.6rem 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: var(--arrow);
+    background-repeat: no-repeat;
+    background-position: right 0.8rem center;
+    background-size: 1rem;
+}
+
+.selectTipo:hover {
+    border-color: var(--accent-border);
+}
+
+.selectTipo:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.selectTipo option {
+    background: var(--surface);
+    color: var(--text);
+}
+
+/* =========================
+   Buscador
+   ========================= */
+.search {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--field);
+    color: var(--text);
+    font-size: 1rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search::placeholder {
+    color: var(--placeholder);
+}
+
+.search:focus {
+    border-color: var(--accent-border);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* =========================
+   Cards / formularios
+   ========================= */
+.form {
+    margin-top: 2rem;
+    background: var(--surface);
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.form h4,
+.form h5 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+.textMuted {
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--field);
+    color: var(--text);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+    color: var(--placeholder);
+}
+
+.input:focus {
+    border-color: var(--accent-border);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* =========================
+   Botones
+   ========================= */
+.btnPrimary,
+.btnSaveChanges {
+    background-color: var(--accent);
+    color: #ffffff;
+    border: 1px solid var(--accent);
+    padding: 0.85rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    font-size: 1rem;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.btnPrimary:hover,
+.btnSaveChanges:hover {
+    filter: brightness(1.06);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.btnSaveChanges:disabled {
+    background-color: var(--surface-2);
+    color: var(--muted);
+    border-color: var(--border);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    filter: none;
+}
+
+.btnDanger {
+    background-color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #ffffff;
+    font-weight: 800;
+    transition: background 0.15s ease, transform 0.12s ease;
+    font-size: 0.9rem;
+}
+
+.btnDanger:hover {
+    background-color: var(--danger-strong);
+    transform: translateY(-1px);
+}
+
+/* Botón eliminar seleccionados (nuevo estilo mejorado) */
+.btnEliminarSeleccionados {
+    margin-left: auto;
+    padding: 0.65rem 1.2rem;
+    background-color: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-text);
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.btnEliminarSeleccionados:hover {
+    background-color: var(--warn-border);
+    border-color: var(--warn-border);
+    transform: translateY(-1px);
+}
+
+/* =========================
+   Tabla (sobria, como el Nomenclador)
+   ========================= */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.table thead,
+.table tbody {
+    display: table;
+    width: 100%;
+    min-width: 600px;
+}
+
+.table th,
+.table td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 0.9rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.table th {
+    background: var(--surface-2);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 900;
+    font-size: 0.8rem;
+}
+
+.table tr:hover td {
+    background-color: var(--accent-weak);
+}
+
+/* Fila seleccionada (fondo sutil, no rojo) */
+.filaSeleccionada {
+    background-color: var(--accent-weak) !important;
+}
+
+/* Checkbox con color de acento (clase local) */
+.checkbox {
+    accent-color: var(--accent);
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+.inputPrecio {
+    width: 100%;
+    background: var(--field-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inputPrecio:focus {
+    border-color: var(--accent-border);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* =========================
+   Footer acciones
+   ========================= */
+.footerActions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+/* =========================
+   Carga masiva
+   ========================= */
+.fileInput {
+    display: none;
+}
+
+.fileInputLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    margin: 0.5rem 0;
+    width: fit-content;
+}
+
+.fileInputLabel:hover {
+    background-color: var(--surface-2);
+    border-color: var(--accent-border);
+}
+
+.fileName {
+    margin-left: 0.8rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* =========================
+   Admin Header
+   ========================= */
+.adminHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+}
+
+/* =========================
+   Modal (adaptado a variables)
+   ========================= */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.modalContent {
+    background: var(--surface);
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.modalBody .fieldGroup {
+    margin-bottom: 1rem;
+}
+
+.modalBody label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--muted);
+}
+
+.modalFooter {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+/* =========================
+   Media Queries
+   ========================= */
+@media (min-width: 640px) {
+    .wrapper {
+        padding: 1.5rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .tabs {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        flex: 1 1 auto;
+        padding: 0.7rem 1.2rem;
+    }
+
+    .row {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .input {
+        flex: 1;
+    }
+
+    .btnPrimary {
+        width: auto;
+    }
+
+    .adminHeader {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .search {
+        flex: 1;
+    }
+
+    .selectTipo {
+        width: auto;
+        min-width: 180px;
+    }
+
+    .table {
+        display: table;
+        white-space: normal;
+        overflow-x: visible;
+    }
+
+    .table thead,
+    .table tbody {
+        min-width: 0;
+    }
+
+    .table th,
+    .table td {
+        white-space: normal;
+    }
+
+    .footerActions {
+        justify-content: flex-end;
+    }
+}
+
+@media (min-width: 1024px) {
+    .wrapper {
+        padding: 2rem;
+    }
+
+    .title {
+        font-size: 1.7rem;
+    }
+
+    .tabs {
+        gap: 1rem;
+    }
+
+    .tab {
+        padding: 0.75rem 1.5rem;
+    }
+}
+
+
+/* Botones de acción compactos en tabla */
+.btnAccion,
+.btnAccionDanger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+    margin: 0 2px;
+}
+
+.btnAccion {
+    background-color: var(--accent-weak);
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+.btnAccion:hover {
+    background-color: var(--accent);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btnAccionDanger {
+    background-color: rgba(192, 57, 43, 0.1);
+    color: var(--danger);
+    border-color: rgba(192, 57, 43, 0.2);
+}
+
+.btnAccionDanger:hover {
+    background-color: var(--danger);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}

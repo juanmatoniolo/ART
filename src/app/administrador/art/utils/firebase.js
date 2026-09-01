@@ -1,0 +1,1 @@
+export const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";

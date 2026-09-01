@@ -98,6 +98,51 @@ const patchEsSoloTexto = (patch) => {
   return Object.keys(patch).every((k) => !numericKeys.has(k));
 };
 
+// Componente Modal reutilizable
+function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmText = 'Aceptar', showInput = false }) {
+  const [input, setInput] = useState(inputValue || '');
+  useEffect(() => {
+    if (open && showInput) setInput(inputValue || '');
+  }, [open, inputValue, showInput]);
+
+  if (!open) return null;
+
+  const handleConfirm = () => {
+    if (showInput) {
+      onConfirm(input);
+    } else {
+      onConfirm();
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>{title}</h3>
+          <button className={styles.modalClose} onClick={onClose} aria-label="Cerrar">✕</button>
+        </div>
+        <div className={styles.modalBody}>
+          {message && <p className={styles.modalText}>{message}</p>}
+          {showInput && (
+            <input
+              className={styles.modalInput}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Escribí el nombre…"
+              autoFocus
+            />
+          )}
+        </div>
+        <div className={styles.modalActions}>
+          <button className={styles.btnSecundario} onClick={onClose}>Cancelar</button>
+          <button className={styles.btnPrimario} onClick={handleConfirm}>{confirmText}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FacturaContainer() {
   const { convenios, convenioSel, valoresConvenio, cambiarConvenio, loading } = useConvenio();
   const searchParams = useSearchParams();
@@ -130,6 +175,10 @@ export default function FacturaContainer() {
 
   const [draftId, setDraftId] = useState('');
   const [lockMsg, setLockMsg] = useState('');
+
+  // Estados para modales
+  const [modalConfirm, setModalConfirm] = useState(null); // { title, message, onConfirm }
+  const [modalPrompt, setModalPrompt] = useState(null); // { title, message, onConfirm }
 
   const resetStoredDraftId = useCallback(() => {
     setDraftId('');
@@ -622,89 +671,161 @@ export default function FacturaContainer() {
     setLockMsg('Carga nueva: al guardar se creara un borrador independiente.');
   }, [draftFromUrl, resetStoredDraftId]);
 
-  const limpiarFactura = useCallback(() => {
-    if (!isClient || !window.confirm('¿Limpiar toda la factura?')) return;
+  // ===== Reemplazo de alert/confirm/prompt por modales =====
 
-    setPracticas([]);
-    setCirugias([]);
-    setLaboratorios([]);
-    setMedicamentos([]);
-    setDescartables([]);
-    setPaciente({
-      pacienteId: '',
-      nombreCompleto: '',
-      dni: '',
-      artSeguro: '',
-      nroSiniestro: '',
-      fechaAtencion: todayISO(),
+  const limpiarFactura = useCallback(() => {
+    if (!isClient) return;
+    setModalConfirm({
+      title: 'Limpiar factura',
+      message: '¿Estás seguro de que querés limpiar toda la factura?',
+      onConfirm: () => {
+        setPracticas([]);
+        setCirugias([]);
+        setLaboratorios([]);
+        setMedicamentos([]);
+        setDescartables([]);
+        setPaciente({
+          pacienteId: '',
+          nombreCompleto: '',
+          dni: '',
+          artSeguro: '',
+          nroSiniestro: '',
+          fechaAtencion: todayISO(),
+        });
+        setActiveTab('datos');
+        setDraftId('');
+        localStorage.removeItem('FACTURACION_DRAFT_ID');
+        Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+        setModalConfirm(null);
+      },
     });
-    setActiveTab('datos');
-    setDraftId('');
-    localStorage.removeItem('FACTURACION_DRAFT_ID');
-    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
   }, [isClient]);
 
-  const guardarSiniestro = useCallback(async () => {
+  const guardarSiniestro = useCallback(() => {
     if (!isClient) return;
-
-    const nombre = prompt('Nombre del siniestro:', paciente.nombreCompleto || 'Siniestro');
-    if (!nombre) return;
-
-    try {
-      const saved = await guardarEnRTDB({ estado: 'borrador', nombre });
-      alert(
-        `✅ Borrador guardado\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`
-      );
-    } catch (e) {
-      console.error(e);
-      alert(lockMsg || e?.message || '❌ Error al guardar. Revisá permisos/ruta.');
-    }
+    setModalPrompt({
+      title: 'Guardar borrador',
+      message: 'Ingresá un nombre para el siniestro:',
+      onConfirm: async (nombre) => {
+        if (!nombre?.trim()) {
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: 'El nombre no puede estar vacío.',
+            onConfirm: () => setModalConfirm(null),
+          });
+          return;
+        }
+        try {
+          const saved = await guardarEnRTDB({ estado: 'borrador', nombre });
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Borrador guardado',
+            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            onConfirm: () => setModalConfirm(null),
+          });
+        } catch (e) {
+          console.error(e);
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: lockMsg || e?.message || 'Error al guardar el borrador.',
+            onConfirm: () => setModalConfirm(null),
+          });
+        }
+      },
+    });
   }, [isClient, paciente, guardarEnRTDB, lockMsg]);
 
-  const guardarSiniestroNuevo = useCallback(async () => {
+  const guardarSiniestroNuevo = useCallback(() => {
     if (!isClient) return;
-
-    const nombre = prompt('Nombre del nuevo borrador:', paciente.nombreCompleto || 'Siniestro');
-    if (!nombre) return;
-
-    try {
-      const saved = await guardarEnRTDB({ estado: 'borrador', nombre, forceNew: true });
-      alert(
-        `Borrador nuevo guardado\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`
-      );
-      router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
-    } catch (e) {
-      console.error(e);
-      alert(lockMsg || e?.message || 'Error al guardar el nuevo borrador.');
-    }
+    setModalPrompt({
+      title: 'Guardar como nuevo',
+      message: 'Ingresá un nombre para el nuevo borrador:',
+      onConfirm: async (nombre) => {
+        if (!nombre?.trim()) {
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: 'El nombre no puede estar vacío.',
+            onConfirm: () => setModalConfirm(null),
+          });
+          return;
+        }
+        try {
+          const saved = await guardarEnRTDB({ estado: 'borrador', nombre, forceNew: true });
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Borrador nuevo guardado',
+            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            onConfirm: () => {
+              setModalConfirm(null);
+              router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
+            },
+          });
+        } catch (e) {
+          console.error(e);
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: lockMsg || e?.message || 'Error al guardar el nuevo borrador.',
+            onConfirm: () => setModalConfirm(null),
+          });
+        }
+      },
+    });
   }, [isClient, paciente, guardarEnRTDB, lockMsg, router]);
 
-  const cerrarSiniestro = useCallback(async () => {
+  const cerrarSiniestro = useCallback(() => {
     if (!isClient) return;
-
     if (!paciente.nombreCompleto || !paciente.dni) {
-      alert('Complete los datos del paciente primero');
-      setActiveTab('datos');
+      setModalConfirm({
+        title: 'Datos incompletos',
+        message: 'Completá los datos del paciente primero.',
+        onConfirm: () => {
+          setModalConfirm(null);
+          setActiveTab('datos');
+        },
+      });
       return;
     }
-
-    const nombre = prompt('Nombre del siniestro (para cerrar y facturar):', paciente.nombreCompleto || 'Siniestro');
-    if (!nombre) return;
-
-    try {
-      const saved = await guardarEnRTDB({ estado: 'cerrado', nombre });
-
-      alert(
-        `✅ Factura generada\nNro: ${saved.facturaNro}\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`
-      );
-
-      limpiarFactura();
-      router.replace('/admin/Facturacion/Nuevo');
-    } catch (e) {
-      console.error(e);
-      alert(lockMsg || e?.message || '❌ Error al cerrar y generar factura.');
-    }
-  }, [isClient, paciente, guardarEnRTDB, limpiarFactura, lockMsg, router]);
+    setModalPrompt({
+      title: 'Cerrar y facturar',
+      message: 'Ingresá un nombre para el siniestro:',
+      onConfirm: async (nombre) => {
+        if (!nombre?.trim()) {
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: 'El nombre no puede estar vacío.',
+            onConfirm: () => setModalConfirm(null),
+          });
+          return;
+        }
+        try {
+          const saved = await guardarEnRTDB({ estado: 'cerrado', nombre });
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Factura generada',
+            message: `Nro: ${saved.facturaNro}\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            onConfirm: () => {
+              setModalConfirm(null);
+              limpiarFactura();
+              router.replace('/admin/Facturacion/Nuevo');
+            },
+          });
+        } catch (e) {
+          console.error(e);
+          setModalPrompt(null);
+          setModalConfirm({
+            title: 'Error',
+            message: lockMsg || e?.message || 'Error al cerrar y generar factura.',
+            onConfirm: () => setModalConfirm(null),
+          });
+        }
+      },
+    });
+  }, [isClient, paciente, guardarEnRTDB, lockMsg, limpiarFactura, router]);
 
   const puedeNavegar = Boolean(paciente.nombreCompleto && paciente.dni);
 
@@ -727,6 +848,26 @@ export default function FacturaContainer() {
 
   return (
     <div className={styles.container}>
+      {/* Modales */}
+      <Modal
+        open={!!modalConfirm}
+        title={modalConfirm?.title || ''}
+        message={modalConfirm?.message || ''}
+        onClose={() => setModalConfirm(null)}
+        onConfirm={modalConfirm?.onConfirm}
+        confirmText="Aceptar"
+      />
+      <Modal
+        open={!!modalPrompt}
+        title={modalPrompt?.title || ''}
+        message={modalPrompt?.message || ''}
+        showInput
+        inputValue={paciente.nombreCompleto || ''}
+        onClose={() => setModalPrompt(null)}
+        onConfirm={modalPrompt?.onConfirm}
+        confirmText="Guardar"
+      />
+
       <header className={styles.header}>
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
@@ -833,7 +974,7 @@ export default function FacturaContainer() {
         )}
       </header>
 
-      {/* ===== CARTEL DE DUPLICADOS (sin botón) ===== */}
+      {/* ===== CARTEL DE DUPLICADOS ===== */}
       {existentes.length > 0 && (
         <div className={styles.duplicateAlert}>
           <div className={styles.duplicateHeader}>
@@ -997,7 +1138,6 @@ export default function FacturaContainer() {
             </button>
           ) : null}
 
-          {/* Si hay duplicados y no estamos editando, mostramos "Guardar como nuevo" */}
           {existentes.length > 0 && !draftId && (
             <button className={styles.btnPrimario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
               Guardar como nuevo

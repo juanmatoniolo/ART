@@ -1,0 +1,832 @@
+/* ========== BASE ========== */
+.page {
+    min-height: 100vh;
+    background: #0b1220;
+    color: #e5e7eb;
+}
+
+/* ========== LAYOUT PRINCIPAL ========== */
+.layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 1fr;
+        padding: 20px 16px 48px;
+    }
+}
+
+/* ========== COLUMNA DEL FORMULARIO ========== */
+.formColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+/* ========== SECCIONES ========== */
+.section {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sectionIcon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.3px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.sectionHint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: auto;
+    font-style: italic;
+}
+
+.sectionBody {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+}
+
+/* ========== GRIDS DE COLUMNAS ========== */
+.cols2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+.cols3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+.cols4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 900px) {
+    .cols3, .cols4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .cols2, .cols3, .cols4 { grid-template-columns: 1fr; }
+}
+
+.fieldSpan2 {
+    grid-column: span 2;
+}
+@media (max-width: 900px) {
+    .fieldSpan2 { grid-column: 1 / -1; }
+}
+
+/* ========== CAMPOS ========== */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.fieldLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* ========== INPUTS ========== */
+.input {
+    width: 100%;
+    background: #1a2335;
+    color: #f1f5f9;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    padding: 10px 14px;
+    outline: none;
+    font-size: 15px;
+    transition: all 0.15s;
+    box-sizing: border-box;
+}
+.input::placeholder { color: #4b5568; }
+.input:focus {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.18);
+}
+.input:disabled { opacity: 0.45; cursor: not-allowed; }
+.inputReadonly {
+    color: #6fa17b;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.hint {
+    font-size: 11px;
+    color: #475569;
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.code {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #151f2e;
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 10px;
+}
+
+/* ========== SEXO CHIPS ========== */
+.sexRowInline {
+    display: flex;
+    gap: 8px;
+}
+.chip {
+    flex: 1;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    background: #1a2335;
+    color: #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+}
+.chip:hover { border-color: #6fa17b; background: #1e2d40; }
+.chipActive {
+    border-color: #6fa17b;
+    background: rgba(111,161,123,0.15);
+    color: #a3d9ad;
+}
+
+/* ========== CHECKBOX ========== */
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: #1a2335;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.checkboxRow:hover { border-color: #6fa17b; }
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+    position: sticky;
+    top: 24px;
+    z-index: 20;
+}
+@media (max-width: 1100px) {
+    .sidebar { position: static; }
+}
+.sidebarCard {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.patientPreview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px;
+}
+.patientAvatar { font-size: 32px; line-height: 1; }
+.patientInfo { display: flex; flex-direction: column; gap: 3px; }
+.patientName {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.patientNameEmpty { color: #4b5568; font-style: italic; }
+.patientAge { font-size: 13px; color: #6fa17b; font-weight: 600; }
+.patientHC { font-size: 12px; color: #64748b; }
+.cxPreview {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(111,161,123,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(111,161,123,0.2);
+}
+.cxLabel {
+    font-size: 10px;
+    font-weight: 800;
+    color: #6fa17b;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    background: rgba(111,161,123,0.15);
+    border-radius: 4px;
+}
+.cxValue { font-size: 13px; color: #cbd5e1; line-height: 1.4; }
+.sidebarDivider { height: 1px; background: rgba(255,255,255,0.07); }
+.downloadTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+.downloadBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1a2335;
+    border: 1.5px solid #253348;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+}
+.downloadBtn:hover {
+    border-color: #6fa17b;
+    background: #1e2d40;
+    transform: translateY(-1px);
+}
+.downloadIcon { font-size: 18px; color: #6fa17b; }
+.downloadBtnText { display: flex; flex-direction: column; gap: 2px; }
+.downloadBtnText strong { font-size: 14px; color: #f1f5f9; }
+.downloadBtnText small { font-size: 11px; color: #6b7280; }
+.sidebarNote {
+    font-size: 12px;
+    color: #4b5568;
+    text-align: center;
+}
+
+/* ========== TABLAS y SOLICITUDES ========== */
+.tableWrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: #111827;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+}
+.rowAtendida { opacity: 0.6; background: rgba(0,0,0,0.2); }
+.cellName strong { display: block; }
+.subText { font-size: 11px; color: #6b7280; margin-top: 4px; }
+.estadoBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.estadoPendiente {
+    background: #f59e0b20;
+    color: #fbbf24;
+    border: 1px solid #f59e0b40;
+}
+.estadoAtendida {
+    background: #10b98120;
+    color: #34d399;
+    border: 1px solid #10b98140;
+}
+.actionsCell {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.iconBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #e2e8f0;
+}
+.iconBtn:hover { background: rgba(255,255,255,0.05); border-color: #6fa17b; }
+.iconBtnSuccess {
+    background: rgba(16,185,129,0.1);
+    border-color: #10b98140;
+    color: #34d399;
+}
+.iconBtnWarning {
+    background: rgba(245,158,11,0.1);
+    border-color: #f59e0b40;
+    color: #fbbf24;
+}
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+    background: #111827;
+    border-radius: 16px;
+}
+.emptyIcon { font-size: 48px; display: block; margin-bottom: 16px; opacity: 0.5; }
+
+/* ========== PESTAÑAS DE NAVEGACIÓN (comunes) ========== */
+.tabsContainer {
+    display: flex;
+    gap: 8px;
+    background: #0b1220;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 0 0 12px;
+    margin-bottom: 20px;
+}
+.tabButton {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+.tabButton:hover { color: #cbd5e1; }
+.activeTab {
+    color: #6fa17b;
+    border-bottom-color: #6fa17b;
+}
+
+/* ========== TABS INTERNAS (filtros) ========== */
+.tabs {
+    display: flex;
+    gap: 8px;
+    background: #1a2335;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+.tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tab:hover { color: #cbd5e1; }
+.tabActive {
+    background: #2d3a4f;
+    color: #f1f5f9;
+}
+.tabCount {
+    margin-left: 6px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 20px;
+}
+
+/* ========== MODALES ========== */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+.modal {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.modalHeader h2 { font-size: 18px; font-weight: 700; margin: 0; color: #f1f5f9; }
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #9ca3af;
+}
+.closeBtn:hover { color: #f1f5f9; }
+.modalBody { padding: 20px; }
+.detailRow {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 14px;
+}
+.detailRow strong { display: inline-block; min-width: 130px; color: #94a3b8; }
+.formGroup { margin-bottom: 20px; }
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+.actionsModal {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+.cancelBtn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+}
+.saveBtn {
+    background: #44794d;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+.saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ========== SELECTOR DE PACIENTE ========== */
+.modeSelector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.modeBtn {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1.5px solid #253348;
+    border-radius: 10px;
+    background: #1a2335;
+    color: #cbd5e1;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+}
+.modeBtn.active {
+    background: #44794d;
+    color: white;
+    border-color: #6fa17b;
+}
+.pacienteSection {
+    background: #111827;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+.pacienteSection h3 { font-size: 14px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.75rem; }
+.pacienteSelector { margin-top: 0.5rem; }
+.pacienteList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #253348;
+    border-radius: 10px;
+    margin-top: 0.75rem;
+    background: #0b1220;
+}
+.pacienteItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #253348;
+    color: #e2e8f0;
+}
+.pacienteItem:hover { background: #1a2335; }
+.pacienteItem.selected {
+    background: rgba(111,161,123,0.15);
+    border-left: 3px solid #6fa17b;
+}
+.pacienteDni { color: #6b7280; font-size: 12px; margin-left: 8px; }
+.selectedPacienteInfo {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(111,161,123,0.1);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #a3d9ad;
+}
+
+/* ========== FECHA Y ACCIONES ========== */
+.fechaSection { margin: 1.5rem 0 1rem; }
+.actions { display: flex; justify-content: flex-end; margin-bottom: 2rem; }
+.primaryBtn {
+    background: #44794d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.primaryBtn:hover { background: #5b9a63; }
+.primaryBtn:disabled { opacity: 0.5; }
+
+/* ========== CARGANDO y ERRORES ========== */
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 16px;
+    color: #6b7280;
+}
+.loadingSpinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(111,161,123,0.2);
+    border-top-color: #6fa17b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.bannerError {
+    border: 1px solid rgba(239,68,68,0.35);
+    background: rgba(127,29,29,0.35);
+    color: #fecaca;
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 4px;
+}
+.small { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+
+/* ========== BANNER DE ÉXITO ========== */
+.bannerSuccess {
+  border: 1px solid #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 4px;
+}
+
+/* ========== FILTROS ========== */
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #111827;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 20px;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  font-size: 16px;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  background: #1a2335;
+  border: 1.5px solid #253348;
+  border-radius: 10px;
+  color: #f1f5f9;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.15s;
+}
+.searchInput::placeholder {
+  color: #4b5568;
+}
+.searchInput:focus {
+  border-color: #6fa17b;
+  background: #1e2d40;
+  box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.18);
+}
+
+.clearSearch {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.clearSearch:hover {
+  color: #f1f5f9;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.filterLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filterInput {
+  background: #1a2335;
+  border: 1.5px solid #253348;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #f1f5f9;
+  font-size: 13px;
+  outline: none;
+  min-width: 120px;
+}
+.filterInput:focus {
+  border-color: #6fa17b;
+}
+
+.filterCheckLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.filterCheckLabel input[type="checkbox"] {
+  accent-color: #6fa17b;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.clearBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 6px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clearBtn:hover {
+  border-color: #6fa17b;
+  color: #f1f5f9;
+}
+
+/* ========== CARDS GRID (para cirugías pendientes) ========== */
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 8px;
+}
+
+/* ========== TABLA DE HISTORIAL ========== */
+.dniSmall {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.tableActions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionView,
+.actionDelete {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #e2e8f0;
+}
+.actionView:hover {
+  background: rgba(111, 161, 123, 0.15);
+  border-color: #6fa17b;
+}
+.actionDelete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+/* ========== ESTADÍSTICAS (StatsBar) ========== */
+/* Si StatsBar no tiene su propio CSS, puedes agregar estas reglas base */
+.statsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #111827;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 20px;
+}
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+.statValue {
+  font-weight: 700;
+  color: #f1f5f9;
+  font-size: 18px;
+}
+.statLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}

@@ -524,3 +524,110 @@
     padding: var(--sp-5) var(--sp-6);
   }
 }
+
+
+
+/* ===== Modal ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background: var(--c-panel);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-md);
+  max-width: 420px;
+  width: 100%;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  animation: _modalIn 0.2s ease-out;
+}
+
+@keyframes _modalIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--c-text-3);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: background var(--trans), color var(--trans);
+}
+.modalClose:hover {
+  background: var(--c-panel-alt);
+  color: var(--c-text);
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.modalText {
+  margin: 0;
+  color: var(--c-text-2);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.modalInput {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: rgba(0,0,0,0.4);
+  color: var(--c-text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color var(--trans), box-shadow var(--trans);
+}
+.modalInput:focus {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 480px) {
+  .modalActions {
+    flex-direction: column;
+  }
+  .modalActions button {
+    width: 100%;
+  }
+}
