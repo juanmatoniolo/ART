@@ -4,9 +4,10 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Icon from "../components/Icon";
-import { normalizeText, formatCurrency } from "../utils/farmacia";
+import { formatCurrency } from "../utils/farmacia";
+import Fuse from "fuse.js"; // Asegúrate de instalar: npm install fuse.js
 import s from "./repartoPage.module.css";
-import { useFarmaciaContext } from "../context/FarmaciaContext"; // ✅ Cambio aquí
+import { useFarmaciaContext } from "../context/FarmaciaContext";
 
 const DESTINOS = [
   "Guardia", "Primer Piso", "Segundo Piso", "Quirófano", "UTI",
@@ -22,7 +23,7 @@ const getStockColor = (stock, min = 10) => {
 
 export default function RepartoPage() {
   const router = useRouter();
-  const { items, procesarReparto, usuarioActual } = useFarmaciaContext(); // ✅ usuarioActual disponible
+  const { items, procesarReparto, usuarioActual } = useFarmaciaContext();
 
   const [destino, setDestino] = useState("Guardia");
   const [responsable, setResponsable] = useState("");
@@ -32,7 +33,7 @@ export default function RepartoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Solo productos activos y sin duplicados
+  // Productos activos únicos
   const itemsActivos = useMemo(() => {
     const map = new Map();
     (items || []).forEach(item => {
@@ -53,22 +54,27 @@ export default function RepartoPage() {
 
   const disponibles = useMemo(() => {
     const idsSeleccionados = new Set(seleccionados.map(p => p.id));
-    let filtrados = itemsActivos.filter(i => i.stock > 0 && !idsSeleccionados.has(i.id));
+    const itemsFiltrados = itemsActivos.filter(
+      i => i.stock > 0 && !idsSeleccionados.has(i.id)
+    );
+
+    // Configurar Fuse para búsqueda difusa
+    const fuse = new Fuse(itemsFiltrados, {
+      keys: ['nombreLimpio'],
+      threshold: 0.3,
+      includeScore: true,
+    });
 
     if (busqueda.trim()) {
-      const q = normalizeText(busqueda);
-      filtrados = filtrados.filter(i => normalizeText(i.nombreLimpio).includes(q));
-      filtrados.sort((a, b) => {
-        const aStarts = normalizeText(a.nombreLimpio).startsWith(q);
-        const bStarts = normalizeText(b.nombreLimpio).startsWith(q);
-        if (aStarts && !bStarts) return -1;
-        if (!aStarts && bStarts) return 1;
-        return b.stock - a.stock;
-      });
+      // Buscar con Fuse y limitar a 5 resultados
+      const resultados = fuse.search(busqueda.trim());
+      return resultados.slice(0, 5).map(r => r.item);
     } else {
-      filtrados.sort((a, b) => b.stock - a.stock);
+      // Sin búsqueda: ordenar por stock descendente y tomar los primeros 5
+      return [...itemsFiltrados]
+        .sort((a, b) => b.stock - a.stock)
+        .slice(0, 5);
     }
-    return filtrados;
   }, [itemsActivos, seleccionados, busqueda]);
 
   const agregarProducto = (item) => {
@@ -130,7 +136,6 @@ export default function RepartoPage() {
       presentacion: p.presentacion,
     }));
 
-    // ✅ El usuario se tomará automáticamente dentro del hook
     const ok = await procesarReparto(productos, { destino, responsable, nota });
     setLoading(false);
     if (ok) router.push("/farmacia");
@@ -148,7 +153,6 @@ export default function RepartoPage() {
             </div>
           </div>
           <div className={s.headerActions}>
-            {/* Mostrar usuario actual */}
             {usuarioActual && (
               <span className={s.usuarioBadge}>
                 👤 {usuarioActual.nombre} ({usuarioActual.user})
@@ -226,6 +230,11 @@ export default function RepartoPage() {
                   </button>
                 )}
               </div>
+              <p className={s.infoLimitada}>
+                {busqueda
+                  ? "Mostrando los 5 mejores resultados."
+                  : "Mostrando 5 productos con mayor stock. Usá el buscador para otros."}
+              </p>
               <div className={s.listaDisponibles}>
                 {disponibles.length === 0 ? (
                   <p className={s.emptyText}>

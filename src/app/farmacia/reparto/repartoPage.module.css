@@ -8,7 +8,8 @@
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
-  background-color: #ffffff; /* fondo blanco opaco */
+  background-color: #ffffff;
+  /* fondo blanco opaco */
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -76,6 +77,7 @@
   background-color: #f1f5f9;
   color: #334155;
 }
+
 .btnCancel:hover {
   background-color: #e2e8f0;
   transform: translateY(-1px);
@@ -85,11 +87,13 @@
   background-color: #2563eb;
   color: #ffffff;
 }
+
 .btnPrimary:hover:not(:disabled) {
   background-color: #1d4ed8;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
+
 .btnPrimary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -196,8 +200,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─── GRID PRINCIPAL (dos columnas) ─── */
@@ -420,12 +431,12 @@
   background-color: #ffffff;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
 .itemSeleccionado:hover {
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
@@ -538,10 +549,12 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+
   .listaDisponibles,
   .listaSeleccionados {
     max-height: 250px;
   }
+
   .pageContainer {
     padding: 1rem;
   }
@@ -552,47 +565,60 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+
   .headerTop {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .headerActions {
     width: 100%;
     justify-content: flex-start;
   }
+
   .destinoGrid {
     gap: 0.3rem;
   }
+
   .destinoChip {
     font-size: 0.75rem;
     padding: 0.25rem 0.7rem;
   }
+
   .itemSeleccionado {
     flex-wrap: wrap;
     gap: 0.5rem;
   }
+
   .nombreProducto {
     flex-basis: 100%;
   }
+
   .controlesCantidad input {
     width: 35px;
   }
+
   .stockInfo {
     min-width: 40px;
   }
+
   .subtotal {
     min-width: 60px;
   }
+
   .repartoActions {
     flex-direction: column-reverse;
   }
+
   .repartoActions .actionBtn {
     justify-content: center;
     width: 100%;
   }
+
   .dashboardTitle {
     font-size: 1.4rem;
   }
+
   .listaDisponibles,
   .listaSeleccionados {
     max-height: 200px;
@@ -605,10 +631,11 @@
 .productoDisponible {
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
+
 .productoDisponible:hover {
   background: #f0f7ff;
   transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Spinner para botón de carga */
@@ -616,19 +643,23 @@
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #fff;
   animation: spin 0.6s ease-in-out infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Mejoras en botones */
 .btnAgregar {
   transition: all 0.2s;
 }
+
 .btnAgregar:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
@@ -638,7 +669,155 @@
 .controlesCantidad input {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
+
 .controlesCantidad input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 992px) {
+  .repartoGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* Eliminar scroll interno en listas */
+  .listaDisponibles,
+  .listaSeleccionados {
+    max-height: none;
+    overflow-y: visible;
+    flex: initial;
+    /* quitar flex:1 para que no se estiren */
+  }
+
+  .pageContainer {
+    padding: 1rem;
+  }
+
+  /* Ajustar espaciado en paneles */
+  .repartoDisponibles,
+  .repartoSeleccionados {
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .repartoCampos {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .headerTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .destinoGrid {
+    gap: 0.3rem;
+  }
+
+  .destinoChip {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.8rem;
+    /* un poco más grande para tocar */
+  }
+
+  .itemSeleccionado {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem;
+  }
+
+  .nombreProducto {
+    flex-basis: 100%;
+  }
+
+  .controlesCantidad input {
+    width: 40px;
+    padding: 0.3rem 0;
+  }
+
+  .stockInfo {
+    min-width: 40px;
+  }
+
+  .subtotal {
+    min-width: 60px;
+  }
+
+  .repartoActions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .repartoActions .actionBtn {
+    justify-content: center;
+    width: 100%;
+    padding: 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .dashboardTitle {
+    font-size: 1.4rem;
+  }
+
+  /* Ajuste para que la lista no tenga scroll interno */
+  .listaDisponibles,
+  .listaSeleccionados {
+    max-height: none;
+    overflow-y: visible;
+    flex: initial;
+  }
+
+  /* Contenedor principal con menos padding */
+  .pageContainer {
+    padding: 0.8rem;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  /* Inputs y textarea más cómodos */
+  .formInput,
+  .formTextarea,
+  .searchInput {
+    font-size: 16px;
+    /* evita zoom automático en iOS */
+    padding: 0.8rem;
+  }
+
+  /* Botones de agregar más grandes */
+  .btnAgregar {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Estilo para el badge de usuario */
+.usuarioBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+
+.infoLimitada {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.5rem 0;
+  text-align: center;
 }
