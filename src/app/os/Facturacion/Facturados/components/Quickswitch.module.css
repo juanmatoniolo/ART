@@ -1,0 +1,72 @@
+/* ========================================
+   quickswitch.module.css
+   ======================================== */
+
+.quickSwitch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 13px;
+    border-radius: 30px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    color: #64748b;
+    background: transparent;
+    transition: all 0.12s ease;
+    line-height: 1;
+}
+
+.tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
+}
+
+.tabActive {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.tabActive:hover {
+    background: #2563eb;
+}
+
+/* Contador numérico */
+.count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 30px;
+    font-size: 0.63rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+}
+
+.tabActive .count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .quickSwitch {
+        width: 100%;
+    }
+
+    .tab {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}

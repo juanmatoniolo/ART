@@ -1,0 +1,341 @@
+/* ===== Dashboard de Facturación ===== */
+.page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: #0b1220;
+  color: #fff;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  /* ← Elimina scroll lateral */
+  box-sizing: border-box;
+}
+
+/* ===== Header ===== */
+.header {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.5rem 1.2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(4px);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Evita desbordamientos internos */
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #f0f9ff;
+  word-break: break-word;
+}
+
+.subtitle {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  font-weight: 500;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  word-break: break-word;
+}
+
+.subtitle b {
+  color: #86efac;
+  font-weight: 700;
+}
+
+/* ===== Grid de tarjetas ===== */
+.grid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== Tarjetas ===== */
+.card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 1.5rem 1.2rem;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.cardPrimary::after {
+  background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.06), transparent 70%);
+}
+
+.cardSecondary::after {
+  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.06), transparent 70%);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cardPrimary:hover {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.cardSecondary:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+.cardPrimary {
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12) inset;
+}
+
+.cardSecondary {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12) inset;
+}
+
+.cardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin-bottom: 0.8rem;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.cardPrimary .cardIcon {
+  color: #86efac;
+}
+
+.cardSecondary .cardIcon {
+  color: #93c5fd;
+}
+
+.card:hover .cardIcon {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.cardTitle {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  font-weight: 900;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.cardDesc {
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  word-break: break-word;
+}
+
+.cardCta {
+  margin-top: 1rem;
+  font-weight: 800;
+  color: #bfdbfe;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  transition: transform 0.2s;
+}
+
+.card:hover .cardCta {
+  transform: translateX(4px);
+  color: #e0f2fe;
+}
+
+/* ===== Footer ===== */
+.footer {
+  margin-top: 2rem;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1vw, 0.9rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.note {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ========================================== */
+/* ========== MEDIA QUERIES ================ */
+/* ========================================== */
+
+/* Móviles (≤480px) – ajustes extra para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .page {
+    padding: 0.6rem;
+  }
+
+  .header {
+    padding: 1rem 0.8rem;
+    border-radius: 16px;
+    margin-bottom: 1.2rem;
+  }
+
+  .title {
+    font-size: 1.3rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .card {
+    padding: 1.2rem 0.8rem;
+    border-radius: 16px;
+  }
+
+  .cardIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .cardTitle {
+    font-size: 1rem;
+  }
+
+  .cardDesc {
+    font-size: 0.8rem;
+  }
+
+  .cardCta {
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablets y móviles grandes (≥640px) */
+@media (min-width: 640px) {
+  .page {
+    padding: 1.5rem;
+  }
+
+  .header {
+    padding: 1.8rem 2rem;
+  }
+
+  .grid {
+    gap: 1.25rem;
+  }
+}
+
+/* Escritorio (≥1024px) */
+@media (min-width: 1024px) {
+  .page {
+    padding: 2rem 2.5rem;
+  }
+
+  .header {
+    padding: 2.2rem 2.8rem;
+    border-radius: 24px;
+    margin-bottom: 2.5rem;
+  }
+
+  .title {
+    font-size: 2.4rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .card {
+    padding: 2.2rem 2.2rem 1.8rem;
+    border-radius: 24px;
+  }
+
+  .cardIcon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+    border-radius: 18px;
+    margin-bottom: 1.2rem;
+  }
+
+  .cardTitle {
+    font-size: 1.5rem;
+  }
+
+  .cardDesc {
+    font-size: 1rem;
+  }
+
+  .cardCta {
+    font-size: 1rem;
+  }
+
+  .footer {
+    margin-top: 3rem;
+    font-size: 1rem;
+    padding: 1.2rem 0;
+  }
+}
+
+/* Pantallas muy grandes (≥1400px) */
+@media (min-width: 1400px) {
+  .page {
+    padding: 2.5rem 3rem;
+  }
+
+  .header {
+    padding: 2.5rem 3.2rem;
+  }
+
+  .grid {
+    gap: 2.5rem;
+  }
+
+  .card {
+    padding: 2.5rem 2.5rem 2rem;
+  }
+}

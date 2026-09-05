@@ -1,0 +1,1024 @@
+/* =========================
+   RESUMEN FACTURA (UI/UX)
+========================= */
+
+.tabContent {
+    /* ── Design tokens ── */
+    --color-bg-primary:    #0b1220;
+    --color-bg-secondary:  #111827;
+    --color-bg-tertiary:   #1f2937;
+
+    --color-border:        rgba(255, 255, 255, 0.10);
+
+    --color-text-primary:  #f9fafb;
+    --color-text-secondary:#cbd5e1;
+    --color-text-tertiary: #64748b;
+
+    --color-primary:       #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-primary-dark:  #1d4ed8;
+
+    --color-success:       #22c55e;
+    --color-warning:       #f59e0b;
+    --color-danger:        #ef4444;
+
+    --border-radius-sm:    6px;
+    --border-radius-md:    10px;
+    --border-radius-lg:    14px;
+
+    --spacing-xs:  4px;
+    --spacing-sm:  8px;
+    --spacing-md:  12px;
+    --spacing-lg:  16px;
+    --spacing-xl:  20px;
+    --spacing-2xl: 24px;
+    --spacing-3xl: 32px;
+
+    --transition-base: 200ms ease;
+    --transition-fast: 140ms ease;
+
+    width: 100%;
+    color: var(--color-text-primary);
+}
+
+.tabContent h2 {
+    font-size: clamp(1.4rem, 3.6vw, 1.75rem);
+    font-weight: 800;
+    margin: 0 0 var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* ===== Info (Paciente / Convenio) ===== */
+.infoResumen {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+@media (min-width: 900px) {
+    .infoResumen {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.infoPaciente,
+.infoConvenio {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.infoPaciente h3,
+.infoConvenio h3 {
+    margin: 0 0 var(--spacing-md);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.infoPaciente p,
+.infoConvenio p {
+    margin: 0 0 var(--spacing-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+}
+
+.valoresMini {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.valoresMini span {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #bfdbfe;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* ===== Acordeón principal ===== */
+.acSection {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.18);
+    margin-bottom: var(--spacing-lg);
+}
+
+.acHeader {
+    width: 100%;
+    background: var(--color-bg-tertiary);
+    border: none;
+    color: var(--color-text-primary);
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    transition: background var(--transition-base);
+}
+
+.acHeader:hover {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.acTitle {
+    font-weight: 900;
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+}
+
+.acRight {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.acCount {
+    background: rgba(34, 197, 94, 0.18);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #86efac;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 0.82rem;
+}
+
+.acAmount {
+    background: rgba(148, 163, 184, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 0.82rem;
+}
+
+.acChevron {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform var(--transition-base);
+}
+
+.acChevronOpen {
+    transform: rotate(180deg);
+}
+
+.acBody {
+    padding: var(--spacing-lg);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Sub-acordeón (Prácticas: Honorarios/Gastos) ===== */
+.subAcc {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.18);
+    margin-bottom: var(--spacing-md);
+}
+
+.subAccHeader {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.22);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    color: var(--color-text-primary);
+    transition: background var(--transition-base);
+}
+
+.subAccHeader:hover {
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.subAccTitle {
+    font-weight: 900;
+    font-size: 0.95rem;
+}
+
+.subAccRight {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.subAccBody {
+    padding: var(--spacing-md);
+}
+
+/* ===== Tabla (sin scroll horizontal molesto) ===== */
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.10);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.table thead th {
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-text-primary);
+    padding: 12px 12px;
+    font-weight: 900;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-text-secondary);
+    vertical-align: top;
+}
+
+.table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Column widths */
+.thCode,
+.columnaCodigo {
+    width: 90px;
+}
+
+.thQty,
+.columnaCantidad {
+    width: 160px;
+}
+
+.thUnit,
+.columnaUnidad {
+    width: 170px;
+}
+
+.thNum,
+.columnaValor {
+    width: 190px;
+}
+
+.thAction,
+.columnaAcciones {
+    width: 70px;
+    text-align: center;
+}
+
+.thDesc,
+.columnaDescripcion {
+    width: auto;
+}
+
+/* Código + badge RX */
+.columnaCodigo strong {
+    font-weight: 900;
+    color: var(--color-text-primary);
+}
+
+.badgeRx {
+    display: inline-flex;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #bfdbfe;
+}
+
+.descPrincipal {
+    color: var(--color-text-primary);
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
+}
+
+.subMeta {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.metaPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 900;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.30);
+    color: #fed7aa;
+}
+
+.metaText {
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+}
+
+/* Cantidad */
+.contadorCantidad {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.btnCantidad {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-text-primary);
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btnCantidad:hover {
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.inputCantidad {
+    width: 64px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--color-text-primary);
+    font-weight: 900;
+    text-align: center;
+    outline: none;
+}
+
+.inputCantidad:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.20);
+}
+
+.inputCantidadDecimal {
+    width: 78px;
+}
+
+/* Unidad */
+.columnaUnidad {
+    font-size: 0.86rem;
+    color: var(--color-text-tertiary);
+    line-height: 1.35;
+}
+
+/* Valor: Hon/Gas y total */
+.valorStack {
+    display: grid;
+    gap: 6px;
+}
+
+.valorLine {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.valorLabel {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.valorNumber {
+    font-size: 1.03rem;
+    font-weight: 900;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+}
+
+.valorLineTotal {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.10);
+}
+
+.formulaPequeña {
+    font-size: 0.78rem;
+    color: var(--color-text-tertiary);
+    opacity: 0.9;
+}
+
+/* Acciones */
+.btnEliminar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fecaca;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.btnEliminar:hover {
+    transform: translateY(-1px);
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* Empty state */
+.emptyBlock {
+    padding: 16px;
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-tertiary);
+    text-align: center;
+}
+
+/* ===== Totales ===== */
+.totalesGenerales {
+    margin-top: var(--spacing-xl);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.totalesGenerales h3 {
+    margin: 0 0 var(--spacing-md);
+    font-weight: 900;
+}
+
+.gridTotales {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (min-width: 720px) {
+    .gridTotales {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.totalItem {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.15);
+    color: var(--color-text-secondary);
+}
+
+.totalItem strong {
+    color: var(--color-text-primary);
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.totalItemGrande {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    padding: 14px 14px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    background: rgba(34, 197, 94, 0.12);
+    color: #bbf7d0;
+}
+
+.totalFinal {
+    font-size: 1.5rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+}
+
+/* ===== Botones resumen ===== */
+.botonesResumen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 720px) {
+    .botonesResumen {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.botonesIzquierda,
+.botonesDerecha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.btnLimpiar,
+.btnAtras,
+.btnDescargar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font: 900 0.9rem/1 inherit;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btnLimpiar:hover,
+.btnAtras:hover,
+.btnDescargar:hover {
+    transform: translateY(-1px);
+}
+
+.btnLimpiar {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fecaca;
+}
+
+.btnLimpiar:hover {
+    background: rgba(239, 68, 68, 0.20);
+}
+
+.btnAtras {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.btnAtras:hover {
+    border-color: rgba(59, 130, 246, 0.45);
+}
+
+.btnDescargar {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #bbf7d0;
+}
+
+.btnDescargar:hover {
+    background: rgba(34, 197, 94, 0.20);
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .acHeader {
+        padding: var(--spacing-md);
+    }
+
+    .acTitle {
+        font-size: 0.92rem;
+    }
+
+    .table thead th,
+    .table tbody td {
+        padding: 10px 10px;
+    }
+
+    .thQty,
+    .columnaCantidad {
+        width: 150px;
+    }
+
+    .thNum,
+    .columnaValor {
+        width: 180px;
+    }
+}
+
+/* ===== Badge artroscopia ===== */
+.artroBadge {
+    display: inline-flex;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    color: #c4b5fd;
+    vertical-align: middle;
+}
+
+/* ===== Fila RX destacada ===== */
+.rxRow {
+    background: rgba(59, 130, 246, 0.06);
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
+}
+
+/* ===== Dr que realiza ===== */
+.doctorRow {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inputDoctor {
+    flex: 1;
+    min-width: 220px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--color-text-primary);
+    font-weight: 800;
+    padding: 0 12px;
+    outline: none;
+}
+
+.inputDoctor::placeholder {
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+.inputDoctor:focus {
+    border-color: rgba(34, 197, 94, 0.45);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+/* ===== Inputs prestador (Dr / Bioquímico) ===== */
+.doctorSelectContainer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.doctorInput {
+    flex: 1;
+    padding: 0.4rem;
+    background-color: #1e1e2f;
+    color: #f0f0f0;
+    border: 1px solid #4a4a6a;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.doctorInput:focus {
+    outline: none;
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.3);
+}
+
+.addDoctorBtn {
+    background: none;
+    border: none;
+    color: #4caf50;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+}
+
+.addDoctorBtn:hover {
+    transform: scale(1.1);
+}
+
+.selectPrestador {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.20);
+    color: var(--color-text-primary);
+    outline: none;
+}
+
+.selectPrestador:focus {
+    border-color: rgba(59, 130, 246, 0.55);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.rolesBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.roleItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.roleLabel {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #b8b8d1;
+}
+
+.rolePill {
+    margin-top: 8px;
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: rgba(123, 97, 255, 0.15);
+    color: #bca8ff;
+    border: 1px solid rgba(123, 97, 255, 0.35);
+}
+
+/* ===== Sección manual: info banner ===== */
+.manualInfo {
+    font-size: 0.85rem;
+    color: #fde047;
+    background: rgba(234, 179, 8, 0.12);
+    border-left: 4px solid #eab308;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+/* Inputs manuales */
+.manualInput {
+    width: 100%;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    font-size: 0.83rem;
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--color-text-primary);
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+
+.manualInput:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.20);
+}
+
+.manualInputNum {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.manualTotal {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #60a5fa;
+    white-space: nowrap;
+}
+
+.manualFooterRow td {
+    padding: 0.45rem 0.4rem;
+    background: rgba(30, 41, 59, 0.8);
+    border-top: 2px solid rgba(71, 85, 105, 0.6);
+    font-size: 0.84rem;
+}
+
+.manualFooterLabel {
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.manualFooterNum {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.manualAddRow {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0.6rem 0 0.2rem;
+}
+
+.btnAgregarManual {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    background: var(--color-primary, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.btnAgregarManual:hover {
+    background: var(--color-primary-dark, #4f46e5);
+    transform: translateY(-1px);
+}
+
+.btnAgregarManual:active {
+    transform: translateY(0);
+}
+
+.thDescMed {
+    width: 25%;
+    text-align: left;
+}
+
+/* ========================================
+   ESTILOS PARA IMPRESIÓN (escala de grises)
+   ======================================== */
+.printView {
+    display: none;
+}
+
+@media print {
+
+    .screenView {
+        display: none;
+    }
+
+    .printView {
+        display: block;
+        font-family: Arial, Helvetica, sans-serif;
+        color: black;
+        background: white;
+        padding: 0.5in;
+        max-width: 100%;
+    }
+
+    .printHeader h1 {
+        font-size: 18pt;
+        margin-bottom: 16pt;
+        border-bottom: 2px solid #000;
+        padding-bottom: 8pt;
+    }
+
+    .printPaciente p {
+        margin: 4pt 0;
+        font-size: 11pt;
+    }
+
+    .printHonorarios,
+    .printGastos {
+        margin-top: 20pt;
+    }
+
+    .printHonorarios h3,
+    .printGastos h3 {
+        font-size: 14pt;
+        margin: 12pt 0 8pt;
+        border-bottom: 1px solid #333;
+        padding-bottom: 4pt;
+    }
+
+    .printSection h4 {
+        font-size: 12pt;
+        margin: 10pt 0 5pt;
+        font-weight: bold;
+    }
+
+    .printTable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15pt;
+        font-size: 10pt;
+    }
+
+    .printTable th {
+        background: #eee;
+        font-weight: bold;
+        text-align: left;
+        padding: 6pt 4pt;
+        border: 1px solid #aaa;
+    }
+
+    .printTable td {
+        padding: 4pt;
+        border: 1px solid #aaa;
+        vertical-align: top;
+    }
+
+    .printNumber {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .printTotales {
+        margin-top: 20pt;
+        border-top: 2px solid #000;
+        padding-top: 10pt;
+    }
+
+    .printTotalLine {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12pt;
+        margin: 4pt 0;
+    }
+
+    .printTotalFinal {
+        font-weight: bold;
+        font-size: 14pt;
+        margin-top: 8pt;
+        border-top: 1px solid #333;
+        padding-top: 6pt;
+    }
+
+    .printSubtotal {
+        text-align: right;
+        font-weight: 600;
+        margin-top: 4px;
+        margin-bottom: 8px;
+        padding-right: 8px;
+        border-top: 1px dashed #ccc;
+    }
+
+    .printManuales {
+        margin-top: 1.2rem;
+    }
+
+    .printManuales h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 0.2rem;
+    }
+}
+
+/* ===== Inputs dentro de tabla manual ===== */
+.table tbody td .manualInput,
+.table tbody td .manualInputNum {
+    background-color: rgba(30, 41, 59, 0.6);
+    color: #f1f5f9;
+    border: 1px solid rgba(71, 85, 105, 0.6);
+    font-weight: 500;
+}
+
+.table tbody td .manualInput::placeholder,
+.table tbody td .manualInputNum::placeholder {
+    color: #94a3b8;
+    font-weight: normal;
+}
+
+.table tbody td .selectPrestador {
+    background-color: rgba(30, 41, 59, 0.6);
+    color: #f1f5f9;
+    border: 1px solid rgba(71, 85, 105, 0.6);
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
