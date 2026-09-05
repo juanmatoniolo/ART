@@ -119,7 +119,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   };
 
   // ============================================================
-  //  FUNCIÓN DE CÁLCULO
+  //  CÁLCULO
   // ============================================================
   const getCalculo = useCallback((practica) => {
     if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
@@ -195,12 +195,18 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       return { honorarioMedico: honorario, gastoSanatorial: gasto, soloHonorario: false, soloGasto: false };
     }
 
-    // Ecografías sin meta especial
+    // ✅ ECOGRAFÍAS: separamos Honorario (Galeno) y Gasto (Gasto_Rx)
     if (isEcografia(practica)) {
       const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
       const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
-      const totalMedico = (galenoRx * (practica.q_gal || 0)) + (gastoRx * (practica.gto || 0));
-      return { honorarioMedico: totalMedico, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
+      const honorarioMedico = galenoRx * (practica.q_gal || 0);
+      const gastoSanatorial = gastoRx * (practica.gto || 0);
+      return {
+        honorarioMedico,
+        gastoSanatorial,
+        soloHonorario: false,  // para que se muestre el gasto en la tabla
+        soloGasto: false
+      };
     }
 
     // Prácticas con meta especial (ej: eco partes blandas, eco abdominal)
@@ -213,10 +219,14 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     return calcularPractica(practica, valoresConvenio);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
 
+  // ============================================================
+  //  AGREGAR PRÁCTICA
+  // ============================================================
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
     const calculo = getCalculo(practica);
+    const esEco = isEcografia(practica);
 
     let tipoArtroscopia = null;
     if (practica.codigo === '120902') {
@@ -237,27 +247,43 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     const agregados = [];
 
-    if (calculo.honorarioMedico > 0) {
+    // Si es ecografía, agregamos UNA sola línea con el total (honorario + gasto) al Médico
+    if (esEco) {
+      const totalMedico = calculo.honorarioMedico + calculo.gastoSanatorial;
       agregados.push({
-        id: `${baseId}-dr`,
+        id: `${baseId}-med`,
         ...baseCommon,
-        prestadorTipo: 'Dr',
+        prestadorTipo: 'Médico',
         prestadorNombre: '',
-        honorarioMedico: calculo.honorarioMedico,
+        honorarioMedico: totalMedico,
         gastoSanatorial: 0,
-        total: calculo.honorarioMedico,
+        total: totalMedico,
+        detalle: `Ecografía: ${money(calculo.honorarioMedico)} (Galeno) + ${money(calculo.gastoSanatorial)} (Gasto)`
       });
-    }
-    if (calculo.gastoSanatorial > 0) {
-      agregados.push({
-        id: `${baseId}-clin`,
-        ...baseCommon,
-        prestadorTipo: 'Clinica',
-        prestadorNombre: 'Clínica de la Unión',
-        honorarioMedico: 0,
-        gastoSanatorial: calculo.gastoSanatorial,
-        total: calculo.gastoSanatorial,
-      });
+    } else {
+      // Para otras prácticas: Dr + Clínica según corresponda
+      if (calculo.honorarioMedico > 0) {
+        agregados.push({
+          id: `${baseId}-dr`,
+          ...baseCommon,
+          prestadorTipo: 'Dr',
+          prestadorNombre: '',
+          honorarioMedico: calculo.honorarioMedico,
+          gastoSanatorial: 0,
+          total: calculo.honorarioMedico,
+        });
+      }
+      if (calculo.gastoSanatorial > 0) {
+        agregados.push({
+          id: `${baseId}-clin`,
+          ...baseCommon,
+          prestadorTipo: 'Clinica',
+          prestadorNombre: 'Clínica de la Unión',
+          honorarioMedico: 0,
+          gastoSanatorial: calculo.gastoSanatorial,
+          total: calculo.gastoSanatorial,
+        });
+      }
     }
 
     agregados.forEach(item => agregarPractica(item));
@@ -273,12 +299,14 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       tipoMsg = ` (Kinesiología)`;
     } else if (practica.codigo === 'FKT_+_MGT') {
       tipoMsg = ` (Kinesiología + MGT)`;
+    } else if (esEco) {
+      tipoMsg = ` (Ecografía - todo al médico)`;
     }
     showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
 
   // ============================================================
-  //  RESULTADOS RÁPIDOS (accesos directos)
+  //  RESULTADOS
   // ============================================================
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
@@ -466,7 +494,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   }, [debouncedQuery, defaultResultados, resultadosBusqueda]);
 
   // ============================================================
-  //  RENDERIZADO (con columna Total y capítulo 12 corregido)
+  //  RENDER
   // ============================================================
   const renderItem = (item, isMobile = false, qLocal = '') => {
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
@@ -487,6 +515,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const gastoLigamento = Number(valoresConvenio?.['Lig_Cruzado_Gastos_Sanatoriales']) || 0;
     const gastoHombro = Number(valoresConvenio?.['Artroscopia_Hombro']) || 0;
 
+    // Total = honorario + gasto (siempre)
+    const total = calculo.honorarioMedico + calculo.gastoSanatorial;
+
     if (isMobile) {
       return (
         <article
@@ -502,7 +533,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
           {esEco18 && (
             <div className={styles.ecoBadge}>
-              🩺 Honorario completo al médico (Galeno Rx × UVR + Gasto Rx × Gto)
+              🩺 Todo al médico: Galeno Rx × {item.q_gal || 0} UVR + Gasto Rx × {item.gto || 0}
             </div>
           )}
 
@@ -576,7 +607,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
               {es400101 && <div className={styles.baseLine}>Gal: {money(item.q_gal || 0)}</div>}
-              {esEco18 && <div className={styles.baseLine}>UVR: {item.q_gal || 0} / Gto: {item.gto || 0}</div>}
+              {esEco18 && <div className={styles.baseLine}>Galeno × {item.q_gal || 0}</div>}
               {esCapitulo12 && <div className={styles.baseLine}>Gal. Quir × {item.q_gal || 0}</div>}
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
@@ -584,18 +615,16 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
               {es400101 && <div className={styles.baseLine}>Gto: {money(item.gto || 0)}</div>}
+              {esEco18 && <div className={styles.baseLine}>Gasto Rx × {item.gto || 0}</div>}
               {esCapitulo12 && <div className={styles.baseLine}>G. Oper. × {item.gto || 0}</div>}
-              <span className={styles.costValue}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</span>
+              <span className={styles.costValue}>
+                {esEco18 ? money(calculo.gastoSanatorial) : money(calculo.gastoSanatorial)}
+              </span>
             </div>
 
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Total</span>
-              <span className={styles.costValue}>
-                {esEco18 || esFKT
-                  ? money(calculo.honorarioMedico)
-                  : money(calculo.honorarioMedico + calculo.gastoSanatorial)
-                }
-              </span>
+              <span className={styles.costValue}>{money(total)}</span>
             </div>
           </div>
 
@@ -685,37 +714,39 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
         </td>
 
+        {/* Honorario */}
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
               : esCapitulo12
                 ? `Gal. Quir × ${item.q_gal || 0}`
-                : `Gal: ${money(item.q_gal || 0)}`
+                : esEco18
+                  ? `Galeno × ${item.q_gal || 0}`
+                  : `Gal: ${money(item.q_gal || 0)}`
             }
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
         </td>
 
+        {/* Gasto */}
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
               : esCapitulo12
                 ? `G. Oper. × ${item.gto || 0}`
-                : money(item.gto || 0)
+                : esEco18
+                  ? `Gasto Rx × ${item.gto || 0}`
+                  : money(item.gto || 0)
             }
           </div>
-          <div className={styles.valueBig}>{esEco18 || esFKT ? '—' : money(calculo.gastoSanatorial)}</div>
+          <div className={styles.valueBig}>{money(calculo.gastoSanatorial)}</div>
         </td>
 
+        {/* Total */}
         <td className={styles.numericCell}>
-          <div className={styles.valueBig}>
-            {esEco18 || esFKT
-              ? money(calculo.honorarioMedico)
-              : money(calculo.honorarioMedico + calculo.gastoSanatorial)
-            }
-          </div>
+          <div className={styles.valueBig}>{money(total)}</div>
         </td>
 
         <td className={styles.actionCell}>
@@ -755,6 +786,10 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <span className={styles.addSplitLabel}>Al agregar se generan:</span>
           <span className={styles.addSplitHint}>
             👨‍⚕️ Honorario (Dr) + 🏥 Gasto (Clínica de la Unión) <small>(según corresponda)</small>
+            <br />
+            <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>
+              📌 Ecografías: todo al Médico (una sola línea) - Honorario + Gasto separados en la tabla
+            </span>
           </span>
         </div>
       </div>

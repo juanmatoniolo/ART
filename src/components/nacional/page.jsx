@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import Fuse from 'fuse.js';
@@ -14,8 +14,10 @@ import {
   highlight,
   parseNumber,
   calcularPractica,
-} from '../../app/admin/Facturacion/utils/calculos';
+  detectarEspecial,
+} from '@/app/admin/Facturacion/utils/calculos';
 
+// ... (el resto del código es igual al que ya tenés)
 const formatConvenioLabel = (s) =>
   String(s ?? '')
     .replace(/_+/g, ' ')
@@ -63,10 +65,16 @@ const normalizarValores = (vg) => {
   };
 };
 
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
+
 export default function NomencladorNacional() {
+  // --- Estados ---
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [modoBusqueda, setModoBusqueda] = useState(true);
   const [filtroCapitulo, setFiltroCapitulo] = useState('');
   const [capituloQueries, setCapituloQueries] = useState({});
@@ -76,6 +84,15 @@ export default function NomencladorNacional() {
   const [alerta, setAlerta] = useState('');
   const [subcapitulos, setSubcapitulos] = useState({});
 
+  // --- Debounce para la búsqueda ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // --- Cargar subcapítulos ---
   useEffect(() => {
     fetch('/archivos/subcapitulos.json')
       .then((res) => res.json())
@@ -83,6 +100,7 @@ export default function NomencladorNacional() {
       .catch(() => console.warn('No se pudo cargar subcapitulos.json'));
   }, []);
 
+  // --- Cargar Nomenclador ---
   useEffect(() => {
     fetch('/archivos/NomecladorNacional.json')
       .then((res) => res.json())
@@ -112,6 +130,7 @@ export default function NomencladorNacional() {
       });
   }, []);
 
+  // --- Cargar convenios desde Firebase ---
   useEffect(() => {
     const conveniosRef = ref(db, 'convenios');
     const off = onValue(conveniosRef, (snap) => {
@@ -128,6 +147,7 @@ export default function NomencladorNacional() {
     return () => off();
   }, []);
 
+  // --- Actualizar valores del convenio seleccionado ---
   useEffect(() => {
     if (!convenioSel || !convenios[convenioSel]) {
       setValoresConvenio({});
@@ -138,6 +158,7 @@ export default function NomencladorNacional() {
     localStorage.setItem('convenioActivo', convenioSel);
   }, [convenioSel, convenios]);
 
+  // --- Fuse.js para búsqueda global ---
   const fuseGlobal = useMemo(() => {
     if (!data.length) return null;
     return new Fuse(data, {
@@ -153,6 +174,7 @@ export default function NomencladorNacional() {
     });
   }, [data]);
 
+  // --- Resultados por defecto (prácticas destacadas) ---
   const defaultResultados = useMemo(() => {
     if (!data.length) return [];
     const wanted = DEFAULT_CODES.map(normCode);
@@ -170,7 +192,8 @@ export default function NomencladorNacional() {
     return Array.from(seen.values());
   }, [data]);
 
-  const getResultadosBusqueda = (q) => {
+  // --- Función de búsqueda ---
+  const getResultadosBusqueda = useCallback((q) => {
     const trimmed = q.trim();
     if (!trimmed) return [];
     const codigoLimpio = normCode(trimmed);
@@ -210,49 +233,43 @@ export default function NomencladorNacional() {
       new Map(final.map((it) => [it.__key || `${it.capitulo}|${it.codigo}`, it])).values()
     );
     return finalUnique;
-  };
+  }, [data, fuseGlobal]);
 
+  // --- Resultados globales memoizados (con debounce) ---
   const resultadosGlobales = useMemo(() => {
-    if (query.trim() === '') return defaultResultados;
-    return getResultadosBusqueda(query);
-  }, [query, data, defaultResultados]);
+    if (debouncedQuery.trim() === '') return defaultResultados;
+    return getResultadosBusqueda(debouncedQuery);
+  }, [debouncedQuery, defaultResultados, getResultadosBusqueda]);
 
-  const getCalculo = (practica) => {
-    const q_gal = practica.q_gal || 0;
-    const gto = practica.gto || 0;
-    if (!valoresConvenio || Object.keys(valoresConvenio).length === 0) {
-      return { honorarioMedico: 0, gastoSanatorial: 0, total: 0, q_gal, gto };
-    }
-    const calculado = calcularPractica(practica, valoresConvenio);
-    return { ...calculado, q_gal, gto };
-  };
+  // ============================================================
+  // COMPONENTES INTERNOS MEMOIZADOS (tienen acceso al estado)
+  // ============================================================
 
-  const getSubcapitulo = (codigo) => {
-    if (!codigo || codigo.length < 4) return '';
-    const key = codigo.substring(0, 2) + '.' + codigo.substring(2, 4);
-    return subcapitulos[key] || '';
-  };
+  const MobileCardMemo = React.memo(({ practica, qLocal = '', query: queryProp }) => {
+    const calc = useMemo(() => {
+      const q_gal = practica.q_gal || 0;
+      const gto = practica.gto || 0;
+      if (!valoresConvenio || Object.keys(valoresConvenio).length === 0) {
+        return { honorarioMedico: 0, gastoSanatorial: 0, total: 0, q_gal, gto };
+      }
+      const calculado = calcularPractica(practica, valoresConvenio);
+      return { ...calculado, q_gal, gto };
+    }, [practica, valoresConvenio]);
 
-  const capLabel = (it) => `${it.capitulo} – ${it.capituloNombre}`;
+    const subNombre = useMemo(() => {
+      if (!practica.codigo || practica.codigo.length < 4) return '';
+      const key = practica.codigo.substring(0, 2) + '.' + practica.codigo.substring(2, 4);
+      return subcapitulos[key] || '';
+    }, [practica.codigo, subcapitulos]);
 
-  const gastoRx = valoresConvenio?.gastoRx ?? 0;
-  const galenoRxPractica = valoresConvenio?.galenoRx ?? 0;
-  const gastoOperatorio = valoresConvenio?.gastoOperatorio ?? 0;
-  const galenoQuir = valoresConvenio?.galenoQuir ?? 0;
-  const diaPension = valoresConvenio?.pension ?? 0;
-  const otrosGastos = valoresConvenio?.otrosGastos ?? 0;
-  const galenoComun = parseNumber(valoresConvenio?.['Galeno_Comun'] ?? 0);
+    const capLabel = `${practica.capitulo} – ${practica.capituloNombre}`;
 
-  // Componente de tarjeta móvil reutilizable para evitar duplicación
-  const MobileCard = ({ practica, qLocal = '' }) => {
-    const calc = getCalculo(practica);
-    const subNombre = getSubcapitulo(practica.codigo);
     return (
       <article className={`${styles.card} ${isRadiografia(practica) ? styles.rxCard : ''} ${isSubsiguiente(practica) ? styles.subsiguienteCard : ''}`}>
         <div className={styles.cardTop}>
           <div className={styles.code}>{formatearCodigo(practica.codigo)}</div>
           <div className={styles.capCell}>
-            <span className={styles.capMain}>{capLabel(practica)}</span>
+            <span className={styles.capMain}>{capLabel}</span>
             {subNombre && (
               <span className={styles.capSub}>
                 {practica.codigo.slice(0,2)}.{practica.codigo.slice(2,4)} – {subNombre}
@@ -260,7 +277,7 @@ export default function NomencladorNacional() {
             )}
           </div>
         </div>
-        <div className={styles.desc}>{highlight(practica.descripcion, qLocal || query)}</div>
+        <div className={styles.desc}>{highlight(practica.descripcion, qLocal || queryProp)}</div>
         <div className={styles.costGrid}>
           <div className={styles.costBox}>
             <span className={styles.costLabel}>Honorario</span>
@@ -279,19 +296,34 @@ export default function NomencladorNacional() {
         </div>
       </article>
     );
-  };
+  });
 
-  // Componente de fila de tabla reutilizable
-  const TableRow = ({ practica, qLocal = '' }) => {
-    const calc = getCalculo(practica);
-    const subNombre = getSubcapitulo(practica.codigo);
+  const TableRowMemo = React.memo(({ practica, qLocal = '', query: queryProp }) => {
+    const calc = useMemo(() => {
+      const q_gal = practica.q_gal || 0;
+      const gto = practica.gto || 0;
+      if (!valoresConvenio || Object.keys(valoresConvenio).length === 0) {
+        return { honorarioMedico: 0, gastoSanatorial: 0, total: 0, q_gal, gto };
+      }
+      const calculado = calcularPractica(practica, valoresConvenio);
+      return { ...calculado, q_gal, gto };
+    }, [practica, valoresConvenio]);
+
+    const subNombre = useMemo(() => {
+      if (!practica.codigo || practica.codigo.length < 4) return '';
+      const key = practica.codigo.substring(0, 2) + '.' + practica.codigo.substring(2, 4);
+      return subcapitulos[key] || '';
+    }, [practica.codigo, subcapitulos]);
+
+    const capLabel = `${practica.capitulo} – ${practica.capituloNombre}`;
+
     return (
       <tr className={`${isRadiografia(practica) ? styles.rxRow : ''} ${isSubsiguiente(practica) ? styles.subsiguienteRow : ''}`}>
         <td className={styles.codeCell}>{formatearCodigo(practica.codigo)}</td>
-        <td className={styles.descCell}>{highlight(practica.descripcion, qLocal || query)}</td>
+        <td className={styles.descCell}>{highlight(practica.descripcion, qLocal || queryProp)}</td>
         <td>
           <div className={styles.capCell}>
-            <span className={styles.capMain}>{capLabel(practica)}</span>
+            <span className={styles.capMain}>{capLabel}</span>
             {subNombre && (
               <span className={styles.capSub}>
                 {practica.codigo.slice(0,2)}.{practica.codigo.slice(2,4)} – {subNombre}
@@ -316,8 +348,35 @@ export default function NomencladorNacional() {
         </td>
       </tr>
     );
-  };
+  });
 
+  // --- Handlers ---
+  const handleConvenioChange = useCallback((e) => {
+    setConvenioSel(e.target.value);
+  }, []);
+
+  const handleModoBusquedaToggle = useCallback(() => {
+    setModoBusqueda((prev) => !prev);
+  }, []);
+
+  const handleQueryChange = useCallback((e) => {
+    setQuery(e.target.value);
+  }, []);
+
+  const handleClearQuery = useCallback(() => {
+    setQuery('');
+  }, []);
+
+  // --- Valores para chips ---
+  const gastoRx = valoresConvenio?.gastoRx ?? 0;
+  const galenoRxPractica = valoresConvenio?.galenoRx ?? 0;
+  const gastoOperatorio = valoresConvenio?.gastoOperatorio ?? 0;
+  const galenoQuir = valoresConvenio?.galenoQuir ?? 0;
+  const diaPension = valoresConvenio?.pension ?? 0;
+  const otrosGastos = valoresConvenio?.otrosGastos ?? 0;
+  const galenoComun = parseNumber(valoresConvenio?.['Galeno_Comun'] ?? 0);
+
+  // --- Renderizado ---
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -330,6 +389,7 @@ export default function NomencladorNacional() {
           </div>
         </div>
 
+        {/* Chips de valores */}
         <div className={styles.chips}>
           <span className={`${styles.chip} ${styles.chipGastoRx}`}>
             <b>Gasto Rx</b> <span className={styles.chipValue}>{money(gastoRx)}</span>
@@ -354,16 +414,17 @@ export default function NomencladorNacional() {
           </span>
         </div>
 
+        {/* Toolbar */}
         <div className={styles.toolbar}>
           <div className={styles.controlBlock}>
             <label className={styles.label}>Convenio</label>
-            <select className={styles.select} value={convenioSel} onChange={(e) => setConvenioSel(e.target.value)}>
+            <select className={styles.select} value={convenioSel} onChange={handleConvenioChange}>
               {Object.keys(convenios).sort().map((k) => (
                 <option key={k} value={k}>{formatConvenioLabel(k)}</option>
               ))}
             </select>
           </div>
-          <button className={styles.switchButton} onClick={() => setModoBusqueda((p) => !p)} type="button">
+          <button className={styles.switchButton} onClick={handleModoBusquedaToggle} type="button">
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
         </div>
@@ -373,6 +434,7 @@ export default function NomencladorNacional() {
 
       {modoBusqueda ? (
         <>
+          {/* Barra de búsqueda */}
           <div className={styles.searchBar} role="search">
             <span className={styles.searchIcon} aria-hidden="true">
               <svg viewBox="0 0 24 24" width="18" height="18">
@@ -384,13 +446,13 @@ export default function NomencladorNacional() {
               className={styles.searchInput}
               placeholder="Buscar por código, capítulo o descripción…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={handleQueryChange}
               autoComplete="off"
               spellCheck={false}
               inputMode="search"
             />
             {query.trim() && (
-              <button type="button" className={styles.clearBtn} onClick={() => setQuery('')}>
+              <button type="button" className={styles.clearBtn} onClick={handleClearQuery}>
                 Limpiar
               </button>
             )}
@@ -402,7 +464,11 @@ export default function NomencladorNacional() {
               <div className={styles.noResults}>Sin resultados.</div>
             ) : (
               resultadosGlobales.map((it) => (
-                <MobileCard key={it.__key || `${it.capitulo}|${it.codigo}`} practica={it} />
+                <MobileCardMemo
+                  key={it.__key || `${it.capitulo}|${it.codigo}`}
+                  practica={it}
+                  query={debouncedQuery}
+                />
               ))
             )}
           </div>
@@ -425,7 +491,11 @@ export default function NomencladorNacional() {
                   <tr><td colSpan={6} className={styles.noResultsCell}>Sin resultados.</td></tr>
                 ) : (
                   resultadosGlobales.map((it) => (
-                    <TableRow key={it.__key || `${it.capitulo}|${it.codigo}`} practica={it} />
+                    <TableRowMemo
+                      key={it.__key || `${it.capitulo}|${it.codigo}`}
+                      practica={it}
+                      query={debouncedQuery}
+                    />
                   ))
                 )}
               </tbody>
@@ -434,6 +504,7 @@ export default function NomencladorNacional() {
         </>
       ) : (
         <>
+          {/* Filtro por capítulo */}
           <input
             type="text"
             className={styles.input}
@@ -484,7 +555,14 @@ export default function NomencladorNacional() {
                         practicasFiltradas.map((it, j) => {
                           const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
                           const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
-                          return <MobileCard key={key} practica={itFull} qLocal={qLocal} />;
+                          return (
+                            <MobileCardMemo
+                              key={key}
+                              practica={itFull}
+                              qLocal={qLocal}
+                              query={qLocal}
+                            />
+                          );
                         })
                       )}
                     </div>
@@ -506,7 +584,14 @@ export default function NomencladorNacional() {
                             practicasFiltradas.map((it, j) => {
                               const itFull = { ...it, capitulo: c.capitulo, capituloNombre: c.descripcion };
                               const key = `${String(c.capitulo).trim()}|${String(it.codigo).trim()}#${j + 1}`;
-                              return <TableRow key={key} practica={itFull} qLocal={qLocal} />;
+                              return (
+                                <TableRowMemo
+                                  key={key}
+                                  practica={itFull}
+                                  qLocal={qLocal}
+                                  query={qLocal}
+                                />
+                              );
                             })
                           )}
                         </tbody>
