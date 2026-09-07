@@ -36,18 +36,34 @@ export default function DatosPaciente({
   const [mostrarListaOS, setMostrarListaOS] = useState(false);
   const osRef = useRef(null);
 
+  // Nuevo estado para convenios
+  const [convenios, setConvenios] = useState([]);
+
+  // Cargar obras sociales y convenios
   useEffect(() => {
-    const fetchObrasSociales = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`${FIREBASE_URL}/facturacionOS/osociales.json`);
-        if (!res.ok) throw new Error('Error al cargar obras sociales');
-        const data = await res.json();
-        setObrasSociales(Array.isArray(data) ? data : []);
+        const [osRes, convRes] = await Promise.all([
+          fetch(`${FIREBASE_URL}/facturacionOS/osociales.json`),
+          fetch(`${FIREBASE_URL}/facturacionOS/convenios.json`),
+        ]);
+
+        if (osRes.ok) {
+          const data = await osRes.json();
+          setObrasSociales(Array.isArray(data) ? data : []);
+        }
+        if (convRes.ok) {
+          const convData = await convRes.json();
+          const convList = convData
+            ? Object.entries(convData).map(([id, value]) => ({ id, ...value }))
+            : [];
+          setConvenios(convList);
+        }
       } catch (err) {
-        console.error('Error cargando obras sociales:', err);
+        console.error('Error cargando datos:', err);
       }
     };
-    fetchObrasSociales();
+    fetchData();
   }, []);
 
   // Cerrar lista de OS al hacer clic fuera
@@ -71,6 +87,16 @@ export default function DatosPaciente({
       String(os.cuenta || '').toLowerCase().includes(term)
     );
   }, [busquedaOS, obrasSociales]);
+
+  // Filtrar convenios por obra social seleccionada
+  const conveniosFiltrados = useMemo(() => {
+    const siglaOS = paciente.artSeguro || '';
+    if (!siglaOS) return [];
+    return convenios.filter((conv) =>
+      conv.obraSocial?.sigla === siglaOS ||
+      conv.obraSocial?.codOS === siglaOS
+    );
+  }, [convenios, paciente.artSeguro]);
 
   const seguroEsDeLista = useMemo(() => {
     const v = (paciente.artSeguro || '').trim();
@@ -144,6 +170,9 @@ export default function DatosPaciente({
     setBusquedaOS(os.sigla);
     setMostrarListaOS(false);
     setShowCustomInput(false);
+    // Resetear convenio al cambiar de OS
+    setField('convenioId', '');
+    setField('convenioNombre', '');
   };
 
   const handleSelectOtro = () => {
@@ -152,6 +181,23 @@ export default function DatosPaciente({
     setField('artSeguro', '');
     setShowCustomInput(true);
     setSeguroCustom('');
+    // Resetear convenio
+    setField('convenioId', '');
+    setField('convenioNombre', '');
+  };
+
+  const handleSelectConvenio = (e) => {
+    const convenioId = e.target.value;
+    if (!convenioId) {
+      setField('convenioId', '');
+      setField('convenioNombre', '');
+      return;
+    }
+    const conv = conveniosFiltrados.find((c) => c.id === convenioId);
+    if (conv) {
+      setField('convenioId', conv.id);
+      setField('convenioNombre', conv.nombreConvenio || conv.obraSocial?.sigla);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -297,21 +343,29 @@ export default function DatosPaciente({
           </div>
         )}
 
-        {/* Campo Convenio */}
+        {/* Selector de Convenio */}
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="convenio">
+          <label className={styles.label} htmlFor="convenioId">
             Convenio
           </label>
-          <input
-            id="convenio"
-            type="text"
-            name="convenio"
-            value={paciente.convenio || ''}
-            onChange={(e) => setField('convenio', e.target.value)}
-            placeholder="Ej: Convenio Julio-Agosto 2025"
-            className={styles.input}
-          />
-          <small className={styles.help}>Indicar el convenio vigente.</small>
+          <select
+            id="convenioId"
+            name="convenioId"
+            value={paciente.convenioId || ''}
+            onChange={handleSelectConvenio}
+            className={styles.select}
+            disabled={!paciente.artSeguro || conveniosFiltrados.length === 0}
+          >
+            <option value="">{paciente.artSeguro ? 'Seleccionar convenio...' : 'Primero elegí una obra social'}</option>
+            {conveniosFiltrados.map((conv) => (
+              <option key={conv.id} value={conv.id}>
+                {conv.nombreConvenio || conv.obraSocial?.sigla} ({new Date(conv.fechaCarga).toLocaleDateString('es-AR')})
+              </option>
+            ))}
+          </select>
+          {paciente.artSeguro && conveniosFiltrados.length === 0 && (
+            <small className={styles.help}>No hay convenios cargados para esta obra social.</small>
+          )}
         </div>
 
         {/* Fechas de ingreso y egreso */}
