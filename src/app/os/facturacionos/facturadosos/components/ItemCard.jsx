@@ -1,4 +1,3 @@
-// src/app/admin/Facturacion/Facturados/components/ItemCard.jsx
 import Link from 'next/link';
 import styles from './Card.module.css';
 import { money, fmtDate, prettyLabel } from '../../utils/calculos';
@@ -6,7 +5,6 @@ import { money, fmtDate, prettyLabel } from '../../utils/calculos';
 export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART, onPrintMedDescLab }) {
   const isClosed = item.estado === 'cerrado';
 
-  // Muestra el botón ART solo si hay contenido facturable
   const tieneContenido =
     (item.practicas?.length > 0) ||
     (item.cirugias?.length > 0) ||
@@ -16,7 +14,6 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART,
     (item.totales?.total > 0) ||
     (item.total > 0);
 
-  // Muestra el botón Med+Desc+Lab solo si hay al menos uno de esos tres
   const tieneMedDescLab =
     (item.medicamentos?.length > 0) ||
     (item.descartables?.length > 0) ||
@@ -101,7 +98,7 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART,
 
         <div className={styles.actions}>
           <Link className={`${styles.actBtn} ${styles.btnView}`}
-            href={`/admin/Facturacion/Facturados/${item.id}`}>
+            href={`/os/facturacion/${item.id}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -111,7 +108,7 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART,
           </Link>
 
           <Link className={`${styles.actBtn} ${styles.btnEdit}`}
-            href={`/admin/Facturacion/Nuevo?draft=${item.id}`}>
+            href={`/os/facturacion/nuevo?draft=${item.id}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -120,7 +117,6 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART,
             Editar
           </Link>
 
-          {/* Botón ART — solo si hay contenido facturable */}
           {tieneContenido && (
             <button className={`${styles.actBtn} ${styles.btnArt}`}
               onClick={() => onPrintART(item.id)}>
@@ -134,7 +130,6 @@ export default function ItemCard({ item, isSelected, onToggleSelect, onPrintART,
             </button>
           )}
 
-          {/* Botón Med+Desc+Lab — solo si hay medicamentos, descartables o laboratorios */}
           {tieneMedDescLab && (
             <button className={`${styles.actBtn} ${styles.btnMedDesc}`}
               onClick={() => onPrintMedDescLab(item)}>

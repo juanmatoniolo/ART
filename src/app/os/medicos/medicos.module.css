@@ -1,0 +1,329 @@
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btnPrimary {
+  background-color: #5b8c5a;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.btnPrimary:hover {
+  background-color: #4a7a49;
+}
+
+.btnSecondary {
+  background-color: transparent;
+  color: #cbd5e1;
+  border: 1px solid #475569;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btnSecondary:hover {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.searchBar {
+  margin-bottom: 1.5rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background-color: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.searchInput:focus {
+  border-color: #5b8c5a;
+}
+
+.tableWrapper {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background-color: #0f172a;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+
+.table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: #334155;
+}
+
+.numCell {
+  font-family: monospace;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btnEdit {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #e2e8f0;
+  padding: 0.2rem;
+  border-radius: 0.3rem;
+  text-decoration: none;
+}
+
+.btnEdit:hover {
+  background-color: #475569;
+}
+
+.btnDelete {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #ef4444;
+  padding: 0.2rem;
+  border-radius: 0.3rem;
+}
+
+.btnDelete:hover {
+  background-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.whatsappLink {
+  color: #25D366;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.whatsappLink:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+
+/* ================================================================
+   FORMULARIO DE MÉDICO (DoctorForm)
+   ================================================================ */
+.form {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.875rem;
+  padding: 1.75rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.fullWidth {
+  grid-column: span 2;
+}
+
+.formGrid label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.formGrid input,
+.formGrid textarea,
+.formGrid select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background-color: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.formGrid input::placeholder,
+.formGrid textarea::placeholder {
+  color: #64748b;
+}
+
+.formGrid input:focus,
+.formGrid textarea:focus,
+.formGrid select:focus {
+  outline: none;
+  border-color: #5b8c5a;
+  box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.25);
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  transition: background-color 0.15s, border-color 0.15s;
+  user-select: none;
+}
+
+.checkboxLabel:hover {
+  background-color: #334155;
+  border-color: #5b8c5a;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  accent-color: #5b8c5a;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #334155;
+}
+
+.btnPrimary {
+  background-color: #5b8c5a;
+  color: white;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.btnPrimary:hover {
+  background-color: #4a7a49;
+  transform: translateY(-1px);
+}
+
+.btnPrimary:active {
+  transform: scale(0.97);
+}
+
+.btnSecondary {
+  background-color: transparent;
+  color: #cbd5e1;
+  border: 1px solid #475569;
+  padding: 0.65rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.btnSecondary:hover {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #64748b;
+}

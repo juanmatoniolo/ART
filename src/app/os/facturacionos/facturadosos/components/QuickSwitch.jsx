@@ -1,4 +1,3 @@
-// src/app/admin/Facturacion/Facturados/components/QuickSwitch.jsx
 import styles from './Quickswitch.module.css';
 
 const TABS = [

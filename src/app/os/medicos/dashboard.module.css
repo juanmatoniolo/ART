@@ -1,0 +1,498 @@
+/* ===== CONTENEDOR GENERAL (mismo fondo que el resto de la app) ===== */
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background-color: #0f172a;   /* igual que PacientesPage */
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+/* ===== FILTROS ===== */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  background-color: #1e293b;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #334155;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filterGroup label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.select,
+.dateInput,
+.textInput {
+  background-color: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  min-width: 180px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.select:focus,
+.dateInput:focus,
+.textInput:focus {
+  outline: none;
+  border-color: #5b8c5a;
+  box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.25);
+}
+
+.textInput {
+  min-width: 160px;
+}
+
+.clearBtn {
+  background: none;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  padding: 0.45rem 1rem;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clearBtn:hover {
+  background: #334155;
+}
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid #334155;
+}
+
+.tab {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: #e2e8f0;
+}
+
+.tabActive {
+  color: #5b8c5a;
+  border-bottom-color: #5b8c5a;
+}
+
+/* ===== LOADING / EMPTY ===== */
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+.emptyState {
+  text-align: center;
+  color: #64748b;
+  padding: 4rem 2rem;
+  font-size: 1.05rem;
+  font-style: italic;
+}
+
+/* ===== KPI CARDS ===== */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.kpiCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.kpiLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpiValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.kpiValueBlue { color: #60a5fa; }
+.kpiValueAmber { color: #fbbf24; }
+.kpiValueGreen { color: #4ade80; }
+
+/* ===== SECCIONES ===== */
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sectionTitle .badge {
+  background: #334155;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* ===== TABLA GENÉRICA (sobrescribe la de medicos.module si es necesario) ===== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #334155;
+  text-align: left;
+}
+
+.table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.table tbody tr:hover {
+  background: #1e293b;
+}
+
+.clickableRow {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickableRow:hover {
+  background: #334155 !important;
+}
+
+/* colores para números */
+.numBlue { color: #60a5fa; }
+.numAmber { color: #fbbf24; }
+.numGreen { color: #4ade80; font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+
+/* ===== BADGES ===== */
+.artBadge {
+  display: inline-block;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  white-space: nowrap;
+}
+
+.badgePill {
+  display: inline-block;
+  background: #14532d;
+  color: #86efac;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+}
+
+.gastoCount {
+  display: inline-block;
+  background: #334155;
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  margin-left: 0.4rem;
+}
+
+/* ===== FILAS EXPANDIBLES ===== */
+.siniestroRow {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.siniestroRow:hover {
+  background: #1e293b !important;
+}
+
+.siniestroRow.expanded {
+  background: #0f172a !important;
+}
+
+.expandIcon {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.nroSiniestro {
+  font-family: monospace;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.montoCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.montoHon {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.montoTotal {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.waBadge {
+  display: inline-block;
+  background: #25D366;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.waBadge:hover {
+  background: #128C7E;
+}
+
+/* ===== DETALLE EXPANDIBLE ===== */
+.detailRow {
+  padding: 0 !important;
+  background-color: #0f172a !important;
+  border-top: none !important;
+}
+
+.detailContent {
+  padding: 1rem 1.5rem 1.2rem;
+  border-top: 2px solid #5b8c5a44;
+}
+
+.detailGroup {
+  margin-bottom: 1.2rem;
+}
+
+.detailGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.detailGroupTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.6rem 0;
+}
+
+.detailTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.detailTable th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #334155;
+}
+
+.detailTable td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.detailTable tr:last-child td {
+  border-bottom: none;
+}
+
+.detailCodigo {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.rolPill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.detailTotal {
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.detailTotales {
+  display: flex;
+  gap: 2rem;
+  justify-content: flex-end;
+  padding: 0.8rem 0 0;
+  border-top: 1px solid #334155;
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.detailTotales strong {
+  color: #e2e8f0;
+}
+
+.detailTotalFinal {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.detailTotalFinal strong {
+  color: #4ade80;
+}
+
+/* ===== LISTA COMPACTA (prácticas / médicos) ===== */
+.grid2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .grid2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compactList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compactItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  color: #e2e8f0;
+}
+
+.compactItem span {
+  font-size: 0.9rem;
+}
+
+.compactItem strong {
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+/* ===== ORDENAMIENTO ===== */
+.thSortable {
+  cursor: pointer;
+}
+
+.thSortable:hover {
+  background-color: #334155 !important;
+}
+
+.sortIcon {
+  margin-left: 0.3rem;
+  font-size: 0.72rem;
+  opacity: 0.6;
+}

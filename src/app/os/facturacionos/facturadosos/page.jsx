@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ref, update, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money, parseNumber } from '../utils/calculos'; // 🔹 Importamos parseNumber
+import { money, parseNumber } from '../utils/calculos';
 import { cerrarPacientePorFactura } from '../utils/siniestroPacienteSync';
 import useFacturados from './Hook/useFacturados';
 import styles from './facturados.module.css';
@@ -90,13 +90,14 @@ export default function FacturadosPage() {
     if (!window.confirm('¿Pasar este borrador a FACTURADO / CERRADO?')) return;
     setBusyId(id);
     try {
-      const snap = await get(ref(db, `Facturacion/${id}`));
+      // ✅ RUTA ACTUALIZADA A facturacionOS
+      const snap = await get(ref(db, `facturacionOS/${id}`));
       if (!snap.exists()) return alert('Ya no existe este registro.');
       const prev = snap.val();
       const now = Date.now();
       const facturaNro = prev?.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
 
-      await update(ref(db, `Facturacion/${id}`), {
+      await update(ref(db, `facturacionOS/${id}`), {
         estado: 'cerrado', cerradoAt: now, updatedAt: now, facturaNro,
       });
       await cerrarPacientePorFactura(
@@ -115,11 +116,11 @@ export default function FacturadosPage() {
     if (!window.confirm('¿Eliminar este registro definitivamente?')) return;
     setBusyId(id);
     try {
-      const snap = await get(ref(db, `Facturacion/${id}`));
+      const snap = await get(ref(db, `facturacionOS/${id}`));
       const prev = snap.exists() ? snap.val() : null;
-      await remove(ref(db, `Facturacion/${id}`));
+      await remove(ref(db, `facturacionOS/${id}`));
       if (prev?.siniestroKey) {
-        await remove(ref(db, `Facturacion/siniestros/${prev.siniestroKey}`)).catch(() => { });
+        await remove(ref(db, `facturacionOS/siniestros/${prev.siniestroKey}`)).catch(() => { });
       }
       alert('🗑️ Registro eliminado.');
     } catch (e) {
@@ -146,7 +147,7 @@ export default function FacturadosPage() {
       for (const it of borradores) {
         const now = Date.now();
         const facturaNro = it.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
-        await update(ref(db, `Facturacion/${it.id}`), {
+        await update(ref(db, `facturacionOS/${it.id}`), {
           estado: 'cerrado',
           cerradoAt: now,
           updatedAt: now,
@@ -194,7 +195,6 @@ export default function FacturadosPage() {
     setShowIapsModal(true);
   }, [selectedIds, filtered]);
 
-  // 🔹 Función para generar el script ARCA de un item completo
 const generateArcaScript = useCallback((fullItem) => {
   if (!fullItem) return '';
 
@@ -228,7 +228,6 @@ const generateArcaScript = useCallback((fullItem) => {
     return n > 0 ? n : 1;
   };
 
-  // 🔹 MODIFICACIÓN: truncar55 convierte a MAYÚSCULAS
   const truncar55 = (desc) => {
     const upperDesc = String(desc).toUpperCase();
     return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
@@ -338,7 +337,7 @@ const generateArcaScript = useCallback((fullItem) => {
   if (totalMedDesc > 0) {
     rowsGastos.push({
       codigo: '7',
-      descripcion: 'MEDICACIÓN Y DESCARTABLES', // ya en mayúsculas
+      descripcion: 'MEDICACIÓN Y DESCARTABLES',
       cantidad: 1,
       precio: totalMedDesc.toFixed(2),
       iva: ivaValue,
@@ -348,7 +347,6 @@ const generateArcaScript = useCallback((fullItem) => {
   const paciente = fullItem.paciente || {};
   const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
   const dniPaciente = paciente.dni || '';
-  // 🔹 MODIFICACIÓN: convertir a MAYÚSCULAS
   const pacienteDesc = `PTE ${nombrePaciente} - DNI ${dniPaciente} - ${art} -`.toUpperCase();
   rowsGastos.push({
     codigo: '',
@@ -467,11 +465,10 @@ const generateArcaScript = useCallback((fullItem) => {
 `;
 }, []);
 
-  // 🔹 Función que obtiene el item completo y abre el modal ARCA
   const handleGenerarARCA = useCallback(async (id) => {
     setArcaLoadingId(id);
     try {
-      const snap = await get(ref(db, `Facturacion/${id}`));
+      const snap = await get(ref(db, `facturacionOS/${id}`));
       if (!snap.exists()) {
         alert('No existe el registro.');
         return;
@@ -530,8 +527,8 @@ const generateArcaScript = useCallback((fullItem) => {
             <p className={styles.subtitle}>Borradores y facturas cerradas, todo en un solo lugar.</p>
           </div>
           <div className={styles.headerActions}>
-            <Link href="/admin/Facturacion" className={styles.btnGhost}>← Volver</Link>
-            <Link href="/admin/Facturacion/Nuevo?new=1" className={styles.btnPrimary}>➕ Nueva</Link>
+            <Link href="/os/facturacionos" className={styles.btnGhost}>← Volver</Link>
+            <Link href="/os/facturacionos/nuevo?new=1" className={styles.btnPrimary}>➕ Nueva</Link>
           </div>
         </div>
 
@@ -656,14 +653,13 @@ const generateArcaScript = useCallback((fullItem) => {
 
                   <div className={styles.actions}>
                     {!esCerrado && (
-                      <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
+                      <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/os/facturacionos/nuevo?draft=${it.id}`}>
                         ▶ Retomar
                       </Link>
                     )}
-                    <Link className={`${styles.btn} ${styles.btnGhost}`} href={`/admin/Facturacion/Facturados/${it.id}`}>
+                    <Link className={`${styles.btn} ${styles.btnGhost}`} href={`/os/facturacionos/facturadosos/${it.id}`}>
                       👁 Ver
                     </Link>
-                    {/* 🔹 Reemplazamos el botón Imprimir por ARCA Script */}
                     <button
                       className={`${styles.btn} ${styles.btnGhost}`}
                       onClick={() => handleGenerarARCA(it.id)}

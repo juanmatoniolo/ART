@@ -1,0 +1,347 @@
+/* Contenedor principal */
+.container {
+    padding: 2rem;
+    background-color: #1e1e2f;
+    color: #f0f0f0;
+    min-height: 100vh;
+}
+
+/* Encabezado */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    color: #ffffff;
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+/* Botones generales */
+.btnSecondary {
+    background-color: #3a3a5a;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btnSecondary:hover {
+    background-color: #2a2a40;
+}
+
+.btnPrimary {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btnPrimary:hover {
+    background-color: #1e5c22;
+}
+
+/* Tarjeta del formulario */
+.formCard {
+    background-color: #2a2a3c;
+    border-radius: 12px;
+    padding: 1.8rem;
+    margin-bottom: 2rem;
+    border: 1px solid #3a3a5a;
+}
+
+.formTitle {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #c8c8e0;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.formGroup label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #a0a0c0;
+}
+
+.input,
+.textarea {
+    background-color: #1e1e2f;
+    border: 1px solid #4a4a6a;
+    border-radius: 8px;
+    color: #f0f0f0;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    transition: border-color 0.15s;
+}
+
+.input:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #5b6aee;
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.checkboxGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    background-color: #1e1e2f;
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid #3a3a5a;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #e0e0e0;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #5b6aee;
+}
+
+.formActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+/* Listado de cirugías */
+.listSection {
+    margin-top: 2rem;
+}
+
+.listTitle {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #c8c8e0;
+    margin-bottom: 1.5rem;
+}
+
+.empty {
+    text-align: center;
+    color: #6a6a8a;
+    padding: 3rem;
+    font-style: italic;
+    background-color: #2a2a3c;
+    border-radius: 12px;
+}
+
+.cirugiasGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.2rem;
+}
+
+.cirugiaCard {
+    background-color: #2a2a3c;
+    border-radius: 12px;
+    padding: 1.2rem;
+    border: 1px solid #3a3a5a;
+    transition: transform 0.1s, border-color 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.cirugiaCard:hover {
+    transform: translateY(-2px);
+    border-color: #5b6aee66;
+}
+
+.realizada {
+    opacity: 0.7;
+    border-left: 4px solid #2e7d32;
+    background-color: #232334;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.fechaBadge {
+    background-color: #1e1e2f;
+    color: #b0b0d0;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid #4a4a6a;
+    font-weight: 500;
+}
+
+.medicoBadge {
+    background-color: #2d3a4a;
+    color: #a0c0e0;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid #3a5070;
+    font-weight: 500;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cirugiaTipo {
+    margin: 0.2rem 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.estudios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.2rem 0;
+}
+
+.estudio {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.estudio.ok {
+    background-color: #1e3a2a;
+    color: #8bc34a;
+    border: 1px solid #2e5a3a;
+}
+
+.estudio.pending {
+    background-color: #3a3020;
+    color: #ffb74d;
+    border: 1px solid #5a4020;
+}
+
+.materialBadge {
+    background-color: #3a2a4a;
+    color: #b39ddb;
+    padding: 0.25rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #5a3a7a;
+}
+
+.notas {
+    background-color: #1e1e2f;
+    padding: 0.7rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #d0d0e0;
+    border-left: 3px solid #5b6aee;
+    margin: 0.2rem 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.cardActions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    border-top: 1px solid #3a3a5a;
+    padding-top: 0.8rem;
+}
+
+.btnAction {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    transition: background-color 0.1s;
+    color: #d0d0e0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnAction:hover {
+    background-color: #3a3a5a;
+}
+
+.btnToggle {
+    color: #8bc34a;
+}
+
+.btnToggle:hover {
+    background-color: #1e3a2a;
+}
+
+.btnEdit {
+    color: #5b9bd5;
+}
+
+.btnDelete {
+    color: #ff6b6b;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+
+    .cirugiasGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .cardHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+    }
+}

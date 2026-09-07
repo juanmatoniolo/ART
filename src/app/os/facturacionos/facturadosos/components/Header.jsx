@@ -1,4 +1,3 @@
-// src/app/admin/Facturacion/Facturados/components/Header.jsx
 import Link from 'next/link';
 import styles from './header.module.css';
 
@@ -7,7 +6,6 @@ export default function Header({
   onExport,
   onDelete,
   deleting,
-  // Nuevas props para la funcionalidad de mover a facturados
   onMoveToFacturados,
   moving,
   showMoveButton,
@@ -32,7 +30,7 @@ export default function Header({
         </div>
 
         <div className={styles.actions}>
-          <Link href="/admin/Facturacion" className={styles.btnGhost}>
+          <Link href="/os/facturacion" className={styles.btnGhost}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -42,7 +40,7 @@ export default function Header({
 
           <div className={styles.dividerV} />
 
-          <Link href="/admin/Facturacion/Nuevo" className={styles.btnPrimary}>
+          <Link href="/os/facturacion/nuevo" className={styles.btnPrimary}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12l7-7 7 7" />
@@ -65,7 +63,7 @@ export default function Header({
           {/* Botón para mover borradores a facturados (condicional) */}
           {showMoveButton && (
             <button
-              className={styles.btnExports} // Podés definir esta clase en el CSS
+              className={styles.btnExports}
               onClick={onMoveToFacturados}
               disabled={selectedCount === 0 || moving}
             >
