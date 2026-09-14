@@ -741,7 +741,7 @@ export default function PacientesPage() {
                 <span className={styles.filterLabel}>ART</span>
                 <select value={filtroArt} onChange={(e) => setFiltroArt(e.target.value)} className={styles.selectInputNew}>
                   <option value="todas">Todas</option>
-                  {artOptions.map((art) => (<option key={art} value={art}>{art}</option>))}
+                  {artOptions.map((art) => (<option key={art} value={art}>{art.toUpperCase()}</option>))}
                 </select>
               </div>
               <div className={styles.filterInputGroup}>
@@ -830,7 +830,7 @@ export default function PacientesPage() {
                         <td data-label="Paciente"><div className={styles.cellNameContent}><span className={styles.patientName}>{nombreCompleto}</span>{incompleto && <span className={styles.incompletoIcon} title={`Faltan: ${incompleto.join(", ")}`}>⚠️</span>}</div></td>
                         <td data-label="DNI"><span className={styles.cellTextWrap}>{t.dni || "—"}</span></td>
                         <td data-label="Edad">{t.edad ? `${t.edad}` : "—"}</td>
-                        <td data-label="ART"><span className={styles.artTag}>{art.nombre || "—"}</span></td>
+                        <td data-label="ART"><span className={styles.artTag}>{(art.nombre || "—").toUpperCase()}</span></td>
                         <td data-label="N° Siniestro" className={styles.mono}><span className={styles.cellTextWrap}>{art.nroSiniestro || "—"}</span></td>
                         <td data-label="Ingreso" className={styles.mono}>{fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—"}</td>
                         <td data-label="Estado" onDoubleClick={() => handleToggleEstado(paciente.id, estado)} style={{ cursor: "pointer" }} title="Doble clic para cambiar estado">
@@ -875,7 +875,7 @@ export default function PacientesPage() {
               <span className={styles.filterLabel}>ART</span>
               <select value={statsFiltroArt} onChange={(e) => setStatsFiltroArt(e.target.value)} className={styles.selectInputNew}>
                 <option value="todas">Todas</option>
-                {artOptions.map((art) => (<option key={art} value={art}>{art}</option>))}
+                {artOptions.map((art) => (<option key={art} value={art}>{art.toUpperCase()}</option>))}
               </select>
             </div>
             <button type="button" className={styles.clearAllBtn} onClick={() => { setStatsFechaDesde(""); setStatsFechaHasta(""); setStatsFiltroArt("todas"); }}>Limpiar filtros</button>
@@ -888,7 +888,7 @@ export default function PacientesPage() {
             <article className={styles.kpiCard}><span className={styles.kpiIcon}>🔴</span><div><span className={styles.kpiLabel}>Cerrados</span><strong className={styles.kpiValue}>{stats.cerrados}</strong><small className={styles.kpiHint}>{stats.tasaCierre}% cierre</small></div></article>
             <article className={styles.kpiCard}><span className={styles.kpiIcon}>✅</span><div><span className={styles.kpiLabel}>Completitud</span><strong className={styles.kpiValue}>{stats.tasaCompletitud}%</strong><small className={styles.kpiHint}>{stats.completos} completos / {stats.incompletos} incompletos</small></div></article>
             <article className={styles.kpiCard}><span className={styles.kpiIcon}>🎂</span><div><span className={styles.kpiLabel}>Edad promedio</span><strong className={styles.kpiValue}>{stats.promedioEdad === "—" ? "—" : `${stats.promedioEdad}`}</strong><small className={styles.kpiHint}>Min {stats.edadMin} / Max {stats.edadMax}</small></div></article>
-            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🏥</span><div><span className={styles.kpiLabel}>ART principal</span><strong className={styles.kpiValueSmall}>{stats.artMasFrecuente}</strong><small className={styles.kpiHint}>{stats.artMasFrecuenteCantidad} pacientes</small></div></article>
+            <article className={styles.kpiCard}><span className={styles.kpiIcon}>🏥</span><div><span className={styles.kpiLabel}>ART principal</span><strong className={styles.kpiValueSmall}>{stats.artMasFrecuente.toUpperCase()}</strong><small className={styles.kpiHint}>{stats.artMasFrecuenteCantidad} pacientes</small></div></article>
             <article className={styles.kpiCard}><span className={styles.kpiIcon}>📱</span><div><span className={styles.kpiLabel}>Con teléfono</span><strong className={styles.kpiValue}>{stats.conTelefono}</strong><small className={styles.kpiHint}>{stats.total ? ((stats.conTelefono / stats.total) * 100).toFixed(1) : 0}% contactables</small></div></article>
             <article className={styles.kpiCard}><span className={styles.kpiIcon}>📄</span><div><span className={styles.kpiLabel}>Sin N° siniestro</span><strong className={styles.kpiValue}>{stats.sinSiniestro}</strong><small className={styles.kpiHint}>Revisar carga administrativa</small></div></article>
           </div>
@@ -903,7 +903,7 @@ export default function PacientesPage() {
                     {stats.porArtArray.length === 0 ? <tr><td colSpan={7}>No hay datos.</td></tr> :
                       stats.porArtArray.map((item) => (
                         <tr key={item.art}>
-                          <td><strong>{item.art}</strong></td><td>{item.total}</td><td>{item.porcentaje}%</td>
+                          <td><strong>{item.art.toUpperCase()}</strong></td><td>{item.total}</td><td>{item.porcentaje}%</td>
                           <td><span className={styles.statusPillGreen}>{item.abiertos}</span></td>
                           <td><span className={styles.statusPillRed}>{item.cerrados}</span></td>
                           <td><span className={item.incompletos > 0 ? styles.statusPillYellow : styles.statusPillNeutral}>{item.incompletos}</span></td>
@@ -986,7 +986,7 @@ export default function PacientesPage() {
                       <tbody>
                         {facturacionStats.porArtArray.map((item) => {
                           const pct = ((item.totalGeneral / facturacionStats.totalGeneral) * 100).toFixed(1);
-                          return (<tr key={item.art}><td><strong>{item.art}</strong></td><td>${item.cerrado.total.toLocaleString()} ({item.cerrado.count})</td><td>${item.borrador.total.toLocaleString()} ({item.borrador.count})</td><td>${item.totalGeneral.toLocaleString()}</td><td>{pct}%</td></tr>);
+                          return (<tr key={item.art}><td><strong>{item.art.toUpperCase()}</strong></td><td>${item.cerrado.total.toLocaleString()} ({item.cerrado.count})</td><td>${item.borrador.total.toLocaleString()} ({item.borrador.count})</td><td>${item.totalGeneral.toLocaleString()}</td><td>{pct}%</td></tr>);
                         })}
                       </tbody>
                     </table>
