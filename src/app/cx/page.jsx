@@ -1,29 +1,103 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import styles from "./page.module.css";
 
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
 const WHATSAPP_NUMBER = "5493456441580"; // Ajusta según formato correcto
 
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+const FORM_VACIO = {
+  apellido: "",
+  nombre: "",
+  sexo: "",
+  dni: "",
+  nacDia: "",
+  nacMes: "",
+  nacAnio: "",
+  lugarNacimiento: "",
+  domicilio: "",
+  localidad: "",
+  provincia: "",
+  telefono: "",
+};
+
+/* ---------- helpers de fecha ---------- */
+const diasEnMes = (mes, anio) => {
+  if (!mes) return 31;
+  const m = Number(mes);
+  if (!anio) return m === 2 ? 29 : new Date(2000, m, 0).getDate();
+  return new Date(Number(anio), m, 0).getDate();
+};
+
+const esFechaValida = (dia, mes, anio) => {
+  const d = Number(dia), m = Number(mes), a = Number(anio);
+  if (!d || !m || !a) return false;
+  const f = new Date(a, m - 1, d);
+  return f.getFullYear() === a && f.getMonth() === m - 1 && f.getDate() === d;
+};
+
+const aISO = (dia, mes, anio) =>
+  `${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+const aFechaLegible = (dia, mes, anio) =>
+  `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${anio}`;
+
 export default function FormularioCirugia() {
   const formRef = useRef(null);
-  const [form, setForm] = useState({
-    apellido: "",
-    nombre: "",
-    sexo: "",
-    dni: "",
-    nacimiento: "",
-    lugarNacimiento: "",
-    domicilio: "",
-    localidad: "",
-    provincia: "",
-    telefono: "",
-  });
 
+  const [form, setForm] = useState(FORM_VACIO);
   const [edad, setEdad] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
+  const [tema, setTema] = useState("claro");
+
+  /* ---------- tema (claro / oscuro) ---------- */
+  useEffect(() => {
+    let inicial = "claro";
+    try {
+      const guardado = window.localStorage.getItem("tema");
+      const prefiereOscuro = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+      inicial = guardado || (prefiereOscuro ? "oscuro" : "claro");
+    } catch {
+      /* localStorage bloqueado */
+    }
+    setTema(inicial);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema;
+    document.documentElement.style.colorScheme = tema === "oscuro" ? "dark" : "light";
+  }, [tema]);
+
+  const alternarTema = () => {
+    const nuevo = tema === "oscuro" ? "claro" : "oscuro";
+    setTema(nuevo);
+    try {
+      window.localStorage.setItem("tema", nuevo);
+    } catch {
+      /* ignorar */
+    }
+  };
+
+  /* ---------- fecha de nacimiento ---------- */
+  const anios = useMemo(() => {
+    const actual = new Date().getFullYear();
+    return Array.from({ length: 121 }, (_, i) => actual - i);
+  }, []);
+
+  const diasDelMes = useMemo(
+    () => diasEnMes(form.nacMes, form.nacAnio),
+    [form.nacMes, form.nacAnio]
+  );
+
+  const fechaNacimiento = useMemo(() => {
+    if (!form.nacDia || !form.nacMes || !form.nacAnio) return "";
+    return esFechaValida(form.nacDia, form.nacMes, form.nacAnio)
+      ? aISO(form.nacDia, form.nacMes, form.nacAnio)
+      : "";
+  }, [form.nacDia, form.nacMes, form.nacAnio]);
 
   // Función para calcular edad
   const calcularEdad = (fecha) => {
@@ -41,27 +115,28 @@ export default function FormularioCirugia() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nuevo = { ...form, [name]: value };
 
-    if (name === "nacimiento") {
-      const nuevaEdad = calcularEdad(value);
-      setEdad(nuevaEdad);
+    // Si cambia el mes o el año, y el día elegido ya no existe, lo limpiamos
+    if ((name === "nacMes" || name === "nacAnio") && nuevo.nacDia) {
+      if (Number(nuevo.nacDia) > diasEnMes(nuevo.nacMes, nuevo.nacAnio)) {
+        nuevo.nacDia = "";
+      }
+    }
+
+    setForm(nuevo);
+
+    if (name === "nacDia" || name === "nacMes" || name === "nacAnio") {
+      setEdad(
+        esFechaValida(nuevo.nacDia, nuevo.nacMes, nuevo.nacAnio)
+          ? calcularEdad(aISO(nuevo.nacDia, nuevo.nacMes, nuevo.nacAnio))
+          : ""
+      );
     }
   };
 
   const limpiarFormulario = () => {
-    setForm({
-      apellido: "",
-      nombre: "",
-      sexo: "",
-      dni: "",
-      nacimiento: "",
-      lugarNacimiento: "",
-      domicilio: "",
-      localidad: "",
-      provincia: "",
-      telefono: "",
-    });
+    setForm(FORM_VACIO);
     setEdad("");
   };
 
@@ -82,7 +157,7 @@ export default function FormularioCirugia() {
 - Nombre: ${form.nombre}
 - Sexo: ${form.sexo === "M" ? "Masculino" : "Femenino"}
 - DNI/CUIL: ${form.dni}
-- Fecha de nacimiento: ${form.nacimiento}
+- Fecha de nacimiento: ${aFechaLegible(form.nacDia, form.nacMes, form.nacAnio)}
 - Edad: ${edad} años
 --------------------------------
 *DATOS COMPLEMENTARIOS*
@@ -100,13 +175,13 @@ export default function FormularioCirugia() {
     const mensaje = generarMensajeWhatsApp();
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`;
     const nuevaVentana = window.open(url, "_blank");
-    
+
     // Si el navegador bloqueó la ventana emergente, mostrar enlace manual
     if (!nuevaVentana || nuevaVentana.closed || typeof nuevaVentana.closed === "undefined") {
       mostrarMensaje(
         <span>
           ✅ Solicitud guardada.{" "}
-          <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "white", fontWeight: "bold", textDecoration: "underline" }}>
+          <a href={url} target="_blank" rel="noopener noreferrer" className={styles.link}>
             Haz clic aquí para enviar por WhatsApp
           </a>
         </span>,
@@ -121,13 +196,12 @@ export default function FormularioCirugia() {
     e.preventDefault();
     setMensaje({ texto: "", tipo: "" });
 
-    // Validaciones
+    // Validaciones de campos de texto
     const camposObligatorios = [
       "apellido",
       "nombre",
       "sexo",
       "dni",
-      "nacimiento",
       "lugarNacimiento",
       "domicilio",
       "localidad",
@@ -138,9 +212,25 @@ export default function FormularioCirugia() {
     for (const campo of camposObligatorios) {
       if (!form[campo]?.trim()) {
         mostrarMensaje(`El campo ${campo} es obligatorio`, "error");
-        document.querySelector(`[name="${campo}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document
+          .querySelector(`[name="${campo}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
+    }
+
+    // Validar fecha de nacimiento
+    if (!form.nacDia || !form.nacMes || !form.nacAnio) {
+      mostrarMensaje("Completá tu fecha de nacimiento (día, mes y año)", "error");
+      document
+        .querySelector('[name="nacDia"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    if (!esFechaValida(form.nacDia, form.nacMes, form.nacAnio)) {
+      mostrarMensaje("La fecha de nacimiento no es válida", "error");
+      return;
     }
 
     // Validar DNI/CUIL
@@ -150,20 +240,21 @@ export default function FormularioCirugia() {
       return;
     }
 
-    // Validar fecha de nacimiento coherente
-    if (form.nacimiento) {
-      const edadCalculada = calcularEdad(form.nacimiento);
-      if (edadCalculada === "" || edadCalculada < 0 || edadCalculada > 120) {
-        mostrarMensaje("Fecha de nacimiento inválida", "error");
-        return;
-      }
+    // Validar edad coherente
+    const edadCalculada = calcularEdad(fechaNacimiento);
+    if (edadCalculada === "" || edadCalculada < 0 || edadCalculada > 120) {
+      mostrarMensaje("Fecha de nacimiento inválida", "error");
+      return;
     }
 
     setEnviando(true);
     try {
+      const { nacDia, nacMes, nacAnio, ...resto } = form;
+
       const data = {
-        ...form,
-        edad: edad,
+        ...resto,
+        nacimiento: fechaNacimiento,
+        edad: edadCalculada,
         fechaSolicitud: Date.now(),
         atendida: false,
         createdAt: new Date().toISOString(),
@@ -191,15 +282,25 @@ export default function FormularioCirugia() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} data-theme={tema}>
       <div className={styles.card}>
+        <div className={styles.topBar}>
+          <button
+            type="button"
+            className={styles.temaBtn}
+            onClick={alternarTema}
+            aria-label={tema === "oscuro" ? "Activar modo claro" : "Activar modo oscuro"}
+            title={tema === "oscuro" ? "Modo claro" : "Modo oscuro"}
+          >
+            {tema === "oscuro" ? "☀️" : "🌙"}
+          </button>
+        </div>
+
         <h1 className={styles.title}>Solicitud de Cirugía</h1>
         <p className={styles.subtitle}>Complete todos los campos para solicitar su cirugía</p>
 
         {mensaje.texto && (
-          <div className={`${styles.mensaje} ${styles[mensaje.tipo]}`}>
-            {mensaje.texto}
-          </div>
+          <div className={`${styles.mensaje} ${styles[mensaje.tipo]}`}>{mensaje.texto}</div>
         )}
 
         <form ref={formRef} onSubmit={handleSubmit} className={styles.form} noValidate>
@@ -269,30 +370,77 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: 20-12345678-9 o 12345678"
                 className={styles.input}
+                inputMode="numeric"
                 disabled={enviando}
                 required
               />
             </div>
 
+            {/* FECHA DE NACIMIENTO — 3 selectores (mucho más simple en celular) */}
             <div className={styles.formGroup}>
-              <label htmlFor="nacimiento">Fecha de nacimiento *</label>
-              <input
-                type="date"
-                id="nacimiento"
-                name="nacimiento"
-                value={form.nacimiento}
-                onChange={handleChange}
-                className={styles.input}
-                disabled={enviando}
-                required
-              />
+              <label>Fecha de nacimiento *</label>
+              <div className={styles.fechaGroup}>
+                <select
+                  name="nacDia"
+                  value={form.nacDia}
+                  onChange={handleChange}
+                  className={`${styles.input} ${styles.select}`}
+                  disabled={enviando}
+                  aria-label="Día de nacimiento"
+                >
+                  <option value="">Día</option>
+                  {Array.from({ length: diasDelMes }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="nacMes"
+                  value={form.nacMes}
+                  onChange={handleChange}
+                  className={`${styles.input} ${styles.select}`}
+                  disabled={enviando}
+                  aria-label="Mes de nacimiento"
+                >
+                  <option value="">Mes</option>
+                  {MESES.map((m, i) => (
+                    <option key={m} value={i + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="nacAnio"
+                  value={form.nacAnio}
+                  onChange={handleChange}
+                  className={`${styles.input} ${styles.select}`}
+                  disabled={enviando}
+                  aria-label="Año de nacimiento"
+                >
+                  <option value="">Año</option>
+                  {anios.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {fechaNacimiento && (
+                <p className={styles.helper}>
+                  📅 {aFechaLegible(form.nacDia, form.nacMes, form.nacAnio)} · {edad} años
+                </p>
+              )}
             </div>
 
             <div className={styles.formGroup}>
               <label>Edad</label>
               <input
                 type="text"
-                value={edad ? `${edad} años` : ""}
+                value={edad === "" ? "" : `${edad} años`}
                 className={`${styles.input} ${styles.readonly}`}
                 readOnly
                 disabled
@@ -374,6 +522,7 @@ export default function FormularioCirugia() {
                 onChange={handleChange}
                 placeholder="Ej: 3456-123456"
                 className={styles.input}
+                inputMode="tel"
                 disabled={enviando}
                 required
               />
