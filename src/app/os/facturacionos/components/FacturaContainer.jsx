@@ -13,7 +13,6 @@ import { cerrarPacientePorFactura } from '../utils/siniestroPacienteSync';
 
 import DatosPaciente from './DatosPaciente';
 import PracticasModule from './PracticasModule';
-import CirugiasModule from './CirugiasModule';
 import LaboratoriosModule from './LaboratoriosModule';
 import MedicamentosModule from './MedicamentosModule';
 import ResumenFactura from './ResumenFactura';
@@ -29,7 +28,6 @@ import {
 import styles from './facturacion.module.css';
 
 const todayISO = () => new Date().toISOString().split('T')[0];
-
 const onlyDigits = (s) => String(s ?? '').replace(/\D/g, '');
 
 const safeNum = (v) => {
@@ -45,10 +43,10 @@ const normalizeArtKey = (s) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'sin_art';
+    .replace(/^_+|_+$/g, '') || 'sin_os';
 
-const normalizeSiniestroKey = (artNombre, nroSiniestro) => {
-  const a = normalizeArtKey(artNombre || 'sin_art');
+const normalizeSiniestroKey = (osNombre, nroSiniestro) => {
+  const a = normalizeArtKey(osNombre || 'sin_os');
   const n = String(nroSiniestro ?? '').trim().toLowerCase();
   return `${a}__${n || 'sin_siniestro'}`;
 };
@@ -58,6 +56,17 @@ const prettyLabel = (s) =>
     .replace(/_/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+// FIX: nombre amigable del convenio, soporta obraSocial string u objeto
+const nombreConvenioLabel = (c) => {
+  if (!c) return '';
+  const os = c.obraSocial;
+  const osLabel =
+    typeof os === 'string'
+      ? os
+      : os?.sigla || os?.descripcion || '';
+  return prettyLabel(c.nombreConvenio || osLabel || c.id);
+};
 
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
   const honor = safeNum(calculoBase?.honorarioMedico);
@@ -98,7 +107,6 @@ const patchEsSoloTexto = (patch) => {
   return Object.keys(patch).every((k) => !numericKeys.has(k));
 };
 
-// Componente Modal reutilizable
 function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmText = 'Aceptar', showInput = false }) {
   const [input, setInput] = useState(inputValue || '');
   useEffect(() => {
@@ -108,11 +116,8 @@ function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmTe
   if (!open) return null;
 
   const handleConfirm = () => {
-    if (showInput) {
-      onConfirm(input);
-    } else {
-      onConfirm();
-    }
+    if (showInput) onConfirm(input);
+    else onConfirm();
   };
 
   return (
@@ -144,7 +149,17 @@ function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmTe
 }
 
 export default function FacturaContainer() {
-  const { convenios, convenioSel, valoresConvenio, cambiarConvenio, loading } = useConvenio();
+  const {
+    convenios,
+    convenioSel,
+    convenioData,
+    aranceles,
+    valoresConvenio: valoresConvenioCtx,   // FIX: usamos el del contexto
+    practicasIncluidas,                     // FIX
+    cambiarConvenio,
+    loading,
+  } = useConvenio();
+
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -176,9 +191,23 @@ export default function FacturaContainer() {
   const [draftId, setDraftId] = useState('');
   const [lockMsg, setLockMsg] = useState('');
 
-  // Estados para modales
-  const [modalConfirm, setModalConfirm] = useState(null); // { title, message, onConfirm }
-  const [modalPrompt, setModalPrompt] = useState(null); // { title, message, onConfirm }
+  const [modalConfirm, setModalConfirm] = useState(null);
+  const [modalPrompt, setModalPrompt] = useState(null);
+
+  // FIX: unificamos valoresConvenio con el del contexto (que ya incluye
+  // todas las claves de valoresArancelarios + los IDs canónicos).
+  const valoresConvenio = useMemo(() => {
+    return {
+      ...(valoresConvenioCtx || {}),
+      // refuerzos por si el contexto no trae algunos alias que usa recalcularPracticaConPrestador
+      gastoRx: valoresConvenioCtx?.gastosRx ?? aranceles?.gastosRx ?? 0,
+      gastoOperatorio: valoresConvenioCtx?.gastoQuirurgico ?? aranceles?.gastoQuirurgico ?? 0,
+      pension: valoresConvenioCtx?.unidadPension ?? aranceles?.unidadPension ?? 0,
+      otrosGastos: valoresConvenioCtx?.otrosGastos ?? aranceles?.otrosGastos ?? 0,
+      valorUB: valoresConvenioCtx?.unidadNBU ?? aranceles?.unidadNBU ?? 0,
+      unidadBioquimica: valoresConvenioCtx?.unidadNBU ?? aranceles?.unidadNBU ?? 0,
+    };
+  }, [valoresConvenioCtx, aranceles]);
 
   const resetStoredDraftId = useCallback(() => {
     setDraftId('');
@@ -197,21 +226,25 @@ export default function FacturaContainer() {
     [practicas, cirugias, laboratorios, medicamentos, descartables]
   );
 
+  // FIX: chips leen de aranceles (que viene del contexto, ya normalizado)
   const chips = useMemo(() => {
-    const galenoRx = safeNum(valoresConvenio?.galenoRx);
-    const gastoRx = safeNum(valoresConvenio?.gastoRx);
-    const gastoOperatorio = safeNum(valoresConvenio?.gastoOperatorio);
-    const galenoQuir = safeNum(valoresConvenio?.galenoQuir);
-    const diaPension =
-      safeNum(valoresConvenio?.diaPension) ||
-      safeNum(valoresConvenio?.pension) ||
-      safeNum(valoresConvenio?.pensionDia);
-
-    const otrosGastos = safeNum(valoresConvenio?.otrosGastos);
-    const valorUB = safeNum(valoresConvenio?.valorUB);
-
-    return { galenoRx, gastoRx, gastoOperatorio, galenoQuir, diaPension, otrosGastos, valorUB };
-  }, [valoresConvenio]);
+    const gastoRx = safeNum(aranceles?.gastosRx);
+    const gastoOperatorio = safeNum(aranceles?.gastoQuirurgico);
+    const diaPension = safeNum(aranceles?.unidadPension);
+    const otrosGastos = safeNum(aranceles?.otrosGastos);
+    const valorUB = safeNum(aranceles?.unidadNBU);
+    const gastosTomografia = safeNum(aranceles?.gastosTomografia);
+    const gastosBioquimicos = safeNum(aranceles?.gastosBioquimicos);
+    return {
+      gastoRx,
+      gastoOperatorio,
+      diaPension,
+      otrosGastos,
+      valorUB,
+      gastosTomografia,
+      gastosBioquimicos,
+    };
+  }, [aranceles]);
 
   const totalesFactura = useMemo(() => {
     const all = [...practicas, ...cirugias, ...laboratorios, ...medicamentos, ...descartables];
@@ -290,28 +323,10 @@ export default function FacturaContainer() {
           return '';
         };
 
-        const nombre = findValue(
-          [pacienteData, v],
-          'nombreCompleto',
-          'nombre',
-          'apellido',
-          'fullName',
-          'pacienteNombre',
-          'nombrePaciente'
-        );
-
+        const nombre = findValue([pacienteData, v], 'nombreCompleto', 'nombre', 'apellido', 'fullName', 'pacienteNombre', 'nombrePaciente');
         const dni = findValue([pacienteData, v], 'dni', 'documento', 'DNI', 'Documento');
-
         const art = findValue([pacienteData, v], 'artSeguro', 'art', 'seguro', 'artNombre', 'ART');
-
-        const siniestro = findValue(
-          [pacienteData, v],
-          'nroSiniestro',
-          'siniestro',
-          'numeroSiniestro',
-          'NroSiniestro'
-        );
-
+        const siniestro = findValue([pacienteData, v], 'nroSiniestro', 'siniestro', 'numeroSiniestro', 'NroSiniestro');
         const fecha = findValue([pacienteData, v], 'fechaAtencion', 'fecha', 'atencion', 'fecha_atencion') || todayISO();
 
         setPaciente({
@@ -330,16 +345,13 @@ export default function FacturaContainer() {
         setDescartables(Array.isArray(v?.descartables) ? v.descartables : []);
 
         if (v?.convenio) {
-          if (convenios && convenios[v.convenio]) {
-            cambiarConvenio(v.convenio);
-          }
+          const existe = convenios.find((c) => c.id === v.convenio);
+          if (existe) cambiarConvenio(v.convenio);
         } else if (v?.convenioNombre) {
-          const claveEncontrada = Object.keys(convenios || {}).find(
-            (key) => convenios[key]?.nombre === v.convenioNombre
+          const found = convenios.find(
+            (c) => (c.nombreConvenio || c.obraSocial?.sigla) === v.convenioNombre
           );
-          if (claveEncontrada) {
-            cambiarConvenio(claveEncontrada);
-          }
+          if (found) cambiarConvenio(found.id);
         }
 
         setDraftId(draftFromUrl);
@@ -355,7 +367,7 @@ export default function FacturaContainer() {
     return () => {
       alive = false;
     };
-  }, [draftFromUrl, isClient, convenios]);
+  }, [draftFromUrl, isClient, convenios, cambiarConvenio]);
 
   useEffect(() => {
     if (!isClient || loadingStorage) return;
@@ -368,27 +380,16 @@ export default function FacturaContainer() {
     setStorageItem(STORAGE_KEYS.DESCARTABLES, descartables);
     setStorageItem(STORAGE_KEYS.TAB_ACTIVA, activeTab);
     setStorageItem('FACTURACION_DRAFT_ID', draftId);
-  }, [
-    paciente,
-    practicas,
-    cirugias,
-    laboratorios,
-    medicamentos,
-    descartables,
-    activeTab,
-    isClient,
-    loadingStorage,
-    draftId,
-  ]);
+  }, [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, activeTab, isClient, loadingStorage, draftId]);
 
   const [existentes, setExistentes] = useState([]);
 
   const findExisting = useCallback(
     async ({ excludeId } = {}) => {
       const dniDigits = onlyDigits(paciente?.dni);
-      const artNombre = paciente?.artSeguro || '';
+      const osNombre = paciente?.artSeguro || '';
       const nroSiniestro = paciente?.nroSiniestro || '';
-      const key = normalizeSiniestroKey(artNombre, nroSiniestro);
+      const key = normalizeSiniestroKey(osNombre, nroSiniestro);
 
       const tieneSiniestro = String(nroSiniestro).trim() !== '';
       if (!dniDigits && !tieneSiniestro) return [];
@@ -404,10 +405,7 @@ export default function FacturaContainer() {
           const vDni = onlyDigits(v?.paciente?.dni || v?.dni || '');
           const vKey =
             v?.siniestroKey ||
-            normalizeSiniestroKey(
-              v?.paciente?.artSeguro || v?.artSeguro || '',
-              v?.paciente?.nroSiniestro || v?.nroSiniestro || ''
-            );
+            normalizeSiniestroKey(v?.paciente?.artSeguro || v?.artSeguro || '', v?.paciente?.nroSiniestro || v?.nroSiniestro || '');
           const matchDni = dniDigits && vDni && vDni === dniDigits;
           const matchSiniestro = tieneSiniestro && vKey === key;
           return matchDni || matchSiniestro;
@@ -448,11 +446,17 @@ export default function FacturaContainer() {
     async ({ estado, nombre, forceNew = false }) => {
       setLockMsg('');
 
-      const convenioNombre = convenios?.[convenioSel]?.nombre || convenioSel;
+      // FIX: nombre de convenio robusto (string u objeto en obraSocial)
+      const convenioNombre =
+        convenioData?.nombreConvenio ||
+        (typeof convenioData?.obraSocial === 'string'
+          ? convenioData.obraSocial
+          : convenioData?.obraSocial?.sigla) ||
+        convenioSel;
 
-      const artNombre = paciente?.artSeguro || '';
+      const osNombre = paciente?.artSeguro || '';
       const nroSiniestro = paciente?.nroSiniestro || '';
-      const siniestroKey = normalizeSiniestroKey(artNombre, nroSiniestro);
+      const siniestroKey = normalizeSiniestroKey(osNombre, nroSiniestro);
 
       let id = forceNew ? '' : draftId;
       if (!id) {
@@ -461,7 +465,6 @@ export default function FacturaContainer() {
       }
 
       const now = Date.now();
-
       const prevSnap = await get(ref(db, `Facturacion/${id}`));
       const prev = prevSnap.exists() ? prevSnap.val() : null;
 
@@ -512,18 +515,7 @@ export default function FacturaContainer() {
 
       return { id, ...payload };
     },
-    [
-      paciente,
-      practicas,
-      cirugias,
-      laboratorios,
-      medicamentos,
-      descartables,
-      totalesFactura,
-      convenioSel,
-      convenios,
-      draftId,
-    ]
+    [paciente, practicas, cirugias, laboratorios, medicamentos, descartables, totalesFactura, convenioSel, convenioData, draftId]
   );
 
   const RX_DOCTOR = 'Retamoso';
@@ -589,7 +581,6 @@ export default function FacturaContainer() {
 
         if (kind === 'practica') {
           merged = forceRxDoctor(merged);
-
           if (patchEsSoloTexto(patch)) {
             setItems((prev) => prev.map((x) => (x.id === id ? merged : x)));
             return true;
@@ -629,7 +620,6 @@ export default function FacturaContainer() {
           const cantidad = Math.max(1, Math.round(parseNumber(merged.cantidad) || 1));
           const baseTotal = safeNum(current.total) || safeNum(merged.total) || 0;
           const total = (baseTotal / (parseNumber(current.cantidad) || 1)) * cantidad;
-
           setItems((prev) => prev.map((x) => (x.id === id ? { ...merged, cantidad, total } : x)));
           return true;
         }
@@ -670,8 +660,6 @@ export default function FacturaContainer() {
     resetStoredDraftId();
     setLockMsg('Carga nueva: al guardar se creara un borrador independiente.');
   }, [draftFromUrl, resetStoredDraftId]);
-
-  // ===== Reemplazo de alert/confirm/prompt por modales =====
 
   const limpiarFactura = useCallback(() => {
     if (!isClient) return;
@@ -721,7 +709,7 @@ export default function FacturaContainer() {
           setModalPrompt(null);
           setModalConfirm({
             title: 'Borrador guardado',
-            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            message: `OS: ${paciente.artSeguro || 'SIN OS'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
             onConfirm: () => setModalConfirm(null),
           });
         } catch (e) {
@@ -757,10 +745,10 @@ export default function FacturaContainer() {
           setModalPrompt(null);
           setModalConfirm({
             title: 'Borrador nuevo guardado',
-            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            message: `OS: ${paciente.artSeguro || 'SIN OS'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
             onConfirm: () => {
               setModalConfirm(null);
-              router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
+              router.replace(`/os/facturacionos/nuevo?draft=${saved.id}`);
             },
           });
         } catch (e) {
@@ -807,11 +795,11 @@ export default function FacturaContainer() {
           setModalPrompt(null);
           setModalConfirm({
             title: 'Factura generada',
-            message: `Nro: ${saved.facturaNro}\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
+            message: `Nro: ${saved.facturaNro}\nOS: ${paciente.artSeguro || 'SIN OS'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
             onConfirm: () => {
               setModalConfirm(null);
               limpiarFactura();
-              router.replace('/admin/Facturacion/Nuevo');
+              router.replace('/os/facturacionos/nuevo');
             },
           });
         } catch (e) {
@@ -832,7 +820,6 @@ export default function FacturaContainer() {
   const tabs = [
     { key: 'datos', label: '👤 Datos Paciente' },
     { key: 'practicas', label: '🏥 Prácticas' },
-    { key: 'cirugias', label: '🩺 Cirugías' },
     { key: 'laboratorios', label: '🧪 Laboratorios' },
     { key: 'medicamentos', label: '💊 Medicamentos' },
     { key: 'resumen', label: '📋 Resumen' },
@@ -848,7 +835,6 @@ export default function FacturaContainer() {
 
   return (
     <div className={styles.container}>
-      {/* Modales */}
       <Modal
         open={!!modalConfirm}
         title={modalConfirm?.title || ''}
@@ -871,24 +857,24 @@ export default function FacturaContainer() {
       <header className={styles.header}>
         <div className={styles.topNav}>
           <div className={styles.viewToggle}>
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados?estado=borrador">
+            <Link className={styles.toggleBtn} href="/os/facturacionos/facturadosos?estado=borrador">
               📝 Borradores
             </Link>
-            <Link className={styles.toggleBtn} href="/admin/Facturacion/Facturados?estado=cerrado">
+            <Link className={styles.toggleBtn} href="/os/facturacionos/facturadosos?estado=cerrado">
               ✅ Cerrados
             </Link>
-            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Facturados">
+            <Link className={styles.toggleBtnAlt} href="/os/facturacionos/facturadosos">
               📦 Todos
             </Link>
           </div>
 
           <div className={styles.quickActions}>
-            <Link className={styles.toggleBtnAlt} href="/admin/Facturacion/Nuevo?new=1">
+            <Link className={styles.toggleBtnAlt} href="/os/facturacionos/nuevo?new=1">
               ➕ Nuevo
             </Link>
 
             {draftId ? (
-              <Link className={styles.toggleBtnAlt} href={`/admin/Facturacion/Facturados/${draftId}`}>
+              <Link className={styles.toggleBtnAlt} href={`/os/facturacionos/facturadosos/${draftId}`}>
                 👁 Ver actual
               </Link>
             ) : null}
@@ -897,7 +883,7 @@ export default function FacturaContainer() {
 
         <div className={styles.headerTop}>
           <div className={styles.titleBlock}>
-            <h1 className={styles.title}>Sistema de Facturación Clínica</h1>
+            <h1 className={styles.title}>Sistema de Facturación Obras Sociales</h1>
             <p className={styles.subtitle}>
               Carga rápida, desglose por Dr/Clínica y exportación.
               {draftId ? <span className={styles.draftPill}>📝 Borrador: {draftId}</span> : null}
@@ -925,17 +911,19 @@ export default function FacturaContainer() {
           <div className={styles.convenioSelector}>
             <label>Convenio:</label>
             <select
-              value={convenioSel}
+              value={convenioSel || ''}
               onChange={(e) => cambiarConvenio(e.target.value)}
               disabled={loading}
               className={styles.select}
             >
               {loading ? (
                 <option>Cargando convenios…</option>
+              ) : convenios.length === 0 ? (
+                <option value="">Sin convenios cargados</option>
               ) : (
-                Object.keys(convenios).map((k) => (
-                  <option key={k} value={k}>
-                    {prettyLabel(convenios[k]?.nombre || k)}
+                convenios.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {nombreConvenioLabel(c)}
                   </option>
                 ))
               )}
@@ -947,34 +935,50 @@ export default function FacturaContainer() {
           </div>
         </div>
 
-        {valoresConvenio && (
+        {/* FIX: mostramos chips de aranceles si HAY algún valor > 0
+            (no dependemos de que aranceles sea un objeto truthy vacío) */}
+        {aranceles && Object.values(chips).some((v) => safeNum(v) > 0) && (
           <div className={styles.chipsContainer}>
+            <span className={styles.chipsTitle}>Gastos del convenio:</span>
+
             <span className={`${styles.chip} ${styles.chipGastoRx}`}>
-              <b>Gasto Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoRx)}</span>
+              <b>Gasto Rx</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.gastoRx)}</span>
             </span>
-            <span className={`${styles.chip} ${styles.chipGalenoRx}`}>
-              <b>Galeno Rx</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoRx)}</span>
-            </span>
+
             <span className={`${styles.chip} ${styles.chipGtoOperatorio}`}>
-              <b>G. Oper.</b> <span className={styles.chipValue}>{moneyFmt(chips.gastoOperatorio)}</span>
+              <b>G. Quirúrgico</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.gastoOperatorio)}</span>
             </span>
-            <span className={`${styles.chip} ${styles.chipGalenoQuir}`}>
-              <b>Gal. Quir.</b> <span className={styles.chipValue}>{moneyFmt(chips.galenoQuir)}</span>
-            </span>
+
             <span className={`${styles.chip} ${styles.chipPension}`}>
-              <b>Pensión</b> <span className={styles.chipValue}>{moneyFmt(chips.diaPension)}</span>
+              <b>Pensión</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.diaPension)}</span>
             </span>
+
             <span className={`${styles.chip} ${styles.chipUb}`}>
-              <b>U.B.</b> <span className={styles.chipValue}>{moneyFmt(chips.valorUB)}</span>
+              <b>U.B.</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.valorUB)}</span>
             </span>
+
             <span className={`${styles.chip} ${styles.chipOtros}`}>
-              <b>Otros</b> <span className={styles.chipValue}>{moneyFmt(chips.otrosGastos)}</span>
+              <b>Bioq.</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.gastosBioquimicos)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipOtros}`}>
+              <b>TAC</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.gastosTomografia)}</span>
+            </span>
+
+            <span className={`${styles.chip} ${styles.chipOtros}`}>
+              <b>Otros</b>{' '}
+              <span className={styles.chipValue}>{moneyFmt(chips.otrosGastos)}</span>
             </span>
           </div>
         )}
       </header>
 
-      {/* ===== CARTEL DE DUPLICADOS ===== */}
       {existentes.length > 0 && (
         <div className={styles.duplicateAlert}>
           <div className={styles.duplicateHeader}>
@@ -990,7 +994,7 @@ export default function FacturaContainer() {
               {existentes.slice(0, 6).map((ex) => (
                 <Link
                   key={ex.id}
-                  href={`/admin/Facturacion/Nuevo?draft=${ex.id}`}
+                  href={`/os/facturacionos/nuevo?draft=${ex.id}`}
                   className={styles.duplicateLink}
                 >
                   {ex.estado === 'cerrado' ? '✅' : '📝'} {ex.nombre}
@@ -1020,12 +1024,7 @@ export default function FacturaContainer() {
       <div className={styles.content}>
         <AnimatePresence mode="wait">
           {activeTab === 'datos' && (
-            <motion.div
-              key="datos"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <motion.div key="datos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <DatosPaciente
                 paciente={paciente}
                 setPaciente={setPaciente}
@@ -1036,12 +1035,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'practicas' && (
-            <motion.div
-              key="practicas"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <motion.div key="practicas" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <PracticasModule
                 practicasAgregadas={practicas}
                 agregarPractica={agregarPractica}
@@ -1051,31 +1045,8 @@ export default function FacturaContainer() {
             </motion.div>
           )}
 
-          {activeTab === 'cirugias' && (
-            <motion.div
-              key="cirugias"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <CirugiasModule
-                cirugiasAgregadas={cirugias}
-                practicasAgregadas={practicas}
-                agregarCirugia={agregarCirugia}
-                agregarPractica={agregarPractica}
-                onAtras={() => setActiveTab('practicas')}
-                onSiguiente={() => setActiveTab('laboratorios')}
-              />
-            </motion.div>
-          )}
-
           {activeTab === 'laboratorios' && (
-            <motion.div
-              key="laboratorios"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <motion.div key="laboratorios" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <LaboratoriosModule
                 laboratoriosAgregados={laboratorios}
                 agregarLaboratorio={agregarLaboratorio}
@@ -1086,12 +1057,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'medicamentos' && (
-            <motion.div
-              key="medicamentos"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <motion.div key="medicamentos" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <MedicamentosModule
                 medicamentosAgregados={medicamentos}
                 descartablesAgregados={descartables}
@@ -1105,12 +1071,7 @@ export default function FacturaContainer() {
           )}
 
           {activeTab === 'resumen' && (
-            <motion.div
-              key="resumen"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
+            <motion.div key="resumen" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <ResumenFactura
                 paciente={paciente}
                 practicas={practicas}
@@ -1129,7 +1090,6 @@ export default function FacturaContainer() {
         </AnimatePresence>
       </div>
 
-      {/* ===== BARRA INFERIOR ===== */}
       <div className={styles.footerBar}>
         <div className={styles.footerActions}>
           {draftId ? (

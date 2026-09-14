@@ -5,29 +5,19 @@ import Fuse from 'fuse.js';
 import { useConvenio } from './ConvenioContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
-  normalize,
-  money,
-  isRadiografia,
-  isSubsiguiente,
-  vincularSubsiguientes,
-  highlight,
-  calcularPractica
+  normalize, money, isRadiografia, isSubsiguiente,
+  vincularSubsiguientes, highlight, calcularPractica
 } from '../utils/calculos';
 import styles from './practicas.module.css';
 
-const DEFAULT_CODES = [
-  '42.01.01',
-  '43.02.01',
-  '34.02.13',
-  '13.01.10',
-  '34.02.013',
-  '43.01.01',   // DIA PISO/INT
-  '43.10.01',
-  '43.11.01',
-  '400101',     // DIA UTI (G + H)
-];
-
 const normCode = (c) => String(c ?? '').replace(/\D/g, '');
+
+const normalizeKey = (k) =>
+  String(k ?? '')
+    .toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s\-\.]+/g, '_')
+    .replace(/[^\w]/g, '');
 
 const isEcografia = (practica) => {
   if (practica?.meta?.kind === 'especial') return false;
@@ -35,7 +25,11 @@ const isEcografia = (practica) => {
 };
 
 export default function PracticasModule({ practicasAgregadas, agregarPractica, onAtras, onSiguiente }) {
-  const { valoresConvenio } = useConvenio();
+  const {
+    valoresConvenio,
+    convenioData,
+    practicasIncluidas,
+  } = useConvenio();
 
   const [data, setData] = useState([]);
   const [capitulos, setCapitulos] = useState([]);
@@ -54,6 +48,27 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   const [lastAddedGroupId, setLastAddedGroupId] = useState(null);
   const tooltipTimeoutRef = useRef(null);
 
+  /* ---------- Lectura flexible de valoresConvenio ---------- */
+  const getVal = useCallback((...keys) => {
+    if (!valoresConvenio) return 0;
+    for (const k of keys) {
+      if (k == null) continue;
+      if (valoresConvenio[k] != null && valoresConvenio[k] !== '') {
+        const n = Number(valoresConvenio[k]);
+        if (Number.isFinite(n)) return n;
+      }
+      const norm = normalizeKey(k);
+      if (valoresConvenio[norm] != null && valoresConvenio[norm] !== '') {
+        const n = Number(valoresConvenio[norm]);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return 0;
+  }, [valoresConvenio]);
+
+  /* ============================================================
+   *  Carga del nomenclador
+   * ============================================================ */
   useEffect(() => {
     let mounted = true;
     fetch('/archivos/NomecladorNacional.json')
@@ -61,7 +76,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       .then(json => {
         if (!mounted) return;
         setCapitulos(json);
-
         const counts = new Map();
         const flat = json.flatMap((c) =>
           (c.practicas || []).map((p) => {
@@ -78,15 +92,13 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             };
           })
         );
-
         setData(flat);
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error cargando nomenclador nacional:', err);
+        console.error('Error cargando nomenclador:', err);
         setLoading(false);
       });
-
     return () => { mounted = false; };
   }, []);
 
@@ -100,6 +112,23 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     });
   }, [data]);
 
+  /* ============================================================
+   *  Prácticas incluidas (vienen del contexto, ya normalizadas)
+   * ============================================================ */
+  const incluidas = useMemo(
+    () => (Array.isArray(practicasIncluidas) ? practicasIncluidas : []),
+    [practicasIncluidas]
+  );
+
+  const incluidasMap = useMemo(() => {
+    const m = new Map();
+    for (const it of incluidas) m.set(normCode(it.codigo), it);
+    return m;
+  }, [incluidas]);
+
+  /* ============================================================
+   *  Tooltip
+   * ============================================================ */
   const showTooltipMessage = useCallback((msg, groupId) => {
     clearTimeout(tooltipTimeoutRef.current);
     setTooltipMessage(msg);
@@ -110,118 +139,149 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
   useEffect(() => () => clearTimeout(tooltipTimeoutRef.current), []);
 
-  const handleArtroscopiaChange = (key, tipo) => {
+  const handleArtroscopiaChange = (key, tipo) =>
     setArtroscopiaSelections(prev => ({ ...prev, [key]: tipo }));
-  };
-
-  const handleEcgChange = (key, tipo) => {
+  const handleEcgChange = (key, tipo) =>
     setEcgSelections(prev => ({ ...prev, [key]: tipo }));
-  };
 
-  // ============================================================
-  //  CÁLCULO
-  // ============================================================
+  /* ============================================================
+   *  CÁLCULO
+   * ============================================================ */
   const getCalculo = useCallback((practica) => {
-    if (!valoresConvenio) return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
+    // (1)(2)(3) — Práctica incluida con valor propio o por código
+    if (practica?.__incluida) {
+      const inc = practica.__incluida;
 
-    // FKT y FKT+MGT
+      let gasto = Number(inc.gastos) || 0;
+      if (gasto === 0) {
+        // FIX: probamos el código tal cual, el código normalizado y con
+        // prefijo "incluida-" por si el convenio guarda la clave así.
+        gasto = getVal(inc.codigo, normCode(inc.codigo));
+      }
+
+      const hono = Number(inc.honorarios) || 0;
+
+      if (gasto > 0 || hono > 0) {
+        return {
+          honorarioMedico: hono,
+          gastoSanatorial: gasto,
+          soloHonorario: gasto === 0 && hono > 0,
+          soloGasto:     hono === 0 && gasto > 0,
+        };
+      }
+    }
+
+    if (!valoresConvenio) {
+      return { honorarioMedico: 0, gastoSanatorial: 0, soloHonorario: false, soloGasto: false };
+    }
+
+    // FKT
     if (practica.codigo === 'FKT') {
-      const valor = Number(valoresConvenio['FKT']) || 0;
-      return { honorarioMedico: valor, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
+      const v = getVal('FKT');
+      return { honorarioMedico: v, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
     if (practica.codigo === 'FKT_+_MGT') {
-      const valor = Number(valoresConvenio['FKT_+_MGT']) || 0;
-      return { honorarioMedico: valor, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
+      const v = getVal('FKT_+_MGT', 'FKT + MGT');
+      return { honorarioMedico: v, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
 
     // ECG
     if (practica.codigo === '17.01.01') {
-      const valorBase = Number(valoresConvenio['ECG_Y_EX_EN_CV']) || 0;
+      const v = getVal('ECG_Y_EX_EN_CV', 'ECG Y EX EN CV', 'ecg');
       const tipo = ecgSelections[practica.__key] || 'profesional';
       if (tipo === 'profesional') {
-        return { honorarioMedico: valorBase, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
-      } else {
-        return { honorarioMedico: 0, gastoSanatorial: valorBase, soloHonorario: false, soloGasto: true };
+        return { honorarioMedico: v, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
       }
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
-    // --- NUEVOS MÓDULOS (siempre gasto clínica) ---
+    // DIA PISO / INTERNACIÓN
     if (practica.codigo === '43.01.01' || practica.codigo === '43.10.01' || practica.codigo === '43.11.01') {
-      const valor = Number(valoresConvenio['DIA_DE_PENSION-INTERNACION_PISO'] || valoresConvenio['Dia_Pension_Internacion_Piso']) || 0;
-      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+      const v = getVal(
+        'DIA_DE_PENSION-INTERNACION_PISO', 'DIA_DE_PENSION_INTERNACION_PISO',
+        'UNIDAD DE PENSION', 'Pension', 'Unidad_Pension', 'unidadPension'
+      );
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
+    // DIA UTI
     if (practica.codigo === '400101') {
-      const valor = Number(valoresConvenio['DIA_UTI_(_G+H)'] || valoresConvenio['Dia_UTI']) || 0;
-      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+      const v = getVal('DIA_UTI_(_G+H)', 'DIA_UTI', 'DIA UTI (G + H)');
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
-    if (practica.codigo === '431107') {
-      const valor = Number(valoresConvenio['MODULO_OXIGENO'] || valoresConvenio['Modulo_Oxigeno']) || 0;
-      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+    // MOD 02 (oxígeno)
+    if (practica.codigo === '431107' || practica.codigo === 'MOD 02' || practica.codigo === 'MOD02') {
+      const v = getVal('MODULO_OXIGENO', 'MODULO OXIGENO', 'Modulo_Oxigeno');
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
+    // MOD8
     if (practica.codigo === 'MOD8') {
-      const valor = Number(valoresConvenio['GASTOS_ARTROSCOPIA_COMPLEJA_COMPLEJIDAD_8'] || valoresConvenio['Gastos_Artroscopia_Compleja']) || 0;
-      return { honorarioMedico: 0, gastoSanatorial: valor, soloHonorario: false, soloGasto: true };
+      const v = getVal(
+        'GASTOS_ARTROSCOPIA_COMPLEJA_COMPLEJIDAD_8',
+        'GASTOS ARTROSCOPIA COMPLEJA COMPLEJIDAD 8',
+        'Gastos_Artroscopia_Compleja'
+      );
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
-    // Artroscopia (código 120902) con tres opciones
+    // Artroscopía 120902
     if (practica.codigo === '120902') {
       const tipo = artroscopiaSelections[practica.__key] || 'simple';
-      let gastoKey;
-      if (tipo === 'simple') gastoKey = 'Artroscopia_Simple_Gastos_Sanatoriales';
-      else if (tipo === 'ligamento') gastoKey = 'Lig_Cruzado_Gastos_Sanatoriales';
-      else gastoKey = 'Artroscopia_Hombro';
-      const gasto = Number(valoresConvenio[gastoKey]) || 0;
-      return { honorarioMedico: 0, gastoSanatorial: gasto, soloHonorario: false, soloGasto: true };
+      let keys;
+      if (tipo === 'simple') keys = ['Artroscopia_Simple_Gastos_Sanatoriales', 'artroscopiaSimple'];
+      else if (tipo === 'ligamento') keys = ['Lig_Cruzado_Gastos_Sanatoriales', 'ligCruzado'];
+      else keys = ['Artroscopia_Hombro', 'artroscopiaHombro'];
+      const v = getVal(...keys);
+      return { honorarioMedico: 0, gastoSanatorial: v, soloHonorario: false, soloGasto: true };
     }
 
-    // Capítulo 12 (cirugías generales)
+    // Capítulo 12 — cirugía general
     if (String(practica.capitulo) === '12') {
-      const gastoOperatorio = Number(valoresConvenio['Gasto_Operatorio']) || 0;
-      const galenoQuir = Number(valoresConvenio['Galeno_Quir']) || 0;
-      const honorario = galenoQuir * (practica.q_gal || 0);
-      const gasto = gastoOperatorio * (practica.gto || 0);
+      const gastoOp = getVal('Gasto_Operatorio', 'GASTO QUIRURGICO', 'Gasto_Quirurgico', 'gastoQuirurgico');
+      const galenoQ = getVal('Galeno_Quir', 'GALENO QUIR', 'unidadesHonorarioPractica');
+      const honorario = galenoQ * (practica.q_gal || 0);
+      const gasto = gastoOp * (practica.gto || 0);
       return { honorarioMedico: honorario, gastoSanatorial: gasto, soloHonorario: false, soloGasto: false };
     }
 
-    // Radiografías
-    if (practica.capitulo === '34' || (practica.capituloNombre && practica.capituloNombre.toLowerCase().includes('radiolog'))) {
-      const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
-      const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
+    // Radiografías (cap 34)
+    if (
+      String(practica.capitulo) === '34' ||
+      (practica.capituloNombre || '').toLowerCase().includes('radiolog')
+    ) {
+      const galenoRx = getVal('Galeno_Rx_Practica', 'GALENO RX PRACTICA', 'unidadesHonorarioBioq');
+      const gastoRx = getVal('Gasto_Rx', 'GASTOS RX', 'GASTO RX', 'Gastos_Rx', 'Gasto Rx', 'gastosRx');
       const honorario = (galenoRx * (practica.q_gal || 0)) + ((gastoRx * (practica.gto || 0)) / 2);
       const gasto = ((gastoRx * (practica.gto || 0)) / 2);
       return { honorarioMedico: honorario, gastoSanatorial: gasto, soloHonorario: false, soloGasto: false };
     }
 
-    // ✅ ECOGRAFÍAS: separamos Honorario (Galeno) y Gasto (Gasto_Rx)
+    // Ecografías
     if (isEcografia(practica)) {
-      const galenoRx = Number(valoresConvenio['Galeno_Rx_Practica']) || 0;
-      const gastoRx = Number(valoresConvenio['Gasto_Rx']) || 0;
-      const honorarioMedico = galenoRx * (practica.q_gal || 0);
-      const gastoSanatorial = gastoRx * (practica.gto || 0);
+      const galenoRx = getVal('Galeno_Rx_Practica', 'GALENO RX PRACTICA', 'unidadesHonorarioBioq');
+      const gastoRx = getVal('Gasto_Rx', 'GASTOS RX', 'GASTO RX', 'Gastos_Rx', 'Gasto Rx', 'gastosRx');
       return {
-        honorarioMedico,
-        gastoSanatorial,
-        soloHonorario: false,  // para que se muestre el gasto en la tabla
-        soloGasto: false
+        honorarioMedico: galenoRx * (practica.q_gal || 0),
+        gastoSanatorial: gastoRx * (practica.gto || 0),
+        soloHonorario: false,
+        soloGasto: false,
       };
     }
 
-    // Prácticas con meta especial (ej: eco partes blandas, eco abdominal)
+    // meta especial
     if (practica.meta?.kind === 'especial') {
-      const valorBase = Number(valoresConvenio[practica.meta.baseKey]) || 0;
-      return { honorarioMedico: valorBase, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
+      const v = getVal(practica.meta.baseKey);
+      return { honorarioMedico: v, gastoSanatorial: 0, soloHonorario: true, soloGasto: false };
     }
 
-    // Resto: usar calcularPractica de utils
     return calcularPractica(practica, valoresConvenio);
-  }, [valoresConvenio, artroscopiaSelections, ecgSelections]);
+  }, [valoresConvenio, getVal, artroscopiaSelections, ecgSelections]);
 
-  // ============================================================
-  //  AGREGAR PRÁCTICA
-  // ============================================================
+  /* ============================================================
+   *  AGREGAR
+   * ============================================================ */
   const handleAgregar = useCallback((practica) => {
     if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
 
@@ -234,7 +294,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     }
 
     const groupId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const baseId = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const baseId  = `pract-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
     const baseCommon = {
       ...practica,
@@ -247,7 +307,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     const agregados = [];
 
-    // Si es ecografía, agregamos UNA sola línea con el total (honorario + gasto) al Médico
     if (esEco) {
       const totalMedico = calculo.honorarioMedico + calculo.gastoSanatorial;
       agregados.push({
@@ -261,7 +320,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         detalle: `Ecografía: ${money(calculo.honorarioMedico)} (Galeno) + ${money(calculo.gastoSanatorial)} (Gasto)`
       });
     } else {
-      // Para otras prácticas: Dr + Clínica según corresponda
       if (calculo.honorarioMedico > 0) {
         agregados.push({
           id: `${baseId}-dr`,
@@ -290,9 +348,9 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     let tipoMsg = '';
     if (practica.codigo === '120902') {
-      if (tipoArtroscopia === 'simple') tipoMsg = ' (Simple)';
-      else if (tipoArtroscopia === 'ligamento') tipoMsg = ' (Ligamento cruzado)';
-      else tipoMsg = ' (Hombro)';
+      tipoMsg = tipoArtroscopia === 'simple' ? ' (Simple)'
+              : tipoArtroscopia === 'ligamento' ? ' (Ligamento cruzado)'
+              : ' (Hombro)';
     } else if (practica.codigo === '17.01.01') {
       tipoMsg = ` (${ecgSelections[practica.__key] || 'profesional'})`;
     } else if (practica.codigo === 'FKT') {
@@ -305,148 +363,37 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     showTooltipMessage(`✓ "${String(practica.descripcion).slice(0, 50)}..."${tipoMsg} agregada`, groupId);
   }, [valoresConvenio, artroscopiaSelections, ecgSelections, agregarPractica, showTooltipMessage, getCalculo]);
 
-  // ============================================================
-  //  RESULTADOS
-  // ============================================================
+  /* ============================================================
+   *  RESULTADOS POR DEFECTO = PRÁCTICAS INCLUIDAS
+   * ============================================================ */
   const defaultResultados = useMemo(() => {
-    if (!data.length) return [];
+    if (!incluidas.length) return [];
 
-    const wanted = DEFAULT_CODES.map(normCode);
     const picked = [];
 
-    for (const w of wanted) {
-      const found = data.find((it) => normCode(it.codigo) === w);
-      if (!found) continue;
-      picked.push(...vincularSubsiguientes(found, data));
-    }
+    for (const inc of incluidas) {
+      const codeNorm = normCode(inc.codigo);
 
-    if (valoresConvenio) {
-      // ECG
-      if (valoresConvenio['ECG_Y_EX_EN_CV']) {
-        picked.push({
-          codigo: '17.01.01',
-          descripcion: 'ECG',
-          capitulo: '17',
-          capituloNombre: 'Cardiología',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-ecg'
-        });
-      }
-      // Ecografía partes blandas
-      if (valoresConvenio['Ecografia_partes_blandas_no_moduladas']) {
-        picked.push({
-          codigo: '18.06.01',
-          descripcion: 'Ecografía partes blandas',
-          capitulo: '18',
-          capituloNombre: 'Ecografías',
-          q_gal: 0,
-          gto: 0,
-          meta: { kind: 'especial', baseKey: 'Ecografia_partes_blandas_no_moduladas' },
-          __key: 'custom-eco'
-        });
-      }
-      // Ecografía abdominal completa
-      if (valoresConvenio['Ecografia_abdominal_completa']) {
-        picked.push({
-          codigo: '18.06.02',
-          descripcion: 'Ecografía abdominal completa',
-          capitulo: '18',
-          capituloNombre: 'Ecografías',
-          q_gal: 0,
-          gto: 0,
-          meta: { kind: 'especial', baseKey: 'Ecografia_abdominal_completa' },
-          __key: 'custom-eco-abdominal'
-        });
-      }
-      // Artroscopia
-      if (valoresConvenio['Artroscopia_Simple_Gastos_Sanatoriales'] ||
-          valoresConvenio['Lig_Cruzado_Gastos_Sanatoriales'] ||
-          valoresConvenio['Artroscopia_Hombro']) {
-        picked.push({
-          codigo: '120902',
-          descripcion: 'Artroscopia',
-          capitulo: '12',
-          capituloNombre: 'Procedimientos',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-artroscopia'
-        });
-      }
+      const found = data.find((it) => normCode(it.codigo) === codeNorm);
 
-      // MOD 02
-      if (valoresConvenio['MODULO_OXIGENO'] || valoresConvenio['Modulo_Oxigeno']) {
+      if (found) {
+        const merged = {
+          ...found,
+          descripcion: found.descripcion || inc.descripcion,
+          __incluida: inc,
+          __key: `incluida-${inc.codigo}-${found.__key || ''}`,
+        };
+        picked.push(...vincularSubsiguientes(merged, data));
+      } else {
         picked.push({
-          codigo: 'MOD 02',
-          descripcion: 'Modulo de oxigeno por dia',
-          capitulo: '43',
-          capituloNombre: 'Terapias',
+          codigo: inc.codigo,
+          descripcion: inc.descripcion || inc.codigo,
+          capitulo: '',
+          capituloNombre: 'Práctica incluida',
           q_gal: 0,
           gto: 0,
-          __key: 'custom-mod02'
-        });
-      }
-
-      // DIA PISO/INT
-      if (valoresConvenio['DIA_DE_PENSION-INTERNACION_PISO'] || valoresConvenio['Dia_Pension_Internacion_Piso']) {
-        picked.push({
-          codigo: '43.01.01',
-          descripcion: 'DIA PISO/INT',
-          capitulo: '43',
-          capituloNombre: 'Internación',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-piso-int'
-        });
-      }
-
-      // DIA UTI (G+H)
-      if (valoresConvenio['DIA_UTI_(_G+H)'] || valoresConvenio['Dia_UTI']) {
-        picked.push({
-          codigo: '400101',
-          descripcion: 'DIA UTI (G + H)',
-          capitulo: '43',
-          capituloNombre: 'Terapias',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-uti'
-        });
-      }
-
-      // MOD8
-      if (valoresConvenio['GASTOS_ARTROSCOPIA_COMPLEJA_COMPLEJIDAD_8'] || valoresConvenio['Gastos_Artroscopia_Compleja']) {
-        picked.push({
-          codigo: 'MOD8',
-          descripcion: 'Artroscopia compleja (Complejidad 8)',
-          capitulo: '12',
-          capituloNombre: 'Procedimientos',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-mod8'
-        });
-      }
-
-      // FKT y FKT+MGT
-      if (valoresConvenio['FKT'] && Number(valoresConvenio['FKT']) > 0) {
-        picked.push({
-          codigo: 'FKT',
-          descripcion: 'FKT',
-          capitulo: '00',
-          capituloNombre: 'Kinesiología',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-fkt'
-        });
-      }
-      if (valoresConvenio['FKT_+_MGT'] && Number(valoresConvenio['FKT_+_MGT']) > 0) {
-        picked.push({
-          codigo: 'FKT_+_MGT',
-          descripcion: 'FKT + MGT',
-          capitulo: '00',
-          capituloNombre: 'Kinesiología',
-          q_gal: 0,
-          gto: 0,
-          __key: 'custom-fktmgt'
+          __key: `incluida-virtual-${inc.codigo}`,
+          __incluida: inc,
         });
       }
     }
@@ -457,8 +404,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       if (!seen.has(key)) seen.set(key, it);
     });
     return Array.from(seen.values());
-  }, [data, valoresConvenio]);
+  }, [data, incluidas]);
 
+  /* ============================================================
+   *  BÚSQUEDA
+   * ============================================================ */
   const resultadosBusqueda = useMemo(() => {
     const q = debouncedQuery.trim();
     if (!q) return [];
@@ -471,31 +421,32 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
     let results = [];
     if (exact.length > 0) {
-      exact.forEach(it => {
-        results.push(...vincularSubsiguientes(it, data));
-      });
+      exact.forEach(it => results.push(...vincularSubsiguientes(it, data)));
     } else if (fuse) {
-      fuse.search(q).forEach(r => {
-        results.push(...vincularSubsiguientes(r.item, data));
-      });
+      fuse.search(q).forEach(r => results.push(...vincularSubsiguientes(r.item, data)));
     }
+
+    results = results.map((it) => {
+      const inc = incluidasMap.get(normCode(it.codigo));
+      return inc ? { ...it, __incluida: inc } : it;
+    });
 
     const seen = new Map();
     results.forEach(it => {
       const key = it.__key || `${it.capitulo}|${it.codigo}`;
       if (!seen.has(key)) seen.set(key, it);
     });
-
     return Array.from(seen.values());
-  }, [debouncedQuery, data, fuse]);
+  }, [debouncedQuery, data, fuse, incluidasMap]);
 
-  const resultados = useMemo(() => {
-    return debouncedQuery.trim() === '' ? defaultResultados : resultadosBusqueda;
-  }, [debouncedQuery, defaultResultados, resultadosBusqueda]);
+  const resultados = useMemo(
+    () => (debouncedQuery.trim() === '' ? defaultResultados : resultadosBusqueda),
+    [debouncedQuery, defaultResultados, resultadosBusqueda]
+  );
 
-  // ============================================================
-  //  RENDER
-  // ============================================================
+  /* ============================================================
+   *  RENDER
+   * ============================================================ */
   const renderItem = (item, isMobile = false, qLocal = '') => {
     const key = item.__key || `${item.capitulo}|${item.codigo}`;
     const esRX = isRadiografia(item);
@@ -504,18 +455,17 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
     const esECG = item.codigo === '17.01.01';
     const es400101 = item.codigo === '400101';
     const esEco18 = isEcografia(item);
-    const esFKT = item.codigo === 'FKT' || item.codigo === 'FKT_+_MGT';
     const esCapitulo12 = String(item.capitulo) === '12';
+    const esIncluida = !!item.__incluida;
 
     const calculo = getCalculo(item);
     const isRecent = lastAddedGroupId && item.groupId === lastAddedGroupId;
     const q = qLocal || query;
 
-    const gastoSimple = Number(valoresConvenio?.['Artroscopia_Simple_Gastos_Sanatoriales']) || 0;
-    const gastoLigamento = Number(valoresConvenio?.['Lig_Cruzado_Gastos_Sanatoriales']) || 0;
-    const gastoHombro = Number(valoresConvenio?.['Artroscopia_Hombro']) || 0;
+    const gastoSimple    = getVal('Artroscopia_Simple_Gastos_Sanatoriales', 'artroscopiaSimple');
+    const gastoLigamento = getVal('Lig_Cruzado_Gastos_Sanatoriales', 'ligCruzado');
+    const gastoHombro    = getVal('Artroscopia_Hombro', 'artroscopiaHombro');
 
-    // Total = honorario + gasto (siempre)
     const total = calculo.honorarioMedico + calculo.gastoSanatorial;
 
     if (isMobile) {
@@ -526,14 +476,16 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         >
           <div className={styles.cardTop}>
             <div className={styles.code}>{highlight(item.codigo, q)}</div>
-            <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
+            <span className={styles.capBadge}>
+              {item.capitulo ? `${item.capitulo} – ` : ''}{item.capituloNombre}
+            </span>
           </div>
 
           <div className={styles.desc}>{highlight(item.descripcion, q)}</div>
 
           {esEco18 && (
             <div className={styles.ecoBadge}>
-              🩺 Todo al médico: Galeno Rx × {item.q_gal || 0} UVR + Gasto Rx × {item.gto || 0}
+              🩺 Todo al médico: Galeno Rx × {item.q_gal || 0} + Gasto Rx × {item.gto || 0}
             </div>
           )}
 
@@ -546,34 +498,22 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           {esArtroscopia && (
             <div className={styles.artroscopiaSelector}>
               <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name={`artro-${key}`}
+                <input type="radio" name={`artro-${key}`}
                   checked={artroscopiaSelections[key] === 'simple' || !artroscopiaSelections[key]}
-                  onChange={() => handleArtroscopiaChange(key, 'simple')}
-                />
-                <span className={styles.radioCustom}></span>
-                Simple ({money(gastoSimple)})
+                  onChange={() => handleArtroscopiaChange(key, 'simple')} />
+                <span className={styles.radioCustom}></span>Simple ({money(gastoSimple)})
               </label>
               <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name={`artro-${key}`}
+                <input type="radio" name={`artro-${key}`}
                   checked={artroscopiaSelections[key] === 'ligamento'}
-                  onChange={() => handleArtroscopiaChange(key, 'ligamento')}
-                />
-                <span className={styles.radioCustom}></span>
-                Ligamento cruzado ({money(gastoLigamento)})
+                  onChange={() => handleArtroscopiaChange(key, 'ligamento')} />
+                <span className={styles.radioCustom}></span>Ligamento ({money(gastoLigamento)})
               </label>
               <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name={`artro-${key}`}
+                <input type="radio" name={`artro-${key}`}
                   checked={artroscopiaSelections[key] === 'hombro'}
-                  onChange={() => handleArtroscopiaChange(key, 'hombro')}
-                />
-                <span className={styles.radioCustom}></span>
-                Hombro ({money(gastoHombro)})
+                  onChange={() => handleArtroscopiaChange(key, 'hombro')} />
+                <span className={styles.radioCustom}></span>Hombro ({money(gastoHombro)})
               </label>
             </div>
           )}
@@ -581,24 +521,18 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           {esECG && (
             <div className={styles.ecgSelector}>
               <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name={`ecg-${key}`}
+                <input type="radio" name={`ecg-${key}`}
                   checked={ecgSelections[key] === 'profesional' || !ecgSelections[key]}
-                  onChange={() => handleEcgChange(key, 'profesional')}
-                />
+                  onChange={() => handleEcgChange(key, 'profesional')} />
                 <span className={styles.radioCustom}></span>
-                Profesional (Dr) ({money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
+                Profesional (Dr) ({money(getVal('ECG_Y_EX_EN_CV', 'ECG Y EX EN CV', 'ecg'))})
               </label>
               <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name={`ecg-${key}`}
+                <input type="radio" name={`ecg-${key}`}
                   checked={ecgSelections[key] === 'clinica'}
-                  onChange={() => handleEcgChange(key, 'clinica')}
-                />
+                  onChange={() => handleEcgChange(key, 'clinica')} />
                 <span className={styles.radioCustom}></span>
-                Clínica ({money(Number(valoresConvenio?.['ECG_Y_EX_EN_CV']) || 0)})
+                Clínica ({money(getVal('ECG_Y_EX_EN_CV', 'ECG Y EX EN CV', 'ecg'))})
               </label>
             </div>
           )}
@@ -606,22 +540,12 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <div className={styles.costGrid}>
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Honorario</span>
-              {es400101 && <div className={styles.baseLine}>Gal: {money(item.q_gal || 0)}</div>}
-              {esEco18 && <div className={styles.baseLine}>Galeno × {item.q_gal || 0}</div>}
-              {esCapitulo12 && <div className={styles.baseLine}>Gal. Quir × {item.q_gal || 0}</div>}
               <span className={styles.costValue}>{money(calculo.honorarioMedico)}</span>
             </div>
-
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Gasto</span>
-              {es400101 && <div className={styles.baseLine}>Gto: {money(item.gto || 0)}</div>}
-              {esEco18 && <div className={styles.baseLine}>Gasto Rx × {item.gto || 0}</div>}
-              {esCapitulo12 && <div className={styles.baseLine}>G. Oper. × {item.gto || 0}</div>}
-              <span className={styles.costValue}>
-                {esEco18 ? money(calculo.gastoSanatorial) : money(calculo.gastoSanatorial)}
-              </span>
+              <span className={styles.costValue}>{money(calculo.gastoSanatorial)}</span>
             </div>
-
             <div className={styles.costBox}>
               <span className={styles.costLabel}>Total</span>
               <span className={styles.costValue}>{money(total)}</span>
@@ -637,7 +561,6 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
       );
     }
 
-    // Vista de escritorio (tabla)
     return (
       <tr
         key={key}
@@ -646,38 +569,24 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         <td className={styles.codeCell}>{highlight(item.codigo, q)}</td>
         <td className={styles.descCell}>
           {highlight(item.descripcion, q)}
-          {esEco18 && (
-            <div className={styles.ecoNote}>
-              🩺 Todo al médico: Galeno Rx × {item.q_gal || 0} UVR + Gasto Rx × {item.gto || 0}
-            </div>
-          )}
           {esArtroscopia && (
             <div className={styles.tableArtroscopiaSelector}>
               <label className={styles.radioLabelInline}>
-                <input
-                  type="radio"
-                  name={`artro-tab-${key}`}
+                <input type="radio" name={`artro-tab-${key}`}
                   checked={artroscopiaSelections[key] === 'simple' || !artroscopiaSelections[key]}
-                  onChange={() => handleArtroscopiaChange(key, 'simple')}
-                />
+                  onChange={() => handleArtroscopiaChange(key, 'simple')} />
                 <span>Simple ({money(gastoSimple)})</span>
               </label>
               <label className={styles.radioLabelInline}>
-                <input
-                  type="radio"
-                  name={`artro-tab-${key}`}
+                <input type="radio" name={`artro-tab-${key}`}
                   checked={artroscopiaSelections[key] === 'ligamento'}
-                  onChange={() => handleArtroscopiaChange(key, 'ligamento')}
-                />
+                  onChange={() => handleArtroscopiaChange(key, 'ligamento')} />
                 <span>Ligamento ({money(gastoLigamento)})</span>
               </label>
               <label className={styles.radioLabelInline}>
-                <input
-                  type="radio"
-                  name={`artro-tab-${key}`}
+                <input type="radio" name={`artro-tab-${key}`}
                   checked={artroscopiaSelections[key] === 'hombro'}
-                  onChange={() => handleArtroscopiaChange(key, 'hombro')}
-                />
+                  onChange={() => handleArtroscopiaChange(key, 'hombro')} />
                 <span>Hombro ({money(gastoHombro)})</span>
               </label>
             </div>
@@ -685,21 +594,15 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           {esECG && (
             <div className={styles.tableEcgSelector}>
               <label className={styles.radioLabelInline}>
-                <input
-                  type="radio"
-                  name={`ecg-tab-${key}`}
+                <input type="radio" name={`ecg-tab-${key}`}
                   checked={ecgSelections[key] === 'profesional' || !ecgSelections[key]}
-                  onChange={() => handleEcgChange(key, 'profesional')}
-                />
+                  onChange={() => handleEcgChange(key, 'profesional')} />
                 <span>Profesional</span>
               </label>
               <label className={styles.radioLabelInline}>
-                <input
-                  type="radio"
-                  name={`ecg-tab-${key}`}
+                <input type="radio" name={`ecg-tab-${key}`}
                   checked={ecgSelections[key] === 'clinica'}
-                  onChange={() => handleEcgChange(key, 'clinica')}
-                />
+                  onChange={() => handleEcgChange(key, 'clinica')} />
                 <span>Clínica</span>
               </label>
             </div>
@@ -711,40 +614,37 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           )}
         </td>
         <td className={styles.capCell}>
-          <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
+          <span className={styles.capBadge}>
+            {item.capitulo ? `${item.capitulo} – ` : ''}{item.capituloNombre}
+          </span>
         </td>
 
-        {/* Honorario */}
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
-            {es400101
-              ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
-              : esCapitulo12
-                ? `Gal. Quir × ${item.q_gal || 0}`
-                : esEco18
-                  ? `Galeno × ${item.q_gal || 0}`
-                  : `Gal: ${money(item.q_gal || 0)}`
-            }
+            {esIncluida
+              ? <span className={styles.miniLabel}>Incluida</span>
+              : es400101
+                ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
+                : esCapitulo12 ? `Gal. Quir × ${item.q_gal || 0}`
+                : esEco18 ? `Galeno × ${item.q_gal || 0}`
+                : `Gal: ${money(item.q_gal || 0)}`}
           </div>
           <div className={styles.valueBig}>{money(calculo.honorarioMedico)}</div>
         </td>
 
-        {/* Gasto */}
         <td className={styles.numericCell}>
           <div className={styles.baseLine}>
-            {es400101
-              ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
-              : esCapitulo12
-                ? `G. Oper. × ${item.gto || 0}`
-                : esEco18
-                  ? `Gasto Rx × ${item.gto || 0}`
-                  : money(item.gto || 0)
-            }
+            {esIncluida
+              ? <span className={styles.miniLabel}>Valor incluido</span>
+              : es400101
+                ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
+                : esCapitulo12 ? `G. Oper. × ${item.gto || 0}`
+                : esEco18 ? `Gasto Rx × ${item.gto || 0}`
+                : money(item.gto || 0)}
           </div>
           <div className={styles.valueBig}>{money(calculo.gastoSanatorial)}</div>
         </td>
 
-        {/* Total */}
         <td className={styles.numericCell}>
           <div className={styles.valueBig}>{money(total)}</div>
         </td>
@@ -776,20 +676,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
           <button className={styles.switchButton} onClick={() => setModoBusqueda(p => !p)}>
             {modoBusqueda ? '📂 Ver por capítulos' : '🔍 Modo búsqueda global'}
           </button>
-
           <span className={styles.counterBadge}>
             {practicasCount} {practicasCount === 1 ? 'práctica' : 'prácticas'} agregada{practicasCount !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        <div className={styles.addSplitRow}>
-          <span className={styles.addSplitLabel}>Al agregar se generan:</span>
-          <span className={styles.addSplitHint}>
-            👨‍⚕️ Honorario (Dr) + 🏥 Gasto (Clínica de la Unión) <small>(según corresponda)</small>
-            <br />
-            <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>
-              📌 Ecografías: todo al Médico (una sola línea) - Honorario + Gasto separados en la tabla
-            </span>
           </span>
         </div>
       </div>
@@ -811,15 +699,18 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
 
           <div className={styles.buscadorInfo}>
             {qTrim === ''
-              ? `${resultados.length} accesos rápidos`
-              : `${resultados.length} prácticas encontradas para "${qTrim}"`
-            }
+              ? `${resultados.length} prácticas incluidas`
+              : `${resultados.length} prácticas encontradas para "${qTrim}"`}
           </div>
 
           <div className={styles.mobileList}>
             {resultados.length === 0 ? (
               <div className={styles.noResults}>
-                {qTrim === '' ? 'No se encontraron accesos rápidos.' : `No hay resultados para "${qTrim}"`}
+                {qTrim === ''
+                  ? (incluidas.length === 0
+                      ? 'Este convenio no tiene prácticas incluidas cargadas.'
+                      : 'No hay prácticas incluidas cargadas en este convenio.')
+                  : `No hay resultados para "${qTrim}"`}
               </div>
             ) : (
               resultados.map(item => renderItem(item, true))
@@ -839,12 +730,15 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
                   <th className={styles.thAction}>Agregar</th>
                 </tr>
               </thead>
-
               <tbody>
                 {resultados.length === 0 ? (
                   <tr>
                     <td colSpan={7} className={styles.noResultsCell}>
-                      {qTrim === '' ? 'No se encontraron accesos rápidos.' : `No hay resultados para "${qTrim}"`}
+                      {qTrim === ''
+                        ? (incluidas.length === 0
+                            ? 'Este convenio no tiene prácticas incluidas cargadas.'
+                            : 'No hay prácticas incluidas cargadas en este convenio.')
+                        : `No hay resultados para "${qTrim}"`}
                     </td>
                   </tr>
                 ) : (

@@ -445,51 +445,51 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
       const empleadorCuitFormatted = formatIdField(form.empleadorCuitDni);
       const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
 
-      const payload = {
-        ART: {
-          nombre: form.ART.trim() || "",
-          nroSiniestro: form.nroSiniestro.trim() || "",
-        },
-        empleador: {
-          nombre: form.empleadorNombre.trim() || "",
-          cuit: empleadorCuitFormatted || "",
-        },
-        trabajador: {
-          apellido: form.trabajadorApellido.trim() || "",
-          nombre: form.trabajadorNombre.trim() || "",
-          dni: trabajadorDniFormatted || "",
-          nacimiento: form.trabajadorNacimiento || "",
-          edad: form.trabajadorEdad,
-          sexo: form.trabajadorSexo || "",
-          calle: form.trabajadorCalle.trim() || "",
-          numero: form.trabajadorNumero.trim() || "",
-          piso: form.trabajadorPiso.trim() || "",
-          depto: form.trabajadorDepto.trim() || "",
-          localidad: form.trabajadorLocalidad.trim() || "",
-          provincia: form.trabajadorProvincia.trim() || "",
-          cp: onlyDigits(form.trabajadorCP) || "",
-          telefono: onlyDigits(form.trabajadorTelefono) || "",
-        },
-        fechaIngreso: {
-          dia: form.diaIngreso,
-          mes: form.mesIngreso,
-          anio: form.anioIngreso,
-          iso: form.anioIngreso && form.mesIngreso && form.diaIngreso
-            ? `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`
-            : "",
-        },
-        fechaDenuncia: {
-          dia: form.diaDenuncia,
-          mes: form.mesDenuncia,
-          anio: form.anioDenuncia,
-          iso: form.anioDenuncia && form.mesDenuncia && form.diaDenuncia
-            ? `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`
-            : "",
-        },
-        prestador: PRESTADOR_CONST,
-        estado: form.estado || "abierto",
-        updatedAt: Date.now(),
-      };
+const payload = {
+  ART: {
+    nombre: form.ART.trim().toUpperCase() || "",
+    nroSiniestro: form.nroSiniestro.trim().toUpperCase() || "",
+  },
+  empleador: {
+    nombre: form.empleadorNombre.trim().toUpperCase() || "",
+    cuit: empleadorCuitFormatted || "",
+  },
+  trabajador: {
+    apellido: form.trabajadorApellido.trim().toUpperCase() || "",
+    nombre: form.trabajadorNombre.trim().toUpperCase() || "",
+    dni: trabajadorDniFormatted || "",
+    nacimiento: form.trabajadorNacimiento || "",
+    edad: form.trabajadorEdad,
+    sexo: form.trabajadorSexo || "",
+    calle: form.trabajadorCalle.trim().toUpperCase() || "",
+    numero: form.trabajadorNumero.trim().toUpperCase() || "",
+    piso: form.trabajadorPiso.trim().toUpperCase() || "",
+    depto: form.trabajadorDepto.trim().toUpperCase() || "",
+    localidad: form.trabajadorLocalidad.trim().toUpperCase() || "",
+    provincia: form.trabajadorProvincia.trim().toUpperCase() || "",
+    cp: onlyDigits(form.trabajadorCP) || "",
+    telefono: onlyDigits(form.trabajadorTelefono) || "",
+  },
+  fechaIngreso: {
+    dia: form.diaIngreso,
+    mes: form.mesIngreso,
+    anio: form.anioIngreso,
+    iso: form.anioIngreso && form.mesIngreso && form.diaIngreso
+      ? `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`
+      : "",
+  },
+  fechaDenuncia: {
+    dia: form.diaDenuncia,
+    mes: form.mesDenuncia,
+    anio: form.anioDenuncia,
+    iso: form.anioDenuncia && form.mesDenuncia && form.diaDenuncia
+      ? `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`
+      : "",
+  },
+  prestador: PRESTADOR_CONST,
+  estado: form.estado || "abierto",
+  updatedAt: Date.now(),
+};
 
       let savedId;
       if (editingId) {

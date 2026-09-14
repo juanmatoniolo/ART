@@ -631,3 +631,12 @@
     width: 100%;
   }
 }
+
+.chipsTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin-right: 4px;
+}

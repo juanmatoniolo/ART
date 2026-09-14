@@ -9,7 +9,7 @@ import { calcularLaboratorio, money, normalize } from '../utils/calculos';
 import styles from './laboratorio.module.css';
 
 /**
- * ========= Helpers (copiados de medicamentos) =========
+ * ========= Helpers =========
  */
 function normalizeText(input) {
   return String(input ?? '')
@@ -70,13 +70,50 @@ const stepFor = (qty) => (qty < 1 ? 0.1 : 1);
 
 const MAX_RESULTS = 50;
 
+/**
+ * FIX: lee UNIDAD NBU de valoresConvenio con múltiples fallbacks.
+ * El contexto expone:
+ *   - valoresConvenio.unidadNBU
+ *   - valoresConvenio.UNIDAD_NBU (clave normalizada)
+ *   - valoresConvenio['UNIDAD NBU'] (clave cruda si vino tal cual)
+ *   - aranceles.unidadNBU
+ *   - getter valorUB (vía hook useConvenio)
+ */
+const leerValorUB = (valoresConvenio, aranceles, valorUBGetter) => {
+  if (Number.isFinite(valorUBGetter) && valorUBGetter > 0) return valorUBGetter;
+  if (!valoresConvenio && !aranceles) return 0;
+
+  const tryKeys = [
+    'unidadNBU',
+    'UNIDAD_NBU',
+    'UNIDAD NBU',
+    'Laboratorios_NBU',
+    'LABORATORIOS_NBU',
+    'valorUB',
+    'Valor_UB',
+    'VALOR_UB',
+  ];
+
+  const candidates = [valoresConvenio, aranceles].filter(Boolean);
+  for (const src of candidates) {
+    for (const k of tryKeys) {
+      const v = src[k];
+      if (v != null && v !== '') {
+        const n = Number(v);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    }
+  }
+  return 0;
+};
+
 export default function LaboratoriosModule({
   laboratoriosAgregados,
   agregarLaboratorio,
   onAtras,
-  onSiguiente
+  onSiguiente,
 }) {
-  const { valoresConvenio } = useConvenio();
+  const { valoresConvenio, aranceles, valorUB: valorUBGetter } = useConvenio();
 
   // ========= Estado catálogo laboratorios =========
   const [busqueda, setBusqueda] = useState('');
@@ -96,7 +133,11 @@ export default function LaboratoriosModule({
   const recentTimer = useRef(null);
   const searchRef = useRef(null);
 
-  const valorUB = valoresConvenio?.valorUB ?? 0;
+  // FIX: valor UB robusto
+  const valorUB = useMemo(
+    () => leerValorUB(valoresConvenio, aranceles, valorUBGetter),
+    [valoresConvenio, aranceles, valorUBGetter]
+  );
 
   // ========= Modal builder =========
   const [modalOpen, setModalOpen] = useState(false);
@@ -104,7 +145,7 @@ export default function LaboratoriosModule({
   const [comboNombre, setComboNombre] = useState('');
   const [comboTags, setComboTags] = useState('');
   const [comboSearch, setComboSearch] = useState('');
-  const [comboSelected, setComboSelected] = useState([]); // [{ tipo:'laboratorio', itemId:codigo, cantidad }]
+  const [comboSelected, setComboSelected] = useState([]);
 
   // ========= Toast unificado =========
   const showToastMessage = useCallback((msg, key) => {
@@ -140,7 +181,7 @@ export default function LaboratoriosModule({
             tipo: 'laboratorio',
             codigo: String(p.codigo ?? '').trim(),
             descripcion: (p.practica_bioquimica || p.descripcion || '').trim(),
-            unidadBioquimica: Number(p.unidad_bioquimica) || 0
+            unidadBioquimica: Number(p.unidad_bioquimica) || 0,
           })) || [];
 
         setNomenclador(practicas);
@@ -199,26 +240,40 @@ export default function LaboratoriosModule({
       .slice(0, MAX_RESULTS);
   }, [nomenclador, busqueda]);
 
-  // ========= Agregar item individual (con cantidad opcional) =========
+  // ========= Agregar item individual =========
+  // FIX: usamos valoresConvenio + un override con valorUB para que
+  // calcularLaboratorio lo tome aunque el contexto no traiga la clave exacta.
+  const valoresParaCalculo = useMemo(
+    () => ({
+      ...(valoresConvenio || {}),
+      // alias que calcularLaboratorio puede buscar
+      valorUB: valorUB,
+      unidadNBU: valorUB,
+      UNIDAD_NBU: valorUB,
+      UNIDAD_NBU_: valorUB,
+      Laboratorios_NBU: valorUB,
+    }),
+    [valoresConvenio, valorUB]
+  );
+
   const handleAgregar = useCallback(
     (laboratorio, cantidad = 1) => {
       const qty = clampQty(cantidad);
-      const valores = calcularLaboratorio(laboratorio, valoresConvenio);
+      const valores = calcularLaboratorio(laboratorio, valoresParaCalculo);
 
       const nuevoLaboratorio = {
         id: `lab-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         ...laboratorio,
         ...valores,
         cantidad: qty,
-        // Si queremos que el total refleje la cantidad, multiplicamos:
-        total: valores.total * qty
+        total: valores.total * qty,
       };
 
       agregarLaboratorio(nuevoLaboratorio);
       const key = `laboratorio:${laboratorio.codigo}`;
       showToastMessage(`✓ "${laboratorio.descripcion?.slice(0, 42)}..." agregado`, key);
     },
-    [agregarLaboratorio, valoresConvenio, showToastMessage]
+    [agregarLaboratorio, valoresParaCalculo, showToastMessage]
   );
 
   // ========= Agregar combo =========
@@ -234,7 +289,7 @@ export default function LaboratoriosModule({
       let missing = 0;
 
       for (const ci of comboItems) {
-        const itemId = ci?.itemId; // código del laboratorio
+        const itemId = ci?.itemId;
         const cantidad = clampQty(ci?.cantidad);
 
         if (!itemId) {
@@ -254,7 +309,10 @@ export default function LaboratoriosModule({
 
       const name = combo?.nombre || 'Combo';
       if (added > 0) {
-        showToastMessage(`✓ Combo agregado: ${name} (${added}${missing ? `, faltan ${missing}` : ''})`, `combo:${comboId}`);
+        showToastMessage(
+          `✓ Combo agregado: ${name} (${added}${missing ? `, faltan ${missing}` : ''})`,
+          `combo:${comboId}`
+        );
       } else {
         showToastMessage(`⚠️ No se pudo agregar el combo: ${name}`, `combo:${comboId}`);
       }
@@ -286,9 +344,9 @@ export default function LaboratoriosModule({
       items: comboSelected.map((x) => ({
         tipo: 'laboratorio',
         itemId: x.itemId,
-        cantidad: clampQty(x.cantidad)
+        cantidad: clampQty(x.cantidad),
       })),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     try {
@@ -345,7 +403,7 @@ export default function LaboratoriosModule({
       (combo?.items ?? []).map((x) => ({
         tipo: 'laboratorio',
         itemId: x.itemId,
-        cantidad: clampQty(x.cantidad)
+        cantidad: clampQty(x.cantidad),
       }))
     );
     setModalOpen(true);
@@ -395,6 +453,7 @@ export default function LaboratoriosModule({
     if (modo === 'buscar') setTimeout(() => searchRef.current?.focus(), 0);
   }, [modo]);
 
+  // FIX: preview ahora usa el valorUB robusto
   const getPreview = useCallback(
     (laboratorio) => {
       const ub = laboratorio?.unidadBioquimica ?? 0;
@@ -406,7 +465,6 @@ export default function LaboratoriosModule({
 
   const countAgregados = laboratoriosAgregados?.length ?? 0;
 
-  // Lista de combos ordenada
   const combosList = useMemo(() => {
     const arr = Object.entries(combos || {}).map(([id, data]) => ({ id, ...data }));
     arr.sort((a, b) => {
@@ -440,7 +498,6 @@ export default function LaboratoriosModule({
         </div>
       )}
 
-      {/* Pestañas y botón nuevo combo */}
       <div className={styles.tabs}>
         <button
           className={`${styles.tabBtn} ${modo === 'buscar' ? styles.tabActive : ''}`}
@@ -462,7 +519,6 @@ export default function LaboratoriosModule({
         </div>
       </div>
 
-      {/* Vista BUSCAR */}
       {modo === 'buscar' && (
         <>
           <div className={styles.labHeader}>
@@ -500,12 +556,11 @@ export default function LaboratoriosModule({
             </div>
           </div>
 
-          {/* Mobile cards */}
           <div className={styles.labMobileList}>
             {laboratoriosFiltrados.length === 0 ? (
               <div className={styles.noResults}>No hay resultados para “{busqueda}”.</div>
             ) : (
-              laboratoriosFiltrados.map((l, i) => {
+              laboratoriosFiltrados.map((l) => {
                 const { ub, total, formula } = getPreview(l);
                 const cardKey = `lab:${l.codigo}`;
                 const isRecent = lastAddedId === cardKey;
@@ -543,7 +598,6 @@ export default function LaboratoriosModule({
             )}
           </div>
 
-          {/* Desktop table */}
           <div className={styles.labTableWrapper}>
             <table className={styles.labTable}>
               <thead>
@@ -603,7 +657,6 @@ export default function LaboratoriosModule({
         </>
       )}
 
-      {/* Vista COMBOS */}
       {modo === 'combos' && (
         <div className={styles.combosPanel}>
           {combosLoading ? (
@@ -695,7 +748,6 @@ export default function LaboratoriosModule({
         </button>
       </div>
 
-      {/* Modal para crear/editar combo */}
       {modalOpen && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modalCard}>

@@ -28,6 +28,7 @@ const ROLES = [
   "UTI",
   "FARM",
   "MEDICO",
+  "OS", 
 ];
 
 const normalizeText = (value = "") =>

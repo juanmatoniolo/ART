@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useConvenio } from './ConvenioContext';
 import styles from './datosPaciente.module.css';
-
-const FIREBASE_URL = 'https://datos-clini-default-rtdb.firebaseio.com';
 
 const onlyDigits = (s) => (s ?? '').replace(/\D/g, '');
 
@@ -19,54 +18,64 @@ function formatDocument(value) {
   return digits;
 }
 
+// helper para saber si la OS de un convenio matchea con la sigla
+const osMatches = (os, sigla) => {
+  if (!os || !sigla) return false;
+  if (typeof os === 'string') return os === sigla;
+  return os.sigla === sigla || os.codOS === sigla || os.descripcion === sigla;
+};
+
 export default function DatosPaciente({
   paciente,
   setPaciente,
   onSiguiente,
   onPacienteSeleccionado,
 }) {
+  const {
+    obrasSociales,
+    osSel,
+    cambiarOS,
+    conveniosDeOS,
+    convenioSel,
+    convenioData,
+    cambiarConvenio,
+    arancelesVisibles,
+  } = useConvenio();
+
   const [seguroCustom, setSeguroCustom] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const nombreRef = useRef(null);
-
-  const [obrasSociales, setObrasSociales] = useState([]);
-  const [busquedaOS, setBusquedaOS] = useState('');
+  const [busquedaOS, setBusquedaOS] = useState(osSel || '');
   const [mostrarListaOS, setMostrarListaOS] = useState(false);
+  const nombreRef = useRef(null);
   const osRef = useRef(null);
 
-  // Nuevo estado para convenios
-  const [convenios, setConvenios] = useState([]);
-
-  // Cargar obras sociales y convenios
+  /* ---------- Sincronizar Context → paciente ---------- */
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [osRes, convRes] = await Promise.all([
-          fetch(`${FIREBASE_URL}/facturacionOS/osociales.json`),
-          fetch(`${FIREBASE_URL}/facturacionOS/convenios.json`),
-        ]);
+    if (!osSel) return;
+    if (busquedaOS !== osSel) setBusquedaOS(osSel);
+    setPaciente((prev) =>
+      prev.artSeguro === osSel ? prev : { ...prev, artSeguro: osSel }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [osSel]);
 
-        if (osRes.ok) {
-          const data = await osRes.json();
-          setObrasSociales(Array.isArray(data) ? data : []);
-        }
-        if (convRes.ok) {
-          const convData = await convRes.json();
-          const convList = convData
-            ? Object.entries(convData).map(([id, value]) => ({ id, ...value }))
-            : [];
-          setConvenios(convList);
-        }
-      } catch (err) {
-        console.error('Error cargando datos:', err);
-      }
-    };
-    fetchData();
-  }, []);
+  useEffect(() => {
+    if (!convenioSel) return;
+    const nombre =
+      convenioData?.nombreConvenio ||
+      convenioData?.obraSocial?.sigla ||
+      '';
+    setPaciente((prev) =>
+      prev.convenioId === convenioSel && prev.convenioNombre === nombre
+        ? prev
+        : { ...prev, convenioId: convenioSel, convenioNombre: nombre }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convenioSel, convenioData]);
 
-  // Cerrar lista de OS al hacer clic fuera
+  /* ---------- Cerrar lista OS al hacer click afuera ---------- */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (osRef.current && !osRef.current.contains(e.target)) {
@@ -77,26 +86,24 @@ export default function DatosPaciente({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  /* ---------- Filtros y validaciones ---------- */
   const obrasFiltradas = useMemo(() => {
     const term = busquedaOS.toLowerCase().trim();
     if (!term) return obrasSociales;
-    return obrasSociales.filter((os) =>
-      String(os.codOS || '').toLowerCase().includes(term) ||
-      String(os.sigla || '').toLowerCase().includes(term) ||
-      String(os.descripcion || '').toLowerCase().includes(term) ||
-      String(os.cuenta || '').toLowerCase().includes(term)
+    return obrasSociales.filter(
+      (os) =>
+        String(os.codOS || '').toLowerCase().includes(term) ||
+        String(os.sigla || '').toLowerCase().includes(term) ||
+        String(os.descripcion || '').toLowerCase().includes(term) ||
+        String(os.cuenta || '').toLowerCase().includes(term)
     );
   }, [busquedaOS, obrasSociales]);
 
-  // Filtrar convenios por obra social seleccionada
-  const conveniosFiltrados = useMemo(() => {
-    const siglaOS = paciente.artSeguro || '';
-    if (!siglaOS) return [];
-    return convenios.filter((conv) =>
-      conv.obraSocial?.sigla === siglaOS ||
-      conv.obraSocial?.codOS === siglaOS
-    );
-  }, [convenios, paciente.artSeguro]);
+  // FIX: ahora devuelve TODOS los convenios de la OS ordenados por fecha
+  const conveniosFiltrados = useMemo(
+    () => conveniosDeOS(paciente.artSeguro),
+    [conveniosDeOS, paciente.artSeguro]
+  );
 
   const seguroEsDeLista = useMemo(() => {
     const v = (paciente.artSeguro || '').trim();
@@ -118,7 +125,8 @@ export default function DatosPaciente({
   const isFormValid = useMemo(() => {
     const nombreValido = (paciente.nombreCompleto || '').trim().length >= 3;
     const digits = onlyDigits(paciente.dni || '');
-    const docValido = (digits.length >= 7 && digits.length <= 9) || digits.length === 11;
+    const docValido =
+      (digits.length >= 7 && digits.length <= 9) || digits.length === 11;
     return nombreValido && docValido;
   }, [paciente.nombreCompleto, paciente.dni]);
 
@@ -129,8 +137,13 @@ export default function DatosPaciente({
     if (touched.nombreCompleto && nombre && nombre.length < 3) {
       newErrors.nombreCompleto = 'Nombre debe tener al menos 3 caracteres.';
     }
-    if (touched.dni && paciente.dni?.trim() && !((digits.length >= 7 && digits.length <= 9) || digits.length === 11)) {
-      newErrors.dni = 'Documento inválido (DNI de 7-9 dígitos o CUIL de 11 dígitos)';
+    if (
+      touched.dni &&
+      paciente.dni?.trim() &&
+      !((digits.length >= 7 && digits.length <= 9) || digits.length === 11)
+    ) {
+      newErrors.dni =
+        'Documento inválido (DNI de 7-9 dígitos o CUIL de 11 dígitos)';
     }
     setErrors(newErrors);
   }, [paciente.nombreCompleto, paciente.dni, touched]);
@@ -139,7 +152,6 @@ export default function DatosPaciente({
     nombreRef.current?.focus();
   }, []);
 
-  // Calcular días de internación
   const diasInternacion = useMemo(() => {
     const desde = paciente.fechaIngreso;
     const hasta = paciente.fechaEgreso;
@@ -149,6 +161,7 @@ export default function DatosPaciente({
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, [paciente.fechaIngreso, paciente.fechaEgreso]);
 
+  /* ---------- Handlers ---------- */
   const setField = (name, value) => {
     setPaciente((prev) => ({ ...prev, [name]: value }));
   };
@@ -159,44 +172,53 @@ export default function DatosPaciente({
   };
 
   const handleDniChange = (e) => {
-    const raw = e.target.value;
-    const digits = onlyDigits(raw).slice(0, 11);
-    const formatted = formatDocument(digits);
-    setField('dni', formatted);
+    const digits = onlyDigits(e.target.value).slice(0, 11);
+    setField('dni', formatDocument(digits));
   };
 
   const handleSelectObraSocial = (os) => {
-    setField('artSeguro', os.sigla);
     setBusquedaOS(os.sigla);
     setMostrarListaOS(false);
     setShowCustomInput(false);
-    // Resetear convenio al cambiar de OS
-    setField('convenioId', '');
-    setField('convenioNombre', '');
+    cambiarOS(os.sigla);
+    setPaciente((prev) => ({
+      ...prev,
+      artSeguro: os.sigla,
+      convenioId: '',
+      convenioNombre: '',
+    }));
   };
 
   const handleSelectOtro = () => {
     setMostrarListaOS(false);
     setBusquedaOS('');
-    setField('artSeguro', '');
     setShowCustomInput(true);
     setSeguroCustom('');
-    // Resetear convenio
-    setField('convenioId', '');
-    setField('convenioNombre', '');
+    cambiarOS('');
+    setPaciente((prev) => ({
+      ...prev,
+      artSeguro: '',
+      convenioId: '',
+      convenioNombre: '',
+    }));
   };
 
   const handleSelectConvenio = (e) => {
-    const convenioId = e.target.value;
-    if (!convenioId) {
+    const id = e.target.value;
+    if (!id) {
+      cambiarConvenio('');
       setField('convenioId', '');
       setField('convenioNombre', '');
       return;
     }
-    const conv = conveniosFiltrados.find((c) => c.id === convenioId);
+    const conv = conveniosFiltrados.find((c) => c.id === id);
     if (conv) {
-      setField('convenioId', conv.id);
-      setField('convenioNombre', conv.nombreConvenio || conv.obraSocial?.sigla);
+      cambiarConvenio(conv.id);
+      setPaciente((prev) => ({
+        ...prev,
+        convenioId: conv.id,
+        convenioNombre: conv.nombreConvenio || conv.obraSocial?.sigla || '',
+      }));
     }
   };
 
@@ -212,6 +234,7 @@ export default function DatosPaciente({
     onSiguiente();
   };
 
+  /* ---------- Render ---------- */
   return (
     <section className={styles.container} aria-label="Datos del paciente">
       <header className={styles.header}>
@@ -261,14 +284,20 @@ export default function DatosPaciente({
             autoComplete="off"
           />
           {!errors.dni ? (
-            <small className={styles.help}>DNI (7-9 dígitos) o CUIL (11 dígitos).</small>
+            <small className={styles.help}>
+              DNI (7-9 dígitos) o CUIL (11 dígitos).
+            </small>
           ) : (
             <span className={styles.errorMessage}>{errors.dni}</span>
           )}
         </div>
 
         {/* Buscador de obra social */}
-        <div className={styles.formGroup} ref={osRef} style={{ position: 'relative' }}>
+        <div
+          className={styles.formGroup}
+          ref={osRef}
+          style={{ position: 'relative' }}
+        >
           <label className={styles.label} htmlFor="busquedaOS">
             Obra Social
           </label>
@@ -280,9 +309,6 @@ export default function DatosPaciente({
             onChange={(e) => {
               setBusquedaOS(e.target.value);
               setMostrarListaOS(true);
-              if (!paciente.artSeguro || paciente.artSeguro !== e.target.value) {
-                setPaciente((prev) => ({ ...prev, artSeguro: '' }));
-              }
             }}
             onFocus={() => setMostrarListaOS(true)}
             className={styles.input}
@@ -293,7 +319,7 @@ export default function DatosPaciente({
             <ul className={styles.osList}>
               {obrasFiltradas.length > 0 ? (
                 obrasFiltradas.map((os) => (
-                  <li key={os.codOS}>
+                  <li key={os.codOS || os.sigla || os.id}>
                     <button
                       type="button"
                       className={styles.osItem}
@@ -319,7 +345,9 @@ export default function DatosPaciente({
               </li>
             </ul>
           )}
-          <small className={styles.help}>Escribí para buscar o elegí "Otro".</small>
+          <small className={styles.help}>
+            Escribí para buscar o elegí "Otro".
+          </small>
         </div>
 
         {showCustomInput && (
@@ -335,6 +363,7 @@ export default function DatosPaciente({
                 const v = e.target.value;
                 setSeguroCustom(v);
                 setField('artSeguro', v);
+                cambiarOS(v);
               }}
               placeholder="Ej: OSDE, Swiss Medical, etc."
               className={styles.input}
@@ -343,7 +372,7 @@ export default function DatosPaciente({
           </div>
         )}
 
-        {/* Selector de Convenio */}
+        {/* Selector de Convenio (todos los de la OS, ordenados por fecha) */}
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="convenioId">
             Convenio
@@ -356,19 +385,87 @@ export default function DatosPaciente({
             className={styles.select}
             disabled={!paciente.artSeguro || conveniosFiltrados.length === 0}
           >
-            <option value="">{paciente.artSeguro ? 'Seleccionar convenio...' : 'Primero elegí una obra social'}</option>
+            <option value="">
+              {paciente.artSeguro
+                ? 'Seleccionar convenio...'
+                : 'Primero elegí una obra social'}
+            </option>
             {conveniosFiltrados.map((conv) => (
               <option key={conv.id} value={conv.id}>
-                {conv.nombreConvenio || conv.obraSocial?.sigla} ({new Date(conv.fechaCarga).toLocaleDateString('es-AR')})
+                {(conv.nombreConvenio || conv.obraSocial?.sigla || conv.id) +
+                  (conv.fechaCarga
+                    ? ` (${new Date(conv.fechaCarga).toLocaleDateString('es-AR')})`
+                    : '')}
               </option>
             ))}
           </select>
           {paciente.artSeguro && conveniosFiltrados.length === 0 && (
-            <small className={styles.help}>No hay convenios cargados para esta obra social.</small>
+            <small className={styles.help}>
+              No hay convenios cargados para esta obra social.
+            </small>
+          )}
+          {paciente.artSeguro && conveniosFiltrados.length > 1 && (
+            <small className={styles.help}>
+              {conveniosFiltrados.length} convenios disponibles (el más reciente primero).
+            </small>
           )}
         </div>
 
-        {/* Fechas de ingreso y egreso */}
+        {/* Resumen de aranceles del convenio activo (solo > 0) */}
+        {convenioData && arancelesVisibles.length > 0 && (
+          <div className={styles.formGroupFull}>
+            <div
+              style={{
+                border: '1px solid var(--border, #cbd5e1)',
+                borderRadius: 12,
+                padding: '0.75rem 1rem',
+                background: 'var(--surface-2, #f8fafc)',
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  marginBottom: '0.5rem',
+                  fontSize: '0.9rem',
+                }}
+              >
+                Valores arancelarios –{' '}
+                {convenioData.nombreConvenio || convenioData.obraSocial?.sigla}
+              </div>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '0.4rem 1rem',
+                  fontSize: '0.85rem',
+                }}
+              >
+                {arancelesVisibles.map((a) => (
+                  <li
+                    key={a.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                      borderBottom: '1px dashed var(--border, #cbd5e1)',
+                      paddingBottom: 2,
+                    }}
+                  >
+                    <span>{a.label}</span>
+                    <strong>
+                      ${a.value.toLocaleString('es-AR')}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Fechas */}
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="fechaIngreso">
             Fecha de Ingreso
@@ -411,8 +508,14 @@ export default function DatosPaciente({
             <span className={styles.noteIcon}>ℹ️</span>
             Los campos con <b>*</b> son obligatorios.
           </div>
-          <button type="submit" className={styles.btnPrimary} disabled={!isFormValid}>
-            {isFormValid ? 'Siguiente: Prácticas →' : 'Completa nombre y documento válido'}
+          <button
+            type="submit"
+            className={styles.btnPrimary}
+            disabled={!isFormValid}
+          >
+            {isFormValid
+              ? 'Siguiente: Prácticas →'
+              : 'Completa nombre y documento válido'}
           </button>
         </div>
       </form>

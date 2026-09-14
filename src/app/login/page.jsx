@@ -51,7 +51,7 @@ export default function LoginPage() {
             const esRoot = userData.root === true || userData.TipoEmpleado === "ROOT";
             const routes = {
                 ADM: "/admin",
-                ADMINISTRADOR: "/administrador", // ✅ Nuevo rol con ruta reducida
+                ADMINISTRADOR: "/administrador",
                 "ADM Farmacia": "/farmacia",
                 Farmacia: "/farmacia",
                 RECEPCION: "/historia-clinica",
@@ -59,6 +59,13 @@ export default function LoginPage() {
                 UTI: "/uti/admin",
                 MEDICO: "/foja/medicos",
                 ROOT: "/admin",
+                OS: "/os", // 👈 agregado
+            };
+
+            // Agrega esta función después de getRoleValue
+            const getRoleLabel = (role = "") => {
+                const found = ROLES.find((r) => r.value === role);
+                return found ? found.label : role;
             };
             const destino = esRoot ? "/admin" : routes[userData.TipoEmpleado] || "/admin";
             router.push(destino);

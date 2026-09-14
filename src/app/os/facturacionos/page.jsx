@@ -8,12 +8,6 @@ export default function FacturacionDashboardPage() {
   return (
     <ConvenioProvider>
       <div className={styles.page}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>🧾 Facturación</h1>
-          <p className={styles.subtitle}>
-            Elegí si querés <b>cargar una factura nueva</b> o <b>ver / retomar</b> siniestros ya guardados.
-          </p>
-        </header>
 
         <section className={styles.grid}>
           <Link href="/os/facturacionos/nuevo" className={`${styles.card} ${styles.cardPrimary}`}>
