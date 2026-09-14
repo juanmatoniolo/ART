@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import useDoctors from '../hooks/useDoctors';
 import useFacturas from '../hooks/useFacturas';
-import { money, safeNum } from '../../Facturacion/utils/calculos';
+import { money, safeNum } from '../../facturacionos/utils/calculos';
 import dashStyles from './dashboard.module.css';
 import styles from '../medicos.module.css';
 
