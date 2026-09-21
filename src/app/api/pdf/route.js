@@ -82,7 +82,8 @@ function buildArtFields(payload) {
 	const p = payload.prestador || {};
 
 	const nac = splitDateISO(t.nacimiento);
-	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
+	const nombreEmpleado =
+		`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
 	const edad = t.edad ? `${t.edad} AÑOS` : "";
 
 	const fechaIngresoObj = {
@@ -325,7 +326,10 @@ export async function POST(req) {
 		} = await req.json();
 
 		if (!payload) {
-			return NextResponse.json({ error: "Falta payload" }, { status: 400 });
+			return NextResponse.json(
+				{ error: "Falta payload" },
+				{ status: 400 },
+			);
 		}
 
 		const isIngreso = pdfType === "ingreso";

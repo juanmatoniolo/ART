@@ -10,6 +10,7 @@ import {
   Pill,
   BookOpen,
   FolderTree,
+  BedDouble, // <-- NUEVO: ícono para Ingresos
 } from "lucide-react";
 
 const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
@@ -78,6 +79,24 @@ const mapRecentFacturas = (facturas = {}) =>
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
 
+// ⚠️ NUEVO: ingresos recientes
+const mapRecentIngresos = (ingresos = {}) =>
+  Object.entries(ingresos || {})
+    .filter(([, item]) => item && typeof item === "object")
+    .map(([id, item]) => {
+      const t = item.trabajador || {};
+      const nombre = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "Sin paciente";
+      return {
+        id,
+        title: nombre,
+        meta: `${item.tipoIngreso || "-"} · ${item.internacion?.habitacionCama || "Sin cama"}`,
+        date: toDateLabel(item.createdAt || item.updatedAt),
+        ts: getTimestamp(item),
+      };
+    })
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 5);
+
 async function fetchJson(path) {
   const res = await fetch(`${FIREBASE_URL}/${path}.json`);
   if (!res.ok) throw new Error(`No se pudo leer ${path}`);
@@ -93,13 +112,13 @@ export default function AdminDashboard() {
     cxPendientes: 0,
     fojas: 0,
     historias: 0,
-    farmacia: 0,
-    siniestros: 0,
+    ingresos: 0, // <-- NUEVO
   });
   const [recent, setRecent] = useState({
     fojas: [],
     historias: [],
     facturas: [],
+    ingresos: [], // <-- NUEVO
   });
   const [loading, setLoading] = useState(true);
 
@@ -116,8 +135,7 @@ export default function AdminDashboard() {
           fojasData,
           historiasData,
           historiasUtiData,
-          farmaciaData,
-          siniestrosData,
+          ingresosData, // <-- NUEVO (reemplaza farmacia y siniestros)
         ] = await Promise.all([
           fetchJson("pacientes"),
           fetchJson("users"),
@@ -128,8 +146,7 @@ export default function AdminDashboard() {
           fetchJson("fojaqx"),
           fetchJson("historias-clinicas"),
           fetchJson("historias-clinica-uti"),
-          fetchJson("farmacia"),
-          fetchJson("siniestros"),
+          fetchJson("ingresos-pacientes"), // <-- NUEVO
         ]);
 
         const cirugiasArray = Array.isArray(cirugiasData)
@@ -147,14 +164,14 @@ export default function AdminDashboard() {
           cxPendientes: cirugiasArray.filter((item) => item && item.realizada !== true).length,
           fojas: countObject(fojasData, (_item, key) => key !== "plantilla"),
           historias: countObject(historiasData) + countObject(historiasUtiData),
-          farmacia: countObject(farmaciaData),
-          siniestros: countObject(siniestrosData),
+          ingresos: countObject(ingresosData), // <-- NUEVO
         });
 
         setRecent({
           fojas: mapRecentFojas(fojasData),
           historias: mapRecentHistorias(historiasData, historiasUtiData),
           facturas: mapRecentFacturas(facturasData),
+          ingresos: mapRecentIngresos(ingresosData), // <-- NUEVO
         });
       } catch (error) {
         console.error("Error cargando estadisticas:", error);
@@ -174,17 +191,18 @@ export default function AdminDashboard() {
     { title: "Nomencladores", value: "4", icon: BookOpen, color: "#059669", href: "/admin/nomencladores" },
     { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/admin/cx/programada" },
     { title: "Fojas quirurgicas", value: stats.fojas, icon: FileText, color: "#06b6d4", href: "admin/cx/foja/medicos" },
-    { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "admin/historia-clinica" }, 
-    { title: "Farmacia", value: stats.farmacia, icon: Pill, color: "#a855f7", href: "/farmacia" },
-    { title: "Siniestros", value: stats.siniestros, icon: FolderTree, color: "#ef4444", href: "/admin/Siniestro" },
+    { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "admin/historia-clinica" },
+    // ⚠️ ELIMINADOS: "Farmacia" y "Siniestros"
+    { title: "Ingresos", value: stats.ingresos, icon: BedDouble, color: "#0ea5e9", href: "/admin/ingresos" }, // <-- NUEVO
     { title: "UTI", value: "Abrir", icon: FileText, color: "#38bdf8", href: "/uti/admin" },
     { title: "Comunicador", value: "Abrir", icon: Users, color: "#84cc16", href: "/admin/comunicador" },
   ];
 
   const recentGroups = [
     { title: "Fojas quirurgicas cargadas", href: "/admin/cx/foja/medicos", items: recent.fojas },
-    { title: "Historias clinicas", href: "/historia-clinica", items: recent.historias }, 
+    { title: "Historias clinicas", href: "/historia-clinica", items: recent.historias },
     { title: "Facturacion reciente", href: "/admin/Facturacion/Facturados", items: recent.facturas },
+    { title: "Ingresos recientes", href: "/admin/ingresos", items: recent.ingresos }, // <-- NUEVO
   ];
 
   if (loading) {

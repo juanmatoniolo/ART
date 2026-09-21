@@ -8,7 +8,6 @@ import Header from "@/components/Header/Header";
 
 const STORAGE_KEY = "ingreso_paciente_form_v1";
 const THEME_KEY = "siniestro_theme";
-const PDF_TEMPLATE = "INT-UIT-FOJA";
 const DB_NODE = "ingresos-pacientes";
 
 const PRESTADOR_CONST = {
@@ -31,15 +30,14 @@ const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
 const defaultYearShort = String(today.getFullYear()).slice(-2);
 
 const initialForm = {
-  // 1) Datos del ingreso
   OS: "",
   afiliadoPaciente: "",
+  historiaClinica: "",
   tipoIngreso: "PISO",
   diaIngreso: defaultDay,
   mesIngreso: defaultMonth,
   anioIngreso: defaultYearShort,
 
-  // 2) Paciente
   trabajadorApellido: "",
   trabajadorNombre: "",
   trabajadorDni: "",
@@ -55,23 +53,34 @@ const initialForm = {
   trabajadorTelefono: "",
   trabajadorEdad: "",
 
-  // Familiar
   familiarNombre: "",
   familiarParentezco: "",
   familiarTelefono: "",
 
-  // 3) Internación
   camaNumero: "",
   camaLetra: "",
+
+  medicoSolicitante: "",
+  diagnostico: "",
 };
 
 function onlyDigits(s) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
 
+function normalizeYear2(v) {
+  const d = onlyDigits(v);
+  if (!d) return "";
+  if (d.length >= 4) return d.slice(-2);
+  return d.padStart(2, "0").slice(-2);
+}
+
 function formatCuil(digits) {
   if (digits.length !== 11) return digits;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}.${digits.slice(4, 7)}.${digits.slice(7, 10)}-${digits.slice(10)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}.${digits.slice(
+    4,
+    7
+  )}.${digits.slice(7, 10)}-${digits.slice(10)}`;
 }
 
 function formatDni(digits) {
@@ -104,6 +113,15 @@ function buildHabitacionCama(form) {
   if (!num) return "";
   if (form.tipoIngreso === "UTI") return num;
   return letra ? `${num}${letra}` : num;
+}
+
+function buildHabitacionCamaTexto(form) {
+  if (form.tipoIngreso === "UTI") {
+    const num = (form.camaNumero || "").toString().trim();
+    return num ? `CAMA: ${num}` : "";
+  }
+  const hab = buildHabitacionCama(form);
+  return hab ? `HAB.: ${hab}` : "";
 }
 
 function getPdfPages(tipoIngreso) {
@@ -143,9 +161,12 @@ function validate(f) {
   const d = onlyDigits(f.diaIngreso);
   const m = onlyDigits(f.mesIngreso);
   const a = onlyDigits(f.anioIngreso);
-  if (d && (Number(d) < 1 || Number(d) > 31)) e.diaIngreso = "Día inválido (01-31)";
-  if (m && (Number(m) < 1 || Number(m) > 12)) e.mesIngreso = "Mes inválido (01-12)";
-  if (a && a.length !== 2) e.anioIngreso = "Año debe ser 2 dígitos";
+  if (d && (Number(d) < 1 || Number(d) > 31))
+    e.diaIngreso = "Día inválido (01-31)";
+  if (m && (Number(m) < 1 || Number(m) > 12))
+    e.mesIngreso = "Mes inválido (01-12)";
+  if (a && a.length !== 2 && a.length !== 4)
+    e.anioIngreso = "Año debe ser 2 o 4 dígitos";
 
   return e;
 }
@@ -168,7 +189,16 @@ function Section({ title, subtitle, children }) {
   );
 }
 
-function DatePartInput({ label, value, onChange, placeholder, maxLength, error, className }) {
+function DatePartInput({
+  label,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  maxLength,
+  error,
+  className,
+}) {
   return (
     <div className={cx(styles.datePartField, className)}>
       <label className={styles.label}>{label}</label>
@@ -176,6 +206,7 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error, 
         className={cx(styles.input, error && styles.inputError)}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         inputMode="numeric"
         placeholder={placeholder}
         maxLength={maxLength}
@@ -222,14 +253,14 @@ export default function SiniestroPage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setForm({ ...initialForm, ...JSON.parse(raw) });
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-      } catch {}
+      } catch { }
     }, 250);
     return () => clearTimeout(t);
   }, [form]);
@@ -294,7 +325,20 @@ export default function SiniestroPage() {
 
   const canSubmit = useMemo(() => !saving, [saving]);
 
-  const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const onChange = (k) => (e) =>
+    setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const onChangeAnioIngreso = (e) => {
+    const raw = e.target.value;
+    setForm((p) => ({ ...p, anioIngreso: raw }));
+  };
+
+  const onBlurAnioIngreso = () => {
+    setForm((p) => ({
+      ...p,
+      anioIngreso: normalizeYear2(p.anioIngreso),
+    }));
+  };
 
   const onBlurTrabajadorDni = () => {
     setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
@@ -309,10 +353,11 @@ export default function SiniestroPage() {
     setForm({
       OS: paciente.OS || "",
       afiliadoPaciente: paciente.afiliadoPaciente || "",
+      historiaClinica: paciente.historiaClinica || "",
       tipoIngreso: paciente.tipoIngreso || "PISO",
       diaIngreso: fi.dia || defaultDay,
       mesIngreso: fi.mes || defaultMonth,
-      anioIngreso: fi.anio || defaultYearShort,
+      anioIngreso: normalizeYear2(fi.anio) || defaultYearShort,
 
       trabajadorApellido: t.apellido || "",
       trabajadorNombre: t.nombre || "",
@@ -335,6 +380,9 @@ export default function SiniestroPage() {
 
       camaNumero: int.camaNumero || "",
       camaLetra: int.camaLetra || "",
+
+      medicoSolicitante: paciente.medicoSolicitante || "",
+      diagnostico: paciente.diagnostico || "",
     });
     setEditingId(paciente.id);
     setCurrentEstado(paciente.estado || "abierto");
@@ -357,15 +405,13 @@ export default function SiniestroPage() {
       const os = (payload.OS || "OS").replace(/\s+/g, "_");
       const fileName = `INT_${apellido}_${dni}_${os}.pdf`;
 
-      const res = await fetch("/api/pdf", {
+      const res = await fetch("/api/ingresos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payload,
           fileName,
-          template: PDF_TEMPLATE,
           pages: getPdfPages(tipoIngreso),
-          pdfType: "ingreso", // 👈 clave para usar buildIngresoFields
         }),
       });
 
@@ -426,15 +472,18 @@ export default function SiniestroPage() {
     try {
       const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
       const habitacionCama = buildHabitacionCama(form);
+      const habitacionCamaTexto = buildHabitacionCamaTexto(form);
+      const anioIngreso2 = normalizeYear2(form.anioIngreso);
 
       const payload = {
         OS: (form.OS || "").trim().toUpperCase(),
         afiliadoPaciente: (form.afiliadoPaciente || "").trim().toUpperCase(),
+        historiaClinica: (form.historiaClinica || "").trim().toUpperCase(),
         tipoIngreso: form.tipoIngreso,
         fechaIngreso: {
-          dia: onlyDigits(form.diaIngreso),
-          mes: onlyDigits(form.mesIngreso),
-          anio: onlyDigits(form.anioIngreso),
+          dia: onlyDigits(form.diaIngreso).slice(-2),
+          mes: onlyDigits(form.mesIngreso).slice(-2),
+          anio: anioIngreso2,
         },
         trabajador: {
           apellido: form.trabajadorApellido.trim().toUpperCase() || "",
@@ -464,7 +513,10 @@ export default function SiniestroPage() {
               ? ""
               : (form.camaLetra || "").trim().toUpperCase(),
           habitacionCama,
+          habitacionCamaTexto,
         },
+        medicoSolicitante: (form.medicoSolicitante || "").trim().toUpperCase(),
+        diagnostico: (form.diagnostico || "").trim().toUpperCase(),
         prestador: PRESTADOR_CONST,
         updatedAt: Date.now(),
       };
@@ -483,17 +535,16 @@ export default function SiniestroPage() {
       }
       setCreatedId(savedId);
 
-      const fileName = `INT_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"}_${(payload.OS || "OS").replace(/\s+/g, "_")}.pdf`;
+      const fileName = `INT_${payload.trabajador.apellido || "SIN_APELLIDO"}_${onlyDigits(payload.trabajador.dni) || "SIN_DNI"
+        }_${(payload.OS || "OS").replace(/\s+/g, "_")}.pdf`;
 
-      const res = await fetch("/api/pdf", {
+      const res = await fetch("/api/ingresos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payload,
           fileName,
-          template: PDF_TEMPLATE,
           pages: getPdfPages(form.tipoIngreso),
-          pdfType: "ingreso", // 👈 clave
         }),
       });
 
@@ -503,7 +554,9 @@ export default function SiniestroPage() {
           ? JSON.stringify(await res.json().catch(() => ({})), null, 2)
           : await res.text().catch(() => "");
         console.error("PDF FAIL:", { status: res.status, ct, detail });
-        setPdfError(`Falló la generación del PDF (${res.status}). Revisá consola.`);
+        setPdfError(
+          `Falló la generación del PDF (${res.status}). Revisá consola.`
+        );
         return;
       }
 
@@ -529,11 +582,13 @@ export default function SiniestroPage() {
     const fullName = `${t.apellido || ""} ${t.nombre || ""}`.toLowerCase();
     const dni = t.dni || "";
     const afiliado = p.afiliadoPaciente || "";
+    const hc = p.historiaClinica || "";
     const term = searchTerm.toLowerCase();
     return (
       fullName.includes(term) ||
       dni.includes(term) ||
-      afiliado.toLowerCase().includes(term)
+      afiliado.toLowerCase().includes(term) ||
+      hc.toLowerCase().includes(term)
     );
   });
 
@@ -563,7 +618,8 @@ export default function SiniestroPage() {
                     borderRadius: "999px",
                     fontSize: "0.85rem",
                     fontWeight: 500,
-                    background: currentEstado === "abierto" ? "#dcfce7" : "#fee2e2",
+                    background:
+                      currentEstado === "abierto" ? "#dcfce7" : "#fee2e2",
                     color: currentEstado === "abierto" ? "#166534" : "#991b1b",
                   }}
                 >
@@ -576,7 +632,11 @@ export default function SiniestroPage() {
                 type="button"
                 className={styles.ghostBtn}
                 onClick={toggleTheme}
-                title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+                title={
+                  theme === "dark"
+                    ? "Cambiar a modo claro"
+                    : "Cambiar a modo oscuro"
+                }
               >
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
@@ -606,13 +666,19 @@ export default function SiniestroPage() {
 
           <div className={styles.tabsContainer}>
             <button
-              className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
+              className={cx(
+                styles.tab,
+                activeTab === "nuevo" && styles.tabActive
+              )}
               onClick={() => setActiveTab("nuevo")}
             >
               📝 Nuevo / Editar
             </button>
             <button
-              className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
+              className={cx(
+                styles.tab,
+                activeTab === "buscar" && styles.tabActive
+              )}
               onClick={() => {
                 setActiveTab("buscar");
                 fetchAllPacientes();
@@ -624,19 +690,26 @@ export default function SiniestroPage() {
 
           {activeTab === "nuevo" ? (
             <>
-              {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
+              {saving && (
+                <div className={styles.toastInfo}>
+                  ⏳ Guardando datos y generando PDF...
+                </div>
+              )}
 
               <form onSubmit={onSubmit} autoComplete="on">
                 <div className={styles.card}>
                   <Section
                     title="1) Datos del ingreso"
-                    subtitle="Obra social, número de afiliado, fecha y tipo de ingreso"
+                    subtitle="Obra social, número de afiliado, HC, fecha y tipo de ingreso"
                   >
                     <div className={styles.grid}>
                       <div className={styles.field}>
                         <label className={styles.label}>O.S</label>
                         <input
-                          className={cx(styles.input, errors.OS && styles.inputError)}
+                          className={cx(
+                            styles.input,
+                            errors.OS && styles.inputError
+                          )}
                           value={form.OS}
                           onChange={onChange("OS")}
                           placeholder="Ej: OSDE, Swiss Medical, IAPOS..."
@@ -649,6 +722,17 @@ export default function SiniestroPage() {
                           value={form.afiliadoPaciente}
                           onChange={onChange("afiliadoPaciente")}
                           placeholder="Ej: 1234567890 / ABC123"
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>
+                          HC (Historia Clínica)
+                        </label>
+                        <input
+                          className={styles.input}
+                          value={form.historiaClinica}
+                          onChange={onChange("historiaClinica")}
+                          placeholder="Ej: 12345 (opcional al ingreso)"
                         />
                       </div>
                     </div>
@@ -681,16 +765,24 @@ export default function SiniestroPage() {
                           ))}
                         </div>
                         {errors.tipoIngreso && (
-                          <div className={styles.errorText} style={{ marginTop: 6 }}>
+                          <div
+                            className={styles.errorText}
+                            style={{ marginTop: 6 }}
+                          >
                             {errors.tipoIngreso}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className={styles.fechasWrapper} style={{ marginTop: 14 }}>
+                    <div
+                      className={styles.fechasWrapper}
+                      style={{ marginTop: 14 }}
+                    >
                       <div className={styles.fechaGroup}>
-                        <div className={styles.fechaGroupLabel}>Fecha de ingreso</div>
+                        <div className={styles.fechaGroupLabel}>
+                          Fecha de ingreso
+                        </div>
                         <div className={styles.fechaRow}>
                           <DatePartInput
                             label="Día"
@@ -711,9 +803,10 @@ export default function SiniestroPage() {
                           <DatePartInput
                             label="Año"
                             value={form.anioIngreso}
-                            onChange={onChange("anioIngreso")}
-                            placeholder="AA"
-                            maxLength={2}
+                            onChange={onChangeAnioIngreso}
+                            onBlur={onBlurAnioIngreso}
+                            placeholder="AA o AAAA"
+                            maxLength={4}
                             error={errors.anioIngreso}
                           />
                         </div>
@@ -721,7 +814,10 @@ export default function SiniestroPage() {
                     </div>
                   </Section>
 
-                  <Section title="2) Paciente" subtitle="Datos del paciente y contacto familiar">
+                  <Section
+                    title="2) Paciente"
+                    subtitle="Datos del paciente y contacto familiar"
+                  >
                     <div className={styles.grid}>
                       <div className={styles.field}>
                         <label className={styles.label}>Apellido</label>
@@ -744,18 +840,27 @@ export default function SiniestroPage() {
                       <div className={styles.field}>
                         <label className={styles.label}>DNI / CUIL</label>
                         <input
-                          className={cx(styles.input, errors.trabajadorDni && styles.inputError)}
+                          className={cx(
+                            styles.input,
+                            errors.trabajadorDni && styles.inputError
+                          )}
                           value={form.trabajadorDni}
                           onChange={onChange("trabajadorDni")}
                           onBlur={onBlurTrabajadorDni}
                           inputMode="numeric"
                           placeholder="DNI o CUIL"
                         />
-                        {errors.trabajadorDni && <div className={styles.errorText}>{errors.trabajadorDni}</div>}
+                        {errors.trabajadorDni && (
+                          <div className={styles.errorText}>
+                            {errors.trabajadorDni}
+                          </div>
+                        )}
                       </div>
 
                       <div className={styles.field}>
-                        <label className={styles.label}>Fecha de nacimiento</label>
+                        <label className={styles.label}>
+                          Fecha de nacimiento
+                        </label>
                         <input
                           type="date"
                           className={styles.input}
@@ -767,7 +872,11 @@ export default function SiniestroPage() {
                         <label className={styles.label}>Edad (calculada)</label>
                         <input
                           className={cx(styles.input, styles.inputReadonly)}
-                          value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""}
+                          value={
+                            form.trabajadorEdad
+                              ? `${form.trabajadorEdad} años`
+                              : ""
+                          }
                           readOnly
                           tabIndex={-1}
                           placeholder="Se calcula automáticamente"
@@ -784,7 +893,8 @@ export default function SiniestroPage() {
                               key={val}
                               className={cx(
                                 styles.chip,
-                                form.trabajadorSexo === val && styles.chipActive,
+                                form.trabajadorSexo === val &&
+                                styles.chipActive,
                                 errors.trabajadorSexo && styles.inputError
                               )}
                             >
@@ -799,7 +909,11 @@ export default function SiniestroPage() {
                             </label>
                           ))}
                         </div>
-                        {errors.trabajadorSexo && <div className={styles.errorText}>{errors.trabajadorSexo}</div>}
+                        {errors.trabajadorSexo && (
+                          <div className={styles.errorText}>
+                            {errors.trabajadorSexo}
+                          </div>
+                        )}
                       </div>
 
                       <div className={styles.field}>
@@ -807,13 +921,20 @@ export default function SiniestroPage() {
                           Teléfono <span style={{ color: "#ef4444" }}>*</span>
                         </label>
                         <input
-                          className={cx(styles.input, errors.trabajadorTelefono && styles.inputError)}
+                          className={cx(
+                            styles.input,
+                            errors.trabajadorTelefono && styles.inputError
+                          )}
                           value={form.trabajadorTelefono}
                           onChange={onChange("trabajadorTelefono")}
                           inputMode="numeric"
                           placeholder="Ej: 11 1234 5678"
                         />
-                        {errors.trabajadorTelefono && <div className={styles.errorText}>{errors.trabajadorTelefono}</div>}
+                        {errors.trabajadorTelefono && (
+                          <div className={styles.errorText}>
+                            {errors.trabajadorTelefono}
+                          </div>
+                        )}
                       </div>
 
                       <div className={styles.field}>
@@ -905,7 +1026,9 @@ export default function SiniestroPage() {
                       </div>
                       <div className={styles.grid}>
                         <div className={styles.field}>
-                          <label className={styles.label}>Nombre completo</label>
+                          <label className={styles.label}>
+                            Nombre completo
+                          </label>
                           <input
                             className={styles.input}
                             value={form.familiarNombre}
@@ -938,12 +1061,16 @@ export default function SiniestroPage() {
 
                   <Section
                     title="3) Internación"
-                    subtitle={`Ubicación del paciente en ${form.tipoIngreso === "UTI" ? "UTI (Terapia)" : "PISO"}`}
+                    subtitle={`Ubicación del paciente en ${form.tipoIngreso === "UTI" ? "UTI (Terapia)" : "PISO"
+                      }`}
                   >
                     <div className={styles.grid}>
                       <div className={styles.field}>
                         <label className={styles.label}>
-                          Cama {form.tipoIngreso === "PISO" ? "(N° + letra opcional)" : "(sólo N°)"}
+                          Cama{" "}
+                          {form.tipoIngreso === "PISO"
+                            ? "(N° + letra opcional)"
+                            : "(sólo N°)"}
                         </label>
                         <div className={styles.fechaRow}>
                           <DatePartInput
@@ -964,15 +1091,53 @@ export default function SiniestroPage() {
                             />
                           )}
                         </div>
-                        <div className={styles.sectionHint} style={{ marginTop: 6 }}>
-                          Se guardará como: <b>{buildHabitacionCama(form) || "—"}</b>
+                        <div
+                          className={styles.sectionHint}
+                          style={{ marginTop: 6 }}
+                        >
+                          Se guardará como:{" "}
+                          <b>{buildHabitacionCamaTexto(form) || "—"}</b>
                         </div>
                       </div>
                     </div>
                   </Section>
 
+                  <Section
+                    title="4) Médico solicitante y diagnóstico"
+                    subtitle="Médico que pide la internación y diagnóstico de ingreso"
+                  >
+                    <div className={styles.grid}>
+                      <div className={styles.field}>
+                        <label className={styles.label}>
+                          Médico solicitante
+                        </label>
+                        <input
+                          className={styles.input}
+                          value={form.medicoSolicitante}
+                          onChange={onChange("medicoSolicitante")}
+                          placeholder="Ej: Dr. Juan Pérez"
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>
+                          Diagnóstico de ingreso
+                        </label>
+                        <input
+                          className={styles.input}
+                          value={form.diagnostico}
+                          onChange={onChange("diagnostico")}
+                          placeholder="Ej: Neumonía, Post-operatorio..."
+                        />
+                      </div>
+                    </div>
+                  </Section>
+
                   <div className={styles.footer}>
-                    <button type="submit" className={styles.primaryBtn} disabled={!canSubmit}>
+                    <button
+                      type="submit"
+                      className={styles.primaryBtn}
+                      disabled={!canSubmit}
+                    >
                       {saving
                         ? "Guardando y generando..."
                         : editingId
@@ -983,21 +1148,44 @@ export default function SiniestroPage() {
                     <div className={styles.pdfRow}>
                       {createdId && (
                         <div className={styles.toastSuccess}>
-                          ✅ {editingId ? "Actualizado" : "Guardado"}. ID: <b>{createdId}</b>
+                          ✅ {editingId ? "Actualizado" : "Guardado"}. ID:{" "}
+                          <b>{createdId}</b>
                         </div>
                       )}
-                      {pdfError && <div className={styles.toastDanger}>❌ {pdfError}</div>}
+                      {pdfError && (
+                        <div className={styles.toastDanger}>❌ {pdfError}</div>
+                      )}
                       {pdfUrl && (
                         <div className={styles.toastSuccess}>
-                          <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              flexWrap: "wrap",
+                            }}
+                          >
                             <div>
-                              📄 PDF generado: <b style={{ wordBreak: "break-word" }}>{pdfFileName}</b>
+                              📄 PDF generado:{" "}
+                              <b style={{ wordBreak: "break-word" }}>
+                                {pdfFileName}
+                              </b>
                             </div>
                             <div className={styles.pdfActions}>
-                              <button type="button" className={styles.secondaryBtn} onClick={openPdf}>
+                              <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                onClick={openPdf}
+                              >
                                 Abrir
                               </button>
-                              <button type="button" className={styles.primaryBtn} style={{ height: 40, width: "auto" }} onClick={downloadPdf}>
+                              <button
+                                type="button"
+                                className={styles.primaryBtn}
+                                style={{ height: 40, width: "auto" }}
+                                onClick={downloadPdf}
+                              >
                                 Descargar
                               </button>
                             </div>
@@ -1015,7 +1203,7 @@ export default function SiniestroPage() {
                 <input
                   type="text"
                   className={styles.input}
-                  placeholder="Buscar por nombre, apellido, DNI o N° afiliado..."
+                  placeholder="Buscar por nombre, apellido, DNI, HC o N° afiliado..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -1039,6 +1227,7 @@ export default function SiniestroPage() {
                       <tr>
                         <th>Paciente</th>
                         <th>DNI</th>
+                        <th>HC</th>
                         <th>O.S</th>
                         <th>N° Afiliado</th>
                         <th>Tipo</th>
@@ -1058,6 +1247,7 @@ export default function SiniestroPage() {
                               {t.apellido} {t.nombre}
                             </td>
                             <td>{t.dni || "—"}</td>
+                            <td>{p.historiaClinica || "—"}</td>
                             <td>{p.OS || "—"}</td>
                             <td>{p.afiliadoPaciente || "—"}</td>
                             <td>{p.tipoIngreso || "—"}</td>
@@ -1070,7 +1260,9 @@ export default function SiniestroPage() {
                               <span
                                 className={styles.estadoIndicador}
                                 data-estado={estado}
-                                title={estado === "abierto" ? "Abierto" : "Cerrado"}
+                                title={
+                                  estado === "abierto" ? "Abierto" : "Cerrado"
+                                }
                               />
                             </td>
                             <td className={styles.actionsCell}>
@@ -1083,7 +1275,8 @@ export default function SiniestroPage() {
                               </button>
                               <button
                                 className={styles.iconBtn}
-                                title={`Imprimir PDF (${p.tipoIngreso || "PISO"})`}
+                                title={`Imprimir PDF (${p.tipoIngreso || "PISO"
+                                  })`}
                                 onClick={() => handlePrintPaciente(p)}
                               >
                                 🖨️
