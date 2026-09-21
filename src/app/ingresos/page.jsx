@@ -42,6 +42,21 @@ const defaultDay = String(today.getDate()).padStart(2, "0");
 const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
 const defaultYearShort = String(today.getFullYear()).slice(-2);
 
+const MESES_ES = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
 const initialForm = {
   tipoIngreso: "PISO",
 
@@ -49,6 +64,9 @@ const initialForm = {
   trabajadorNombre: "",
   trabajadorDni: "",
   trabajadorNacimiento: "",
+  trabajadorNacimientoDia: "",
+  trabajadorNacimientoMes: "",
+  trabajadorNacimientoAnio: "",
   trabajadorSexo: "",
   trabajadorCalle: "",
   trabajadorNumero: "",
@@ -79,6 +97,7 @@ const initialForm = {
   diagnostico: "",
 };
 
+/* ================= Helpers ================= */
 function onlyDigits(s) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
@@ -120,6 +139,30 @@ function calcularEdad(nacimiento) {
   const diaActual = hoy.getDate();
   if (mesActual < m || (mesActual === m && diaActual < d)) edad--;
   return edad >= 0 ? String(edad) : "";
+}
+
+function nombreMes(m) {
+  const n = Number(onlyDigits(m));
+  if (!n || n < 1 || n > 12) return "";
+  return MESES_ES[n - 1];
+}
+
+function buildNacimientoISO(form) {
+  const d = onlyDigits(form.trabajadorNacimientoDia);
+  const m = onlyDigits(form.trabajadorNacimientoMes);
+  const a = onlyDigits(form.trabajadorNacimientoAnio);
+  if (!d || !m || a.length !== 4) return "";
+  const dd = Number(d);
+  const mm = Number(m);
+  if (dd < 1 || dd > 31 || mm < 1 || mm > 12) return "";
+  return `${a}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}
+
+function splitNacimientoISO(iso) {
+  const s = (iso || "").trim();
+  if (!s) return { dia: "", mes: "", anio: "" };
+  const [y, m, d] = s.split("-");
+  return { dia: d || "", mes: m || "", anio: y || "" };
 }
 
 function buildHabitacionCama(form) {
@@ -215,6 +258,17 @@ function validate(f) {
   if (a && a.length !== 2 && a.length !== 4)
     e.anioIngreso = "Año debe ser 2 o 4 dígitos";
 
+  // Validación fecha de nacimiento (sólo si hay algo cargado)
+  const nd = onlyDigits(f.trabajadorNacimientoDia);
+  const nm = onlyDigits(f.trabajadorNacimientoMes);
+  const na = onlyDigits(f.trabajadorNacimientoAnio);
+  if (nd && (Number(nd) < 1 || Number(nd) > 31))
+    e.trabajadorNacimientoDia = "Día inválido";
+  if (nm && (Number(nm) < 1 || Number(nm) > 12))
+    e.trabajadorNacimientoMes = "Mes inválido";
+  if (na && na.length !== 4)
+    e.trabajadorNacimientoAnio = "Usá 4 dígitos (ej: 1995)";
+
   return e;
 }
 
@@ -299,6 +353,7 @@ export default function IngresosPage() {
 
   const submittingRef = useRef(false);
 
+  /* ---------- Tema ---------- */
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
     setTheme(savedTheme);
@@ -312,13 +367,32 @@ export default function IngresosPage() {
     document.body.classList.toggle("light-mode", newTheme === "light");
   };
 
+  /* ---------- Hidratar form desde localStorage (compat) ---------- */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setForm({ ...initialForm, ...JSON.parse(raw) });
+      if (!raw) return;
+      const merged = { ...initialForm, ...JSON.parse(raw) };
+
+      // Compatibilidad con versión anterior (fecha única tipo "1995-10-12")
+      const tienePartes =
+        merged.trabajadorNacimientoDia ||
+        merged.trabajadorNacimientoMes ||
+        merged.trabajadorNacimientoAnio;
+      if (merged.trabajadorNacimiento && !tienePartes) {
+        const { dia, mes, anio } = splitNacimientoISO(
+          merged.trabajadorNacimiento
+        );
+        merged.trabajadorNacimientoDia = dia;
+        merged.trabajadorNacimientoMes = mes;
+        merged.trabajadorNacimientoAnio = anio;
+      }
+
+      setForm(merged);
     } catch { }
   }, []);
 
+  /* ---------- Persistir form ---------- */
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -328,26 +402,30 @@ export default function IngresosPage() {
     return () => clearTimeout(t);
   }, [form]);
 
+  /* ---------- Revocar PDF URL ---------- */
   useEffect(() => {
     return () => {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
   }, [pdfUrl]);
 
+  /* ---------- Calcular edad al cambiar fecha nacimiento ---------- */
   useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      trabajadorEdad: calcularEdad(prev.trabajadorNacimiento),
-    }));
+    setForm((prev) => {
+      const edad = calcularEdad(prev.trabajadorNacimiento);
+      if (prev.trabajadorEdad === edad) return prev;
+      return { ...prev, trabajadorEdad: edad };
+    });
   }, [form.trabajadorNacimiento]);
 
+  /* ---------- Si cambia a UTI, limpiar letra cama ---------- */
   useEffect(() => {
     if (form.tipoIngreso === "UTI" && form.camaLetra) {
       setForm((p) => ({ ...p, camaLetra: "" }));
     }
   }, [form.tipoIngreso]);
 
-  /* Re-buscar cuando cambia el tipo si ya hay DNI cargado */
+  /* ---------- Re-buscar DNI en HC al cambiar tipo ---------- */
   useEffect(() => {
     const digits = onlyDigits(form.trabajadorDni);
     if (
@@ -361,6 +439,7 @@ export default function IngresosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.tipoIngreso]);
 
+  /* ---------- Foco en primer error ---------- */
   useEffect(() => {
     if (shouldFocusError && Object.keys(errors).length > 0) {
       const timer = setTimeout(() => {
@@ -375,10 +454,12 @@ export default function IngresosPage() {
     }
   }, [shouldFocusError, errors]);
 
+  /* ---------- Cargar pacientes al abrir tab buscar ---------- */
   useEffect(() => {
     if (activeTab === "buscar") {
       fetchAllPacientes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const fetchAllPacientes = async () => {
@@ -405,6 +486,7 @@ export default function IngresosPage() {
 
   const canSubmit = useMemo(() => !saving, [saving]);
 
+  /* ---------- Handlers genéricos ---------- */
   const onChange = (k) => (e) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
@@ -420,8 +502,18 @@ export default function IngresosPage() {
     }));
   };
 
+  /* ---------- Handler fecha de nacimiento (3 partes) ---------- */
+  const onChangeNacimiento = (part) => (e) => {
+    const raw = onlyDigits(e.target.value);
+    setForm((p) => {
+      const next = { ...p, [`trabajadorNacimiento${part}`]: raw };
+      next.trabajadorNacimiento = buildNacimientoISO(next);
+      return next;
+    });
+  };
+
   /* =========================================================
-     Calcular el PRÓXIMO número de HC para previsualizar
+     Próximo N° HC
      ========================================================= */
   const calcularProximoNumeroHC = async (tipo) => {
     const isUti = tipo === "UTI";
@@ -449,7 +541,7 @@ export default function IngresosPage() {
   };
 
   /* =========================================================
-     LOOKUP DNI — solo en el nodo del tipo activo
+     LOOKUP DNI
      ========================================================= */
   const lookupDniInHC = async (dniDigits, tipo) => {
     if (!dniDigits || dniDigits.length < 7) return;
@@ -571,7 +663,7 @@ export default function IngresosPage() {
   };
 
   /* =========================================================
-     CREAR HC NUEVA (opcional) en el nodo del tipo activo
+     CREAR HC NUEVA
      ========================================================= */
   const crearHistoriaClinica = async () => {
     const tipo = form.tipoIngreso === "UTI" ? "UTI" : "PISO";
@@ -687,6 +779,9 @@ export default function IngresosPage() {
     }
   };
 
+  /* =========================================================
+     RESET / EDIT / PRINT
+     ========================================================= */
   const resetForm = () => {
     setForm(initialForm);
     setErrors({});
@@ -716,6 +811,7 @@ export default function IngresosPage() {
     const fi = paciente.fechaIngreso || {};
     const int = paciente.internacion || {};
     const fam = paciente.familiar || {};
+    const nac = splitNacimientoISO(t.nacimiento);
 
     setForm({
       tipoIngreso: paciente.tipoIngreso || "PISO",
@@ -724,6 +820,9 @@ export default function IngresosPage() {
       trabajadorNombre: t.nombre || "",
       trabajadorDni: t.dni || "",
       trabajadorNacimiento: t.nacimiento || "",
+      trabajadorNacimientoDia: nac.dia,
+      trabajadorNacimientoMes: nac.mes,
+      trabajadorNacimientoAnio: nac.anio,
       trabajadorSexo: t.sexo || "",
       trabajadorCalle: t.calle || "",
       trabajadorNumero: t.numero || "",
@@ -841,6 +940,9 @@ export default function IngresosPage() {
     a.remove();
   }
 
+  /* =========================================================
+     SUBMIT
+     ========================================================= */
   async function onSubmit(e) {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -969,6 +1071,7 @@ export default function IngresosPage() {
     }
   }
 
+  /* ---------- Búsqueda ---------- */
   const filteredPacientes = pacientes.filter((p) => {
     const t = p.trabajador || {};
     const fullName = `${t.apellido || ""} ${t.nombre || ""}`.toLowerCase();
@@ -989,6 +1092,8 @@ export default function IngresosPage() {
   const hcNombre = (hc) => (hc?.nombre_apellido ? hc.nombre_apellido : "—");
   const hcNumber = (hc) =>
     hc?.historia_clinica ? `#${hc.historia_clinica}` : "sin N°";
+
+  const mesPreview = nombreMes(form.trabajadorNacimientoMes);
 
   return (
     <>
@@ -1142,8 +1247,7 @@ export default function IngresosPage() {
 
                       <div className={styles.field}>
                         <label className={styles.label}>
-                          DNI{" "}
-                          <span style={{ color: "#ef4444" }}>*</span>
+                          DNI <span style={{ color: "#ef4444" }}>*</span>
                         </label>
                         <div className={styles.dniRow}>
                           <input
@@ -1159,12 +1263,12 @@ export default function IngresosPage() {
                           />
                           <button
                             type="button"
-                            className={styles.secondaryBtn}
+                            className={styles.dniSearchBtn}
                             onClick={forceLookupDni}
                             disabled={hcLookup.loading}
                             title="Buscar DNI en historias clínicas del tipo elegido"
                           >
-                            {hcLookup.loading ? "⏳" : "🔎 Buscar"}
+                            {hcLookup.loading ? "⏳ Buscando" : "🔎 Buscar HC"}
                           </button>
                         </div>
                         {errors.trabajadorDni && (
@@ -1264,17 +1368,62 @@ export default function IngresosPage() {
                     )}
 
                     <div className={styles.grid} style={{ marginTop: 14 }}>
+                      {/* ============ FECHA DE NACIMIENTO (3 partes) ============ */}
                       <div className={styles.field}>
                         <label className={styles.label}>
                           Fecha de nacimiento
                         </label>
-                        <input
-                          type="date"
-                          className={styles.input}
-                          value={form.trabajadorNacimiento}
-                          onChange={onChange("trabajadorNacimiento")}
-                        />
+                        <div className={styles.nacimientoRow}>
+                          <input
+                            className={cx(
+                              styles.input,
+                              styles.nacimientoInput,
+                              errors.trabajadorNacimientoDia &&
+                              styles.inputError
+                            )}
+                            value={form.trabajadorNacimientoDia}
+                            onChange={onChangeNacimiento("Dia")}
+                            inputMode="numeric"
+                            placeholder="DD"
+                            maxLength={2}
+                            aria-label="Día de nacimiento"
+                          />
+                          <div className={styles.nacimientoMesWrapper}>
+                            <input
+                              className={cx(
+                                styles.input,
+                                styles.nacimientoInput,
+                                errors.trabajadorNacimientoMes &&
+                                styles.inputError
+                              )}
+                              value={form.trabajadorNacimientoMes}
+                              onChange={onChangeNacimiento("Mes")}
+                              inputMode="numeric"
+                              placeholder="MM"
+                              maxLength={2}
+                              aria-label="Mes de nacimiento"
+                            />
+                            <div className={styles.mesHint}>
+                              {mesPreview || "\u00A0"}
+                            </div>
+                          </div>
+                          <input
+                            className={cx(
+                              styles.input,
+                              styles.nacimientoInput,
+                              errors.trabajadorNacimientoAnio &&
+                              styles.inputError
+                            )}
+                            value={form.trabajadorNacimientoAnio}
+                            onChange={onChangeNacimiento("Anio")}
+                            inputMode="numeric"
+                            placeholder="AAAA"
+                            maxLength={4}
+                            aria-label="Año de nacimiento"
+                          />
+                        </div>
                       </div>
+
                       <div className={styles.field}>
                         <label className={styles.label}>Edad (calculada)</label>
                         <input

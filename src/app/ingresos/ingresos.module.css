@@ -225,15 +225,14 @@
   border-radius: 10px;
   border: 1px solid var(--input-border);
   padding: 0 14px;
-  font-size: 15px;
+  font-size: 16px;
+  /* evita zoom en iOS */
   font-weight: 500;
   color: var(--text-primary);
   background: var(--input-bg);
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
   box-sizing: border-box;
-  /* Evita zoom automático en iOS al enfocar */
-  font-size: 16px;
 }
 
 .input::placeholder {
@@ -345,6 +344,70 @@
 
 .datePartWide {
   flex: 2;
+}
+
+/* ============================================================
+   FECHA DE NACIMIENTO — DD / MM / AAAA (todos iguales)
+   El hint del mes flota debajo sin afectar la altura del input
+   ============================================================ */
+.nacimientoRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  position: relative;
+  padding-bottom: 18px;
+  /* espacio reservado para el hint flotante */
+}
+
+/* Los tres inputs ocupan exactamente el mismo ancho y alto */
+.nacimientoRow>input,
+.nacimientoRow .nacimientoInput,
+.nacimientoRow .nacimientoMesWrapper {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.nacimientoRow .nacimientoInput {
+  height: 46px;
+  text-align: center;
+  padding: 0 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.nacimientoMesWrapper {
+  position: relative;
+  display: flex;
+}
+
+.nacimientoMesWrapper>input {
+  width: 100%;
+  height: 46px;
+  text-align: center;
+  padding: 0 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Hint flotante: NO ocupa espacio en el flujo */
+.mesHint {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--input-focus);
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.95;
 }
 
 /* ===== Footer ===== */
@@ -516,7 +579,6 @@
   table-layout: fixed;
 }
 
-/* Anchos de columna para desktop (≥ 900px) */
 @media (min-width: 900px) {
 
   .table th:nth-child(1),
@@ -524,55 +586,45 @@
     width: 17%;
   }
 
-  /* Paciente */
   .table th:nth-child(2),
   .table td:nth-child(2) {
     width: 10%;
   }
 
-  /* DNI */
   .table th:nth-child(3),
   .table td:nth-child(3) {
     width: 8%;
   }
 
-  /* HC */
   .table th:nth-child(4),
   .table td:nth-child(4) {
     width: 10%;
   }
 
-  /* O.S */
   .table th:nth-child(5),
   .table td:nth-child(5) {
     width: 10%;
   }
 
-  /* N° Afiliado */
   .table th:nth-child(6),
   .table td:nth-child(6) {
     width: 7%;
   }
 
-  /* Tipo */
   .table th:nth-child(7),
   .table td:nth-child(7) {
     width: 10%;
   }
 
-  /* Fecha */
   .table th:nth-child(8),
   .table td:nth-child(8) {
     width: 6%;
   }
 
-  /* Estado */
   .table th:nth-child(9),
   .table td:nth-child(9) {
     width: 22%;
   }
-
-  /* Acciones */
 }
 
 .table th,
@@ -650,7 +702,6 @@
 
 /* ==========================================================
    MODO TARJETA EN MÓVILES (≤ 767px)
-   La tabla se "aplana" y cada fila se convierte en una card.
    ========================================================== */
 @media (max-width: 767px) {
   .tableWrapper {
@@ -669,12 +720,10 @@
     width: 100% !important;
   }
 
-  /* Ocultamos el header de la tabla */
   .table thead {
     display: none;
   }
 
-  /* Cada fila es una card */
   .table tr {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -688,11 +737,10 @@
     background: var(--bg-card);
   }
 
-  /* Cada celda: fila con etiqueta + valor */
   .table td {
     border-bottom: none;
     padding: 8px 0;
-    text-align: left;
+    text-align: right;
     white-space: normal;
     overflow: visible;
     text-overflow: initial;
@@ -710,7 +758,6 @@
     justify-content: center;
   }
 
-  /* Etiquetas a la izquierda (generadas por ::before) */
   .table td::before {
     content: "";
     font-weight: 700;
@@ -750,16 +797,7 @@
   }
 
   .table td:nth-child(8)::before {
-    content: "Estado";
-  }
-
-  .table td:nth-child(9)::before {
     content: "";
-  }
-
-  /* El valor de la celda ocupa el resto */
-  .table td {
-    text-align: right;
   }
 
   .table td:first-child {
@@ -770,11 +808,6 @@
 
   .table td:first-child::before {
     font-size: 11px;
-  }
-
-  /* Estado y acciones en la misma fila visual */
-  .table td:nth-child(8) {
-    border-bottom: 1px dashed var(--border-color);
   }
 
   .actionsCell {
@@ -793,7 +826,7 @@
 }
 
 /* ==========================================================
-   ESTADOS / BOLITA
+   ESTADO / BOLITA
    ========================================================== */
 .estadoIndicador {
   display: inline-block;
@@ -897,29 +930,43 @@
     flex: 1 0 100%;
   }
 
-  /* Chips ocupan todo el ancho si hace falta */
   .chip {
     padding: 8px 12px;
     font-size: 13px;
   }
 
-  /* Fechas en columna */
   .fechaGroup {
     padding: 10px 12px;
     min-width: 0;
   }
 
-  /* Toast más compacto */
   .toastInfo,
   .toastSuccess,
   .toastDanger {
     padding: 10px;
     font-size: 13px;
   }
+
+  /* Fecha de nacimiento en móvil: inputs un poco más altos y legibles */
+  .nacimientoRow {
+    gap: 6px;
+    padding-bottom: 20px;
+  }
+
+  .nacimientoRow .nacimientoInput,
+  .nacimientoMesWrapper>input {
+    height: 50px;
+    font-size: 17px;
+  }
+
+  .mesHint {
+    font-size: 11px;
+    top: calc(100% + 4px);
+  }
 }
 
 /* ==========================================================
-   PANTALLAS MUY ANGOSTAS (≤ 380px — iPhone SE, etc.)
+   PANTALLAS MUY ANGOSTAS (≤ 380px)
    ========================================================== */
 @media (max-width: 380px) {
   .title {
@@ -954,8 +1001,18 @@
     min-height: 40px;
     font-size: 16px;
   }
-}
 
+  .nacimientoRow .nacimientoInput,
+  .nacimientoMesWrapper>input {
+    height: 46px;
+    font-size: 16px;
+    padding: 0 4px;
+  }
+
+  .mesHint {
+    font-size: 10px;
+  }
+}
 
 /* ============================================================
    BANNER DE HISTORIA CLÍNICA (búsqueda por DNI)
@@ -968,11 +1025,40 @@
 
 .dniRow .input {
   flex: 1;
+  min-width: 0;
 }
 
-.dniRow .secondaryBtn {
+/* Botón de búsqueda de DNI/HC — grande, táctil y legible */
+.dniSearchBtn {
   height: 46px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid var(--input-focus);
+  background: var(--primary-btn);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dniSearchBtn:hover:not(:disabled) {
+  background: var(--primary-btn-hover);
+}
+
+.dniSearchBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.dniSearchBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .hcBannerGroup {
@@ -1051,27 +1137,6 @@
   transform: scale(0.97);
 }
 
-@media (max-width: 640px) {
-  .dniRow {
-    flex-direction: column;
-  }
-
-  .dniRow .secondaryBtn {
-    width: 100%;
-    height: 44px;
-  }
-
-  .hcBannerContent {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .hcApplyBtn {
-    width: 100%;
-  }
-}
-
-/* Botón para CREAR HC nueva (banner amarillo) */
 .hcCreateBtn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -1098,8 +1163,43 @@
   cursor: not-allowed;
 }
 
+/* ---- Móvil: DNI + botón búsqueda grandes y apilados ---- */
 @media (max-width: 640px) {
+  .dniRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dniRow .input {
+    flex: 0 0 auto;
+    /* anula el flex:1 del desktop */
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+
+  .dniSearchBtn {
+    width: 100%;
+    height: 54px;
+    font-size: 16px;
+    padding: 0 16px;
+    border-radius: 12px;
+  }
+
+  .hcBannerContent {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hcApplyBtn,
   .hcCreateBtn {
     width: 100%;
+    height: 48px;
+    font-size: 14px;
   }
 }
