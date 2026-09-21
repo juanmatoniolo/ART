@@ -6,12 +6,22 @@ import { PDFDocument } from "pdf-lib";
 export const runtime = "nodejs";
 
 const LUGAR_FECHA_CONST = "CHAJARÍ, ENTRE RÍOS";
+const DEFAULT_TEMPLATE = "ART-COMPLETOS.pdf";
 
-function getTemplatePath(templateName = "ART-COMPLETOS.pdf") {
-	return path.join(process.cwd(), "src", "templates", templateName);
+// Páginas del template INT-UIT-FOJA según tipo de ingreso
+const PAGES_BY_TYPE = {
+	PISO: [1, 2, 3, 4, 5, 6, 7, 8],
+	UTI: [1, 9, 10, 11, 12],
+};
+
+function getTemplatePath(templateName = DEFAULT_TEMPLATE) {
+	const file = templateName.toLowerCase().endsWith(".pdf")
+		? templateName
+		: `${templateName}.pdf`;
+	return path.join(process.cwd(), "src", "templates", file);
 }
 
-function cleanFileName(fileName = "FORMULARIO_ART.pdf") {
+function cleanFileName(fileName = "FORMULARIO.pdf") {
 	return fileName.toString().replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
@@ -59,7 +69,10 @@ function normalizePayload(payload, pdfType = "art") {
 	};
 }
 
-function buildPdfFields(payload) {
+/* ============================================================
+   ART (formulario existente, sin cambios)
+   ============================================================ */
+function buildArtFields(payload) {
 	const t = payload.trabajador || {};
 	const emp = payload.empleador || {};
 	const art = payload.ART || {};
@@ -69,8 +82,7 @@ function buildPdfFields(payload) {
 	const p = payload.prestador || {};
 
 	const nac = splitDateISO(t.nacimiento);
-	const nombreEmpleado =
-		`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
+	const nombreEmpleado = `${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim();
 	const edad = t.edad ? `${t.edad} AÑOS` : "";
 
 	const fechaIngresoObj = {
@@ -145,6 +157,88 @@ function buildPdfFields(payload) {
 	};
 }
 
+/* ============================================================
+   INGRESO PACIENTES (template INT-UIT-FOJA.pdf)
+   ============================================================ */
+function buildIngresoFields(payload) {
+	const t = payload.trabajador || {};
+	const fam = payload.familiar || {};
+	const int = payload.internacion || {};
+	const fi = payload.fechaIngreso || {};
+	const p = payload.prestador || {};
+
+	const nac = splitDateISO(t.nacimiento);
+	const fechaIngresoObj = {
+		dia: pad2(fi.dia || ""),
+		mes: pad2(fi.mes || ""),
+		anio: String(fi.anio || ""),
+	};
+
+	const habitacionCama = cleanText(int.habitacionCama);
+
+	return {
+		// ===== Datos del ingreso =====
+		os: cleanText(payload.OS),
+		"obra-social": cleanText(payload.OS),
+		"afiliado-paciente": cleanText(payload.afiliadoPaciente),
+		"nro-afiliado": cleanText(payload.afiliadoPaciente),
+		"tipo-ingreso": cleanText(payload.tipoIngreso),
+		"fecha-ingreso": formatDate(fechaIngresoObj),
+		"dia-ingreso": fechaIngresoObj.dia,
+		"mes-ingreso": fechaIngresoObj.mes,
+		"anio-ingreso": fechaIngresoObj.anio,
+
+		// ===== Paciente =====
+		"paciente-apellido": cleanText(t.apellido),
+		"paciente-nombre": cleanText(t.nombre),
+		"paciente-nombre-completo":
+			`${cleanText(t.apellido)} ${cleanText(t.nombre)}`.trim(),
+		"paciente-dni": cleanText(t.dni),
+		"paciente-nacimiento": formatDate(nac),
+		"paciente-dia": nac.dia,
+		"paciente-mes": nac.mes,
+		"paciente-anio": nac.anio,
+		"paciente-edad": t.edad ? `${t.edad} AÑOS` : "",
+		"paciente-sexo": cleanText(t.sexo),
+		"paciente-calle": cleanText(t.calle),
+		"paciente-numero": cleanText(t.numero),
+		"paciente-piso": cleanText(t.piso),
+		"paciente-depto": cleanText(t.depto),
+		"paciente-localidad": cleanText(t.localidad),
+		"paciente-provincia": cleanText(t.provincia),
+		"paciente-cp": cleanText(t.cp),
+		"paciente-telefono": cleanText(t.telefono),
+
+		// ===== Familiar =====
+		"familiar-nombre": cleanText(fam.nombre),
+		"familiar-parentezco": cleanText(fam.parentezco),
+		"familiar-telefono": cleanText(fam.telefono),
+
+		// ===== Internación =====
+		"habitacion-cama": habitacionCama,
+		cama: habitacionCama,
+		"cama-numero": cleanText(int.camaNumero),
+		"cama-letra": cleanText(int.camaLetra),
+
+		// ===== Prestador =====
+		"prestador-nombre": cleanText(p.nombre),
+		"prestador-cuit": cleanText(p.cuit),
+		"prestador-calle": cleanText(p.calle),
+		"prestador-nro": cleanText(p.nro),
+		"prestador-piso": cleanText(p.piso),
+		"prestador-depto": cleanText(p.depto),
+		"prestador-localidad": cleanText(p.localidad),
+		"prestador-provincia": cleanText(p.provincia),
+		"prestador-cp": cleanText(p.cp),
+		"prestador-celular": cleanText(p.celular),
+		"prestador-mail": cleanText(p.mail),
+		"lugar-fecha": LUGAR_FECHA_CONST,
+	};
+}
+
+/* ============================================================
+   Filler genérico (texto + checkbox)
+   ============================================================ */
 function fillFormFields(form, fields) {
 	const missing = [];
 
@@ -172,12 +266,15 @@ function fillFormFields(form, fields) {
 	if (missing.length) console.log("[PDF] missing fields:", missing);
 }
 
+/* ============================================================
+   GET: debug del template
+   ============================================================ */
 export async function GET(req) {
 	try {
 		const url = new URL(req.url);
 		const debug = url.searchParams.get("debug") === "1";
 		const templateName =
-			url.searchParams.get("templateName") || "ART-COMPLETOS.pdf";
+			url.searchParams.get("templateName") || DEFAULT_TEMPLATE;
 		const pdfFile = getTemplatePath(templateName);
 
 		if (!debug) {
@@ -197,6 +294,7 @@ export async function GET(req) {
 			ok: true,
 			runtime: "nodejs",
 			template: pdfFile,
+			pages: pdfDoc.getPageCount(),
 			fieldsCount: fieldNames.length,
 			fieldNames,
 		});
@@ -212,36 +310,73 @@ export async function GET(req) {
 	}
 }
 
+/* ============================================================
+   POST: genera el PDF
+   ============================================================ */
 export async function POST(req) {
 	try {
 		const {
 			payload,
 			fileName,
-			templateName = "ART-COMPLETOS.pdf",
+			templateName,
+			template,
 			pdfType = "art",
+			pages,
 		} = await req.json();
 
 		if (!payload) {
-			return NextResponse.json(
-				{ error: "Falta payload" },
-				{ status: 400 },
-			);
+			return NextResponse.json({ error: "Falta payload" }, { status: 400 });
 		}
 
-		const pdfFile = getTemplatePath(templateName);
+		const isIngreso = pdfType === "ingreso";
+		const finalTemplate =
+			templateName ||
+			template ||
+			(isIngreso ? "INT-UIT-FOJA.pdf" : DEFAULT_TEMPLATE);
+
+		const pdfFile = getTemplatePath(finalTemplate);
 		const templateBytes = await fs.readFile(pdfFile);
 
 		const pdfDoc = await PDFDocument.load(templateBytes);
-		const form = pdfDoc.getForm();
-
 		const safePayload = normalizePayload(payload, pdfType);
-		const fields = buildPdfFields(safePayload);
+		const fields = isIngreso
+			? buildIngresoFields(safePayload)
+			: buildArtFields(safePayload);
 
-		fillFormFields(form, fields);
-		form.flatten();
+		let finalDoc;
 
-		const out = await pdfDoc.save();
-		const safeName = cleanFileName(fileName);
+		if (isIngreso) {
+			// 1. Determinar páginas a conservar
+			const tipo = safePayload.tipoIngreso || "PISO";
+			const keep =
+				Array.isArray(pages) && pages.length > 0
+					? pages
+					: PAGES_BY_TYPE[tipo] || PAGES_BY_TYPE.PISO;
+
+			const totalPages = pdfDoc.getPageCount();
+			const zeroBased = keep
+				.map((p) => Number(p) - 1)
+				.filter((i) => i >= 0 && i < totalPages);
+
+			// 2. Crear doc nuevo sólo con las páginas elegidas
+			finalDoc = await PDFDocument.create();
+			const copied = await finalDoc.copyPages(pdfDoc, zeroBased);
+			copied.forEach((pg) => finalDoc.addPage(pg));
+
+			// 3. Rellenar form del doc NUEVO
+			const form = finalDoc.getForm();
+			fillFormFields(form, fields);
+			form.flatten();
+		} else {
+			// ART / evolucion: flujo original
+			const form = pdfDoc.getForm();
+			fillFormFields(form, fields);
+			form.flatten();
+			finalDoc = pdfDoc;
+		}
+
+		const out = await finalDoc.save();
+		const safeName = cleanFileName(fileName || "FORMULARIO.pdf");
 
 		return new NextResponse(out, {
 			status: 200,
@@ -253,7 +388,6 @@ export async function POST(req) {
 		});
 	} catch (e) {
 		console.error("[PDF] ERROR:", e);
-
 		return NextResponse.json(
 			{
 				error: "No se pudo generar el PDF",

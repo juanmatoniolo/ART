@@ -1,0 +1,645 @@
+/* ===== Variables de tema (oscuro por defecto) ===== */
+.page {
+  --bg-page: #121826;
+  --bg-card: #1e2436;
+  --bg-section: #0f121f;
+  --border-color: #2d3748;
+  --text-primary: #eef2ff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #9ca3af;
+  --input-bg: #0f121f;
+  --input-border: #2d3748;
+  --input-focus: #5b8c5a;
+  --chip-bg: #0f121f;
+  --chip-border: #2d3748;
+  --chip-active-bg: #1a2a1a;
+  --btn-ghost-bg: #1e2436;
+  --btn-ghost-border: #2d3748;
+  --btn-ghost-hover: #2a3247;
+  --primary-btn: #5b8c5a;
+  --primary-btn-hover: #477a46;
+  --readonly-bg: #0a0e17;
+  --readonly-text: #86efac;
+  --dropdown-bg: #1e2436;
+  --dropdown-hover: #2a3247;
+  --label-color: #cbd5e1;
+  --toast-info-bg: #1e2a3a;
+  --toast-info-border: #2c5a6e;
+  --toast-info-text: #9ec8e0;
+  --toast-success-bg: #1a2a1a;
+  --toast-success-border: #3b6e3b;
+  --toast-success-text: #9bcf9b;
+  --toast-danger-bg: #2a1a1a;
+  --toast-danger-border: #9b4a4a;
+  --toast-danger-text: #f0b3b3;
+}
+
+/* Modo claro */
+.lightMode {
+  --bg-page: #f4f6f9;
+  --bg-card: #ffffff;
+  --bg-section: #f9fafb;
+  --border-color: #e2e8f0;
+  --text-primary: #1a202c;
+  --text-secondary: #2d3748;
+  --text-muted: #4a5568;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e0;
+  --input-focus: #5b8c5a;
+  --chip-bg: #edf2f7;
+  --chip-border: #cbd5e0;
+  --chip-active-bg: #c6f6d5;
+  --btn-ghost-bg: #ffffff;
+  --btn-ghost-border: #cbd5e0;
+  --btn-ghost-hover: #f7fafc;
+  --primary-btn: #5b8c5a;
+  --primary-btn-hover: #477a46;
+  --readonly-bg: #f7fafc;
+  --readonly-text: #2b6cb0;
+  --dropdown-bg: #ffffff;
+  --dropdown-hover: #f7fafc;
+  --label-color: #2d3748;
+  --toast-info-bg: #ebf8ff;
+  --toast-info-border: #90cdf4;
+  --toast-info-text: #2b6cb0;
+  --toast-success-bg: #f0fff4;
+  --toast-success-border: #9ae6b4;
+  --toast-success-text: #276749;
+  --toast-danger-bg: #fff5f5;
+  --toast-danger-border: #feb2b2;
+  --toast-danger-text: #c53030;
+}
+
+/* ===== Layout general ===== */
+.page {
+  min-height: calc(100vh - 64px);
+  background: var(--bg-page);
+  padding: 20px 0;
+  color: var(--text-primary);
+  transition: background 0.2s, color 0.2s;
+}
+
+.shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+}
+
+.ghostBtn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--btn-ghost-bg);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ghostBtn:hover {
+  background: var(--btn-ghost-hover);
+  border-color: var(--border-color);
+}
+
+.ghostBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Card principal ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+/* ===== Secciones ===== */
+.section {
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--bg-section);
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.section:last-of-type {
+  margin-bottom: 0;
+}
+
+.sectionHead {
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionTitle::before {
+  content: "";
+  width: 6px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--input-focus);
+}
+
+.sectionHint {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ===== Grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== Campos ===== */
+.field,
+.fieldFull {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--label-color);
+}
+
+/* ===== Inputs ===== */
+.input {
+  height: 46px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.2);
+}
+
+.inputError {
+  border-color: #f87171 !important;
+}
+
+.errorText {
+  font-size: 13px;
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* ===== Input read-only (edad) ===== */
+.inputReadonly {
+  background: var(--readonly-bg);
+  color: var(--readonly-text);
+  font-weight: 700;
+  border-color: var(--input-focus);
+  cursor: default;
+}
+
+/* ===== Chips (radio estilo botón) ===== */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chip input {
+  accent-color: var(--input-focus);
+}
+
+.chipActive {
+  border-color: var(--input-focus);
+  background: var(--chip-active-bg);
+  color: var(--text-primary);
+}
+
+/* Chip con error (cuando sexo es obligatorio) */
+.chipError {
+  border-color: #f87171 !important;
+}
+
+/* ===== Fechas (grupos) ===== */
+.fechasWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .fechasWrapper {
+    flex-direction: row;
+    gap: 2rem;
+  }
+}
+
+.fechaGroup {
+  flex: 1;
+  min-width: 200px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.fechaGroupLabel {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.fechaRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.datePartField {
+  flex: 1;
+  min-width: 60px;
+}
+
+.datePartWide {
+  flex: 2;
+}
+
+/* ===== Footer ===== */
+.footer {
+  margin-top: 16px;
+}
+
+/* ===== Botón principal ===== */
+.primaryBtn {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary-btn);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.primaryBtn:hover {
+  background: var(--primary-btn-hover);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== PDF ===== */
+.pdfRow {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdfActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.secondaryBtn {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.secondaryBtn:hover {
+  background: var(--btn-ghost-hover);
+}
+
+/* ===== Mensajes ===== */
+.toastInfo {
+  background: var(--toast-info-bg);
+  border: 1px solid var(--toast-info-border);
+  color: var(--toast-info-text);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toastSuccess {
+  background: var(--toast-success-bg);
+  border: 1px solid var(--toast-success-border);
+  color: var(--toast-success-text);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toastDanger {
+  background: var(--toast-danger-bg);
+  border: 1px solid var(--toast-danger-border);
+  color: var(--toast-danger-text);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ===== Pestañas ===== */
+.tabsContainer {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: var(--btn-ghost-hover);
+  color: var(--text-primary);
+}
+
+.tabActive {
+  color: var(--input-focus);
+  border-bottom: 3px solid var(--input-focus);
+  background: transparent;
+}
+
+/* ===== Pestaña Buscar Pacientes ===== */
+.searchTab {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.searchHeader {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.searchHeader .input {
+  flex: 1;
+}
+
+.tableWrapper {
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+/* Tabla optimizada */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-primary);
+  table-layout: fixed;
+}
+
+/* Anchos de columna para desktop (≥768px) */
+@media (min-width: 768px) {
+  .table th:nth-child(1),
+  .table td:nth-child(1) { width: 22%; }  /* Paciente */
+  .table th:nth-child(2),
+  .table td:nth-child(2) { width: 12%; }  /* DNI */
+  .table th:nth-child(3),
+  .table td:nth-child(3) { width: 15%; }  /* ART */
+  .table th:nth-child(4),
+  .table td:nth-child(4) { width: 14%; }  /* N° Siniestro */
+  .table th:nth-child(5),
+  .table td:nth-child(5) { width: 14%; }  /* Fecha Ingreso */
+  .table th:nth-child(6),
+  .table td:nth-child(6) { width: 8%; }   /* Estado */
+  .table th:nth-child(7),
+  .table td:nth-child(7) { width: 15%; }  /* Acciones */
+}
+
+/* En móviles volvemos a layout automático con scroll horizontal */
+@media (max-width: 767px) {
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    table-layout: auto;
+    min-width: 550px;
+  }
+}
+
+.table th,
+.table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Excepción: la última columna (Acciones) muestra todo su contenido */
+.table th:last-child,
+.table td:last-child {
+  overflow: visible;
+  white-space: normal;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-section);
+}
+
+.table tbody tr:hover {
+  background: var(--dropdown-hover);
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.iconBtn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconBtn:hover {
+  background: var(--btn-ghost-hover);
+  border-color: var(--input-focus);
+}
+
+/* Indicador de estado (bolita) */
+.estadoIndicador {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.estadoIndicador[data-estado="abierto"] {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.estadoIndicador[data-estado="cerrado"] {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+/* ===== Carga y vacío ===== */
+.loading,
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+/* ===== Ajustes extra para móviles ===== */
+@media (max-width: 640px) {
+  .title {
+    font-size: 24px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .section {
+    padding: 14px;
+  }
+
+  .primaryBtn {
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .pdfActions {
+    justify-content: center;
+  }
+}

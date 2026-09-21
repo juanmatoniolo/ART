@@ -32,13 +32,13 @@ export default function Header() {
                     ART
                 </Link>
 
-                {/*       <Link
-                    href="/historia-clinica"
-                    className={`${styles.navLink} ${pathname.startsWith('/cx') ? styles.active : ''}`}
+                <Link
+                    href="/ingresos"
+                    className={`${styles.navLink} ${pathname.startsWith('/ingresos') ? styles.active : ''}`}
                 >
                     <ClipboardList size={16} />
-                   HC
-                </Link> */}
+                    Ingresos
+                </Link>
 
                 <Link
                     href="/foja"
