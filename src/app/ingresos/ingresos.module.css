@@ -81,9 +81,9 @@
 
 .shell {
   width: 100%;
-  max-width: 980px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 /* ===== Header ===== */
@@ -98,7 +98,7 @@
 
 .title {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.15;
   font-weight: 800;
   color: var(--text-primary);
@@ -126,6 +126,7 @@
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .ghostBtn:hover {
@@ -178,6 +179,7 @@
   height: 22px;
   border-radius: 4px;
   background: var(--input-focus);
+  flex-shrink: 0;
 }
 
 .sectionHint {
@@ -230,6 +232,8 @@
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
   box-sizing: border-box;
+  /* Evita zoom automático en iOS al enfocar */
+  font-size: 16px;
 }
 
 .input::placeholder {
@@ -294,7 +298,6 @@
   color: var(--text-primary);
 }
 
-/* Chip con error (cuando sexo es obligatorio) */
 .chipError {
   border-color: #f87171 !important;
 }
@@ -442,6 +445,13 @@
   margin-bottom: 20px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
@@ -454,6 +464,8 @@
   cursor: pointer;
   border-radius: 8px 8px 0 0;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -484,15 +496,19 @@
 
 .searchHeader .input {
   flex: 1;
+  min-width: 180px;
 }
 
+/* ==========================================================
+   TABLA RESPONSIVE
+   ========================================================== */
 .tableWrapper {
   border-radius: 12px;
   border: 1px solid var(--border-color);
   overflow: hidden;
+  background: var(--bg-card);
 }
 
-/* Tabla optimizada */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -500,35 +516,63 @@
   table-layout: fixed;
 }
 
-/* Anchos de columna para desktop (≥768px) */
-@media (min-width: 768px) {
+/* Anchos de columna para desktop (≥ 900px) */
+@media (min-width: 900px) {
+
   .table th:nth-child(1),
-  .table td:nth-child(1) { width: 22%; }  /* Paciente */
+  .table td:nth-child(1) {
+    width: 17%;
+  }
+
+  /* Paciente */
   .table th:nth-child(2),
-  .table td:nth-child(2) { width: 12%; }  /* DNI */
+  .table td:nth-child(2) {
+    width: 10%;
+  }
+
+  /* DNI */
   .table th:nth-child(3),
-  .table td:nth-child(3) { width: 15%; }  /* ART */
+  .table td:nth-child(3) {
+    width: 8%;
+  }
+
+  /* HC */
   .table th:nth-child(4),
-  .table td:nth-child(4) { width: 14%; }  /* N° Siniestro */
+  .table td:nth-child(4) {
+    width: 10%;
+  }
+
+  /* O.S */
   .table th:nth-child(5),
-  .table td:nth-child(5) { width: 14%; }  /* Fecha Ingreso */
+  .table td:nth-child(5) {
+    width: 10%;
+  }
+
+  /* N° Afiliado */
   .table th:nth-child(6),
-  .table td:nth-child(6) { width: 8%; }   /* Estado */
+  .table td:nth-child(6) {
+    width: 7%;
+  }
+
+  /* Tipo */
   .table th:nth-child(7),
-  .table td:nth-child(7) { width: 15%; }  /* Acciones */
-}
-
-/* En móviles volvemos a layout automático con scroll horizontal */
-@media (max-width: 767px) {
-  .tableWrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .table td:nth-child(7) {
+    width: 10%;
   }
 
-  .table {
-    table-layout: auto;
-    min-width: 550px;
+  /* Fecha */
+  .table th:nth-child(8),
+  .table td:nth-child(8) {
+    width: 6%;
   }
+
+  /* Estado */
+  .table th:nth-child(9),
+  .table td:nth-child(9) {
+    width: 22%;
+  }
+
+  /* Acciones */
 }
 
 .table th,
@@ -541,7 +585,6 @@
   white-space: nowrap;
 }
 
-/* Excepción: la última columna (Acciones) muestra todo su contenido */
 .table th:last-child,
 .table td:last-child {
   overflow: visible;
@@ -551,7 +594,7 @@
 .table th {
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background: var(--bg-section);
@@ -563,9 +606,10 @@
 
 .actionsCell {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
   align-items: center;
+  flex-wrap: nowrap;
 }
 
 .iconBtn {
@@ -588,7 +632,169 @@
   border-color: var(--input-focus);
 }
 
-/* Indicador de estado (bolita) */
+.iconBtnDanger {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+.iconBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================================
+   MODO TARJETA EN MÓVILES (≤ 767px)
+   La tabla se "aplana" y cada fila se convierte en una card.
+   ========================================================== */
+@media (max-width: 767px) {
+  .tableWrapper {
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .table,
+  .table thead,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  /* Ocultamos el header de la tabla */
+  .table thead {
+    display: none;
+  }
+
+  /* Cada fila es una card */
+  .table tr {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .table tr:hover {
+    background: var(--bg-card);
+  }
+
+  /* Cada celda: fila con etiqueta + valor */
+  .table td {
+    border-bottom: none;
+    padding: 8px 0;
+    text-align: left;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .table td:last-child {
+    border-bottom: none;
+    padding-top: 12px;
+    justify-content: center;
+  }
+
+  /* Etiquetas a la izquierda (generadas por ::before) */
+  .table td::before {
+    content: "";
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+
+  .table td:nth-child(1)::before {
+    content: "Paciente";
+  }
+
+  .table td:nth-child(2)::before {
+    content: "DNI";
+  }
+
+  .table td:nth-child(3)::before {
+    content: "HC";
+  }
+
+  .table td:nth-child(4)::before {
+    content: "O.S";
+  }
+
+  .table td:nth-child(5)::before {
+    content: "Afiliado";
+  }
+
+  .table td:nth-child(6)::before {
+    content: "Tipo";
+  }
+
+  .table td:nth-child(7)::before {
+    content: "F. Ingreso";
+  }
+
+  .table td:nth-child(8)::before {
+    content: "Estado";
+  }
+
+  .table td:nth-child(9)::before {
+    content: "";
+  }
+
+  /* El valor de la celda ocupa el resto */
+  .table td {
+    text-align: right;
+  }
+
+  .table td:first-child {
+    font-weight: 700;
+    font-size: 15px;
+    padding-bottom: 10px;
+  }
+
+  .table td:first-child::before {
+    font-size: 11px;
+  }
+
+  /* Estado y acciones en la misma fila visual */
+  .table td:nth-child(8) {
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .actionsCell {
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .iconBtn {
+    padding: 10px 14px;
+    font-size: 18px;
+    border-radius: 10px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================
+   ESTADOS / BOLITA
+   ========================================================== */
 .estadoIndicador {
   display: inline-block;
   width: 12px;
@@ -610,15 +816,33 @@
 .loading,
 .empty {
   text-align: center;
-  padding: 40px;
+  padding: 40px 20px;
   color: var(--text-muted);
   font-size: 16px;
 }
 
-/* ===== Ajustes extra para móviles ===== */
+/* ==========================================================
+   AJUSTES PARA MÓVILES (≤ 640px)
+   ========================================================== */
 @media (max-width: 640px) {
+  .page {
+    padding: 12px 0;
+  }
+
+  .shell {
+    padding: 0 12px;
+  }
+
   .title {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .header {
+    margin-bottom: 14px;
   }
 
   .headerActions {
@@ -627,11 +851,21 @@
   }
 
   .card {
-    padding: 14px;
+    padding: 12px;
+    border-radius: 12px;
   }
 
   .section {
-    padding: 14px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .sectionTitle {
+    font-size: 15px;
+  }
+
+  .sectionTitle::before {
+    height: 18px;
   }
 
   .primaryBtn {
@@ -641,5 +875,231 @@
 
   .pdfActions {
     justify-content: center;
+    width: 100%;
+  }
+
+  .pdfActions button {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .searchTab {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .searchHeader {
+    gap: 8px;
+  }
+
+  .searchHeader .input {
+    min-width: 100%;
+    flex: 1 0 100%;
+  }
+
+  /* Chips ocupan todo el ancho si hace falta */
+  .chip {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Fechas en columna */
+  .fechaGroup {
+    padding: 10px 12px;
+    min-width: 0;
+  }
+
+  /* Toast más compacto */
+  .toastInfo,
+  .toastSuccess,
+  .toastDanger {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+/* ==========================================================
+   PANTALLAS MUY ANGOSTAS (≤ 380px — iPhone SE, etc.)
+   ========================================================== */
+@media (max-width: 380px) {
+  .title {
+    font-size: 20px;
+  }
+
+  .headerActions {
+    justify-content: space-between;
+  }
+
+  .ghostBtn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .table tr {
+    padding: 8px 10px;
+  }
+
+  .table td {
+    font-size: 13px;
+    padding: 7px 0;
+  }
+
+  .table td::before {
+    font-size: 11px;
+  }
+
+  .iconBtn {
+    padding: 8px 10px;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 16px;
+  }
+}
+
+
+/* ============================================================
+   BANNER DE HISTORIA CLÍNICA (búsqueda por DNI)
+   ============================================================ */
+.dniRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.dniRow .input {
+  flex: 1;
+}
+
+.dniRow .secondaryBtn {
+  height: 46px;
+  white-space: nowrap;
+}
+
+.hcBannerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.hcBanner {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.hcBannerInfo {
+  background: var(--toast-info-bg);
+  border-color: var(--toast-info-border);
+  color: var(--toast-info-text);
+}
+
+.hcBannerSuccess {
+  background: var(--toast-success-bg);
+  border-color: var(--toast-success-border);
+  color: var(--toast-success-text);
+}
+
+.hcBannerWarn {
+  background: #3a2f1a;
+  border-color: #a97938;
+  color: #f4d4a0;
+}
+
+.lightMode .hcBannerWarn {
+  background: #fff8e6;
+  border-color: #e2b561;
+  color: #7c5a1f;
+}
+
+.hcBannerContent {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.hcBannerHint {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.hcApplyBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.hcApplyBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hcApplyBtn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 640px) {
+  .dniRow {
+    flex-direction: column;
+  }
+
+  .dniRow .secondaryBtn {
+    width: 100%;
+    height: 44px;
+  }
+
+  .hcBannerContent {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hcApplyBtn {
+    width: 100%;
+  }
+}
+
+/* Botón para CREAR HC nueva (banner amarillo) */
+.hcCreateBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px dashed currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.hcCreateBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hcCreateBtn:active {
+  transform: scale(0.97);
+}
+
+.hcCreateBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .hcCreateBtn {
+    width: 100%;
   }
 }

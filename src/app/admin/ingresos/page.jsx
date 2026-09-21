@@ -1168,7 +1168,7 @@ export default function IngresosPage() {
 
                     <div className={styles.field}>
                       <label className={styles.label}>
-                        DNI / CUIL{" "}
+                        DNI {" "}
                         <span style={{ color: "#ef4444" }}>*</span>
                       </label>
                       <div className={styles.dniRow}>
@@ -1181,7 +1181,7 @@ export default function IngresosPage() {
                           onChange={onChange("trabajadorDni")}
                           onBlur={onBlurTrabajadorDni}
                           inputMode="numeric"
-                          placeholder="DNI o CUIL"
+                          placeholder="DNI"
                         />
                         <button
                           type="button"

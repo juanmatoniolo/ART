@@ -2,13 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
-import { push, ref, set, get, child, update } from "firebase/database";
-import styles from "./ingresos.module.css";
+import {
+  push,
+  ref,
+  set,
+  get,
+  child,
+  update,
+  runTransaction,
+} from "firebase/database";
+import { getSession } from "@/utils/session";
 import Header from "@/components/Header/Header";
+import styles from "./ingresos.module.css";
 
 const STORAGE_KEY = "ingreso_paciente_form_v1";
 const THEME_KEY = "siniestro_theme";
 const DB_NODE = "ingresos-pacientes";
+const HC_PATH = "historias-clinicas";
+const HC_UTI_PATH = "historias-clinica-uti";
+const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
+const COUNTER_UTI_PATH = "counters/historias-clinica-uti/lastNumber";
 
 const PRESTADOR_CONST = {
   nombre: "CLINICA DE LA UNION S.A",
@@ -30,13 +43,7 @@ const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
 const defaultYearShort = String(today.getFullYear()).slice(-2);
 
 const initialForm = {
-  OS: "",
-  afiliadoPaciente: "",
-  historiaClinica: "",
   tipoIngreso: "PISO",
-  diaIngreso: defaultDay,
-  mesIngreso: defaultMonth,
-  anioIngreso: defaultYearShort,
 
   trabajadorApellido: "",
   trabajadorNombre: "",
@@ -52,6 +59,14 @@ const initialForm = {
   trabajadorCP: "",
   trabajadorTelefono: "",
   trabajadorEdad: "",
+
+  diaIngreso: defaultDay,
+  mesIngreso: defaultMonth,
+  anioIngreso: defaultYearShort,
+
+  OS: "",
+  afiliadoPaciente: "",
+  historiaClinica: "",
 
   familiarNombre: "",
   familiarParentezco: "",
@@ -127,6 +142,38 @@ function buildHabitacionCamaTexto(form) {
 function getPdfPages(tipoIngreso) {
   if (tipoIngreso === "UTI") return [1, 9, 10, 11, 12];
   return [1, 2, 3, 4, 5, 6, 7, 8];
+}
+
+function splitNombreCompleto(full) {
+  const s = (full || "").trim();
+  if (!s) return { apellido: "", nombre: "" };
+
+  if (s.includes(",")) {
+    const [a, ...rest] = s.split(",");
+    return { apellido: a.trim(), nombre: rest.join(",").trim() };
+  }
+
+  const parts = s.split(/\s+/);
+  if (parts.length === 1) return { apellido: parts[0], nombre: "" };
+
+  if (parts.length >= 4) {
+    return {
+      apellido: parts.slice(0, 2).join(" "),
+      nombre: parts.slice(2).join(" "),
+    };
+  }
+  return { apellido: parts[0], nombre: parts.slice(1).join(" ") };
+}
+
+function parseHCNumber(item) {
+  const raw =
+    item?.historia_clinica ??
+    item?.historia_clinica_1 ??
+    item?.historiaClinica ??
+    item?.hc ??
+    "";
+  const digits = String(raw).replace(/\D/g, "");
+  return digits ? Number(digits) : null;
 }
 
 function validate(f) {
@@ -216,7 +263,7 @@ function DatePartInput({
   );
 }
 
-export default function SiniestroPage() {
+export default function IngresosPage() {
   const [activeTab, setActiveTab] = useState("nuevo");
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -233,6 +280,22 @@ export default function SiniestroPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [currentEstado, setCurrentEstado] = useState(null);
+
+  const [printingId, setPrintingId] = useState(null);
+
+  /* Lookup DNI en HC — solo del tipo activo */
+  const [hcLookup, setHcLookup] = useState({
+    loading: false,
+    searched: false,
+    dni: "",
+    tipo: "PISO",
+    match: null,
+    nextNumber: null,
+    loadingNext: false,
+  });
+  const lastLookupDniRef = useRef("");
+
+  const [creatingHc, setCreatingHc] = useState(null); // "PISO" | "UTI" | null
 
   const submittingRef = useRef(false);
 
@@ -284,6 +347,20 @@ export default function SiniestroPage() {
     }
   }, [form.tipoIngreso]);
 
+  /* Re-buscar cuando cambia el tipo si ya hay DNI cargado */
+  useEffect(() => {
+    const digits = onlyDigits(form.trabajadorDni);
+    if (
+      digits.length >= 7 &&
+      hcLookup.searched &&
+      hcLookup.tipo !== form.tipoIngreso
+    ) {
+      lastLookupDniRef.current = "";
+      lookupDniInHC(digits, form.tipoIngreso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.tipoIngreso]);
+
   useEffect(() => {
     if (shouldFocusError && Object.keys(errors).length > 0) {
       const timer = setTimeout(() => {
@@ -310,7 +387,10 @@ export default function SiniestroPage() {
       const snapshot = await get(child(ref(db), DB_NODE));
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        const arr = Object.entries(data).map(([id, value]) => ({
+          id,
+          ...value,
+        }));
         arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         setPacientes(arr);
       } else {
@@ -340,8 +420,295 @@ export default function SiniestroPage() {
     }));
   };
 
+  /* =========================================================
+     Calcular el PRÓXIMO número de HC para previsualizar
+     ========================================================= */
+  const calcularProximoNumeroHC = async (tipo) => {
+    const isUti = tipo === "UTI";
+    const hcPath = isUti ? HC_UTI_PATH : HC_PATH;
+    const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH;
+
+    const [snapHC, snapCounter] = await Promise.all([
+      get(child(ref(db), hcPath)),
+      get(child(ref(db), counterPath)),
+    ]);
+
+    let maxReal = 0;
+    if (snapHC.exists()) {
+      const data = snapHC.val();
+      for (const item of Object.values(data)) {
+        const n = parseHCNumber(item);
+        if (Number.isFinite(n) && n > maxReal) maxReal = n;
+      }
+    }
+
+    const counterVal = snapCounter.exists() ? Number(snapCounter.val() || 0) : 0;
+
+    const next = Math.max(maxReal, counterVal) + 1;
+    return next;
+  };
+
+  /* =========================================================
+     LOOKUP DNI — solo en el nodo del tipo activo
+     ========================================================= */
+  const lookupDniInHC = async (dniDigits, tipo) => {
+    if (!dniDigits || dniDigits.length < 7) return;
+
+    const tipoNorm = tipo === "UTI" ? "UTI" : "PISO";
+    const cacheKey = `${tipoNorm}::${dniDigits}`;
+    if (lastLookupDniRef.current === cacheKey) return;
+    lastLookupDniRef.current = cacheKey;
+
+    setHcLookup({
+      loading: true,
+      searched: false,
+      dni: dniDigits,
+      tipo: tipoNorm,
+      match: null,
+      nextNumber: null,
+      loadingNext: false,
+    });
+
+    try {
+      const hcPath = tipoNorm === "UTI" ? HC_UTI_PATH : HC_PATH;
+      const snap = await get(child(ref(db), hcPath));
+
+      const matchesDni = (itemDniRaw) => {
+        const itemDni = onlyDigits(itemDniRaw);
+        if (!itemDni) return false;
+        if (itemDni === dniDigits) return true;
+        if (dniDigits.length === 11 && itemDni === dniDigits.slice(2, 10))
+          return true;
+        if (itemDni.length === 11 && dniDigits === itemDni.slice(2, 10))
+          return true;
+        return false;
+      };
+
+      let match = null;
+      if (snap.exists()) {
+        const data = snap.val();
+        for (const [id, v] of Object.entries(data)) {
+          if (matchesDni(v.dni || v.documento)) {
+            match = {
+              id,
+              tipo: tipoNorm,
+              nombre_apellido: v.nombre_apellido || v.nombre || "",
+              dni: v.dni || v.documento || "",
+              historia_clinica:
+                v.historia_clinica || v.historia_clinica_1 || "",
+            };
+            break;
+          }
+        }
+      }
+
+      setHcLookup({
+        loading: false,
+        searched: true,
+        dni: dniDigits,
+        tipo: tipoNorm,
+        match,
+        nextNumber: null,
+        loadingNext: !match,
+      });
+
+      if (!match) {
+        try {
+          const next = await calcularProximoNumeroHC(tipoNorm);
+          setHcLookup((prev) => ({
+            ...prev,
+            nextNumber: next,
+            loadingNext: false,
+          }));
+        } catch (err) {
+          console.error("Error calculando próximo HC:", err);
+          setHcLookup((prev) => ({ ...prev, loadingNext: false }));
+        }
+      }
+    } catch (err) {
+      console.error("Error buscando DNI en HC:", err);
+      setHcLookup({
+        loading: false,
+        searched: true,
+        dni: dniDigits,
+        tipo: tipoNorm,
+        match: null,
+        nextNumber: null,
+        loadingNext: false,
+      });
+    }
+  };
+
   const onBlurTrabajadorDni = () => {
-    setForm((p) => ({ ...p, trabajadorDni: formatIdField(p.trabajadorDni) }));
+    const formatted = formatIdField(form.trabajadorDni);
+    setForm((p) => ({ ...p, trabajadorDni: formatted }));
+    const digits = onlyDigits(formatted);
+    if (digits.length >= 7) {
+      lookupDniInHC(digits, form.tipoIngreso);
+    }
+  };
+
+  const forceLookupDni = () => {
+    const digits = onlyDigits(form.trabajadorDni);
+    if (digits.length < 7) {
+      alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+      return;
+    }
+    lastLookupDniRef.current = "";
+    lookupDniInHC(digits, form.tipoIngreso);
+  };
+
+  const aplicarHistoriaClinica = (hc) => {
+    if (!hc) return;
+    const { apellido, nombre } = splitNombreCompleto(hc.nombre_apellido || "");
+    setForm((p) => ({
+      ...p,
+      trabajadorApellido: apellido || p.trabajadorApellido,
+      trabajadorNombre: nombre || p.trabajadorNombre,
+      trabajadorDni: hc.dni ? formatIdField(hc.dni) : p.trabajadorDni,
+      historiaClinica: String(hc.historia_clinica || ""),
+    }));
+  };
+
+  /* =========================================================
+     CREAR HC NUEVA (opcional) en el nodo del tipo activo
+     ========================================================= */
+  const crearHistoriaClinica = async () => {
+    const tipo = form.tipoIngreso === "UTI" ? "UTI" : "PISO";
+    const isUti = tipo === "UTI";
+
+    const dniDigits = onlyDigits(form.trabajadorDni);
+    if (dniDigits.length < 7) {
+      alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+      return;
+    }
+    if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
+      alert("Completá apellido y nombre del paciente antes de crear la HC");
+      return;
+    }
+
+    const numeroPreview = hcLookup.nextNumber
+      ? ` (se asignará el N° ${hcLookup.nextNumber})`
+      : "";
+
+    const ok = window.confirm(
+      `¿Crear una nueva historia clínica ${tipo} para "${form.trabajadorApellido} ${form.trabajadorNombre}" (DNI ${dniDigits})${numeroPreview}?\n\nSe reservará automáticamente el próximo número.`
+    );
+    if (!ok) return;
+
+    setCreatingHc(tipo);
+
+    try {
+      const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH;
+      const hcPath = isUti ? HC_UTI_PATH : HC_PATH;
+
+      const snapshot = await get(child(ref(db), hcPath));
+      let maxReal = 0;
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const item of Object.values(data)) {
+          const n = parseHCNumber(item);
+          if (Number.isFinite(n) && n > maxReal) maxReal = n;
+        }
+      }
+
+      const counterRef = ref(db, counterPath);
+      const tx = await runTransaction(counterRef, (currentValue) => {
+        const currentNumber = Number(currentValue || 0);
+        return currentNumber + 1;
+      });
+      if (!tx.committed) throw new Error("No se pudo reservar el número");
+      const reservedNumber = Number(tx.snapshot.val() || 0);
+
+      let finalNumber;
+      if (reservedNumber > maxReal) {
+        finalNumber = reservedNumber;
+      } else {
+        finalNumber = maxReal + 1;
+        await set(counterRef, finalNumber);
+      }
+
+      const newNumber = String(finalNumber);
+
+      const session = (typeof getSession === "function" && getSession()) || {};
+      const userName =
+        session.user || session.usuario || session.nombre || "sistema";
+      const userKey = session.id || session.key || "";
+      const now = Date.now();
+
+      const newRef = push(ref(db, hcPath));
+      const nombreCompleto =
+        `${form.trabajadorApellido.trim()} ${form.trabajadorNombre.trim()}`
+          .trim()
+          .toUpperCase();
+
+      if (isUti) {
+        await set(newRef, {
+          nombre: nombreCompleto,
+          documento: dniDigits,
+          historia_clinica_1: newNumber,
+          alertas: [],
+          createdBy: userName,
+          createdByUserKey: userKey,
+          createdAt: now,
+          modifiedBy: userName,
+          modifiedByUserKey: userKey,
+          modifiedAt: now,
+        });
+      } else {
+        await set(newRef, {
+          nombre_apellido: nombreCompleto,
+          dni: dniDigits,
+          historia_clinica: newNumber,
+          alertas: [],
+          createdBy: userName,
+          createdByUserKey: userKey,
+          createdAt: now,
+          modifiedBy: userName,
+          modifiedByUserKey: userKey,
+          modifiedAt: now,
+        });
+      }
+
+      setForm((p) => ({
+        ...p,
+        historiaClinica: newNumber,
+      }));
+
+      lastLookupDniRef.current = "";
+      await lookupDniInHC(dniDigits, tipo);
+
+      alert(`✅ HC ${tipo} #${newNumber} creada correctamente`);
+    } catch (err) {
+      console.error("Error creando HC:", err);
+      alert("No se pudo crear la historia clínica. Revisá la consola.");
+    } finally {
+      setCreatingHc(null);
+    }
+  };
+
+  const resetForm = () => {
+    setForm(initialForm);
+    setErrors({});
+    setCreatedId(null);
+    setPdfError(null);
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setPdfUrl(null);
+    setPdfFileName(null);
+    setEditingId(null);
+    setCurrentEstado(null);
+    lastLookupDniRef.current = "";
+    setHcLookup({
+      loading: false,
+      searched: false,
+      dni: "",
+      tipo: "PISO",
+      match: null,
+      nextNumber: null,
+      loadingNext: false,
+    });
+    setCreatingHc(null);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleEditPaciente = (paciente) => {
@@ -351,13 +718,7 @@ export default function SiniestroPage() {
     const fam = paciente.familiar || {};
 
     setForm({
-      OS: paciente.OS || "",
-      afiliadoPaciente: paciente.afiliadoPaciente || "",
-      historiaClinica: paciente.historiaClinica || "",
       tipoIngreso: paciente.tipoIngreso || "PISO",
-      diaIngreso: fi.dia || defaultDay,
-      mesIngreso: fi.mes || defaultMonth,
-      anioIngreso: normalizeYear2(fi.anio) || defaultYearShort,
 
       trabajadorApellido: t.apellido || "",
       trabajadorNombre: t.nombre || "",
@@ -373,6 +734,14 @@ export default function SiniestroPage() {
       trabajadorCP: t.cp || "",
       trabajadorTelefono: t.telefono || "",
       trabajadorEdad: t.edad || "",
+
+      diaIngreso: fi.dia || defaultDay,
+      mesIngreso: fi.mes || defaultMonth,
+      anioIngreso: normalizeYear2(fi.anio) || defaultYearShort,
+
+      OS: paciente.OS || "",
+      afiliadoPaciente: paciente.afiliadoPaciente || "",
+      historiaClinica: paciente.historiaClinica || "",
 
       familiarNombre: fam.nombre || "",
       familiarParentezco: fam.parentezco || "",
@@ -391,9 +760,24 @@ export default function SiniestroPage() {
     setPdfError(null);
     setPdfUrl(null);
     setPdfFileName(null);
+    lastLookupDniRef.current = "";
+    setHcLookup({
+      loading: false,
+      searched: false,
+      dni: "",
+      tipo: "PISO",
+      match: null,
+      nextNumber: null,
+      loadingNext: false,
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePrintPaciente = async (paciente) => {
+    setPrintingId(paciente.id);
+    const newTab = window.open("", "_blank");
+
     try {
       const tipoIngreso = paciente.tipoIngreso || "PISO";
       const payload = {
@@ -422,16 +806,24 @@ export default function SiniestroPage() {
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+
+      if (newTab) {
+        newTab.location.href = url;
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener,noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
     } catch (err) {
       console.error(err);
+      if (newTab) newTab.close();
       alert("No se pudo generar el PDF.");
+    } finally {
+      setPrintingId(null);
     }
   };
 
@@ -594,6 +986,10 @@ export default function SiniestroPage() {
 
   const esUTI = form.tipoIngreso === "UTI";
 
+  const hcNombre = (hc) => (hc?.nombre_apellido ? hc.nombre_apellido : "—");
+  const hcNumber = (hc) =>
+    hc?.historia_clinica ? `#${hc.historia_clinica}` : "sin N°";
+
   return (
     <>
       <Header />
@@ -632,11 +1028,6 @@ export default function SiniestroPage() {
                 type="button"
                 className={styles.ghostBtn}
                 onClick={toggleTheme}
-                title={
-                  theme === "dark"
-                    ? "Cambiar a modo claro"
-                    : "Cambiar a modo oscuro"
-                }
               >
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
@@ -645,18 +1036,7 @@ export default function SiniestroPage() {
                   type="button"
                   className={styles.ghostBtn}
                   disabled={saving}
-                  onClick={() => {
-                    setForm(initialForm);
-                    setErrors({});
-                    setCreatedId(null);
-                    setPdfError(null);
-                    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-                    setPdfUrl(null);
-                    setPdfFileName(null);
-                    setEditingId(null);
-                    setCurrentEstado(null);
-                    localStorage.removeItem(STORAGE_KEY);
-                  }}
+                  onClick={resetForm}
                 >
                   Limpiar
                 </button>
@@ -699,45 +1079,10 @@ export default function SiniestroPage() {
               <form onSubmit={onSubmit} autoComplete="on">
                 <div className={styles.card}>
                   <Section
-                    title="1) Datos del ingreso"
-                    subtitle="Obra social, número de afiliado, HC, fecha y tipo de ingreso"
+                    title="1) Tipo de ingreso y paciente"
+                    subtitle="Elegí PISO o UTI, cargá el DNI y el sistema buscará si ya tiene historia clínica del tipo elegido"
                   >
-                    <div className={styles.grid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>O.S</label>
-                        <input
-                          className={cx(
-                            styles.input,
-                            errors.OS && styles.inputError
-                          )}
-                          value={form.OS}
-                          onChange={onChange("OS")}
-                          placeholder="Ej: OSDE, Swiss Medical, IAPOS..."
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>N° de afiliado</label>
-                        <input
-                          className={styles.input}
-                          value={form.afiliadoPaciente}
-                          onChange={onChange("afiliadoPaciente")}
-                          placeholder="Ej: 1234567890 / ABC123"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>
-                          HC (Historia Clínica)
-                        </label>
-                        <input
-                          className={styles.input}
-                          value={form.historiaClinica}
-                          onChange={onChange("historiaClinica")}
-                          placeholder="Ej: 12345 (opcional al ingreso)"
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: 14 }}>
+                    <div style={{ marginBottom: 14 }}>
                       <div className={styles.fieldFull}>
                         <label className={styles.label}>Tipo de ingreso</label>
                         <div className={styles.chips}>
@@ -775,49 +1120,6 @@ export default function SiniestroPage() {
                       </div>
                     </div>
 
-                    <div
-                      className={styles.fechasWrapper}
-                      style={{ marginTop: 14 }}
-                    >
-                      <div className={styles.fechaGroup}>
-                        <div className={styles.fechaGroupLabel}>
-                          Fecha de ingreso
-                        </div>
-                        <div className={styles.fechaRow}>
-                          <DatePartInput
-                            label="Día"
-                            value={form.diaIngreso}
-                            onChange={onChange("diaIngreso")}
-                            placeholder="DD"
-                            maxLength={2}
-                            error={errors.diaIngreso}
-                          />
-                          <DatePartInput
-                            label="Mes"
-                            value={form.mesIngreso}
-                            onChange={onChange("mesIngreso")}
-                            placeholder="MM"
-                            maxLength={2}
-                            error={errors.mesIngreso}
-                          />
-                          <DatePartInput
-                            label="Año"
-                            value={form.anioIngreso}
-                            onChange={onChangeAnioIngreso}
-                            onBlur={onBlurAnioIngreso}
-                            placeholder="AA o AAAA"
-                            maxLength={4}
-                            error={errors.anioIngreso}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Section>
-
-                  <Section
-                    title="2) Paciente"
-                    subtitle="Datos del paciente y contacto familiar"
-                  >
                     <div className={styles.grid}>
                       <div className={styles.field}>
                         <label className={styles.label}>Apellido</label>
@@ -837,26 +1139,131 @@ export default function SiniestroPage() {
                           placeholder="Nombre"
                         />
                       </div>
+
                       <div className={styles.field}>
-                        <label className={styles.label}>DNI / CUIL</label>
-                        <input
-                          className={cx(
-                            styles.input,
-                            errors.trabajadorDni && styles.inputError
-                          )}
-                          value={form.trabajadorDni}
-                          onChange={onChange("trabajadorDni")}
-                          onBlur={onBlurTrabajadorDni}
-                          inputMode="numeric"
-                          placeholder="DNI o CUIL"
-                        />
+                        <label className={styles.label}>
+                          DNI{" "}
+                          <span style={{ color: "#ef4444" }}>*</span>
+                        </label>
+                        <div className={styles.dniRow}>
+                          <input
+                            className={cx(
+                              styles.input,
+                              errors.trabajadorDni && styles.inputError
+                            )}
+                            value={form.trabajadorDni}
+                            onChange={onChange("trabajadorDni")}
+                            onBlur={onBlurTrabajadorDni}
+                            inputMode="numeric"
+                            placeholder="DNI"
+                          />
+                          <button
+                            type="button"
+                            className={styles.secondaryBtn}
+                            onClick={forceLookupDni}
+                            disabled={hcLookup.loading}
+                            title="Buscar DNI en historias clínicas del tipo elegido"
+                          >
+                            {hcLookup.loading ? "⏳" : "🔎 Buscar"}
+                          </button>
+                        </div>
                         {errors.trabajadorDni && (
                           <div className={styles.errorText}>
                             {errors.trabajadorDni}
                           </div>
                         )}
                       </div>
+                    </div>
 
+                    {hcLookup.loading && (
+                      <div className={cx(styles.hcBanner, styles.hcBannerInfo)}>
+                        ⏳ Buscando DNI <b>{hcLookup.dni}</b> en HC{" "}
+                        <b>{hcLookup.tipo}</b>...
+                      </div>
+                    )}
+
+                    {!hcLookup.loading && hcLookup.searched && (
+                      <div className={styles.hcBannerGroup}>
+                        {hcLookup.match ? (
+                          <div
+                            className={cx(
+                              styles.hcBanner,
+                              styles.hcBannerSuccess
+                            )}
+                          >
+                            <div className={styles.hcBannerContent}>
+                              <div>
+                                🟢{" "}
+                                <b>
+                                  HC {hcLookup.tipo} {hcNumber(hcLookup.match)}
+                                </b>{" "}
+                                — Paciente: <b>{hcNombre(hcLookup.match)}</b>
+                                <div className={styles.hcBannerHint}>
+                                  DNI coincidente: {hcLookup.match.dni}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className={styles.hcApplyBtn}
+                                onClick={() =>
+                                  aplicarHistoriaClinica(hcLookup.match)
+                                }
+                              >
+                                Aplicar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={cx(
+                              styles.hcBanner,
+                              styles.hcBannerWarn
+                            )}
+                          >
+                            <div className={styles.hcBannerContent}>
+                              <div>
+                                ⚠️ Sin HC <b>{hcLookup.tipo}</b> para este DNI.
+                                <div className={styles.hcBannerHint}>
+                                  {hcLookup.loadingNext ? (
+                                    <>⏳ Calculando el próximo N°...</>
+                                  ) : hcLookup.nextNumber ? (
+                                    <>
+                                      Se creará con el N°{" "}
+                                      <b>{hcLookup.nextNumber}</b>. Podés crear
+                                      una nueva (opcional) o cargar el N°
+                                      manualmente.
+                                    </>
+                                  ) : (
+                                    <>
+                                      Podés crear una nueva (opcional) o
+                                      cargar el N° manualmente.
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className={styles.hcCreateBtn}
+                                onClick={crearHistoriaClinica}
+                                disabled={
+                                  creatingHc !== null || hcLookup.loadingNext
+                                }
+                              >
+                                {creatingHc
+                                  ? "⏳ Creando..."
+                                  : hcLookup.loadingNext
+                                    ? "⏳ Calculando..."
+                                    : hcLookup.nextNumber
+                                      ? `+ Crear HC ${hcLookup.tipo} #${hcLookup.nextNumber}`
+                                      : `+ Crear HC ${hcLookup.tipo}`}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={styles.grid} style={{ marginTop: 14 }}>
                       <div className={styles.field}>
                         <label className={styles.label}>
                           Fecha de nacimiento
@@ -1003,64 +1410,121 @@ export default function SiniestroPage() {
                         />
                       </div>
                     </div>
+                  </Section>
 
-                    <div
-                      style={{
-                        marginTop: 22,
-                        paddingTop: 18,
-                        borderTop: "1px dashed var(--border-color)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: "var(--text-primary)",
-                          marginBottom: 12,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        👨‍👩‍👧 Datos del familiar responsable
+                  <Section
+                    title="2) Datos del ingreso"
+                    subtitle="Fecha actual de ingreso, obra social e historia clínica"
+                  >
+                    <div className={styles.fechasWrapper}>
+                      <div className={styles.fechaGroup}>
+                        <div className={styles.fechaGroupLabel}>
+                          Fecha de ingreso
+                        </div>
+                        <div className={styles.fechaRow}>
+                          <DatePartInput
+                            label="Día"
+                            value={form.diaIngreso}
+                            onChange={onChange("diaIngreso")}
+                            placeholder="DD"
+                            maxLength={2}
+                            error={errors.diaIngreso}
+                          />
+                          <DatePartInput
+                            label="Mes"
+                            value={form.mesIngreso}
+                            onChange={onChange("mesIngreso")}
+                            placeholder="MM"
+                            maxLength={2}
+                            error={errors.mesIngreso}
+                          />
+                          <DatePartInput
+                            label="Año"
+                            value={form.anioIngreso}
+                            onChange={onChangeAnioIngreso}
+                            onBlur={onBlurAnioIngreso}
+                            placeholder="AA o AAAA"
+                            maxLength={4}
+                            error={errors.anioIngreso}
+                          />
+                        </div>
                       </div>
-                      <div className={styles.grid}>
-                        <div className={styles.field}>
-                          <label className={styles.label}>
-                            Nombre completo
-                          </label>
-                          <input
-                            className={styles.input}
-                            value={form.familiarNombre}
-                            onChange={onChange("familiarNombre")}
-                            placeholder="Apellido y nombre del familiar"
-                          />
-                        </div>
-                        <div className={styles.field}>
-                          <label className={styles.label}>Parentezco</label>
-                          <input
-                            className={styles.input}
-                            value={form.familiarParentezco}
-                            onChange={onChange("familiarParentezco")}
-                            placeholder="Ej: Cónyuge, Hijo/a, Madre, Padre..."
-                          />
-                        </div>
-                        <div className={styles.field}>
-                          <label className={styles.label}>Teléfono</label>
-                          <input
-                            className={styles.input}
-                            value={form.familiarTelefono}
-                            onChange={onChange("familiarTelefono")}
-                            inputMode="numeric"
-                            placeholder="Ej: 3456 123456"
-                          />
-                        </div>
+                    </div>
+
+                    <div className={styles.grid} style={{ marginTop: 14 }}>
+                      <div className={styles.field}>
+                        <label className={styles.label}>O.S</label>
+                        <input
+                          className={cx(
+                            styles.input,
+                            errors.OS && styles.inputError
+                          )}
+                          value={form.OS}
+                          onChange={onChange("OS")}
+                          placeholder="Ej: OSDE, Swiss Medical, IAPOS..."
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>N° de afiliado</label>
+                        <input
+                          className={styles.input}
+                          value={form.afiliadoPaciente}
+                          onChange={onChange("afiliadoPaciente")}
+                          placeholder="Ej: 1234567890 / ABC123"
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>
+                          HC (Historia Clínica)
+                        </label>
+                        <input
+                          className={styles.input}
+                          value={form.historiaClinica}
+                          onChange={onChange("historiaClinica")}
+                          placeholder="Se completa al aplicar/crear una HC"
+                        />
                       </div>
                     </div>
                   </Section>
 
                   <Section
-                    title="3) Internación"
+                    title="3) Familiar responsable"
+                    subtitle="Contacto del familiar o allegado"
+                  >
+                    <div className={styles.grid}>
+                      <div className={styles.field}>
+                        <label className={styles.label}>Nombre completo</label>
+                        <input
+                          className={styles.input}
+                          value={form.familiarNombre}
+                          onChange={onChange("familiarNombre")}
+                          placeholder="Apellido y nombre del familiar"
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>Parentezco</label>
+                        <input
+                          className={styles.input}
+                          value={form.familiarParentezco}
+                          onChange={onChange("familiarParentezco")}
+                          placeholder="Ej: Cónyuge, Hijo/a, Madre, Padre..."
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>Teléfono</label>
+                        <input
+                          className={styles.input}
+                          value={form.familiarTelefono}
+                          onChange={onChange("familiarTelefono")}
+                          inputMode="numeric"
+                          placeholder="Ej: 3456 123456"
+                        />
+                      </div>
+                    </div>
+                  </Section>
+
+                  <Section
+                    title="4) Internación"
                     subtitle={`Ubicación del paciente en ${form.tipoIngreso === "UTI" ? "UTI (Terapia)" : "PISO"
                       }`}
                   >
@@ -1103,7 +1567,7 @@ export default function SiniestroPage() {
                   </Section>
 
                   <Section
-                    title="4) Médico solicitante y diagnóstico"
+                    title="5) Médico solicitante y diagnóstico"
                     subtitle="Médico que pide la internación y diagnóstico de ingreso"
                   >
                     <div className={styles.grid}>
@@ -1232,7 +1696,6 @@ export default function SiniestroPage() {
                         <th>N° Afiliado</th>
                         <th>Tipo</th>
                         <th>Fecha Ingreso</th>
-                        <th>Estado</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
@@ -1240,7 +1703,8 @@ export default function SiniestroPage() {
                       {filteredPacientes.map((p) => {
                         const t = p.trabajador || {};
                         const fi = p.fechaIngreso || {};
-                        const estado = p.estado || "abierto";
+                        const estaImprimiendo = printingId === p.id;
+
                         return (
                           <tr key={p.id}>
                             <td>
@@ -1256,30 +1720,23 @@ export default function SiniestroPage() {
                                 ? `${fi.dia}/${fi.mes}/${fi.anio}`
                                 : "—"}
                             </td>
-                            <td>
-                              <span
-                                className={styles.estadoIndicador}
-                                data-estado={estado}
-                                title={
-                                  estado === "abierto" ? "Abierto" : "Cerrado"
-                                }
-                              />
-                            </td>
                             <td className={styles.actionsCell}>
                               <button
                                 className={styles.iconBtn}
                                 title="Editar"
                                 onClick={() => handleEditPaciente(p)}
+                                disabled={estaImprimiendo}
                               >
                                 ✏️
                               </button>
                               <button
                                 className={styles.iconBtn}
-                                title={`Imprimir PDF (${p.tipoIngreso || "PISO"
+                                title={`Reimprimir PDF en nueva pestaña (${p.tipoIngreso || "PISO"
                                   })`}
                                 onClick={() => handlePrintPaciente(p)}
+                                disabled={estaImprimiendo}
                               >
-                                🖨️
+                                {estaImprimiendo ? "⏳" : "🖨️"}
                               </button>
                             </td>
                           </tr>
