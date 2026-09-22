@@ -66,3 +66,53 @@
         display: none;
     }
 }
+
+
+@media (max-width: 640px) {
+    .header {
+        padding: 0 10px;
+        gap: 8px;
+    }
+
+    .brand {
+        display: none;
+    }
+
+    .left {
+        gap: 0;
+    }
+
+    .nav {
+        gap: 2px;
+        flex: 1;
+        justify-content: flex-end;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .navLink {
+        padding: 6px 8px;
+        font-size: 12px;
+        gap: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .navLink svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+@media (max-width: 380px) {
+    .navLink {
+        padding: 6px;
+        font-size: 11px;
+        gap: 3px;
+    }
+}
