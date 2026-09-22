@@ -1,0 +1,918 @@
+/* ============================================================
+   DocumentosModal — estilos autocontenidos (no depende de
+   ingresos.module.css para nada visual)
+   ============================================================ */
+
+/* ---------- Overlay / estructura ---------- */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    padding: 20px;
+    animation: modalFadeIn 0.15s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(12px) scale(0.98);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.modalContent {
+    background: #1e2436;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 1000px;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    color: #e2e8f0;
+    animation: modalSlideIn 0.18s ease;
+}
+
+/* ---------- Header ---------- */
+.docModalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    padding-top: max(14px, env(safe-area-inset-top));
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    flex-shrink: 0;
+    background: inherit;
+}
+
+.docModalHeaderText {
+    min-width: 0;
+    flex: 1;
+}
+
+.docModalTitle {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: #f1f5f9;
+    line-height: 1.2;
+}
+
+.docModalSubtitle {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: #94a3b8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.docModalCloseBtn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: transparent;
+    color: #cbd5e1;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.docModalCloseBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+/* ---------- Body ---------- */
+.docModalBody {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---------- Alertas ---------- */
+.docAlertSuccess,
+.docAlertDanger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.docAlertSuccess {
+    background: rgba(34, 197, 94, 0.14);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #86efac;
+}
+
+.docAlertDanger {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.docAlertIcon {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.docAlertText {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.docAlertClose {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---------- Bloque agregar ---------- */
+.docAddCard {
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.docAddHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.docAddTitle {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.docAddSubtitle {
+    margin: 0;
+    font-size: 12.5px;
+    color: #94a3b8;
+}
+
+.docAddActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.docAddBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 10px;
+    min-height: 88px;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: rgba(30, 41, 59, 0.6);
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.docAddBtn:active:not(:disabled) {
+    transform: scale(0.97);
+    background: rgba(59, 130, 246, 0.18);
+}
+
+.docAddBtn:hover:not(:disabled) {
+    border-color: rgba(59, 130, 246, 0.6);
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.docAddBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.docAddBtnIcon {
+    font-size: 26px;
+    line-height: 1;
+}
+
+.docAddBtnLabel {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+/* ---------- Switch ---------- */
+.docSwitchRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 4px 2px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.docSwitchInput {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.docSwitchTrack {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 26px;
+    background: rgba(148, 163, 184, 0.28);
+    border-radius: 999px;
+    transition: background 0.2s;
+}
+
+.docSwitchThumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #f8fafc;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.docSwitchInput:checked~.docSwitchTrack {
+    background: #5b8c5a;
+}
+
+.docSwitchInput:checked~.docSwitchTrack .docSwitchThumb {
+    transform: translateX(18px);
+}
+
+.docSwitchLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    line-height: 1.3;
+}
+
+/* ---------- Lista ---------- */
+.docListSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.docListHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.docListTitle {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.docListCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.docList {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+@media (min-width: 640px) {
+    .docList {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+    }
+}
+
+@media (min-width: 900px) {
+    .docList {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .docList {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+
+/* ---------- Card de documento ---------- */
+.docCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+
+.docCard:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.docCardImageWrap {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 68px;
+    background: #0f172a;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 480px) {
+    .docCardImageWrap {
+        height: 78px;
+    }
+}
+
+@media (min-width: 640px) {
+    .docCardImageWrap {
+        height: 88px;
+    }
+}
+
+@media (min-width: 900px) {
+    .docCardImageWrap {
+        height: 94px;
+    }
+}
+
+.docCardImage {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    transition: transform 0.25s ease;
+}
+
+@media (hover: hover) {
+    .docCard:hover .docCardImage {
+        transform: scale(1.04);
+    }
+}
+
+.docCardImageFallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.docCardImageFallback span:first-child {
+    font-size: 18px;
+}
+
+.docCardBadge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #e2e8f0;
+    font-size: 9.5px;
+    font-weight: 800;
+    backdrop-filter: blur(4px);
+}
+
+.docCardInfo {
+    padding: 5px 7px 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.docCardName {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #cbd5e1;
+    word-break: break-all;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.docCardActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 30px;
+    gap: 4px;
+    padding: 5px 7px 7px;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.docActionSecondary,
+.docActionDanger {
+    min-height: 30px;
+    padding: 0 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid;
+}
+
+.docActionSecondary {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+}
+
+.docActionSecondary:active:not(:disabled) {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.docActionSecondary:hover:not(:disabled) {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.docActionSecondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.docActionDanger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+    width: 30px;
+    padding: 0;
+    font-size: 13px;
+}
+
+.docActionDanger:active:not(:disabled) {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.6);
+}
+
+.docActionDanger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.docActionSecondary span {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .docActionSecondary span {
+        display: inline;
+    }
+
+    .docCardActions {
+        grid-template-columns: 1fr 1fr 36px;
+    }
+
+    .docActionSecondary,
+    .docActionDanger {
+        min-height: 32px;
+        font-size: 11.5px;
+    }
+
+    .docActionDanger {
+        width: 36px;
+        font-size: 14px;
+    }
+
+    .docCardInfo {
+        padding: 6px 8px 3px;
+    }
+
+    .docCardName {
+        font-size: 11px;
+    }
+}
+
+/* ---------- Empty ---------- */
+.docEmpty {
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    border: 1px dashed rgba(148, 163, 184, 0.28);
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.04);
+}
+
+.docEmptyIcon {
+    font-size: 44px;
+    line-height: 1;
+    opacity: 0.55;
+}
+
+.docEmptyTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.docEmptyHint {
+    font-size: 13px;
+    color: #94a3b8;
+    max-width: 280px;
+    line-height: 1.4;
+}
+
+/* ---------- Footer ---------- */
+.docModalFooter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+    background: inherit;
+    flex-shrink: 0;
+}
+
+.docFooterPrimary,
+.docFooterSecondary {
+    min-height: 50px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: filter 0.15s;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.docFooterPrimary {
+    background: linear-gradient(135deg, #5b8c5a, #3d6a3d);
+    color: #fff;
+}
+
+.docFooterSecondary {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: #fff;
+}
+
+.docFooterPrimary:active:not(:disabled),
+.docFooterSecondary:active:not(:disabled) {
+    filter: brightness(0.94);
+}
+
+.docFooterPrimary:disabled,
+.docFooterSecondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ---------- Light mode ---------- */
+:global(body.light-mode) .modalContent {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docModalTitle {
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docModalSubtitle {
+    color: #64748b;
+}
+
+:global(body.light-mode) .docModalCloseBtn {
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.15);
+}
+
+:global(body.light-mode) .docModalHeader {
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+:global(body.light-mode) .docModalFooter {
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+:global(body.light-mode) .docAlertSuccess {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+:global(body.light-mode) .docAlertDanger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+:global(body.light-mode) .docAddCard {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+:global(body.light-mode) .docAddTitle {
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docAddSubtitle {
+    color: #64748b;
+}
+
+:global(body.light-mode) .docAddBtn {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docAddBtn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+:global(body.light-mode) .docSwitchLabel {
+    color: #334155;
+}
+
+:global(body.light-mode) .docSwitchTrack {
+    background: rgba(100, 116, 139, 0.3);
+}
+
+:global(body.light-mode) .docSwitchInput:checked~.docSwitchTrack {
+    background: #5b8c5a;
+}
+
+:global(body.light-mode) .docListTitle {
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docListCount {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+:global(body.light-mode) .docCard {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+:global(body.light-mode) .docCard:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+:global(body.light-mode) .docCardImageWrap {
+    background: #f1f5f9;
+}
+
+:global(body.light-mode) .docCardImageFallback {
+    color: #64748b;
+}
+
+:global(body.light-mode) .docCardBadge {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docCardName {
+    color: #334155;
+}
+
+:global(body.light-mode) .docCardActions {
+    border-top-color: rgba(15, 23, 42, 0.08);
+}
+
+:global(body.light-mode) .docActionSecondary {
+    background: #f8fafc;
+    border-color: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+:global(body.light-mode) .docActionSecondary:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+:global(body.light-mode) .docActionDanger {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #dc2626;
+}
+
+:global(body.light-mode) .docEmpty {
+    background: #f8fafc;
+    border-color: rgba(15, 23, 42, 0.12);
+}
+
+:global(body.light-mode) .docEmptyTitle {
+    color: #334155;
+}
+
+:global(body.light-mode) .docEmptyHint {
+    color: #64748b;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+    .modalOverlay {
+        padding: 0;
+        align-items: stretch;
+    }
+
+    .modalContent {
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .docModalBody {
+        padding: 12px 10px;
+        gap: 12px;
+    }
+
+    .docAddCard {
+        padding: 14px;
+    }
+
+    .docAddBtn {
+        padding: 14px 8px;
+        min-height: 82px;
+    }
+
+    .docAddBtnIcon {
+        font-size: 24px;
+    }
+
+    .docModalFooter {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .docFooterPrimary,
+    .docFooterSecondary {
+        min-height: 52px;
+        font-size: 14px;
+    }
+
+    .docModalTitle {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 380px) {
+    .docList {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .docAddActions {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .docAddBtn {
+        flex-direction: row;
+        justify-content: flex-start;
+        min-height: 60px;
+        padding: 14px 16px;
+        gap: 12px;
+    }
+
+    .docAddBtnIcon {
+        font-size: 22px;
+    }
+
+    .docCardImageWrap {
+        height: 58px;
+    }
+
+    .docCardInfo {
+        padding: 4px 6px 2px;
+    }
+
+    .docCardName {
+        font-size: 10px;
+    }
+
+    .docCardActions {
+        grid-template-columns: 1fr 1fr 28px;
+        gap: 3px;
+        padding: 4px 5px 5px;
+    }
+
+    .docActionSecondary {
+        min-height: 28px;
+        font-size: 11px;
+    }
+
+    .docActionDanger {
+        width: 28px;
+        min-height: 28px;
+        font-size: 12px;
+    }
+}

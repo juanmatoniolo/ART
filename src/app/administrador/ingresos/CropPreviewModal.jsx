@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
-import styles from "./ingresos.module.css";
+import styles from "./CropPreviewModal.module.css";
 
 /* ---------- helpers para generar la imagen recortada ---------- */
 function createImage(url) {
@@ -80,7 +80,11 @@ export default function CropPreviewModal({
             if (e.key === "Escape" && !uploading) onCancel();
         };
         window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
+        document.body.style.overflow = "hidden";
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            document.body.style.overflow = "";
+        };
     }, [onCancel, uploading]);
 
     const onCropComplete = useCallback((_, croppedAreaPixels) => {
@@ -106,24 +110,28 @@ export default function CropPreviewModal({
     return (
         <div
             className={styles.cropModalOverlay}
+            role="presentation"
             onClick={uploading ? undefined : onCancel}
         >
             <div
                 className={styles.cropModalContent}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Ajustá el encuadre de la foto"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className={styles.cropModalHeader}>
-                    <h3 style={{ margin: 0, fontSize: 16 }}>✂️ Ajustá el encuadre</h3>
+                <header className={styles.cropModalHeader}>
+                    <h3>✂️ Ajustá el encuadre</h3>
                     <button
                         type="button"
                         className={styles.modalCloseBtn}
                         onClick={onCancel}
                         disabled={uploading}
-                        title="Cerrar"
+                        aria-label="Cerrar"
                     >
                         ✕
                     </button>
-                </div>
+                </header>
 
                 <div className={styles.cropEditorContainer}>
                     <Cropper
@@ -170,16 +178,16 @@ export default function CropPreviewModal({
                         <span className={styles.cropZoomValue}>{zoom.toFixed(2)}x</span>
                     </div>
 
-                    <div className={styles.sectionHint} style={{ textAlign: "center" }}>
+                    <div className={styles.sectionHint}>
                         Arrastrá la imagen para mover. Ajustá el zoom. Elegí el formato.
                     </div>
                 </div>
 
-                <div className={styles.cropModalFooter}>
+                <footer className={styles.cropModalFooter}>
                     <button
                         type="button"
                         className={styles.secondaryBtn}
-                        style={{ flex: 1, minHeight: 48 }}
+                        style={{ flex: 1 }}
                         onClick={onCancel}
                         disabled={uploading}
                     >
@@ -188,13 +196,13 @@ export default function CropPreviewModal({
                     <button
                         type="button"
                         className={styles.primaryBtn}
-                        style={{ flex: 1, minHeight: 48, width: "auto" }}
+                        style={{ flex: 1, width: "auto" }}
                         onClick={handleConfirm}
                         disabled={uploading}
                     >
                         {uploading ? "⏳ Subiendo..." : "✅ Subir esta foto"}
                     </button>
-                </div>
+                </footer>
             </div>
         </div>
     );

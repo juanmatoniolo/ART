@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
 import { ref, update } from "firebase/database";
-import styles from "./ingresos.module.css";
+import styles from "./DocumentosModal.module.css";
 import CropPreviewModal from "./CropPreviewModal";
 import CameraGuideModal from "./CameraGuideModal";
 import {
@@ -15,7 +15,6 @@ import {
 import {
     convertToWebP,
     buildFolderName,
-    cx,
     onlyDigits,
     getPdfPages,
     PRESTADOR_CONST,
@@ -24,9 +23,28 @@ import {
 const DB_NODE = "ingresos-pacientes";
 const UPLOAD_TIMEOUT_MS = 30000;
 
-export default function DocumentosModal({ paciente, onClose, onUpdated }) {
-    if (!paciente) return null;
+/* Nombre del archivo: APELLIDO_NOMBRE_DNI_OS_AFILIADO.webp */
+function buildDocFileName(form, ext = "webp") {
+    const clean = (s) =>
+        String(s || "")
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_")
+            .replace(/[^A-Za-z0-9_-]/g, "")
+            .toUpperCase();
+    const parts = [
+        clean(form?.trabajadorApellido),
+        clean(form?.trabajadorNombre),
+        clean(form?.trabajadorDni),
+        clean(form?.OS),
+        clean(form?.afiliadoPaciente),
+    ].filter(Boolean);
+    const base = parts.join("_") || "DOCUMENTO";
+    return `${base}.${ext}`;
+}
 
+export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const [docs, setDocs] = useState(() =>
         Array.isArray(paciente?.documentacion) ? paciente.documentacion : []
     );
@@ -46,9 +64,30 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const addInputRef = useRef(null);
     const docToReplaceRef = useRef(null);
 
+    /* Bloquear scroll del body mientras el modal está abierto */
+    useEffect(() => {
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => { document.body.style.overflow = prev; };
+    }, []);
+
+    /* Cerrar con Escape */
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === "Escape" && !adding && !cropPreview && !showCameraGuide) {
+                onClose();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onClose, adding, cropPreview, showCameraGuide]);
+
+    if (!paciente) return null;
+
     const formLike = {
         trabajadorApellido: paciente?.trabajador?.apellido || "",
         trabajadorNombre: paciente?.trabajador?.nombre || "",
+        trabajadorDni: paciente?.trabajador?.dni || "",
         OS: paciente?.OS || "",
         afiliadoPaciente: paciente?.afiliadoPaciente || "",
     };
@@ -138,7 +177,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
             if (!finalBlob) return;
 
             const fd = new FormData();
-            fd.append("file", finalBlob, "documento.webp");
+            fd.append("file", finalBlob, buildDocFileName(formLike));
             fd.append("folderName", buildFolderName(formLike));
 
             const controller = new AbortController();
@@ -196,13 +235,14 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         try {
             const nuevos = [];
             const folderName = buildFolderName(formLike);
+            const fileName = buildDocFileName(formLike);
 
             for (const file of files) {
                 const finalBlob = await procesarConPreview(file);
                 if (!finalBlob) continue;
 
                 const fd = new FormData();
-                fd.append("file", finalBlob, "documento.webp");
+                fd.append("file", finalBlob, fileName);
                 fd.append("folderName", folderName);
 
                 const controller = new AbortController();
@@ -341,15 +381,23 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
 
     return (
         <>
-            <div className={styles.modalOverlay} onClick={onClose}>
+            <div
+                className={styles.modalOverlay}
+                role="presentation"
+                onClick={onClose}
+            >
                 <div
                     className={styles.modalContent}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="docs-modal-title"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* ============ HEADER ============ */}
                     <header className={styles.docModalHeader}>
                         <div className={styles.docModalHeaderText}>
-                            <h2 className={styles.docModalTitle}>📎 Documentación</h2>
+                            <h2 id="docs-modal-title" className={styles.docModalTitle}>
+                                📎 Documentación
+                            </h2>
                             <p className={styles.docModalSubtitle}>
                                 <b>{pacienteNombre}</b>
                                 {paciente?.OS ? ` · ${paciente.OS}` : ""}
@@ -366,7 +414,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                         </button>
                     </header>
 
-                    {/* ============ BODY ============ */}
                     <div className={styles.docModalBody}>
                         {error && (
                             <div className={styles.docAlertDanger}>
@@ -390,7 +437,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             </div>
                         )}
 
-                        {/* Bloque de acciones (agregar) */}
                         <section className={styles.docAddCard}>
                             <div className={styles.docAddHeader}>
                                 <h3 className={styles.docAddTitle}>Agregar documentación</h3>
@@ -438,26 +484,19 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             </label>
                         </section>
 
-                        {/* Lista de documentos */}
                         <section className={styles.docListSection}>
                             <div className={styles.docListHeader}>
-                                <h3 className={styles.docListTitle}>
-                                    Documentos cargados
-                                </h3>
-                                <span className={styles.docListCount}>
-                                    {docs.length}
-                                </span>
+                                <h3 className={styles.docListTitle}>Documentos cargados</h3>
+                                <span className={styles.docListCount}>{docs.length}</span>
                             </div>
 
                             {docs.length === 0 ? (
                                 <div className={styles.docEmpty}>
                                     <div className={styles.docEmptyIcon}>📄</div>
-                                    <div className={styles.docEmptyTitle}>
-                                        Sin documentación
-                                    </div>
+                                    <div className={styles.docEmptyTitle}>Sin documentación</div>
                                     <div className={styles.docEmptyHint}>
-                                        Usá los botones de arriba para agregar fotos del
-                                        DNI, carnet o estudios.
+                                        Usá los botones de arriba para agregar fotos del DNI,
+                                        carnet o estudios.
                                     </div>
                                 </div>
                             ) : (
@@ -474,11 +513,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                     className={styles.docCardImageWrap}
                                                     onClick={() => {
                                                         if (!broken)
-                                                            window.open(
-                                                                d.url,
-                                                                "_blank",
-                                                                "noopener,noreferrer"
-                                                            );
+                                                            window.open(d.url, "_blank", "noopener,noreferrer");
                                                     }}
                                                     aria-label={`Ver ${d.name}`}
                                                 >
@@ -491,6 +526,8 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         <img
                                                             src={`/api/documentos/proxy?id=${d.fileId}`}
                                                             alt={d.name}
+                                                            loading="lazy"
+                                                            decoding="async"
                                                             className={styles.docCardImage}
                                                             onError={() =>
                                                                 setImgErrors((prev) => ({
@@ -516,13 +553,10 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         type="button"
                                                         className={styles.docActionSecondary}
                                                         onClick={() =>
-                                                            window.open(
-                                                                d.url,
-                                                                "_blank",
-                                                                "noopener,noreferrer"
-                                                            )
+                                                            window.open(d.url, "_blank", "noopener,noreferrer")
                                                         }
                                                         disabled={busy || broken}
+                                                        aria-label="Ver documento"
                                                     >
                                                         👁️ <span>Ver</span>
                                                     </button>
@@ -531,7 +565,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         className={styles.docActionSecondary}
                                                         onClick={() => handleReplaceClick(d)}
                                                         disabled={busy}
-                                                        aria-label="Reemplazar"
+                                                        aria-label="Reemplazar documento"
                                                     >
                                                         {isReplacing ? "⏳" : "🔄"}{" "}
                                                         <span>Cambiar</span>
@@ -541,7 +575,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         className={styles.docActionDanger}
                                                         onClick={() => handleDelete(d)}
                                                         disabled={busy}
-                                                        aria-label="Eliminar"
+                                                        aria-label="Eliminar documento"
                                                     >
                                                         {isDeleting ? "⏳" : "🗑️"}
                                                     </button>
@@ -553,7 +587,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             )}
                         </section>
 
-                        {/* Inputs ocultos */}
                         <input
                             type="file"
                             accept="image/*"
@@ -572,7 +605,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                         />
                     </div>
 
-                    {/* ============ FOOTER STICKY ============ */}
                     <footer className={styles.docModalFooter}>
                         <button
                             type="button"

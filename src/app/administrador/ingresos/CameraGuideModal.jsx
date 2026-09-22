@@ -1,73 +1,120 @@
 "use client";
 
-import { useEffect } from "react";
-import styles from "./ingresos.module.css";
+import { useEffect, useRef } from "react";
+import styles from "./CameraGuideModal.module.css";
 
 export default function CameraGuideModal({ onContinue, onCancel }) {
+    const dialogRef = useRef(null);
+    const continueBtnRef = useRef(null);
+
     useEffect(() => {
+        const previouslyFocused = document.activeElement;
+
         const onKey = (e) => {
-            if (e.key === "Escape") onCancel();
+            if (e.key === "Escape") {
+                e.stopPropagation();
+                onCancel();
+                return;
+            }
+            if (e.key === "Tab" && dialogRef.current) {
+                const focusables = dialogRef.current.querySelectorAll(
+                    'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (!focusables.length) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
         };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
+
+        document.addEventListener("keydown", onKey);
+        document.body.style.overflow = "hidden";
+
+        const t = window.setTimeout(() => continueBtnRef.current?.focus(), 50);
+
+        return () => {
+            document.removeEventListener("keydown", onKey);
+            document.body.style.overflow = "";
+            window.clearTimeout(t);
+            if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
+        };
     }, [onCancel]);
 
     return (
-        <div className={styles.cropModalOverlay} onClick={onCancel}>
+        <div
+            className={styles.cropModalOverlay}
+            role="presentation"
+            onClick={onCancel}
+        >
             <div
-                className={styles.cropModalContent}
-                style={{ maxWidth: 420 }}
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="camera-guide-title"
+                aria-describedby="camera-guide-desc"
+                className={`${styles.cropModalContent} ${styles.cameraGuideModal}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className={styles.cropModalHeader}>
-                    <h3 style={{ margin: 0, fontSize: 16 }}>📷 Cómo sacar la foto</h3>
+                <header className={styles.cropModalHeader}>
+                    <h2 id="camera-guide-title" className={styles.cameraGuideTitle}>
+                        📷 Cómo sacar la foto
+                    </h2>
                     <button
                         type="button"
                         className={styles.modalCloseBtn}
                         onClick={onCancel}
-                        title="Cerrar"
+                        aria-label="Cerrar guía de cámara"
                     >
                         ✕
                     </button>
-                </div>
+                </header>
 
                 <div className={styles.cropModalBody}>
-                    <div className={styles.cameraGuideFrame}>
-                        <div className={styles.cameraGuideCornerTL} />
-                        <div className={styles.cameraGuideCornerTR} />
-                        <div className={styles.cameraGuideCornerBL} />
-                        <div className={styles.cameraGuideCornerBR} />
+                    <div
+                        className={styles.cameraGuideFrame}
+                        role="img"
+                        aria-label="Marco de referencia para encuadrar el documento dentro del área punteada"
+                    >
+                        <span className={styles.cameraGuideCornerTL} aria-hidden="true" />
+                        <span className={styles.cameraGuideCornerTR} aria-hidden="true" />
+                        <span className={styles.cameraGuideCornerBL} aria-hidden="true" />
+                        <span className={styles.cameraGuideCornerBR} aria-hidden="true" />
                         <span className={styles.cameraGuideText}>
                             Encuadrá el documento aquí
                         </span>
                     </div>
 
-                    <ul className={styles.cameraGuideList}>
-                        <li>📍 Apoyá el DNI sobre una superficie plana</li>
-                        <li>💡 Buscá buena luz, sin sombras ni reflejos</li>
-                        <li>📐 Que el documento ocupe todo el ancho posible</li>
-                        <li>🎯 Evitá mover el celular al sacar la foto</li>
+                    <ul id="camera-guide-desc" className={styles.cameraGuideList}>
+                        <li><span aria-hidden="true">📍</span><span>Apoyá el DNI sobre una superficie plana</span></li>
+                        <li><span aria-hidden="true">💡</span><span>Buscá buena luz, sin sombras ni reflejos</span></li>
+                        <li><span aria-hidden="true">📐</span><span>Que el documento ocupe todo el ancho posible</span></li>
+                        <li><span aria-hidden="true">🎯</span><span>Evitá mover el celular al sacar la foto</span></li>
                     </ul>
                 </div>
 
-                <div className={styles.cropModalFooter}>
+                <footer className={styles.cropModalFooter}>
                     <button
                         type="button"
                         className={styles.secondaryBtn}
-                        style={{ flex: 1, minHeight: 48 }}
                         onClick={onCancel}
                     >
                         Cancelar
                     </button>
                     <button
+                        ref={continueBtnRef}
                         type="button"
                         className={styles.primaryBtn}
-                        style={{ flex: 1, minHeight: 48, width: "auto" }}
                         onClick={onContinue}
                     >
                         📷 Continuar
                     </button>
-                </div>
+                </footer>
             </div>
         </div>
     );

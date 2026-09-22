@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import styles from "./ingresos.module.css";
+import stylesBase from "./ingresos.module.css";
+import stylesOwn from "./DocumentacionSection.module.css";
 import CropPreviewModal from "./CropPreviewModal";
 import CameraGuideModal from "./CameraGuideModal";
 import {
@@ -11,7 +12,30 @@ import {
     convertToWebP,
 } from "./helpers";
 
+const styles = { ...stylesBase, ...stylesOwn };
+
 const UPLOAD_TIMEOUT_MS = 30000;
+
+/* Nombre del archivo: APELLIDO_NOMBRE_DNI_OS_AFILIADO.webp */
+function buildDocFileName(form, ext = "webp") {
+    const clean = (s) =>
+        String(s || "")
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_")
+            .replace(/[^A-Za-z0-9_-]/g, "")
+            .toUpperCase();
+    const parts = [
+        clean(form?.trabajadorApellido),
+        clean(form?.trabajadorNombre),
+        clean(form?.trabajadorDni),
+        clean(form?.OS),
+        clean(form?.afiliadoPaciente),
+    ].filter(Boolean);
+    const base = parts.join("_") || "DOCUMENTO";
+    return `${base}.${ext}`;
+}
 
 function uploadWithProgress(url, formData, onProgress, signal) {
     return new Promise((resolve, reject) => {
@@ -44,15 +68,8 @@ function uploadWithProgress(url, formData, onProgress, signal) {
     });
 }
 
-export default function DocumentacionSection({
-    docs,
-    setDocs,
-    form,
-    pdfUrl,
-    pdfFileName,
-}) {
+export default function DocumentacionSection({ docs, setDocs, form }) {
     const [deletingDocId, setDeletingDocId] = useState(null);
-    const [generatingCollage, setGeneratingCollage] = useState(false);
     const [cropToDni, setCropToDni] = useState(true);
     const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
     const [imgErrors, setImgErrors] = useState({});
@@ -160,7 +177,7 @@ export default function DocumentacionSection({
 
             try {
                 const fd = new FormData();
-                fd.append("file", finalBlob, "documento.webp");
+                fd.append("file", finalBlob, buildDocFileName(form));
                 fd.append("folderName", buildFolderName(form));
 
                 const controller = new AbortController();
@@ -235,191 +252,12 @@ export default function DocumentacionSection({
         }
     };
 
-    const generarHojaImpresion = async () => {
-        /* ... mismo código que ya tenías ... */
-        if (!docs.length && !pdfUrl) {
-            alert("No hay documentos ni PDF para imprimir.");
-            return;
-        }
-        setGeneratingCollage(true);
-        const printWindow = window.open("", "_blank");
-
-        try {
-            const PAGE_W = 1240;
-            const PAGE_H = 1754;
-            const MARGIN = 60;
-            const GAP = 24;
-            const COLS = 2;
-            const ROWS = 3;
-            const CELL_W = (PAGE_W - MARGIN * 2 - GAP * (COLS - 1)) / COLS;
-            const CELL_H = (PAGE_H - MARGIN * 2 - 110 - GAP * (ROWS - 1)) / ROWS;
-
-            let valid = [];
-            if (docs.length) {
-                const loaded = await Promise.all(
-                    docs.map(
-                        (d) =>
-                            new Promise((resolve) => {
-                                const img = new Image();
-                                img.onload = () => resolve({ img, doc: d });
-                                img.onerror = () => resolve(null);
-                                img.src = `/api/documentos/proxy?id=${d.fileId}`;
-                            })
-                    )
-                );
-                valid = loaded.filter(Boolean);
-            }
-
-            const collages = [];
-            if (valid.length) {
-                const perPage = COLS * ROWS;
-                const totalPages = Math.ceil(valid.length / perPage);
-
-                for (let p = 0; p < totalPages; p++) {
-                    const slice = valid.slice(p * perPage, (p + 1) * perPage);
-                    const canvas = document.createElement("canvas");
-                    canvas.width = PAGE_W;
-                    canvas.height = PAGE_H;
-                    const ctx = canvas.getContext("2d");
-
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, PAGE_W, PAGE_H);
-
-                    const paciente = `${form.trabajadorApellido} ${form.trabajadorNombre}`
-                        .trim()
-                        .toUpperCase();
-                    const os = (form.OS || "").toUpperCase();
-                    const afiliado = form.afiliadoPaciente || "";
-
-                    ctx.fillStyle = "#111827";
-                    ctx.font = "bold 32px sans-serif";
-                    ctx.fillText("DOCUMENTACIÓN DEL PACIENTE", MARGIN, MARGIN);
-
-                    ctx.font = "20px sans-serif";
-                    ctx.fillStyle = "#374151";
-                    ctx.fillText(
-                        `Paciente: ${paciente || "—"}   |   O.S: ${os || "—"}   |   N° Afil.: ${afiliado || "—"}`,
-                        MARGIN,
-                        MARGIN + 34
-                    );
-                    ctx.fillText(
-                        `Fecha: ${new Date().toLocaleDateString("es-AR")}   |   Página ${p + 1} de ${totalPages}`,
-                        MARGIN,
-                        MARGIN + 62
-                    );
-
-                    const topOffset = MARGIN + 100;
-
-                    slice.forEach((item, idx) => {
-                        const col = idx % COLS;
-                        const row = Math.floor(idx / COLS);
-                        const x = MARGIN + col * (CELL_W + GAP);
-                        const y = topOffset + row * (CELL_H + GAP);
-
-                        ctx.strokeStyle = "#9ca3af";
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(x, y, CELL_W, CELL_H);
-
-                        const iw = item.img.width;
-                        const ih = item.img.height;
-                        const scale = Math.min((CELL_W - 16) / iw, (CELL_H - 44) / ih);
-                        const dw = iw * scale;
-                        const dh = ih * scale;
-                        const dx = x + (CELL_W - dw) / 2;
-                        const dy = y + 8 + (CELL_H - 44 - dh) / 2;
-
-                        ctx.drawImage(item.img, dx, dy, dw, dh);
-
-                        ctx.fillStyle = "#111827";
-                        ctx.font = "bold 16px sans-serif";
-                        ctx.fillText(item.doc.name || `documento${idx + 1}`, x + 10, y + CELL_H - 14);
-                    });
-
-                    collages.push(canvas);
-                }
-            }
-
-            if (pdfUrl) {
-                const { PDFDocument } = await import("pdf-lib");
-                const formRes = await fetch(pdfUrl);
-                const formBytes = await formRes.arrayBuffer();
-                const formPdf = await PDFDocument.load(formBytes);
-                const mergedPdf = await PDFDocument.create();
-
-                const formPages = await mergedPdf.copyPages(
-                    formPdf,
-                    formPdf.getPageIndices()
-                );
-                formPages.forEach((pg) => mergedPdf.addPage(pg));
-
-                const A4_W = 595.28;
-                const A4_H = 841.89;
-
-                for (const canvas of collages) {
-                    const pngDataUrl = canvas.toDataURL("image/png");
-                    const pngBase64 = pngDataUrl.split(",")[1];
-                    const pngBytes = Uint8Array.from(atob(pngBase64), (c) =>
-                        c.charCodeAt(0)
-                    );
-                    const pngImage = await mergedPdf.embedPng(pngBytes);
-                    const page = mergedPdf.addPage([A4_W, A4_H]);
-                    const scale = A4_W / pngImage.width;
-                    const imgH = pngImage.height * scale;
-                    page.drawImage(pngImage, {
-                        x: 0,
-                        y: A4_H - imgH,
-                        width: A4_W,
-                        height: imgH,
-                    });
-                }
-
-                const mergedBytes = await mergedPdf.save();
-                const mergedBlob = new Blob([mergedBytes], { type: "application/pdf" });
-                const mergedUrl = URL.createObjectURL(mergedBlob);
-
-                if (printWindow) printWindow.location.href = mergedUrl;
-                else {
-                    const a = document.createElement("a");
-                    a.href = mergedUrl;
-                    a.target = "_blank";
-                    a.download = pdfFileName || "FORMULARIO_COMPLETO.pdf";
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                }
-                return;
-            }
-
-            if (!collages.length) {
-                alert("No se pudieron cargar las imágenes.");
-                if (printWindow) printWindow.close();
-                return;
-            }
-
-            const pagesDataUrls = collages.map((c) => c.toDataURL("image/png"));
-            const html = `...`; // mismo HTML que ya tenías
-            if (printWindow) {
-                printWindow.document.write(html);
-                printWindow.document.close();
-            } else {
-                alert("Permití las ventanas emergentes para ver la hoja.");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("No se pudo generar la hoja: " + err.message);
-            if (printWindow) printWindow.close();
-        } finally {
-            setGeneratingCollage(false);
-        }
-    };
-
     const stageLabel = () => {
         if (uploadState.stage === "convirtiendo") return "Procesando imagen…";
         if (uploadState.stage === "subiendo") return "Subiendo a Drive…";
         return "Procesando…";
     };
 
-    const isMerged = !!pdfUrl && docs.length > 0;
     const disabled =
         uploadState.active || !form.trabajadorApellido || !form.trabajadorNombre;
 
@@ -429,7 +267,6 @@ export default function DocumentacionSection({
                 title="6) Documentación"
                 subtitle="Se convierten a WebP, se recortan y se suben a Google Drive."
             >
-                {/* ---- Panel de acciones ---- */}
                 <div className={styles.docAddCard}>
                     <div className={styles.docAddActions}>
                         <button
@@ -472,7 +309,6 @@ export default function DocumentacionSection({
                     </div>
                 </div>
 
-                {/* ---- Inputs ocultos ---- */}
                 <input
                     ref={cameraInputRef}
                     type="file"
@@ -490,7 +326,6 @@ export default function DocumentacionSection({
                     style={{ display: "none" }}
                 />
 
-                {/* ---- Estado de subida ---- */}
                 {uploadState.active && (
                     <div className={styles.uploadBanner}>
                         <div className={styles.spinner} />
@@ -545,7 +380,6 @@ export default function DocumentacionSection({
                     </div>
                 )}
 
-                {/* ---- Lista de documentos ---- */}
                 {docs.length > 0 && (
                     <div className={styles.docListSection}>
                         <div className={styles.docListHeader}>
@@ -578,6 +412,8 @@ export default function DocumentacionSection({
                                                 <img
                                                     src={`/api/documentos/proxy?id=${d.fileId}`}
                                                     alt={d.name}
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     className={styles.docCardImage}
                                                     onError={() =>
                                                         setImgErrors((prev) => ({
@@ -605,6 +441,7 @@ export default function DocumentacionSection({
                                                     window.open(d.url, "_blank", "noopener,noreferrer")
                                                 }
                                                 disabled={broken}
+                                                aria-label="Ver documento"
                                             >
                                                 👁️ <span>Ver</span>
                                             </button>
@@ -613,6 +450,7 @@ export default function DocumentacionSection({
                                                 className={styles.docActionDanger}
                                                 onClick={() => handleDeleteDoc(d)}
                                                 disabled={isDeleting}
+                                                aria-label="Eliminar documento"
                                             >
                                                 {isDeleting ? "⏳" : "🗑️"}
                                             </button>
@@ -621,19 +459,6 @@ export default function DocumentacionSection({
                                 );
                             })}
                         </div>
-
-                        <button
-                            type="button"
-                            className={styles.docPrintAllBtn}
-                            onClick={generarHojaImpresion}
-                            disabled={generatingCollage}
-                        >
-                            {generatingCollage
-                                ? "⏳ Generando…"
-                                : isMerged
-                                    ? "🖨️ Imprimir TODO (formulario + docs)"
-                                    : "🖨️ Imprimir todos los documentos"}
-                        </button>
                     </div>
                 )}
             </Section>
