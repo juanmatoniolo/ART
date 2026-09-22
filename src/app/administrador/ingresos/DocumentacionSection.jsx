@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "./ingresos.module.css";
+import CropPreviewModal from "./CropPreviewModal";
 import {
     cx,
     Section,
@@ -10,7 +11,7 @@ import {
     cropToRatio,
 } from "./helpers";
 
-const UPLOAD_TIMEOUT_MS = 20000;
+const UPLOAD_TIMEOUT_MS = 30000;
 
 function uploadWithProgress(url, formData, onProgress, signal) {
     return new Promise((resolve, reject) => {
@@ -64,6 +65,7 @@ export default function DocumentacionSection({
     const [cropToDni, setCropToDni] = useState(true);
     const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
     const [imgErrors, setImgErrors] = useState({});
+    const [cropPreview, setCropPreview] = useState(null);
 
     const [uploadState, setUploadState] = useState({
         active: false,
@@ -95,88 +97,121 @@ export default function DocumentacionSection({
         }
 
         setUploadSuccessMsg("");
-        setUploadState({
-            active: true,
-            currentFile: 1,
-            totalFiles: files.length,
-            percent: 0,
-            stage: "convirtiendo",
-            error: "",
-        });
-
         const nuevos = [];
 
-        try {
-            const folderName = buildFolderName(form);
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
 
-            for (let i = 0; i < files.length; i++) {
+            /* 1) Convertir a WebP redimensionando */
+            setUploadState({
+                active: true,
+                currentFile: i + 1,
+                totalFiles: files.length,
+                percent: 0,
+                stage: "convirtiendo",
+                error: "",
+            });
+
+            let webpBlob;
+            try {
+                webpBlob = await convertToWebP(file, 0.75, 1600);
+            } catch (err) {
                 setUploadState((s) => ({
                     ...s,
-                    currentFile: i + 1,
+                    active: false,
+                    stage: "",
                     percent: 0,
-                    stage: "convirtiendo",
+                    error: "No se pudo procesar la imagen: " + err.message,
                 }));
+                return;
+            }
 
-                let webpBlob = await convertToWebP(files[i], 0.8);
-                if (cropToDni) {
-                    webpBlob = await cropToRatio(webpBlob, 1.585);
+            /* 2) Recortar al ratio DNI si está tildado */
+            let finalBlob = webpBlob;
+            if (cropToDni) {
+                try {
+                    finalBlob = await cropToRatio(webpBlob, 1.585);
+                } catch (err) {
+                    console.warn("Error recortando:", err);
+                    finalBlob = webpBlob;
                 }
+            }
 
-                setUploadState((s) => ({ ...s, stage: "subiendo", percent: 0 }));
+            /* 3) Preview + confirmación */
+            const confirmado = await new Promise((resolve) => {
+                setCropPreview({
+                    previewBlob: finalBlob,
+                    onConfirm: () => {
+                        setCropPreview(null);
+                        resolve(true);
+                    },
+                    onCancel: () => {
+                        setCropPreview(null);
+                        resolve(false);
+                    },
+                });
+            });
 
+            if (!confirmado) {
+                resetUploadState();
+                return;
+            }
+
+            /* 4) Subir */
+            setUploadState((s) => ({ ...s, stage: "subiendo", percent: 0 }));
+
+            try {
                 const fd = new FormData();
-                fd.append("file", webpBlob, "documento.webp");
-                fd.append("folderName", folderName);
+                fd.append("file", finalBlob, "documento.webp");
+                fd.append("folderName", buildFolderName(form));
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
+                let data;
                 try {
-                    const data = await uploadWithProgress(
+                    data = await uploadWithProgress(
                         "/api/documentos/upload",
                         fd,
                         (pct) => setUploadState((s) => ({ ...s, percent: pct })),
                         controller.signal
                     );
-
-                    nuevos.push({
-                        fileId: data.fileId,
-                        name: data.name,
-                        url: data.url,
-                        fecha: Date.now(),
-                    });
-                } catch (err) {
-                    if (nuevos.length) setDocs((prev) => [...prev, ...nuevos]);
-                    throw new Error(
-                        files.length > 1
-                            ? `Se subieron ${nuevos.length} de ${files.length} archivos. ${err.message} Volvé a tocar "Subir imagen" para reintentar los que faltan.`
-                            : `${err.message} Volvé a tocar "Subir imagen" para reintentar.`
-                    );
                 } finally {
                     clearTimeout(timeoutId);
                 }
+
+                nuevos.push({
+                    fileId: data.fileId,
+                    name: data.name,
+                    url: data.url,
+                    fecha: Date.now(),
+                });
+            } catch (err) {
+                if (nuevos.length) setDocs((prev) => [...prev, ...nuevos]);
+                setUploadState((s) => ({
+                    ...s,
+                    active: false,
+                    percent: 0,
+                    stage: "",
+                    error:
+                        files.length > 1
+                            ? `Se subieron ${nuevos.length} de ${files.length}. ${err.message}`
+                            : `${err.message} Volvé a tocar "Subir imagen" para reintentar.`,
+                }));
+                return;
             }
-
-            setDocs((prev) => [...prev, ...nuevos]);
-            resetUploadState();
-
-            const total = nuevos.length;
-            setUploadSuccessMsg(
-                total === 1
-                    ? `✅ "${nuevos[0].name}" subido correctamente a Google Drive`
-                    : `✅ ${total} documentos subidos correctamente a Google Drive`
-            );
-            setTimeout(() => setUploadSuccessMsg(""), 5000);
-        } catch (err) {
-            console.error(err);
-            setUploadState((s) => ({
-                ...s,
-                active: false,
-                percent: 0,
-                stage: "",
-                error: err.message || "Error al subir. Volvé a intentar.",
-            }));
         }
+
+        setDocs((prev) => [...prev, ...nuevos]);
+        resetUploadState();
+
+        const total = nuevos.length;
+        setUploadSuccessMsg(
+            total === 1
+                ? `✅ "${nuevos[0].name}" subido correctamente a Google Drive`
+                : `✅ ${total} documentos subidos correctamente a Google Drive`
+        );
+        setTimeout(() => setUploadSuccessMsg(""), 5000);
     };
 
     const handleDeleteDoc = async (doc) => {
@@ -421,7 +456,7 @@ export default function DocumentacionSection({
     };
 
     const stageLabel = () => {
-        if (uploadState.stage === "convirtiendo") return "Convirtiendo a WebP...";
+        if (uploadState.stage === "convirtiendo") return "Procesando imagen...";
         if (uploadState.stage === "subiendo") return "Subiendo a Google Drive...";
         return "Procesando...";
     };
@@ -429,288 +464,297 @@ export default function DocumentacionSection({
     const isMerged = !!pdfUrl && docs.length > 0;
 
     return (
-        <Section
-            title="6) Documentación"
-            subtitle="Sacá fotos del DNI, carnet, estudios. Se convierten a WebP, se recortan al formato DNI y se suben a Google Drive."
-        >
-            <div className={styles.grid}>
-                <div className={styles.field}>
-                    <label
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            marginBottom: 8,
-                            cursor: "pointer",
-                        }}
-                    >
+        <>
+            <Section
+                title="6) Documentación"
+                subtitle="Sacá fotos del DNI, carnet, estudios. Se convierten a WebP, se recortan al formato DNI y se suben a Google Drive."
+            >
+                <div className={styles.grid}>
+                    <div className={styles.field}>
+                        <label
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                marginBottom: 8,
+                                cursor: "pointer",
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={cropToDni}
+                                onChange={(e) => setCropToDni(e.target.checked)}
+                                style={{ width: 18, height: 18 }}
+                            />
+                            <span>✂️ Recortar en horizontal (formato DNI / carnet)</span>
+                        </label>
+
+                        <label className={styles.label}>📷 Subir imagen</label>
                         <input
-                            type="checkbox"
-                            checked={cropToDni}
-                            onChange={(e) => setCropToDni(e.target.checked)}
-                            style={{ width: 18, height: 18 }}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleFileSelected}
+                            disabled={
+                                uploadState.active ||
+                                !form.trabajadorApellido ||
+                                !form.trabajadorNombre
+                            }
+                            className={styles.input}
+                            style={{ paddingTop: 10 }}
                         />
-                        <span>✂️ Recortar en horizontal (formato DNI / carnet)</span>
-                    </label>
 
-                    <label className={styles.label}>📷 Subir imagen</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        multiple
-                        onChange={handleFileSelected}
-                        disabled={
-                            uploadState.active ||
-                            !form.trabajadorApellido ||
-                            !form.trabajadorNombre
-                        }
-                        className={styles.input}
-                        style={{ paddingTop: 10 }}
-                    />
-
-                    {uploadState.active && (
-                        <div className={styles.uploadBanner}>
-                            <div className={styles.spinner} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className={styles.uploadLabel}>
-                                    {stageLabel()}
-                                    {uploadState.totalFiles > 1 && (
-                                        <span className={styles.uploadCounter}>
-                                            {" "}
-                                            ({uploadState.currentFile}/{uploadState.totalFiles})
-                                        </span>
-                                    )}
-                                    {uploadState.stage === "subiendo" &&
-                                        uploadState.percent > 0 && (
-                                            <span className={styles.uploadPercent}>
+                        {uploadState.active && (
+                            <div className={styles.uploadBanner}>
+                                <div className={styles.spinner} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className={styles.uploadLabel}>
+                                        {stageLabel()}
+                                        {uploadState.totalFiles > 1 && (
+                                            <span className={styles.uploadCounter}>
                                                 {" "}
-                                                — {Math.round(uploadState.percent)}%
+                                                ({uploadState.currentFile}/{uploadState.totalFiles})
                                             </span>
                                         )}
-                                </div>
-                                <div className={styles.progressBar}>
-                                    <div
-                                        className={styles.progressFill}
-                                        style={{
-                                            width:
-                                                uploadState.stage === "subiendo"
-                                                    ? `${uploadState.percent}%`
-                                                    : "15%",
-                                        }}
-                                    />
+                                        {uploadState.stage === "subiendo" &&
+                                            uploadState.percent > 0 && (
+                                                <span className={styles.uploadPercent}>
+                                                    {" "}
+                                                    — {Math.round(uploadState.percent)}%
+                                                </span>
+                                            )}
+                                    </div>
+                                    <div className={styles.progressBar}>
+                                        <div
+                                            className={styles.progressFill}
+                                            style={{
+                                                width:
+                                                    uploadState.stage === "subiendo"
+                                                        ? `${uploadState.percent}%`
+                                                        : "15%",
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {uploadState.error && !uploadState.active && (
-                        <div className={styles.uploadError}>
-                            <div style={{ flex: 1 }}>❌ {uploadState.error}</div>
-                            <button
-                                type="button"
-                                className={styles.errorCloseBtn}
-                                onClick={() => setUploadState((s) => ({ ...s, error: "" }))}
-                                title="Cerrar"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    )}
+                        {uploadState.error && !uploadState.active && (
+                            <div className={styles.uploadError}>
+                                <div style={{ flex: 1 }}>❌ {uploadState.error}</div>
+                                <button
+                                    type="button"
+                                    className={styles.errorCloseBtn}
+                                    onClick={() => setUploadState((s) => ({ ...s, error: "" }))}
+                                    title="Cerrar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
 
-                    <div className={styles.sectionHint} style={{ marginTop: 6 }}>
-                        Carpeta destino en Drive: <b>{buildFolderName(form) || "—"}</b>
+                        <div className={styles.sectionHint} style={{ marginTop: 6 }}>
+                            Carpeta destino en Drive: <b>{buildFolderName(form) || "—"}</b>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {docs.length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                    <div className={styles.sectionHint}>
-                        📁 Documentos en este ingreso ({docs.length}):
-                    </div>
+                {docs.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                        <div className={styles.sectionHint}>
+                            📁 Documentos en este ingreso ({docs.length}):
+                        </div>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                            gap: 12,
-                            marginTop: 10,
-                        }}
-                    >
-                        {docs.map((d, idx) => {
-                            const hasError = imgErrors[d.fileId];
-                            return (
-                                <div
-                                    key={d.fileId}
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        borderRadius: 10,
-                                        overflow: "hidden",
-                                        background: "rgba(59,130,246,0.08)",
-                                        border: "1px solid rgba(59,130,246,0.3)",
-                                    }}
-                                >
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                                gap: 12,
+                                marginTop: 10,
+                            }}
+                        >
+                            {docs.map((d, idx) => {
+                                const hasError = imgErrors[d.fileId];
+                                return (
                                     <div
-                                        onClick={() => {
-                                            if (!hasError) {
-                                                window.open(d.url, "_blank", "noopener,noreferrer");
-                                            }
-                                        }}
+                                        key={d.fileId}
                                         style={{
-                                            width: "100%",
-                                            height: 140,
-                                            background: "#0f172a",
                                             display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            cursor: hasError ? "default" : "pointer",
+                                            flexDirection: "column",
+                                            borderRadius: 10,
                                             overflow: "hidden",
+                                            background: "rgba(59,130,246,0.08)",
+                                            border: "1px solid rgba(59,130,246,0.3)",
                                         }}
                                     >
-                                        {hasError ? (
-                                            <span
-                                                style={{
-                                                    color: "#94a3b8",
-                                                    fontSize: 13,
-                                                    textAlign: "center",
-                                                    padding: "0 8px",
-                                                }}
-                                            >
-                                                📄 Sin vista previa
-                                            </span>
-                                        ) : (
-                                            <img
-                                                key={`${d.fileId}-${idx}`}
-                                                src={`/api/documentos/proxy?id=${d.fileId}`}
-                                                alt={d.name}
-                                                style={{
-                                                    maxWidth: "100%",
-                                                    maxHeight: "100%",
-                                                    objectFit: "contain",
-                                                }}
-                                                onError={() => {
-                                                    setImgErrors((prev) => ({
-                                                        ...prev,
-                                                        [d.fileId]: "Error",
-                                                    }));
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div style={{ padding: "8px 10px", flex: 1 }}>
                                         <div
-                                            style={{
-                                                fontWeight: 600,
-                                                fontSize: 13,
-                                                color: "#22c55e",
-                                                marginBottom: 4,
-                                            }}
-                                        >
-                                            ✅ Subido correctamente
-                                        </div>
-                                        <div
-                                            style={{
-                                                fontSize: 12,
-                                                color: "#cbd5e1",
-                                                marginBottom: 8,
-                                                wordBreak: "break-all",
-                                            }}
-                                        >
-                                            <b>{d.name}</b>
-                                            <br />
-                                            <span style={{ opacity: 0.7 }}>
-                                                Documento #{idx + 1}
-                                            </span>
-                                        </div>
-
-                                        <div style={{ display: "flex", gap: 6 }}>
-                                            <button
-                                                type="button"
-                                                className={styles.secondaryBtn}
-                                                style={{
-                                                    height: 30,
-                                                    paddingLeft: 10,
-                                                    paddingRight: 10,
-                                                    fontSize: 12,
-                                                    flex: 1,
-                                                }}
-                                                onClick={() =>
-                                                    window.open(d.url, "_blank", "noopener,noreferrer")
+                                            onClick={() => {
+                                                if (!hasError) {
+                                                    window.open(d.url, "_blank", "noopener,noreferrer");
                                                 }
+                                            }}
+                                            style={{
+                                                width: "100%",
+                                                height: 140,
+                                                background: "#0f172a",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                cursor: hasError ? "default" : "pointer",
+                                                overflow: "hidden",
+                                            }}
+                                        >
+                                            {hasError ? (
+                                                <span
+                                                    style={{
+                                                        color: "#94a3b8",
+                                                        fontSize: 13,
+                                                        textAlign: "center",
+                                                        padding: "0 8px",
+                                                    }}
+                                                >
+                                                    📄 Sin vista previa
+                                                </span>
+                                            ) : (
+                                                <img
+                                                    key={`${d.fileId}-${idx}`}
+                                                    src={`/api/documentos/proxy?id=${d.fileId}`}
+                                                    alt={d.name}
+                                                    style={{
+                                                        maxWidth: "100%",
+                                                        maxHeight: "100%",
+                                                        objectFit: "contain",
+                                                    }}
+                                                    onError={() => {
+                                                        setImgErrors((prev) => ({
+                                                            ...prev,
+                                                            [d.fileId]: "Error",
+                                                        }));
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+
+                                        <div style={{ padding: "8px 10px", flex: 1 }}>
+                                            <div
+                                                style={{
+                                                    fontWeight: 600,
+                                                    fontSize: 13,
+                                                    color: "#22c55e",
+                                                    marginBottom: 4,
+                                                }}
                                             >
-                                                👁️ Ver
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={cx(styles.iconBtn, styles.iconBtnDanger)}
-                                                onClick={() => handleDeleteDoc(d)}
-                                                disabled={deletingDocId === d.fileId}
-                                                style={{ height: 30 }}
+                                                ✅ Subido correctamente
+                                            </div>
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    color: "#cbd5e1",
+                                                    marginBottom: 8,
+                                                    wordBreak: "break-all",
+                                                }}
                                             >
-                                                {deletingDocId === d.fileId ? "⏳" : "🗑️"}
-                                            </button>
+                                                <b>{d.name}</b>
+                                                <br />
+                                                <span style={{ opacity: 0.7 }}>
+                                                    Documento #{idx + 1}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.secondaryBtn}
+                                                    style={{
+                                                        height: 30,
+                                                        paddingLeft: 10,
+                                                        paddingRight: 10,
+                                                        fontSize: 12,
+                                                        flex: 1,
+                                                    }}
+                                                    onClick={() =>
+                                                        window.open(d.url, "_blank", "noopener,noreferrer")
+                                                    }
+                                                >
+                                                    👁️ Ver
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={cx(styles.iconBtn, styles.iconBtnDanger)}
+                                                    onClick={() => handleDeleteDoc(d)}
+                                                    disabled={deletingDocId === d.fileId}
+                                                    style={{ height: 30 }}
+                                                >
+                                                    {deletingDocId === d.fileId ? "⏳" : "🗑️"}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
 
-                    <div
-                        style={{
-                            marginTop: 14,
-                            display: "flex",
-                            gap: 12,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                        }}
-                    >
-                        <button
-                            type="button"
-                            className={styles.primaryBtn}
+                        <div
                             style={{
-                                height: 42,
-                                width: "auto",
-                                paddingLeft: 18,
-                                paddingRight: 18,
+                                marginTop: 14,
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                                alignItems: "center",
                             }}
-                            onClick={generarHojaImpresion}
-                            disabled={generatingCollage}
                         >
-                            {generatingCollage
-                                ? "⏳ Generando..."
-                                : isMerged
-                                    ? "🖨️ Imprimir TODO (formulario + documentos)"
-                                    : "🖨️ Imprimir todos los documentos juntos"}
-                        </button>
-                        <div className={styles.sectionHint}>
-                            {isMerged
-                                ? "Se abre un PDF único con el formulario y los documentos al final."
-                                : "Se abre una hoja A4 con todos los documentos en grilla."}
+                            <button
+                                type="button"
+                                className={styles.primaryBtn}
+                                style={{
+                                    height: 42,
+                                    width: "auto",
+                                    paddingLeft: 18,
+                                    paddingRight: 18,
+                                }}
+                                onClick={generarHojaImpresion}
+                                disabled={generatingCollage}
+                            >
+                                {generatingCollage
+                                    ? "⏳ Generando..."
+                                    : isMerged
+                                        ? "🖨️ Imprimir TODO (formulario + documentos)"
+                                        : "🖨️ Imprimir todos los documentos juntos"}
+                            </button>
+                            <div className={styles.sectionHint}>
+                                {isMerged
+                                    ? "Se abre un PDF único con el formulario y los documentos al final."
+                                    : "Se abre una hoja A4 con todos los documentos en grilla."}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {uploadSuccessMsg && (
-                <div
-                    style={{
-                        marginTop: 12,
-                        padding: "10px 14px",
-                        borderRadius: 8,
-                        background: "rgba(34,197,94,0.15)",
-                        border: "1px solid rgba(34,197,94,0.4)",
-                        color: "#22c55e",
-                        fontWeight: 500,
-                        fontSize: 14,
-                    }}
-                >
-                    {uploadSuccessMsg}
-                </div>
+                {uploadSuccessMsg && (
+                    <div
+                        style={{
+                            marginTop: 12,
+                            padding: "10px 14px",
+                            borderRadius: 8,
+                            background: "rgba(34,197,94,0.15)",
+                            border: "1px solid rgba(34,197,94,0.4)",
+                            color: "#22c55e",
+                            fontWeight: 500,
+                            fontSize: 14,
+                        }}
+                    >
+                        {uploadSuccessMsg}
+                    </div>
+                )}
+            </Section>
+
+            {cropPreview && (
+                <CropPreviewModal
+                    previewBlob={cropPreview.previewBlob}
+                    onConfirm={cropPreview.onConfirm}
+                    onCancel={cropPreview.onCancel}
+                />
             )}
-        </Section>
+        </>
     );
 }

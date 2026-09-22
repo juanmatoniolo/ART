@@ -200,17 +200,34 @@ export function buildFolderName(form) {
 	return `${apellido}-${nombre}-${os}-${afiliado}`;
 }
 
-export async function convertToWebP(file, quality = 0.8) {
+/* =========================================================
+   🆕 Convertir a WebP redimensionando (evita error 413)
+   ========================================================= */
+export async function convertToWebP(file, quality = 0.75, maxDim = 1600) {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = (e) => {
 			const img = new Image();
 			img.onload = () => {
+				let { width, height } = img;
+
+				// Redimensionar si supera maxDim
+				if (width > maxDim || height > maxDim) {
+					if (width >= height) {
+						height = Math.round((height * maxDim) / width);
+						width = maxDim;
+					} else {
+						width = Math.round((width * maxDim) / height);
+						height = maxDim;
+					}
+				}
+
 				const canvas = document.createElement("canvas");
-				canvas.width = img.width;
-				canvas.height = img.height;
+				canvas.width = width;
+				canvas.height = height;
 				const ctx = canvas.getContext("2d");
-				ctx.drawImage(img, 0, 0);
+				ctx.drawImage(img, 0, 0, width, height);
+
 				canvas.toBlob(
 					(blob) => {
 						if (!blob)
@@ -231,6 +248,9 @@ export async function convertToWebP(file, quality = 0.8) {
 	});
 }
 
+/* =========================================================
+   🆕 Recortar al ratio (formato DNI por defecto)
+   ========================================================= */
 export async function cropToRatio(blob, ratio = 1.585) {
 	return new Promise((resolve, reject) => {
 		const url = URL.createObjectURL(blob);
@@ -273,7 +293,7 @@ export async function cropToRatio(blob, ratio = 1.585) {
 						resolve(b);
 					},
 					"image/webp",
-					0.85,
+					0.8,
 				);
 			} catch (e) {
 				URL.revokeObjectURL(url);
