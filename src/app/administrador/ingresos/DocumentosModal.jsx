@@ -25,10 +25,7 @@ const DB_NODE = "ingresos-pacientes";
 const UPLOAD_TIMEOUT_MS = 30000;
 
 export default function DocumentosModal({ paciente, onClose, onUpdated }) {
-    if (!paciente) {
-        console.warn("DocumentosModal: paciente es undefined, no renderiza.");
-        return null;
-    }
+    if (!paciente) return null;
 
     const [docs, setDocs] = useState(() =>
         Array.isArray(paciente?.documentacion) ? paciente.documentacion : []
@@ -42,7 +39,8 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const [msg, setMsg] = useState("");
     const [cropPreview, setCropPreview] = useState(null);
     const [showCameraGuide, setShowCameraGuide] = useState(false);
-    const [cameraTarget, setCameraTarget] = useState(null); // "add" | "replace"
+    const [cameraTarget, setCameraTarget] = useState(null);
+    const [imgErrors, setImgErrors] = useState({});
 
     const replaceInputRef = useRef(null);
     const addInputRef = useRef(null);
@@ -71,11 +69,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         setTimeout(() => setMsg(""), 4000);
     };
 
-    /* Helper: procesa una imagen (convertir + editor interactivo) */
     const procesarConPreview = async (file) => {
         const webpBlob = await convertToWebP(file, 0.75, 1600);
-
-        const finalBlob = await new Promise((resolve) => {
+        return await new Promise((resolve) => {
             setCropPreview({
                 previewBlob: webpBlob,
                 initialRatio: cropToDni ? 1.585 : 0,
@@ -89,8 +85,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                 },
             });
         });
-
-        return finalBlob;
     };
 
     const handleDelete = async (doc) => {
@@ -108,12 +102,15 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ fileId: doc.fileId }),
             });
-            if (!res.ok) {
-                const d = await res.json().catch(() => ({}));
-                throw new Error(d.error || `Error ${res.status}`);
-            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+
             await persistDocs(docs.filter((d) => d.fileId !== doc.fileId));
-            flashMsg("🗑️ Documento eliminado");
+            flashMsg(
+                data.alreadyGone
+                    ? "🗑️ Registro eliminado (ya no existía en Drive)"
+                    : "🗑️ Documento eliminado"
+            );
         } catch (err) {
             console.error(err);
             setError("No se pudo eliminar: " + err.message);
@@ -138,11 +135,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         setError("");
         try {
             const finalBlob = await procesarConPreview(file);
-            if (!finalBlob) {
-                setReplacingId(null);
-                docToReplaceRef.current = null;
-                return;
-            }
+            if (!finalBlob) return;
 
             const fd = new FormData();
             fd.append("file", finalBlob, "documento.webp");
@@ -234,13 +227,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                 });
             }
 
-            if (!nuevos.length) {
-                setAdding(false);
-                return;
-            }
+            if (!nuevos.length) return;
 
-            const newDocs = [...docs, ...nuevos];
-            await persistDocs(newDocs);
+            await persistDocs([...docs, ...nuevos]);
             flashMsg(
                 nuevos.length === 1
                     ? "✅ Documento agregado"
@@ -254,7 +243,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
-    /* Guía de cámara */
     const openCameraForAdd = () => {
         setCameraTarget("add");
         setShowCameraGuide(true);
@@ -296,7 +284,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                     pages: getPdfPages(tipoIngreso),
                 }),
             });
-
             if (!formRes.ok) {
                 const detail = await formRes.text().catch(() => "");
                 throw new Error(
@@ -319,10 +306,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
             );
             formPages.forEach((pg) => mergedPdf.addPage(pg));
 
-            const docPages = await mergedPdf.copyPages(
-                docPdf,
-                docPdf.getPageIndices()
-            );
+            const docPages = await mergedPdf.copyPages(docPdf, docPdf.getPageIndices());
             docPages.forEach((pg) => mergedPdf.addPage(pg));
 
             const mergedBytes = await mergedPdf.save();
@@ -358,48 +342,41 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     return (
         <>
             <div className={styles.modalOverlay} onClick={onClose}>
-                <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                    <div className={styles.modalHeader}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                            <h2 style={{ margin: 0, fontSize: 18 }}>
-                                📎 Documentación del paciente
-                            </h2>
-                            <div
-                                style={{
-                                    fontSize: 13,
-                                    opacity: 0.75,
-                                    marginTop: 4,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
+                <div
+                    className={styles.modalContent}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* ============ HEADER ============ */}
+                    <header className={styles.docModalHeader}>
+                        <div className={styles.docModalHeaderText}>
+                            <h2 className={styles.docModalTitle}>📎 Documentación</h2>
+                            <p className={styles.docModalSubtitle}>
                                 <b>{pacienteNombre}</b>
-                                {paciente?.OS ? ` | O.S: ${paciente.OS}` : ""}
-                                {paciente?.afiliadoPaciente
-                                    ? ` | N° Afil.: ${paciente.afiliadoPaciente}`
-                                    : ""}
-                                {paciente?.tipoIngreso ? ` | ${paciente.tipoIngreso}` : ""}
-                            </div>
+                                {paciente?.OS ? ` · ${paciente.OS}` : ""}
+                                {paciente?.tipoIngreso ? ` · ${paciente.tipoIngreso}` : ""}
+                            </p>
                         </div>
                         <button
                             type="button"
-                            className={styles.modalCloseBtn}
+                            className={styles.docModalCloseBtn}
                             onClick={onClose}
-                            title="Cerrar"
+                            aria-label="Cerrar"
                         >
                             ✕
                         </button>
-                    </div>
+                    </header>
 
-                    <div className={styles.modalBody}>
+                    {/* ============ BODY ============ */}
+                    <div className={styles.docModalBody}>
                         {error && (
-                            <div className={styles.uploadError} style={{ marginBottom: 12 }}>
-                                <div style={{ flex: 1 }}>❌ {error}</div>
+                            <div className={styles.docAlertDanger}>
+                                <span className={styles.docAlertIcon}>❌</span>
+                                <span className={styles.docAlertText}>{error}</span>
                                 <button
                                     type="button"
-                                    className={styles.errorCloseBtn}
+                                    className={styles.docAlertClose}
                                     onClick={() => setError("")}
+                                    aria-label="Cerrar error"
                                 >
                                     ✕
                                 </button>
@@ -407,194 +384,176 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                         )}
 
                         {msg && (
-                            <div
-                                style={{
-                                    marginBottom: 12,
-                                    padding: "10px 14px",
-                                    borderRadius: 8,
-                                    background: "rgba(34,197,94,0.15)",
-                                    border: "1px solid rgba(34,197,94,0.4)",
-                                    color: "#22c55e",
-                                    fontWeight: 500,
-                                    fontSize: 14,
-                                }}
-                            >
-                                {msg}
+                            <div className={styles.docAlertSuccess}>
+                                <span className={styles.docAlertIcon}>✅</span>
+                                <span className={styles.docAlertText}>{msg}</span>
                             </div>
                         )}
 
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 16,
-                                marginBottom: 12,
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            <label
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    cursor: "pointer",
-                                    fontSize: 13,
-                                }}
-                            >
+                        {/* Bloque de acciones (agregar) */}
+                        <section className={styles.docAddCard}>
+                            <div className={styles.docAddHeader}>
+                                <h3 className={styles.docAddTitle}>Agregar documentación</h3>
+                                <p className={styles.docAddSubtitle}>
+                                    Se convierte a WebP y se sube a Drive
+                                </p>
+                            </div>
+
+                            <div className={styles.docAddActions}>
+                                <button
+                                    type="button"
+                                    className={styles.docAddBtn}
+                                    onClick={openCameraForAdd}
+                                    disabled={busy}
+                                >
+                                    <span className={styles.docAddBtnIcon}>📷</span>
+                                    <span className={styles.docAddBtnLabel}>Tomar foto</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.docAddBtn}
+                                    onClick={() => addInputRef.current?.click()}
+                                    disabled={busy}
+                                >
+                                    <span className={styles.docAddBtnIcon}>🖼️</span>
+                                    <span className={styles.docAddBtnLabel}>
+                                        {adding ? "Subiendo…" : "Galería"}
+                                    </span>
+                                </button>
+                            </div>
+
+                            <label className={styles.docSwitchRow}>
                                 <input
                                     type="checkbox"
                                     checked={cropToDni}
                                     onChange={(e) => setCropToDni(e.target.checked)}
-                                    style={{ width: 16, height: 16 }}
+                                    className={styles.docSwitchInput}
                                 />
-                                <span>✂️ Abrir editor con formato DNI</span>
+                                <span className={styles.docSwitchTrack}>
+                                    <span className={styles.docSwitchThumb} />
+                                </span>
+                                <span className={styles.docSwitchLabel}>
+                                    ✂️ Editor con formato DNI
+                                </span>
                             </label>
-                        </div>
+                        </section>
 
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                                marginBottom: 14,
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className={styles.secondaryBtn}
-                                onClick={openCameraForAdd}
-                                disabled={busy}
-                                style={{ flex: 1, minHeight: 48 }}
-                            >
-                                📷 Tomar foto
-                            </button>
-                            <button
-                                type="button"
-                                className={styles.secondaryBtn}
-                                onClick={() => addInputRef.current?.click()}
-                                disabled={busy}
-                                style={{ flex: 1, minHeight: 48 }}
-                            >
-                                {adding ? "⏳ Subiendo..." : "🖼️ Galería / Agregar"}
-                            </button>
-                        </div>
-
-                        {docs.length === 0 ? (
-                            <div className={styles.empty} style={{ padding: 30 }}>
-                                Este paciente no tiene documentación cargada.
+                        {/* Lista de documentos */}
+                        <section className={styles.docListSection}>
+                            <div className={styles.docListHeader}>
+                                <h3 className={styles.docListTitle}>
+                                    Documentos cargados
+                                </h3>
+                                <span className={styles.docListCount}>
+                                    {docs.length}
+                                </span>
                             </div>
-                        ) : (
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                                    gap: 12,
-                                }}
-                            >
-                                {docs.map((d, idx) => (
-                                    <div
-                                        key={d.fileId}
-                                        style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            borderRadius: 10,
-                                            overflow: "hidden",
-                                            background: "rgba(59,130,246,0.08)",
-                                            border: "1px solid rgba(59,130,246,0.3)",
-                                        }}
-                                    >
-                                        <div
-                                            onClick={() =>
-                                                window.open(d.url, "_blank", "noopener,noreferrer")
-                                            }
-                                            style={{
-                                                width: "100%",
-                                                height: 160,
-                                                background: "#0f172a",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                cursor: "pointer",
-                                                overflow: "hidden",
-                                            }}
-                                            title="Clic para ver en Google Drive"
-                                        >
-                                            <img
-                                                src={`/api/documentos/proxy?id=${d.fileId}`}
-                                                alt={d.name}
-                                                style={{
-                                                    maxWidth: "100%",
-                                                    maxHeight: "100%",
-                                                    objectFit: "contain",
-                                                }}
-                                                onError={(e) => {
-                                                    e.target.style.display = "none";
-                                                    e.target.parentElement.innerHTML =
-                                                        '<span style="color:#94a3b8;font-size:13px">📄 Sin vista previa</span>';
-                                                }}
-                                            />
-                                        </div>
-                                        <div style={{ padding: "8px 10px" }}>
-                                            <div
-                                                style={{
-                                                    fontSize: 12,
-                                                    color: "#cbd5e1",
-                                                    marginBottom: 6,
-                                                    wordBreak: "break-all",
-                                                }}
-                                            >
-                                                <b>{d.name}</b>{" "}
-                                                <span style={{ opacity: 0.7 }}>#{idx + 1}</span>
-                                            </div>
-                                            <div style={{ display: "flex", gap: 6 }}>
-                                                <button
-                                                    type="button"
-                                                    className={styles.secondaryBtn}
-                                                    style={{
-                                                        height: 32,
-                                                        paddingLeft: 8,
-                                                        paddingRight: 8,
-                                                        fontSize: 12,
-                                                        flex: 1,
-                                                    }}
-                                                    onClick={() =>
-                                                        window.open(d.url, "_blank", "noopener,noreferrer")
-                                                    }
-                                                >
-                                                    👁️ Ver
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.secondaryBtn}
-                                                    style={{
-                                                        height: 32,
-                                                        paddingLeft: 10,
-                                                        paddingRight: 10,
-                                                        fontSize: 12,
-                                                    }}
-                                                    onClick={() => handleReplaceClick(d)}
-                                                    disabled={busy}
-                                                    title="Reemplazar por otra foto/archivo"
-                                                >
-                                                    {replacingId === d.fileId ? "⏳" : "🔄"}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={cx(styles.iconBtn, styles.iconBtnDanger)}
-                                                    style={{ height: 32, width: 32 }}
-                                                    onClick={() => handleDelete(d)}
-                                                    disabled={busy}
-                                                    title="Eliminar"
-                                                >
-                                                    {deletingId === d.fileId ? "⏳" : "🗑️"}
-                                                </button>
-                                            </div>
-                                        </div>
+
+                            {docs.length === 0 ? (
+                                <div className={styles.docEmpty}>
+                                    <div className={styles.docEmptyIcon}>📄</div>
+                                    <div className={styles.docEmptyTitle}>
+                                        Sin documentación
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <div className={styles.docEmptyHint}>
+                                        Usá los botones de arriba para agregar fotos del
+                                        DNI, carnet o estudios.
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className={styles.docList}>
+                                    {docs.map((d, idx) => {
+                                        const broken = imgErrors[d.fileId];
+                                        const isDeleting = deletingId === d.fileId;
+                                        const isReplacing = replacingId === d.fileId;
 
+                                        return (
+                                            <article key={d.fileId} className={styles.docCard}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.docCardImageWrap}
+                                                    onClick={() => {
+                                                        if (!broken)
+                                                            window.open(
+                                                                d.url,
+                                                                "_blank",
+                                                                "noopener,noreferrer"
+                                                            );
+                                                    }}
+                                                    aria-label={`Ver ${d.name}`}
+                                                >
+                                                    {broken ? (
+                                                        <div className={styles.docCardImageFallback}>
+                                                            <span>📄</span>
+                                                            <span>Sin vista previa</span>
+                                                        </div>
+                                                    ) : (
+                                                        <img
+                                                            src={`/api/documentos/proxy?id=${d.fileId}`}
+                                                            alt={d.name}
+                                                            className={styles.docCardImage}
+                                                            onError={() =>
+                                                                setImgErrors((prev) => ({
+                                                                    ...prev,
+                                                                    [d.fileId]: true,
+                                                                }))
+                                                            }
+                                                        />
+                                                    )}
+                                                    <span className={styles.docCardBadge}>
+                                                        #{idx + 1}
+                                                    </span>
+                                                </button>
+
+                                                <div className={styles.docCardInfo}>
+                                                    <div className={styles.docCardName} title={d.name}>
+                                                        {d.name}
+                                                    </div>
+                                                </div>
+
+                                                <div className={styles.docCardActions}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.docActionSecondary}
+                                                        onClick={() =>
+                                                            window.open(
+                                                                d.url,
+                                                                "_blank",
+                                                                "noopener,noreferrer"
+                                                            )
+                                                        }
+                                                        disabled={busy || broken}
+                                                    >
+                                                        👁️ <span>Ver</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.docActionSecondary}
+                                                        onClick={() => handleReplaceClick(d)}
+                                                        disabled={busy}
+                                                        aria-label="Reemplazar"
+                                                    >
+                                                        {isReplacing ? "⏳" : "🔄"}{" "}
+                                                        <span>Cambiar</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.docActionDanger}
+                                                        onClick={() => handleDelete(d)}
+                                                        disabled={busy}
+                                                        aria-label="Eliminar"
+                                                    >
+                                                        {isDeleting ? "⏳" : "🗑️"}
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
+
+                        {/* Inputs ocultos */}
                         <input
                             type="file"
                             accept="image/*"
@@ -613,52 +572,27 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                         />
                     </div>
 
-                    <div className={styles.modalFooter}>
+                    {/* ============ FOOTER STICKY ============ */}
+                    <footer className={styles.docModalFooter}>
                         <button
                             type="button"
-                            className={styles.primaryBtn}
-                            style={{
-                                height: 42,
-                                width: "auto",
-                                paddingLeft: 18,
-                                paddingRight: 18,
-                            }}
+                            className={styles.docFooterPrimary}
                             onClick={handlePrintDocumentacion}
                             disabled={printing !== null || !docs.length}
                         >
                             {printing === "documentacion"
-                                ? "⏳ Generando..."
-                                : "🖨️ Imprimir Documentación"}
+                                ? "⏳ Generando…"
+                                : "🖨️ Imprimir documentación"}
                         </button>
-
                         <button
                             type="button"
-                            className={styles.primaryBtn}
-                            style={{
-                                height: 42,
-                                width: "auto",
-                                paddingLeft: 18,
-                                paddingRight: 18,
-                                background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
-                            }}
+                            className={styles.docFooterSecondary}
                             onClick={handlePrintDorso}
                             disabled={printing !== null}
                         >
-                            {printing === "dorso"
-                                ? "⏳ Generando..."
-                                : "🖨️ Imprimir Dorso"}
+                            {printing === "dorso" ? "⏳ Generando…" : "🖨️ Imprimir dorso"}
                         </button>
-
-                        <div style={{ flex: 1 }} />
-                        <button
-                            type="button"
-                            className={styles.secondaryBtn}
-                            style={{ height: 42, paddingLeft: 18, paddingRight: 18 }}
-                            onClick={onClose}
-                        >
-                            Cerrar
-                        </button>
-                    </div>
+                    </footer>
                 </div>
             </div>
 
