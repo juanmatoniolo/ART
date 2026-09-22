@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import stylesBase from "./ingresos.module.css";
 import stylesOwn from "./DocumentacionSection.module.css";
 import CropPreviewModal from "./CropPreviewModal";
-import CameraGuideModal from "./CameraGuideModal";
 import {
     cx,
     Section,
@@ -74,7 +73,6 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
     const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
     const [imgErrors, setImgErrors] = useState({});
     const [cropPreview, setCropPreview] = useState(null);
-    const [showCameraGuide, setShowCameraGuide] = useState(false);
 
     const cameraInputRef = useRef(null);
     const galleryInputRef = useRef(null);
@@ -98,17 +96,13 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
             error: "",
         });
 
+    /* Abre directo la cámara trasera, sin cartel intermedio */
     const openCamera = () => {
         if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
             alert("Completá apellido y nombre antes de subir documentación.");
             return;
         }
-        setShowCameraGuide(true);
-    };
-
-    const confirmCamera = () => {
-        setShowCameraGuide(false);
-        setTimeout(() => cameraInputRef.current?.click(), 100);
+        cameraInputRef.current?.click();
     };
 
     const openGallery = () => {
@@ -469,13 +463,6 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                     initialRatio={cropPreview.initialRatio}
                     onConfirm={cropPreview.onConfirm}
                     onCancel={cropPreview.onCancel}
-                />
-            )}
-
-            {showCameraGuide && (
-                <CameraGuideModal
-                    onContinue={confirmCamera}
-                    onCancel={() => setShowCameraGuide(false)}
                 />
             )}
         </>
