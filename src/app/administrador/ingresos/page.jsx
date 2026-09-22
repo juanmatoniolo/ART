@@ -62,7 +62,6 @@ export default function IngresosPage() {
   const [editingId, setEditingId] = useState(null);
   const [currentEstado, setCurrentEstado] = useState(null);
 
-  const [deletingId, setDeletingId] = useState(null);
   const [printingId, setPrintingId] = useState(null);
   const [printingDorsoId, setPrintingDorsoId] = useState(null);
 
@@ -450,26 +449,6 @@ export default function IngresosPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDeletePaciente = async (paciente) => {
-    const t = paciente.trabajador || {};
-    const nombre = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "este ingreso";
-    const confirmar = window.confirm(
-      `¿Eliminar definitivamente el ingreso de "${nombre}"?\n\nEsta acción no se puede deshacer. Los documentos NO se borran de Drive.`
-    );
-    if (!confirmar) return;
-    setDeletingId(paciente.id);
-    try {
-      await remove(ref(db, `${DB_NODE}/${paciente.id}`));
-      if (editingId === paciente.id) resetForm();
-      await fetchAllPacientes();
-    } catch (err) {
-      console.error("Error eliminando ingreso:", err);
-      alert("No se pudo eliminar el ingreso. Revisá la consola.");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const handlePrintPaciente = async (paciente) => {
     setPrintingId(paciente.id);
     const newTab = window.open("", "_blank");
@@ -704,16 +683,21 @@ export default function IngresosPage() {
           </div>
 
           <div className={styles.tabsContainer}>
-            <button className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)} onClick={() => setActiveTab("nuevo")}>
+            <button
+              className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
+              onClick={() => setActiveTab("nuevo")}
+            >
               📝 Nuevo / Editar
             </button>
-            <button className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
-              onClick={() => { setActiveTab("buscar"); fetchAllPacientes(); }}>
+            <button
+              className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
+              onClick={() => { setActiveTab("buscar"); fetchAllPacientes(); }}
+            >
               🔍 Buscar Pacientes
             </button>
             <button
               className={styles.tab}
-              onClick={() => router.push("/admin/historia-clinica")}
+              onClick={() => router.push("/administrador/historia-clinica")}
               title="Ir a Historias Clínicas"
             >
               📋 Historias Clínicas
@@ -1020,13 +1004,9 @@ export default function IngresosPage() {
                       {filteredPacientes.map((p) => {
                         const t = p.trabajador || {};
                         const fi = p.fechaIngreso || {};
-                        const estaEliminando = deletingId === p.id;
                         const estaImprimiendo = printingId === p.id;
                         const estaImprimiendoDorso = printingDorsoId === p.id;
-                        const bloqueado =
-                          estaEliminando ||
-                          estaImprimiendo ||
-                          estaImprimiendoDorso;
+                        const bloqueado = estaImprimiendo || estaImprimiendoDorso;
                         const docsPaciente = Array.isArray(p.documentacion) ? p.documentacion : [];
 
                         return (
@@ -1048,8 +1028,20 @@ export default function IngresosPage() {
                               </button>
                             </td>
                             <td className={styles.actionsCell}>
-                              <button className={styles.iconBtn} title="Editar" onClick={() => handleEditPaciente(p)} disabled={bloqueado}>✏️</button>
-                              <button className={styles.iconBtn} title={`Reimprimir formulario (${p.tipoIngreso || "PISO"})`} onClick={() => handlePrintPaciente(p)} disabled={bloqueado}>
+                              <button
+                                className={styles.iconBtn}
+                                title="Editar"
+                                onClick={() => handleEditPaciente(p)}
+                                disabled={bloqueado}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                className={styles.iconBtn}
+                                title={`Reimprimir formulario (${p.tipoIngreso || "PISO"})`}
+                                onClick={() => handlePrintPaciente(p)}
+                                disabled={bloqueado}
+                              >
                                 {estaImprimiendo ? "⏳" : "🖨️"}
                               </button>
                               <button
@@ -1063,9 +1055,6 @@ export default function IngresosPage() {
                                 }}
                               >
                                 {estaImprimiendoDorso ? "⏳" : "📄"}
-                              </button>
-                              <button className={cx(styles.iconBtn, styles.iconBtnDanger)} title="Eliminar" onClick={() => handleDeletePaciente(p)} disabled={bloqueado}>
-                                {estaEliminando ? "⏳" : "🗑️"}
                               </button>
                             </td>
                           </tr>

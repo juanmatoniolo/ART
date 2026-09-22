@@ -16,8 +16,9 @@ import {
   Pill,
   BookOpen,
   FolderTree,
-  Stethoscope,   // <-- agregar
-  HardHat,       // <-- icono para ART (riesgos del trabajo)
+  Stethoscope,
+  HardHat,
+  ClipboardPlus,   // 🆕 icono para Ingresos
   Settings,
   LogOut,
   Menu,
@@ -44,8 +45,8 @@ export default function AdminLayout({ children }) {
   };
 
   const isActive = (href) => {
-    if (href === "/admin") {
-      return pathname === "/admin";
+    if (href === "/administrador") {
+      return pathname === "/administrador";
     }
     return pathname.startsWith(href + "/") || pathname === href;
   };
@@ -58,16 +59,18 @@ export default function AdminLayout({ children }) {
     return <div className={styles.loading}>Cargando...</div>;
   }
 
-  // Dentro del componente, en la definición de navItems
   const navItems = [
     { href: "/administrador", label: "", icon: Home, showLabel: false },
     { href: "/administrador/comunicador", label: "Comunicador", icon: Users },
-   
+
+    // 🆕 INGRESOS
+    { href: "/administrador/ingresos", label: "Ingresos", icon: ClipboardPlus },
+
     { href: "/administrador/med-descartables", label: "Farmacia", icon: Pill },
     { href: "/administrador/nomencladores", label: "Nomencladores", icon: BookOpen },
     { href: "/administrador/cx", label: "CX", icon: FolderTree },
 
-    { href: "/administrador/art", label: "ART", icon: HardHat },  // <-- NUEVA LÍNEA
+    { href: "/administrador/art", label: "ART", icon: HardHat },
   ];
 
   return (
@@ -99,7 +102,7 @@ export default function AdminLayout({ children }) {
         <div className={styles.headerRight}>
           <button
             className={styles.iconButton}
-            onClick={() => router.push("/admin/configuracion")}
+            onClick={() => router.push("/administrador/configuracion")}
             title="Configuración"
           >
             <Settings size={20} />
@@ -139,7 +142,7 @@ export default function AdminLayout({ children }) {
           })}
           <div className={styles.mobileDivider} />
           <Link
-            href="/admin/configuracion"
+            href="/administrador/configuracion"
             className={styles.mobileNavLink}
             onClick={handleLinkClick}
           >
@@ -148,7 +151,10 @@ export default function AdminLayout({ children }) {
           </Link>
           <button
             className={`${styles.mobileNavLink} ${styles.logoutBtn}`}
-            onClick={() => { cerrarSesion(); handleLinkClick(); }}
+            onClick={() => {
+              cerrarSesion();
+              handleLinkClick();
+            }}
           >
             <LogOut size={20} />
             <span>Cerrar sesión</span>

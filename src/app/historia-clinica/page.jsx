@@ -128,10 +128,12 @@ export default function HistoriasClinicasPage() {
   const [visibleUti, setVisibleUti] = useState(ITEMS_PER_PAGE);
 
   const [currentUser, setCurrentUser] = useState(null);
-  const [loginForm, setLoginForm] = useState({
-    user: "",
-    pass: "",
-  });
+  const [loginForm, setLoginForm] = useState({ user: "", pass: "" });
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  /* 🆕 Modal de login */
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [nextGeneralNumber, setNextGeneralNumber] = useState("1");
   const [nextUtiNumber, setNextUtiNumber] = useState("1");
@@ -238,6 +240,28 @@ export default function HistoriasClinicasPage() {
 
   const isLogged = Boolean(currentUser);
 
+  /* Cierra el modal con Escape */
+  useEffect(() => {
+    if (!showLoginModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeLoginModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showLoginModal]);
+
+  const openLoginModal = () => {
+    setLoginForm({ user: "", pass: "" });
+    setLoginError("");
+    setShowLoginModal(true);
+  };
+
+  const closeLoginModal = () => {
+    setShowLoginModal(false);
+    setLoginForm({ user: "", pass: "" });
+    setLoginError("");
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
 
@@ -245,9 +269,12 @@ export default function HistoriasClinicasPage() {
     const pass = loginForm.pass.trim();
 
     if (!user || !pass) {
-      alert("Debes completar usuario y contraseña");
+      setLoginError("Debes completar usuario y contraseña");
       return;
     }
+
+    setLoginLoading(true);
+    setLoginError("");
 
     const match = usersList.find(
       (item) =>
@@ -255,7 +282,8 @@ export default function HistoriasClinicasPage() {
     );
 
     if (!match) {
-      alert("Usuario o contraseña incorrectos");
+      setLoginError("Usuario o contraseña incorrectos");
+      setLoginLoading(false);
       return;
     }
 
@@ -267,7 +295,9 @@ export default function HistoriasClinicasPage() {
         pass: match.pass,
       })
     );
-    setLoginForm({ user: "", pass: "" });
+
+    setLoginLoading(false);
+    closeLoginModal();
   };
 
   const handleLogout = () => {
@@ -458,11 +488,13 @@ export default function HistoriasClinicasPage() {
 
   return (
     <>
-    
       <Header />
       <div className={styles.container}>
         <h1 className={styles.title}>Historias Clínicas</h1>
 
+        {/* =========================================================
+            BARRA DE USUARIO / BOTÓN DE LOGIN
+           ========================================================= */}
         <div className={styles.authCard}>
           {isLogged ? (
             <div className={styles.userLoggedBox}>
@@ -479,37 +511,18 @@ export default function HistoriasClinicasPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleLogin} className={styles.loginForm}>
-              <input
-                type="text"
-                placeholder="Usuario"
-                value={loginForm.user}
-                onChange={(e) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    user: e.target.value,
-                  }))
-                }
-                className={styles.formInput}
-              />
-
-              <input
-                type="password"
-                placeholder="Contraseña"
-                value={loginForm.pass}
-                onChange={(e) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    pass: e.target.value,
-                  }))
-                }
-                className={styles.formInput}
-              />
-
-              <button type="submit" className={styles.loginButton}>
+            <div className={styles.loginTriggerBox}>
+              <span className={styles.loginTriggerText}>
+                🔒 Iniciá sesión para editar o crear historias clínicas
+              </span>
+              <button
+                type="button"
+                className={styles.loginTriggerButton}
+                onClick={openLoginModal}
+              >
                 Iniciar sesión
               </button>
-            </form>
+            </div>
           )}
         </div>
 
@@ -530,8 +543,6 @@ export default function HistoriasClinicasPage() {
             Historias clínicas UTI
           </button>
         </div>
-
-
 
         {isLogged && tab === "general" && (
           <div className={styles.formCard}>
@@ -827,6 +838,88 @@ export default function HistoriasClinicasPage() {
           </button>
         )}
       </div>
+
+      {/* =========================================================
+          MODAL DE LOGIN
+         ========================================================= */}
+      {showLoginModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={closeLoginModal}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>🔐 Iniciar sesión</h2>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={closeLoginModal}
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleLogin} className={styles.modalForm}>
+              <p className={styles.modalSubtitle}>
+                Ingresá tus credenciales para poder editar y crear historias clínicas.
+              </p>
+
+              <input
+                type="text"
+                placeholder="Usuario"
+                value={loginForm.user}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({ ...prev, user: e.target.value }))
+                }
+                className={styles.formInput}
+                autoComplete="username"
+                autoFocus
+                disabled={loginLoading}
+              />
+
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={loginForm.pass}
+                onChange={(e) =>
+                  setLoginForm((prev) => ({ ...prev, pass: e.target.value }))
+                }
+                className={styles.formInput}
+                autoComplete="current-password"
+                disabled={loginLoading}
+              />
+
+              {loginError && (
+                <div className={styles.modalError}>❌ {loginError}</div>
+              )}
+
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.modalCancelButton}
+                  onClick={closeLoginModal}
+                  disabled={loginLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.modalSubmitButton}
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? "Ingresando..." : "Ingresar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

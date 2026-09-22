@@ -157,10 +157,10 @@ export default function AdminDashboard() {
     { title: "Nomencladores", value: "4", icon: BookOpen, color: "#059669", href: "/administrador/nomencladores" },
     { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/administrador/cx/programada" },
     { title: "Fojas quirurgicas", value: stats.fojas, icon: FileText, color: "#06b6d4", href: "/administrador/cx/foja/medicos" },
-{ title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "/administrador/historia-clinica" }, 
-    { title: "Farmacia", value: stats.farmacia, icon: Pill, color: "#a855f7", href: "/farmacia" },
+    { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "/administrador/historia-clinica" },
+    { title: "Farmacia", value: stats.farmacia, icon: Pill, color: "#a855f7", href: "/administrador/med-descartables" },
     { title: "Siniestros", value: stats.siniestros, icon: FolderTree, color: "#ef4444", href: "/administrador/Siniestro" },
-  
+
     { title: "Comunicador", value: "Abrir", icon: Users, color: "#84cc16", href: "/administrador/comunicador" },
   ];
 

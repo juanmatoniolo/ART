@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ref, onValue, push, set, update, runTransaction } from "firebase/database";
+import {
+  ref,
+  onValue,
+  push,
+  set,
+  update,
+  remove,
+  runTransaction,
+} from "firebase/database";
 import Fuse from "fuse.js";
 import { db } from "@/lib/firebase";
 import { getSession } from "@/utils/session";
@@ -102,6 +110,7 @@ export default function HistoriasClinicasPage() {
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const session = getSession();
@@ -161,6 +170,18 @@ export default function HistoriasClinicasPage() {
   const displayedItems = filteredItems.slice(0, visibleCount);
 
   const isLogged = Boolean(currentUser);
+
+  /* =========================================================
+     🆕 Última HC (la de mayor número) de la pestaña activa
+     ========================================================= */
+  const lastHCNumber = useMemo(() => {
+    const items = tab === "general" ? historiasGeneral : historiasUti;
+    const nums = items
+      .map((item) => parseHCNumber(item))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (!nums.length) return null;
+    return Math.max(...nums);
+  }, [tab, historiasGeneral, historiasUti]);
 
   const getNextHistoryNumber = async (counterPath) => {
     const counterRef = ref(db, counterPath);
@@ -298,6 +319,55 @@ export default function HistoriasClinicasPage() {
     } catch (error) {
       console.error(error);
       alert("Error al guardar");
+    }
+  };
+
+  /* =========================================================
+     🆕 ELIMINAR la última HC de la pestaña activa
+     ========================================================= */
+  const handleDeleteLast = async (item) => {
+    if (!isLogged) return;
+
+    const isUti = item.source === HC_UTI_PATH;
+    const itemsList = isUti ? historiasUti : historiasGeneral;
+    const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH;
+    const basePath = isUti ? HC_UTI_PATH : HC_PATH;
+
+    const itemNumber = parseHCNumber(item);
+    const maxNumber = itemsList
+      .map((x) => parseHCNumber(x))
+      .filter((n) => Number.isFinite(n))
+      .reduce((acc, curr) => Math.max(acc, curr), 0);
+
+    // 🔒 Solo se puede borrar la última (la de mayor número)
+    if (itemNumber !== maxNumber) {
+      alert(
+        `Solo podés borrar la ÚLTIMA historia clínica (#${maxNumber}).\n\n` +
+        `Para borrar la #${itemNumber}, primero eliminá las posteriores.`
+      );
+      return;
+    }
+
+    const nombre = item.nombre_apellido || "esta historia clínica";
+    const ok = window.confirm(
+      `¿Eliminar la historia clínica #${itemNumber} de "${nombre}"?\n\n` +
+      `Esto también baja el contador a ${maxNumber - 1}.`
+    );
+    if (!ok) return;
+
+    setDeletingId(item.id);
+    try {
+      // 1) Borrar el registro
+      await remove(ref(db, `${basePath}/${item.id}`));
+
+      // 2) Bajar el contador al número anterior
+      const counterRef = ref(db, counterPath);
+      await set(counterRef, maxNumber - 1);
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo eliminar la historia clínica");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -506,132 +576,177 @@ export default function HistoriasClinicasPage() {
                 <th className={styles.tableHeader}>Alertas</th>
                 <th className={styles.tableHeader}>Creado por</th>
                 <th className={styles.tableHeader}>Modificado por</th>
+                <th className={`${styles.tableHeader} ${styles.centerCell}`}>Acciones</th>
               </tr>
             </thead>
 
             <tbody>
               {displayedItems.length === 0 ? (
                 <tr className={styles.tableRow}>
-                  <td colSpan="6" className={styles.emptyMessage}>
+                  <td colSpan="7" className={styles.emptyMessage}>
                     No se encontraron resultados
                   </td>
                 </tr>
               ) : (
-                displayedItems.map((item) => (
-                  <tr
-                    key={`${item.source}-${item.id}`}
-                    className={`${styles.tableRow} ${styles.clickableRow}`}
-                    onClick={() => startEdit(item)}
-                  >
-                    {editingId === item.id ? (
-                      <>
-                        <td className={styles.tableCell}>
-                          <input
-                            type="text"
-                            name="nombre_apellido"
-                            value={editValues.nombre_apellido}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                nombre_apellido: e.target.value,
-                              }))
-                            }
-                            className={styles.editInput}
-                          />
-                        </td>
+                displayedItems.map((item) => {
+                  const itemNumber = parseHCNumber(item);
+                  const isLast = itemNumber === lastHCNumber;
+                  const isDeleting = deletingId === item.id;
 
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <input
-                            type="text"
-                            name="dni"
-                            value={editValues.dni}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                dni: e.target.value.replace(/\D/g, ""),
-                              }))
-                            }
-                            className={`${styles.editInput} ${styles.centerInput}`}
-                          />
-                        </td>
+                  return (
+                    <tr
+                      key={`${item.source}-${item.id}`}
+                      className={`${styles.tableRow} ${styles.clickableRow}`}
+                      onClick={() => startEdit(item)}
+                    >
+                      {editingId === item.id ? (
+                        <>
+                          <td className={styles.tableCell}>
+                            <input
+                              type="text"
+                              name="nombre_apellido"
+                              value={editValues.nombre_apellido}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  nombre_apellido: e.target.value,
+                                }))
+                              }
+                              className={styles.editInput}
+                            />
+                          </td>
 
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <input
-                            type="text"
-                            name="historia_clinica"
-                            value={editValues.historia_clinica}
-                            onChange={(e) =>
-                              setEditValues((prev) => ({
-                                ...prev,
-                                historia_clinica: e.target.value.replace(/\D/g, ""),
-                              }))
-                            }
-                            className={`${styles.editInput} ${styles.centerInput} ${styles.hcInput}`}
-                          />
-                        </td>
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="dni"
+                              value={editValues.dni}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  dni: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput}`}
+                            />
+                          </td>
 
-                        <td className={styles.tableCell}>
-                          {item.alertas?.length ? (
-                            <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
-                          ) : (
-                            <span className={styles.cellMuted}>-</span>
-                          )}
-                        </td>
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <input
+                              type="text"
+                              name="historia_clinica"
+                              value={editValues.historia_clinica}
+                              onChange={(e) =>
+                                setEditValues((prev) => ({
+                                  ...prev,
+                                  historia_clinica: e.target.value.replace(/\D/g, ""),
+                                }))
+                              }
+                              className={`${styles.editInput} ${styles.centerInput} ${styles.hcInput}`}
+                            />
+                          </td>
 
-                        <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>
+                                {item.alertas.join(", ")}
+                              </span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
 
-                        <td className={styles.tableCell}>
-                          <div className={styles.editButtons}>
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+
+                          <td className={styles.tableCell}>
+                            <div className={styles.editButtons}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveEdit();
+                                }}
+                                className={styles.saveButton}
+                              >
+                                💾
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelEdit();
+                                }}
+                                className={styles.cancelButton}
+                              >
+                                ✖
+                              </button>
+                            </div>
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            —
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className={styles.tableCell}>
+                            {item.nombre_apellido || "-"}
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell} ${styles.dniCell}`}>
+                            {formatDni(item.dni)}
+                          </td>
+
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
+                            <span className={styles.hcNumber}>
+                              {formatHC(item.historia_clinica)}
+                            </span>
+                          </td>
+
+                          <td className={styles.tableCell}>
+                            {item.alertas?.length ? (
+                              <span className={styles.alertBadge}>
+                                {item.alertas.join(", ")}
+                              </span>
+                            ) : (
+                              <span className={styles.cellMuted}>-</span>
+                            )}
+                          </td>
+
+                          <td className={styles.tableCell}>{item.createdBy || "-"}</td>
+                          <td className={styles.tableCell}>{item.modifiedBy || "-"}</td>
+
+                          {/* 🆕 Botón eliminar (solo la última) */}
+                          <td className={`${styles.tableCell} ${styles.centerCell}`}>
                             <button
                               type="button"
+                              className={`${styles.deleteButton} ${!isLast ? styles.deleteButtonDisabled : ""
+                                }`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                saveEdit();
+                                if (isLast) handleDeleteLast(item);
+                                else
+                                  alert(
+                                    `Solo podés borrar la última HC (#${lastHCNumber}).\n` +
+                                    `Esta es la #${itemNumber}.`
+                                  );
                               }}
-                              className={styles.saveButton}
+                              disabled={isDeleting}
+                              title={
+                                isLast
+                                  ? `Eliminar HC #${itemNumber} (última)`
+                                  : `Solo se puede borrar la última HC (#${lastHCNumber})`
+                              }
                             >
-                              💾
+                              {isDeleting ? "⏳" : "🗑️"}
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelEdit();
-                              }}
-                              className={styles.cancelButton}
-                            >
-                              ✖
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className={styles.tableCell}>{item.nombre_apellido || "-"}</td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell} ${styles.dniCell}`}>
-                          {formatDni(item.dni)}
-                        </td>
-
-                        <td className={`${styles.tableCell} ${styles.centerCell}`}>
-                          <span className={styles.hcNumber}>{formatHC(item.historia_clinica)}</span>
-                        </td>
-
-                        <td className={styles.tableCell}>
-                          {item.alertas?.length ? (
-                            <span className={styles.alertBadge}>{item.alertas.join(", ")}</span>
-                          ) : (
-                            <span className={styles.cellMuted}>-</span>
-                          )}
-                        </td>
-
-                        <td className={styles.tableCell}>{item.createdBy || "-"}</td>
-                        <td className={styles.tableCell}>{item.modifiedBy || "-"}</td>
-                      </>
-                    )}
-                  </tr>
-                ))
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
