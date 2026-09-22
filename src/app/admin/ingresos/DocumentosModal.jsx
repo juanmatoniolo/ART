@@ -5,7 +5,6 @@ import { db } from "@/lib/firebase";
 import { ref, update } from "firebase/database";
 import styles from "./DocumentosModal.module.css";
 import CropPreviewModal from "./CropPreviewModal";
-import CameraGuideModal from "./CameraGuideModal";
 import {
     generarFrentePDFBlob,
     generarDorsoPDFBlob,
@@ -56,12 +55,11 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const [error, setError] = useState("");
     const [msg, setMsg] = useState("");
     const [cropPreview, setCropPreview] = useState(null);
-    const [showCameraGuide, setShowCameraGuide] = useState(false);
-    const [cameraTarget, setCameraTarget] = useState(null);
     const [imgErrors, setImgErrors] = useState({});
 
     const replaceInputRef = useRef(null);
     const addInputRef = useRef(null);
+    const cameraInputRef = useRef(null);
     const docToReplaceRef = useRef(null);
 
     /* Bloquear scroll del body mientras el modal está abierto */
@@ -74,13 +72,13 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     /* Cerrar con Escape */
     useEffect(() => {
         const onKey = (e) => {
-            if (e.key === "Escape" && !adding && !cropPreview && !showCameraGuide) {
+            if (e.key === "Escape" && !adding && !cropPreview) {
                 onClose();
             }
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [onClose, adding, cropPreview, showCameraGuide]);
+    }, [onClose, adding, cropPreview]);
 
     if (!paciente) return null;
 
@@ -283,20 +281,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
-    const openCameraForAdd = () => {
-        setCameraTarget("add");
-        setShowCameraGuide(true);
-    };
-
-    const confirmCamera = () => {
-        setShowCameraGuide(false);
-        setTimeout(() => {
-            if (cameraTarget === "add") addInputRef.current?.click();
-            else replaceInputRef.current?.click();
-            setCameraTarget(null);
-        }, 100);
-    };
-
     const handlePrintDocumentacion = async () => {
         if (!docs.length) {
             alert("No hay documentos para imprimir.");
@@ -449,7 +433,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                 <button
                                     type="button"
                                     className={styles.docAddBtn}
-                                    onClick={openCameraForAdd}
+                                    onClick={() => cameraInputRef.current?.click()}
                                     disabled={busy}
                                 >
                                     <span className={styles.docAddBtnIcon}>📷</span>
@@ -587,19 +571,31 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             )}
                         </section>
 
+                        {/* Reemplazar: abre galería (single) */}
                         <input
                             type="file"
                             accept="image/*"
-                            capture="environment"
                             ref={replaceInputRef}
                             onChange={handleReplaceFile}
                             style={{ display: "none" }}
                         />
+
+                        {/* Agregar desde galería: múltiple */}
                         <input
                             type="file"
                             accept="image/*"
                             multiple
                             ref={addInputRef}
+                            onChange={handleAddFile}
+                            style={{ display: "none" }}
+                        />
+
+                        {/* Tomar foto: cámara trasera directa (single) */}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            ref={cameraInputRef}
                             onChange={handleAddFile}
                             style={{ display: "none" }}
                         />
@@ -634,16 +630,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                     initialRatio={cropPreview.initialRatio}
                     onConfirm={cropPreview.onConfirm}
                     onCancel={cropPreview.onCancel}
-                />
-            )}
-
-            {showCameraGuide && (
-                <CameraGuideModal
-                    onContinue={confirmCamera}
-                    onCancel={() => {
-                        setShowCameraGuide(false);
-                        setCameraTarget(null);
-                    }}
                 />
             )}
         </>
