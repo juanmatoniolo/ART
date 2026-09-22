@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styles from "./ingresos.module.css";
 import CropPreviewModal from "./CropPreviewModal";
+import CameraGuideModal from "./CameraGuideModal";
 import {
     cx,
     Section,
     buildFolderName,
     convertToWebP,
-    cropToRatio,
 } from "./helpers";
 
 const UPLOAD_TIMEOUT_MS = 30000;
@@ -66,6 +66,10 @@ export default function DocumentacionSection({
     const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
     const [imgErrors, setImgErrors] = useState({});
     const [cropPreview, setCropPreview] = useState(null);
+    const [showCameraGuide, setShowCameraGuide] = useState(false);
+
+    const cameraInputRef = useRef(null);
+    const galleryInputRef = useRef(null);
 
     const [uploadState, setUploadState] = useState({
         active: false,
@@ -86,15 +90,31 @@ export default function DocumentacionSection({
             error: "",
         });
 
-    const handleFileSelected = async (e) => {
-        const files = Array.from(e.target.files || []);
-        e.target.value = "";
-        if (!files.length) return;
-
+    const openCamera = () => {
         if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
             alert("Completá apellido y nombre antes de subir documentación.");
             return;
         }
+        setShowCameraGuide(true);
+    };
+
+    const confirmCamera = () => {
+        setShowCameraGuide(false);
+        setTimeout(() => cameraInputRef.current?.click(), 100);
+    };
+
+    const openGallery = () => {
+        if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
+            alert("Completá apellido y nombre antes de subir documentación.");
+            return;
+        }
+        galleryInputRef.current?.click();
+    };
+
+    const handleFileSelected = async (e) => {
+        const files = Array.from(e.target.files || []);
+        e.target.value = "";
+        if (!files.length) return;
 
         setUploadSuccessMsg("");
         const nuevos = [];
@@ -126,38 +146,28 @@ export default function DocumentacionSection({
                 return;
             }
 
-            /* 2) Recortar al ratio DNI si está tildado */
-            let finalBlob = webpBlob;
-            if (cropToDni) {
-                try {
-                    finalBlob = await cropToRatio(webpBlob, 1.585);
-                } catch (err) {
-                    console.warn("Error recortando:", err);
-                    finalBlob = webpBlob;
-                }
-            }
-
-            /* 3) Preview + confirmación */
-            const confirmado = await new Promise((resolve) => {
+            /* 2) Preview + editor de recorte interactivo */
+            const finalBlob = await new Promise((resolve) => {
                 setCropPreview({
-                    previewBlob: finalBlob,
-                    onConfirm: () => {
+                    previewBlob: webpBlob,
+                    initialRatio: cropToDni ? 1.585 : 0,
+                    onConfirm: (croppedBlob) => {
                         setCropPreview(null);
-                        resolve(true);
+                        resolve(croppedBlob);
                     },
                     onCancel: () => {
                         setCropPreview(null);
-                        resolve(false);
+                        resolve(null);
                     },
                 });
             });
 
-            if (!confirmado) {
+            if (!finalBlob) {
                 resetUploadState();
                 return;
             }
 
-            /* 4) Subir */
+            /* 3) Subir */
             setUploadState((s) => ({ ...s, stage: "subiendo", percent: 0 }));
 
             try {
@@ -196,7 +206,7 @@ export default function DocumentacionSection({
                     error:
                         files.length > 1
                             ? `Se subieron ${nuevos.length} de ${files.length}. ${err.message}`
-                            : `${err.message} Volvé a tocar "Subir imagen" para reintentar.`,
+                            : `${err.message} Volvé a intentar.`,
                 }));
                 return;
             }
@@ -462,6 +472,7 @@ export default function DocumentacionSection({
     };
 
     const isMerged = !!pdfUrl && docs.length > 0;
+    const disabled = uploadState.active || !form.trabajadorApellido || !form.trabajadorNombre;
 
     return (
         <>
@@ -486,22 +497,53 @@ export default function DocumentacionSection({
                                 onChange={(e) => setCropToDni(e.target.checked)}
                                 style={{ width: 18, height: 18 }}
                             />
-                            <span>✂️ Recortar en horizontal (formato DNI / carnet)</span>
+                            <span>✂️ Abrir editor con formato DNI (podés cambiarlo)</span>
                         </label>
 
-                        <label className={styles.label}>📷 Subir imagen</label>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                marginBottom: 10,
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                onClick={openCamera}
+                                disabled={disabled}
+                                style={{ flex: 1, minHeight: 52, fontSize: 15 }}
+                            >
+                                📷 Tomar foto
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                onClick={openGallery}
+                                disabled={disabled}
+                                style={{ flex: 1, minHeight: 52, fontSize: 15 }}
+                            >
+                                🖼️ Galería
+                            </button>
+                        </div>
+
+                        {/* inputs ocultos */}
                         <input
+                            ref={cameraInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleFileSelected}
+                            style={{ display: "none" }}
+                        />
+                        <input
+                            ref={galleryInputRef}
                             type="file"
                             accept="image/*"
                             multiple
                             onChange={handleFileSelected}
-                            disabled={
-                                uploadState.active ||
-                                !form.trabajadorApellido ||
-                                !form.trabajadorNombre
-                            }
-                            className={styles.input}
-                            style={{ paddingTop: 10 }}
+                            style={{ display: "none" }}
                         />
 
                         {uploadState.active && (
@@ -751,8 +793,16 @@ export default function DocumentacionSection({
             {cropPreview && (
                 <CropPreviewModal
                     previewBlob={cropPreview.previewBlob}
+                    initialRatio={cropPreview.initialRatio}
                     onConfirm={cropPreview.onConfirm}
                     onCancel={cropPreview.onCancel}
+                />
+            )}
+
+            {showCameraGuide && (
+                <CameraGuideModal
+                    onContinue={confirmCamera}
+                    onCancel={() => setShowCameraGuide(false)}
                 />
             )}
         </>

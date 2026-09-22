@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { ref, update } from "firebase/database";
 import styles from "./ingresos.module.css";
 import CropPreviewModal from "./CropPreviewModal";
+import CameraGuideModal from "./CameraGuideModal";
 import {
     generarFrentePDFBlob,
     generarDorsoPDFBlob,
@@ -13,7 +14,6 @@ import {
 } from "./documentosHelpers";
 import {
     convertToWebP,
-    cropToRatio,
     buildFolderName,
     cx,
     onlyDigits,
@@ -41,6 +41,8 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const [error, setError] = useState("");
     const [msg, setMsg] = useState("");
     const [cropPreview, setCropPreview] = useState(null);
+    const [showCameraGuide, setShowCameraGuide] = useState(false);
+    const [cameraTarget, setCameraTarget] = useState(null); // "add" | "replace"
 
     const replaceInputRef = useRef(null);
     const addInputRef = useRef(null);
@@ -69,34 +71,25 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         setTimeout(() => setMsg(""), 4000);
     };
 
-    /* Helper: procesa una imagen (convertir + recortar + preview) */
+    /* Helper: procesa una imagen (convertir + editor interactivo) */
     const procesarConPreview = async (file) => {
-        let webpBlob = await convertToWebP(file, 0.75, 1600);
+        const webpBlob = await convertToWebP(file, 0.75, 1600);
 
-        let finalBlob = webpBlob;
-        if (cropToDni) {
-            try {
-                finalBlob = await cropToRatio(webpBlob, 1.585);
-            } catch (err) {
-                console.warn("Error recortando:", err);
-            }
-        }
-
-        const confirmado = await new Promise((resolve) => {
+        const finalBlob = await new Promise((resolve) => {
             setCropPreview({
-                previewBlob: finalBlob,
-                onConfirm: () => {
+                previewBlob: webpBlob,
+                initialRatio: cropToDni ? 1.585 : 0,
+                onConfirm: (croppedBlob) => {
                     setCropPreview(null);
-                    resolve(true);
+                    resolve(croppedBlob);
                 },
                 onCancel: () => {
                     setCropPreview(null);
-                    resolve(false);
+                    resolve(null);
                 },
             });
         });
 
-        if (!confirmado) return null;
         return finalBlob;
     };
 
@@ -259,6 +252,21 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         } finally {
             setAdding(false);
         }
+    };
+
+    /* Guía de cámara */
+    const openCameraForAdd = () => {
+        setCameraTarget("add");
+        setShowCameraGuide(true);
+    };
+
+    const confirmCamera = () => {
+        setShowCameraGuide(false);
+        setTimeout(() => {
+            if (cameraTarget === "add") addInputRef.current?.click();
+            else replaceInputRef.current?.click();
+            setCameraTarget(null);
+        }, 100);
     };
 
     const handlePrintDocumentacion = async () => {
@@ -439,17 +447,35 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                     onChange={(e) => setCropToDni(e.target.checked)}
                                     style={{ width: 16, height: 16 }}
                                 />
-                                <span>✂️ Recortar al subir/reemplazar (formato DNI)</span>
+                                <span>✂️ Abrir editor con formato DNI</span>
                             </label>
+                        </div>
 
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                marginBottom: 14,
+                                flexWrap: "wrap",
+                            }}
+                        >
                             <button
                                 type="button"
                                 className={styles.secondaryBtn}
-                                style={{ height: 34, paddingLeft: 14, paddingRight: 14 }}
+                                onClick={openCameraForAdd}
+                                disabled={busy}
+                                style={{ flex: 1, minHeight: 48 }}
+                            >
+                                📷 Tomar foto
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.secondaryBtn}
                                 onClick={() => addInputRef.current?.click()}
                                 disabled={busy}
+                                style={{ flex: 1, minHeight: 48 }}
                             >
-                                {adding ? "⏳ Subiendo..." : "➕ Agregar documento"}
+                                {adding ? "⏳ Subiendo..." : "🖼️ Galería / Agregar"}
                             </button>
                         </div>
 
@@ -572,6 +598,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                         <input
                             type="file"
                             accept="image/*"
+                            capture="environment"
                             ref={replaceInputRef}
                             onChange={handleReplaceFile}
                             style={{ display: "none" }}
@@ -638,8 +665,19 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
             {cropPreview && (
                 <CropPreviewModal
                     previewBlob={cropPreview.previewBlob}
+                    initialRatio={cropPreview.initialRatio}
                     onConfirm={cropPreview.onConfirm}
                     onCancel={cropPreview.onCancel}
+                />
+            )}
+
+            {showCameraGuide && (
+                <CameraGuideModal
+                    onContinue={confirmCamera}
+                    onCancel={() => {
+                        setShowCameraGuide(false);
+                        setCameraTarget(null);
+                    }}
                 />
             )}
         </>
