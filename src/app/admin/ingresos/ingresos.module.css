@@ -34,7 +34,6 @@
   --toast-danger-text: #f0b3b3;
 }
 
-/* Modo claro */
 .lightMode {
   --bg-page: #f4f6f9;
   --bg-card: #ffffff;
@@ -226,7 +225,6 @@
   border: 1px solid var(--input-border);
   padding: 0 14px;
   font-size: 16px;
-  /* evita zoom en iOS */
   font-weight: 500;
   color: var(--text-primary);
   background: var(--input-bg);
@@ -256,7 +254,6 @@
   font-weight: 600;
 }
 
-/* ===== Input read-only (edad) ===== */
 .inputReadonly {
   background: var(--readonly-bg);
   color: var(--readonly-text);
@@ -265,7 +262,7 @@
   cursor: default;
 }
 
-/* ===== Chips (radio estilo botón) ===== */
+/* ===== Chips ===== */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -301,7 +298,7 @@
   border-color: #f87171 !important;
 }
 
-/* ===== Fechas (grupos) ===== */
+/* ===== Fechas ===== */
 .fechasWrapper {
   display: flex;
   flex-direction: column;
@@ -346,20 +343,15 @@
   flex: 2;
 }
 
-/* ============================================================
-   FECHA DE NACIMIENTO — DD / MM / AAAA (todos iguales)
-   El hint del mes flota debajo sin afectar la altura del input
-   ============================================================ */
+/* ===== Fecha de nacimiento ===== */
 .nacimientoRow {
   display: flex;
   gap: 8px;
   align-items: stretch;
   position: relative;
   padding-bottom: 18px;
-  /* espacio reservado para el hint flotante */
 }
 
-/* Los tres inputs ocupan exactamente el mismo ancho y alto */
 .nacimientoRow>input,
 .nacimientoRow .nacimientoInput,
 .nacimientoRow .nacimientoMesWrapper {
@@ -389,7 +381,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Hint flotante: NO ocupa espacio en el flujo */
 .mesHint {
   position: absolute;
   top: calc(100% + 3px);
@@ -542,7 +533,7 @@
   background: transparent;
 }
 
-/* ===== Pestaña Buscar Pacientes ===== */
+/* ===== Buscar Pacientes ===== */
 .searchTab {
   background: var(--bg-card);
   border-radius: 16px;
@@ -562,9 +553,7 @@
   min-width: 180px;
 }
 
-/* ==========================================================
-   TABLA RESPONSIVE
-   ========================================================== */
+/* ===== Tabla ===== */
 .tableWrapper {
   border-radius: 12px;
   border: 1px solid var(--border-color);
@@ -658,176 +647,50 @@
 
 .actionsCell {
   display: flex;
-  gap: 6px;
-  justify-content: center;
+  gap: 8px;
   align-items: center;
-  flex-wrap: nowrap;
+  justify-content: flex-start;
+  white-space: nowrap;
 }
 
 .iconBtn {
-  background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 16px;
-  cursor: pointer;
-  color: var(--text-primary);
-  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 36px;
+  height: 36px;
   flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 8px;
+  color: var(--text-primary);
+  transition: all 0.2s;
 }
 
-.iconBtn:hover {
+.iconBtn:hover:not(:disabled) {
   background: var(--btn-ghost-hover);
   border-color: var(--input-focus);
 }
 
-.iconBtnDanger {
-  border-color: #7f1d1d;
-  color: #fca5a5;
-}
-
-.iconBtnDanger:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: #ef4444;
-  color: #fecaca;
-}
-
 .iconBtn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* ==========================================================
-   MODO TARJETA EN MÓVILES (≤ 767px)
-   ========================================================== */
-@media (max-width: 767px) {
-  .tableWrapper {
-    border: none;
-    background: transparent;
-    overflow: visible;
-  }
-
-  .table,
-  .table thead,
-  .table tbody,
-  .table tr,
-  .table th,
-  .table td {
-    display: block;
-    width: 100% !important;
-  }
-
-  .table thead {
-    display: none;
-  }
-
-  .table tr {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .table tr:hover {
-    background: var(--bg-card);
-  }
-
-  .table td {
-    border-bottom: none;
-    padding: 8px 0;
-    text-align: right;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: initial;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    border-bottom: 1px dashed var(--border-color);
-  }
-
-  .table td:last-child {
-    border-bottom: none;
-    padding-top: 12px;
-    justify-content: center;
-  }
-
-  .table td::before {
-    content: "";
-    font-weight: 700;
-    color: var(--text-muted);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    flex-shrink: 0;
-  }
-
-  .table td:nth-child(1)::before {
-    content: "Paciente";
-  }
-
-  .table td:nth-child(2)::before {
-    content: "DNI";
-  }
-
-  .table td:nth-child(3)::before {
-    content: "HC";
-  }
-
-  .table td:nth-child(4)::before {
-    content: "O.S";
-  }
-
-  .table td:nth-child(5)::before {
-    content: "Afiliado";
-  }
-
-  .table td:nth-child(6)::before {
-    content: "Tipo";
-  }
-
-  .table td:nth-child(7)::before {
-    content: "F. Ingreso";
-  }
-
-  .table td:nth-child(8)::before {
-    content: "";
-  }
-
-  .table td:first-child {
-    font-weight: 700;
-    font-size: 15px;
-    padding-bottom: 10px;
-  }
-
-  .table td:first-child::before {
-    font-size: 11px;
-  }
-
-  .actionsCell {
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .iconBtn {
-    padding: 10px 14px;
-    font-size: 18px;
-    border-radius: 10px;
-    min-width: 44px;
-    min-height: 44px;
-  }
+.iconBtnDanger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
-/* ==========================================================
-   ESTADO / BOLITA
-   ========================================================== */
+.iconBtnDanger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
+
+/* ===== Estado / bolita ===== */
 .estadoIndicador {
   display: inline-block;
   width: 12px;
@@ -845,7 +708,7 @@
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
-/* ===== Carga y vacío ===== */
+/* ===== Loading / empty ===== */
 .loading,
 .empty {
   text-align: center;
@@ -854,169 +717,7 @@
   font-size: 16px;
 }
 
-/* ==========================================================
-   AJUSTES PARA MÓVILES (≤ 640px)
-   ========================================================== */
-@media (max-width: 640px) {
-  .page {
-    padding: 12px 0;
-  }
-
-  .shell {
-    padding: 0 12px;
-  }
-
-  .title {
-    font-size: 22px;
-  }
-
-  .subtitle {
-    font-size: 13px;
-  }
-
-  .header {
-    margin-bottom: 14px;
-  }
-
-  .headerActions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .card {
-    padding: 12px;
-    border-radius: 12px;
-  }
-
-  .section {
-    padding: 12px;
-    border-radius: 12px;
-  }
-
-  .sectionTitle {
-    font-size: 15px;
-  }
-
-  .sectionTitle::before {
-    height: 18px;
-  }
-
-  .primaryBtn {
-    height: 48px;
-    font-size: 15px;
-  }
-
-  .pdfActions {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .pdfActions button {
-    flex: 1;
-    min-width: 100px;
-  }
-
-  .searchTab {
-    padding: 12px;
-    border-radius: 12px;
-  }
-
-  .searchHeader {
-    gap: 8px;
-  }
-
-  .searchHeader .input {
-    min-width: 100%;
-    flex: 1 0 100%;
-  }
-
-  .chip {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  .fechaGroup {
-    padding: 10px 12px;
-    min-width: 0;
-  }
-
-  .toastInfo,
-  .toastSuccess,
-  .toastDanger {
-    padding: 10px;
-    font-size: 13px;
-  }
-
-  /* Fecha de nacimiento en móvil: inputs un poco más altos y legibles */
-  .nacimientoRow {
-    gap: 6px;
-    padding-bottom: 20px;
-  }
-
-  .nacimientoRow .nacimientoInput,
-  .nacimientoMesWrapper>input {
-    height: 50px;
-    font-size: 17px;
-  }
-
-  .mesHint {
-    font-size: 11px;
-    top: calc(100% + 4px);
-  }
-}
-
-/* ==========================================================
-   PANTALLAS MUY ANGOSTAS (≤ 380px)
-   ========================================================== */
-@media (max-width: 380px) {
-  .title {
-    font-size: 20px;
-  }
-
-  .headerActions {
-    justify-content: space-between;
-  }
-
-  .ghostBtn {
-    padding: 8px 10px;
-    font-size: 13px;
-  }
-
-  .table tr {
-    padding: 8px 10px;
-  }
-
-  .table td {
-    font-size: 13px;
-    padding: 7px 0;
-  }
-
-  .table td::before {
-    font-size: 11px;
-  }
-
-  .iconBtn {
-    padding: 8px 10px;
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 16px;
-  }
-
-  .nacimientoRow .nacimientoInput,
-  .nacimientoMesWrapper>input {
-    height: 46px;
-    font-size: 16px;
-    padding: 0 4px;
-  }
-
-  .mesHint {
-    font-size: 10px;
-  }
-}
-
-/* ============================================================
-   BANNER DE HISTORIA CLÍNICA (búsqueda por DNI)
-   ============================================================ */
+/* ===== DNI row / banners HC ===== */
 .dniRow {
   display: flex;
   gap: 8px;
@@ -1028,7 +729,6 @@
   min-width: 0;
 }
 
-/* Botón de búsqueda de DNI/HC — grande, táctil y legible */
 .dniSearchBtn {
   height: 46px;
   padding: 0 18px;
@@ -1163,8 +863,337 @@
   cursor: not-allowed;
 }
 
-/* ---- Móvil: DNI + botón búsqueda grandes y apilados ---- */
+/* ===== Upload: spinner, progreso, error ===== */
+.uploadBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.uploadLabel {
+  font-size: 13px;
+  color: #93c5fd;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.uploadCounter {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.uploadPercent {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(148, 163, 184, 0.25);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spinUpload 0.8s linear infinite;
+}
+
+@keyframes spinUpload {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #22c55e);
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+
+.uploadError {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.errorCloseBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: transparent;
+  color: #fca5a5;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.errorCloseBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================
+   MODAL DE DOCUMENTOS
+   ============================================================ */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: modalFadeIn 0.15s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  background: #1e2436;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 1000px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  color: #e2e8f0;
+  animation: modalSlideIn 0.18s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.modalCloseBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.modalCloseBtn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.modalBody {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+  color: #cbd5e1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Light mode para el modal */
+:global(body.light-mode) .modalContent {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+}
+
+:global(body.light-mode) .modalHeader {
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}
+
+:global(body.light-mode) .modalBody {
+  color: #0f172a;
+}
+
+:global(body.light-mode) .modalCloseBtn {
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+:global(body.light-mode) .modalFooter {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+/* ============================================================
+   AJUSTES MOBILE (≤ 640px) — iPhone, etc.
+   ============================================================ */
 @media (max-width: 640px) {
+  .page {
+    padding: 12px 0;
+  }
+
+  .shell {
+    padding: 0 12px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .header {
+    margin-bottom: 14px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .section {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .sectionTitle {
+    font-size: 15px;
+  }
+
+  .sectionTitle::before {
+    height: 18px;
+  }
+
+  .primaryBtn {
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .pdfActions {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .pdfActions button {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .searchTab {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .searchHeader {
+    gap: 8px;
+  }
+
+  .searchHeader .input {
+    min-width: 100%;
+    flex: 1 0 100%;
+  }
+
+  .chip {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .fechaGroup {
+    padding: 10px 12px;
+    min-width: 0;
+  }
+
+  .toastInfo,
+  .toastSuccess,
+  .toastDanger {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .nacimientoRow {
+    gap: 6px;
+    padding-bottom: 20px;
+  }
+
+  .nacimientoRow .nacimientoInput,
+  .nacimientoMesWrapper>input {
+    height: 50px;
+    font-size: 17px;
+  }
+
+  .mesHint {
+    font-size: 11px;
+    top: calc(100% + 4px);
+  }
+
   .dniRow {
     flex-direction: column;
     gap: 10px;
@@ -1172,7 +1201,6 @@
 
   .dniRow .input {
     flex: 0 0 auto;
-    /* anula el flex:1 del desktop */
     width: 100%;
     height: 52px;
     min-height: 52px;
@@ -1201,5 +1229,236 @@
     width: 100%;
     height: 48px;
     font-size: 14px;
+  }
+
+  /* ===== Tabla → tarjetas ===== */
+  .tableWrapper {
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .table,
+  .table thead,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .table tr:hover {
+    background: var(--bg-card);
+  }
+
+  .table td {
+    border-bottom: none;
+    padding: 8px 0;
+    text-align: right;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .table td:last-child {
+    border-bottom: none;
+    padding-top: 12px;
+    justify-content: center;
+  }
+
+  .table td::before {
+    content: "";
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+
+  .table td:nth-child(1)::before {
+    content: "Paciente";
+  }
+
+  .table td:nth-child(2)::before {
+    content: "DNI";
+  }
+
+  .table td:nth-child(3)::before {
+    content: "HC";
+  }
+
+  .table td:nth-child(4)::before {
+    content: "O.S";
+  }
+
+  .table td:nth-child(5)::before {
+    content: "Afiliado";
+  }
+
+  .table td:nth-child(6)::before {
+    content: "Tipo";
+  }
+
+  .table td:nth-child(7)::before {
+    content: "F. Ingreso";
+  }
+
+  .table td:nth-child(8)::before {
+    content: "Docs";
+  }
+
+  .table td:first-child {
+    font-weight: 700;
+    font-size: 15px;
+    padding-bottom: 10px;
+  }
+
+  .actionsCell {
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .iconBtn {
+    min-width: 46px;
+    height: 44px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  /* ===== Modal en iPhone: pantalla completa ===== */
+  .modalOverlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .modalContent {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .modalHeader {
+    padding: 12px 14px;
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  .modalBody {
+    padding: 12px 14px;
+  }
+
+  .modalFooter {
+    padding: 12px 14px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .modalFooter .primaryBtn,
+  .modalFooter .secondaryBtn {
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .modalFooter>div[style*="flex: 1"] {
+    display: none;
+  }
+
+  .modalCloseBtn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Header del modal en 2 líneas */
+  .modalHeader>div {
+    min-width: 0;
+  }
+
+  .modalHeader h2 {
+    font-size: 16px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modalHeader .modalSubtitle {
+    font-size: 12px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ============================================================
+   PANTALLAS MUY ANGOSTAS (≤ 380px) — iPhone SE, 12 mini
+   ============================================================ */
+@media (max-width: 380px) {
+  .title {
+    font-size: 20px;
+  }
+
+  .headerActions {
+    justify-content: space-between;
+  }
+
+  .ghostBtn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .table tr {
+    padding: 8px 10px;
+  }
+
+  .table td {
+    font-size: 13px;
+    padding: 7px 0;
+  }
+
+  .table td::before {
+    font-size: 11px;
+  }
+
+  .iconBtn {
+    min-width: 42px;
+    height: 42px;
+    font-size: 16px;
+    padding: 0 6px;
+  }
+
+  .nacimientoRow .nacimientoInput,
+  .nacimientoMesWrapper>input {
+    height: 46px;
+    font-size: 16px;
+    padding: 0 4px;
+  }
+
+  .mesHint {
+    font-size: 10px;
   }
 }
