@@ -11,6 +11,7 @@ import styles from "./ingresos.module.css";
 import DocumentosModal from "./DocumentosModal";
 import DocumentacionSection from "./DocumentacionSection";
 import { generarDorsoPDFBlob, openPDFBlob } from "./documentosHelpers";
+import { generarDocumentosPDFBlob } from "./generarDocumentosPDF";
 import {
   PRESTADOR_CONST,
   initialForm,
@@ -43,6 +44,155 @@ const HC_UTI_PATH = "historias-clinica-uti";
 const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
 const COUNTER_UTI_PATH = "counters/historias-clinica-uti/lastNumber";
 
+/* ============================================================
+   HTML helpers para la pestaña "Imprimir"
+   ============================================================ */
+function buildLoadingHtml(pacienteNombre) {
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Generando PDF…</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: #0f121f; color: #eef2ff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 24px; text-align: center; }
+  .spinner {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 4px solid rgba(148, 163, 184, 0.25);
+    border-top-color: #5b8c5a;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .title { font-size: 16px; font-weight: 700; color: #e2e8f0; }
+  .sub { font-size: 13px; color: #94a3b8; max-width: 340px; line-height: 1.45; }
+  .name { font-size: 12.5px; color: #cbd5e1; margin-top: 4px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="title">📄 Generando PDF…</div>
+    <div class="sub">Estamos preparando el formulario de ingreso. Esto puede demorar unos segundos.</div>
+    ${pacienteNombre ? `<div class="name">${pacienteNombre}</div>` : ""}
+  </div>
+</body>
+</html>`;
+}
+
+function buildViewerHtml(pdfUrl, fileName, hasDocs) {
+  const safeName = fileName.replace(/"/g, "&quot;");
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>${fileName}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin: 0; height: 100%; background: #0f121f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: #1e2436;
+    border-bottom: 1px solid #2d3748;
+    color: #eef2ff;
+  }
+  .name {
+    flex: 1; min-width: 0;
+    font-size: 13px; font-weight: 600; color: #cbd5e1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .name b { color: #e2e8f0; }
+  .badge {
+    font-size: 10.5px; font-weight: 700; padding: 3px 8px;
+    border-radius: 999px; background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35);
+  }
+  .actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #5b8c5a; color: #fff;
+    border: none; padding: 9px 14px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 700; cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #477a46; }
+  .btn.secondary {
+    background: transparent; color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+  }
+  .btn.secondary:hover { background: rgba(148, 163, 184, 0.1); }
+  iframe {
+    width: 100%;
+    height: calc(100% - 57px);
+    border: none; display: block; background: #fff;
+  }
+  @media (max-width: 480px) {
+    .bar { padding: 8px 10px; gap: 8px; }
+    .name { font-size: 12px; }
+    .btn { padding: 8px 10px; font-size: 12.5px; }
+    .badge { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="name">📄 <b>${safeName}</b></div>
+    ${hasDocs ? '<span class="badge">+ Documentación</span>' : ""}
+    <div class="actions">
+      <a class="btn secondary" href="${pdfUrl}" target="_blank" rel="noopener noreferrer">🔍 Abrir</a>
+      <a class="btn" href="${pdfUrl}" download="${safeName}">⬇️ Descargar PDF</a>
+    </div>
+  </div>
+  <iframe src="${pdfUrl}#toolbar=0&navpanes=0" title="Vista previa del PDF"></iframe>
+</body>
+</html>`;
+}
+
+function buildErrorHtml(msg) {
+  const safe = String(msg || "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Error al generar PDF</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: #0f121f; color: #eef2ff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    text-align: center; padding: 24px;
+  }
+  .wrap { max-width: 420px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .icon { font-size: 48px; }
+  .title { font-size: 17px; font-weight: 800; color: #fca5a5; }
+  .msg { font-size: 13.5px; color: #94a3b8; line-height: 1.5; word-break: break-word; }
+  .btn {
+    margin-top: 8px; background: #5b8c5a; color: #fff;
+    border: none; padding: 10px 16px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none;
+  }
+  .btn:hover { background: #477a46; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon">❌</div>
+    <div class="title">No se pudo generar el PDF</div>
+    <div class="msg">${safe}</div>
+    <a class="btn" href="javascript:window.close()">Cerrar</a>
+  </div>
+</body>
+</html>`;
+}
+
 export default function IngresosPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("nuevo");
@@ -62,16 +212,17 @@ export default function IngresosPage() {
   const [editingId, setEditingId] = useState(null);
   const [currentEstado, setCurrentEstado] = useState(null);
 
-  const [deletingId, setDeletingId] = useState(null);
+  /* Estados de acciones por fila */
   const [printingId, setPrintingId] = useState(null);
   const [printingDorsoId, setPrintingDorsoId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
-  /* Documentación (compartida con el hijo) */
+  /* Documentación */
   const [docs, setDocs] = useState([]);
-
-  /* Paciente cuyo modal de docs está abierto */
   const [docsModalPaciente, setDocsModalPaciente] = useState(null);
 
+  /* HC lookup */
   const [hcLookup, setHcLookup] = useState({
     loading: false, searched: false, dni: "", tipo: "PISO",
     match: null, nextNumber: null, loadingNext: false,
@@ -165,7 +316,7 @@ export default function IngresosPage() {
     }
   }, [shouldFocusError, errors]);
 
-  /* Cargar pacientes */
+  /* Cargar pacientes al abrir tab */
   useEffect(() => {
     if (activeTab === "buscar") fetchAllPacientes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -410,6 +561,12 @@ export default function IngresosPage() {
       trabajadorNacimientoDia: nac.dia,
       trabajadorNacimientoMes: nac.mes,
       trabajadorNacimientoAnio: nac.anio,
+      trabajadorLugarNacimiento:
+        paciente["nacimiento-paciente"] ||
+        paciente.nacimientoPaciente ||
+        paciente.lugarNacimiento ||
+        t.lugarNacimiento ||
+        "",
       trabajadorSexo: t.sexo || "",
       trabajadorCalle: t.calle || "",
       trabajadorNumero: t.numero || "",
@@ -450,18 +607,31 @@ export default function IngresosPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /* ------------------------------------------------------------------
+     Eliminar: borra el ingreso de la DB tras confirmación
+     ------------------------------------------------------------------ */
   const handleDeletePaciente = async (paciente) => {
     const t = paciente.trabajador || {};
     const nombre = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "este ingreso";
-    const confirmar = window.confirm(
-      `¿Eliminar definitivamente el ingreso de "${nombre}"?\n\nEsta acción no se puede deshacer. Los documentos NO se borran de Drive.`
+    const hc = paciente.historiaClinica ? ` (HC ${paciente.historiaClinica})` : "";
+    const docsPaciente = Array.isArray(paciente.documentacion) ? paciente.documentacion : [];
+    const docsMsg = docsPaciente.length
+      ? `\n\n⚠️ También se eliminarán los ${docsPaciente.length} documento(s) asociados a este ingreso.`
+      : "";
+
+    const ok = window.confirm(
+      `¿Eliminar definitivamente el ingreso de "${nombre}"${hc}?\n\nEsta acción no se puede deshacer.${docsMsg}`
     );
-    if (!confirmar) return;
+    if (!ok) return;
+
     setDeletingId(paciente.id);
     try {
       await remove(ref(db, `${DB_NODE}/${paciente.id}`));
+
       if (editingId === paciente.id) resetForm();
-      await fetchAllPacientes();
+      if (docsModalPaciente?.id === paciente.id) setDocsModalPaciente(null);
+
+      setPacientes((prev) => prev.filter((x) => x.id !== paciente.id));
     } catch (err) {
       console.error("Error eliminando ingreso:", err);
       alert("No se pudo eliminar el ingreso. Revisá la consola.");
@@ -470,43 +640,153 @@ export default function IngresosPage() {
     }
   };
 
+  /* ------------------------------------------------------------------
+     Helper: construir el blob final (ingreso + documentación)
+     ------------------------------------------------------------------ */
+  const buildPacientePdfBlob = async (paciente) => {
+    const tipoIngreso = paciente.tipoIngreso || "PISO";
+    const payload = { ...paciente, prestador: paciente.prestador || PRESTADOR_CONST };
+    const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
+    const dni = onlyDigits(payload.trabajador?.dni) || "SIN_DNI";
+    const os = (payload.OS || "OS").replace(/\s+/g, "_");
+    const formFileName = `INT_${apellido}_${dni}_${os}.pdf`;
+
+    /* 1) Formulario */
+    const res = await fetch("/api/ingresos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload, fileName: formFileName, pages: getPdfPages(tipoIngreso) }),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Error al generar PDF: ${res.status} ${errorText}`);
+    }
+    const formBlob = await res.blob();
+
+    /* 2) Documentación + fusión */
+    const docsPaciente = Array.isArray(paciente.documentacion) ? paciente.documentacion : [];
+    if (docsPaciente.length === 0) {
+      return { blob: formBlob, fileName: formFileName, hasDocs: false };
+    }
+
+    const formLike = {
+      trabajadorApellido: payload.trabajador?.apellido || "",
+      trabajadorNombre: payload.trabajador?.nombre || "",
+      trabajadorDni: payload.trabajador?.dni || "",
+      OS: payload.OS || "",
+      afiliadoPaciente: payload.afiliadoPaciente || "",
+    };
+
+    const docsBlob = await generarDocumentosPDFBlob({ docs: docsPaciente, form: formLike });
+    if (!docsBlob) {
+      return { blob: formBlob, fileName: formFileName, hasDocs: false };
+    }
+
+    const { PDFDocument } = await import("pdf-lib");
+    const formBytes = await formBlob.arrayBuffer();
+    const docsBytes = await docsBlob.arrayBuffer();
+
+    const formPdf = await PDFDocument.load(formBytes);
+    const docsPdf = await PDFDocument.load(docsBytes);
+    const merged = await PDFDocument.create();
+
+    const formPages = await merged.copyPages(formPdf, formPdf.getPageIndices());
+    formPages.forEach((pg) => merged.addPage(pg));
+
+    const docPages = await merged.copyPages(docsPdf, docsPdf.getPageIndices());
+    docPages.forEach((pg) => merged.addPage(pg));
+
+    const mergedBytes = await merged.save();
+    const mergedBlob = new Blob([mergedBytes], { type: "application/pdf" });
+    const mergedName = formFileName.replace(/\.pdf$/i, "_CON_DOCS.pdf");
+    return { blob: mergedBlob, fileName: mergedName, hasDocs: true };
+  };
+
+  /* ------------------------------------------------------------------
+     Imprimir: abre pestaña con spinner, luego visor + botón Descargar
+     ------------------------------------------------------------------ */
   const handlePrintPaciente = async (paciente) => {
     setPrintingId(paciente.id);
+    const t = paciente.trabajador || {};
+    const pacienteNombre = `${t.apellido || ""} ${t.nombre || ""}`.trim();
+
     const newTab = window.open("", "_blank");
+    if (newTab) {
+      try {
+        newTab.document.open();
+        newTab.document.write(buildLoadingHtml(pacienteNombre));
+        newTab.document.close();
+      } catch { /* noop */ }
+    }
+
     try {
-      const tipoIngreso = paciente.tipoIngreso || "PISO";
-      const payload = { ...paciente, prestador: paciente.prestador || PRESTADOR_CONST };
-      const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
-      const dni = onlyDigits(payload.trabajador?.dni) || "SIN_DNI";
-      const os = (payload.OS || "OS").replace(/\s+/g, "_");
-      const fileName = `INT_${apellido}_${dni}_${os}.pdf`;
-      const res = await fetch("/api/ingresos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, fileName, pages: getPdfPages(tipoIngreso) }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Error al generar PDF: ${res.status} ${errorText}`);
-      }
-      const blob = await res.blob();
+      const { blob, fileName, hasDocs } = await buildPacientePdfBlob(paciente);
       const url = URL.createObjectURL(blob);
-      if (newTab) newTab.location.href = url;
-      else {
-        const a = document.createElement("a");
-        a.href = url; a.target = "_blank"; a.rel = "noopener,noreferrer";
-        document.body.appendChild(a); a.click(); a.remove();
+
+      if (newTab && !newTab.closed) {
+        try {
+          newTab.document.open();
+          newTab.document.write(buildViewerHtml(url, fileName, hasDocs));
+          newTab.document.close();
+          try { newTab.document.title = fileName; } catch { /* noop */ }
+          const checkClosed = setInterval(() => {
+            if (newTab.closed) {
+              clearInterval(checkClosed);
+              URL.revokeObjectURL(url);
+            }
+          }, 3000);
+          return;
+        } catch (writeErr) {
+          console.warn("No se pudo reescribir la pestaña:", writeErr);
+          newTab.location.href = url;
+          return;
+        }
       }
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error(err);
-      if (newTab) newTab.close();
-      alert("No se pudo generar el PDF.");
+      if (newTab && !newTab.closed) {
+        try {
+          newTab.document.open();
+          newTab.document.write(buildErrorHtml(err.message));
+          newTab.document.close();
+        } catch { newTab.close(); }
+      } else {
+        alert("No se pudo generar el PDF: " + err.message);
+      }
     } finally {
       setPrintingId(null);
     }
   };
 
-  /* Imprimir Dorso desde la tabla */
+  /* ------------------------------------------------------------------
+     Descargar: sin pestaña, dispara el download del blob
+     ------------------------------------------------------------------ */
+  const handleDownloadPaciente = async (paciente) => {
+    setDownloadingId(paciente.id);
+    try {
+      const { blob, fileName } = await buildPacientePdfBlob(paciente);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo descargar el PDF: " + err.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const handlePrintDorsoPaciente = async (paciente) => {
     setPrintingDorsoId(paciente.id);
     try {
@@ -560,12 +840,19 @@ export default function IngresosPage() {
       const habitacionCama = buildHabitacionCama(form);
       const habitacionCamaTexto = buildHabitacionCamaTexto(form);
       const anioIngreso2 = normalizeYear2(form.anioIngreso);
+      const lugarNac = (form.trabajadorLugarNacimiento || "").trim().toUpperCase();
 
       const payload = {
         OS: (form.OS || "").trim().toUpperCase(),
         afiliadoPaciente: (form.afiliadoPaciente || "").trim().toUpperCase(),
         historiaClinica: (form.historiaClinica || "").trim().toUpperCase(),
         tipoIngreso: form.tipoIngreso,
+
+        /* Lugar de nacimiento en 3 formatos para cubrir cualquier plantilla */
+        "nacimiento-paciente": lugarNac,
+        nacimientoPaciente: lugarNac,
+        lugarNacimiento: lugarNac,
+
         fechaIngreso: {
           dia: onlyDigits(form.diaIngreso).slice(-2),
           mes: onlyDigits(form.mesIngreso).slice(-2),
@@ -576,6 +863,7 @@ export default function IngresosPage() {
           nombre: form.trabajadorNombre.trim().toUpperCase() || "",
           dni: trabajadorDniFormatted || "",
           nacimiento: form.trabajadorNacimiento || "",
+          lugarNacimiento: lugarNac,
           edad: form.trabajadorEdad,
           sexo: form.trabajadorSexo,
           calle: form.trabajadorCalle.trim().toUpperCase() || "",
@@ -637,10 +925,41 @@ export default function IngresosPage() {
         return;
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const formBlob = await res.blob();
+
+      let finalBlob = formBlob;
+      let finalFileName = fileName;
+
+      if (Array.isArray(docs) && docs.length > 0) {
+        try {
+          const docsBlob = await generarDocumentosPDFBlob({ docs, form });
+          if (docsBlob) {
+            const { PDFDocument } = await import("pdf-lib");
+            const formBytes = await formBlob.arrayBuffer();
+            const docsBytes = await docsBlob.arrayBuffer();
+
+            const formPdf = await PDFDocument.load(formBytes);
+            const docsPdf = await PDFDocument.load(docsBytes);
+            const merged = await PDFDocument.create();
+
+            const formPages = await merged.copyPages(formPdf, formPdf.getPageIndices());
+            formPages.forEach((pg) => merged.addPage(pg));
+
+            const docsPages = await merged.copyPages(docsPdf, docsPdf.getPageIndices());
+            docsPages.forEach((pg) => merged.addPage(pg));
+
+            const mergedBytes = await merged.save();
+            finalBlob = new Blob([mergedBytes], { type: "application/pdf" });
+            finalFileName = fileName.replace(/\.pdf$/i, "_CON_DOCS.pdf");
+          }
+        } catch (err) {
+          console.error("No se pudo fusionar el PDF de documentación:", err);
+        }
+      }
+
+      const url = URL.createObjectURL(finalBlob);
       setPdfUrl(url);
-      setPdfFileName(fileName);
+      setPdfFileName(finalFileName);
       setEditingId(null);
       setCurrentEstado(null);
       if (activeTab === "buscar") fetchAllPacientes();
@@ -824,6 +1143,16 @@ export default function IngresosPage() {
                         </div>
                       </div>
                       <div className={styles.field}>
+                        <label className={styles.label}>Lugar de nacimiento (provincia)</label>
+                        <input
+                          className={styles.input}
+                          value={form.trabajadorLugarNacimiento ?? ""}
+                          onChange={onChange("trabajadorLugarNacimiento")}
+                          placeholder="Ej: Santa Fe, Buenos Aires, Córdoba..."
+                          autoComplete="address-level1"
+                        />
+                      </div>
+                      <div className={styles.field}>
                         <label className={styles.label}>Edad (calculada)</label>
                         <input className={cx(styles.input, styles.inputReadonly)} value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""} readOnly tabIndex={-1} />
                       </div>
@@ -959,7 +1288,11 @@ export default function IngresosPage() {
 
                   <div className={styles.footer}>
                     <button type="submit" className={styles.primaryBtn} disabled={!canSubmit}>
-                      {saving ? "Guardando y generando..." : editingId ? "Actualizar y generar PDF" : "Guardar y generar PDF"}
+                      {saving
+                        ? "Guardando, fusionando y generando PDF..."
+                        : editingId
+                          ? "Actualizar y generar PDF"
+                          : "Guardar y generar PDF"}
                     </button>
 
                     <div className={styles.pdfRow}>
@@ -988,18 +1321,41 @@ export default function IngresosPage() {
           ) : (
             <div className={styles.searchTab}>
               <div className={styles.searchHeader}>
-                <input type="text" className={styles.input}
+                <input
+                  type="text"
+                  className={styles.input}
                   placeholder="Buscar por nombre, apellido, DNI, HC o N° afiliado..."
-                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                <button className={styles.ghostBtn} onClick={fetchAllPacientes} disabled={loadingPacientes}>
-                  🔄 Actualizar
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Buscar pacientes"
+                />
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={fetchAllPacientes}
+                  disabled={loadingPacientes}
+                >
+                  {loadingPacientes ? "⏳ Cargando…" : "🔄 Actualizar"}
                 </button>
               </div>
 
               {loadingPacientes ? (
-                <div className={styles.loading}>Cargando ingresos...</div>
+                <div className={styles.loading}>
+                  <span className={styles.emptyIcon}>⏳</span>
+                  <span>Cargando ingresos…</span>
+                </div>
               ) : filteredPacientes.length === 0 ? (
-                <div className={styles.empty}>No se encontraron ingresos.</div>
+                <div className={styles.empty}>
+                  <span className={styles.emptyIcon}>🔍</span>
+                  <span className={styles.emptyTitle}>
+                    {searchTerm ? "Sin resultados" : "No hay ingresos cargados"}
+                  </span>
+                  <span className={styles.emptyHint}>
+                    {searchTerm
+                      ? "Probá con otro nombre, DNI, HC o N° de afiliado."
+                      : "Cuando guardes un ingreso, aparecerá acá."}
+                  </span>
+                </div>
               ) : (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -1020,13 +1376,11 @@ export default function IngresosPage() {
                       {filteredPacientes.map((p) => {
                         const t = p.trabajador || {};
                         const fi = p.fechaIngreso || {};
-                        const estaEliminando = deletingId === p.id;
                         const estaImprimiendo = printingId === p.id;
+                        const estaDescargando = downloadingId === p.id;
                         const estaImprimiendoDorso = printingDorsoId === p.id;
-                        const bloqueado =
-                          estaEliminando ||
-                          estaImprimiendo ||
-                          estaImprimiendoDorso;
+                        const estaEliminando = deletingId === p.id;
+                        const bloqueado = estaImprimiendo || estaImprimiendoDorso || estaDescargando || estaEliminando;
                         const docsPaciente = Array.isArray(p.documentacion) ? p.documentacion : [];
 
                         return (
@@ -1040,6 +1394,7 @@ export default function IngresosPage() {
                             <td>{fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—"}</td>
                             <td style={{ textAlign: "center" }}>
                               <button
+                                type="button"
                                 className={styles.iconBtn}
                                 title="Ver / gestionar documentación"
                                 onClick={() => setDocsModalPaciente(p)}
@@ -1048,11 +1403,39 @@ export default function IngresosPage() {
                               </button>
                             </td>
                             <td className={styles.actionsCell}>
-                              <button className={styles.iconBtn} title="Editar" onClick={() => handleEditPaciente(p)} disabled={bloqueado}>✏️</button>
-                              <button className={styles.iconBtn} title={`Reimprimir formulario (${p.tipoIngreso || "PISO"})`} onClick={() => handlePrintPaciente(p)} disabled={bloqueado}>
+                              <button
+                                type="button"
+                                className={styles.iconBtn}
+                                title="Editar"
+                                onClick={() => handleEditPaciente(p)}
+                                disabled={bloqueado}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.iconBtn}
+                                title={`Imprimir ingreso${docsPaciente.length ? " + documentación" : ""} (${p.tipoIngreso || "PISO"})`}
+                                onClick={() => handlePrintPaciente(p)}
+                                disabled={bloqueado}
+                              >
                                 {estaImprimiendo ? "⏳" : "🖨️"}
                               </button>
                               <button
+                                type="button"
+                                className={styles.iconBtn}
+                                title={`Descargar PDF${docsPaciente.length ? " (ingreso + documentación)" : ""}`}
+                                onClick={() => handleDownloadPaciente(p)}
+                                disabled={bloqueado}
+                                style={{
+                                  borderColor: "rgba(34, 197, 94, 0.5)",
+                                  color: "#4ade80",
+                                }}
+                              >
+                                {estaDescargando ? "⏳" : "⬇️"}
+                              </button>
+                              <button
+                                type="button"
                                 className={styles.iconBtn}
                                 title="Imprimir Dorso"
                                 onClick={() => handlePrintDorsoPaciente(p)}
@@ -1064,7 +1447,13 @@ export default function IngresosPage() {
                               >
                                 {estaImprimiendoDorso ? "⏳" : "📄"}
                               </button>
-                              <button className={cx(styles.iconBtn, styles.iconBtnDanger)} title="Eliminar" onClick={() => handleDeletePaciente(p)} disabled={bloqueado}>
+                              <button
+                                type="button"
+                                className={cx(styles.iconBtn, styles.iconBtnDanger)}
+                                title="Eliminar ingreso"
+                                onClick={() => handleDeletePaciente(p)}
+                                disabled={bloqueado}
+                              >
                                 {estaEliminando ? "⏳" : "🗑️"}
                               </button>
                             </td>

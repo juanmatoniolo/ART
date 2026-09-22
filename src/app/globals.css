@@ -13,6 +13,34 @@
   --shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
 }
 
+/* Reset que evita overflow horizontal */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  /* red de seguridad */
+  max-width: 100%;
+}
+
+/* Inputs y botones heredan el box-sizing del padre */
+input,
+select,
+textarea,
+button {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Los svg/emoji dentro de botones no rompen el layout */
+button>svg {
+  flex-shrink: 0;
+}
+
 html,
 body {
   background: var(--bg);

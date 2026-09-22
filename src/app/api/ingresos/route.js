@@ -12,18 +12,20 @@ const PAGES_BY_TYPE = {
 	UTI: [1, 9, 10, 11, 12],
 };
 
-/* ------------------------- helpers ------------------------- */
+/* ============================================================
+   HELPERS
+============================================================ */
 
 function getTemplatePath() {
 	return path.join(process.cwd(), "src", "templates", TEMPLATE_NAME);
 }
 
 function cleanFileName(fileName = "INGRESO.pdf") {
-	return fileName.toString().replace(/[^a-zA-Z0-9._-]/g, "_");
+	return String(fileName).replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-function cleanText(s) {
-	const v = (s ?? "").toString().trim();
+function cleanText(value) {
+	const v = String(value ?? "").trim();
 
 	if (!v) return "";
 	if (v === "-" || v.toLowerCase() === "n/a") return "";
@@ -31,21 +33,24 @@ function cleanText(s) {
 	return v.toUpperCase();
 }
 
-function pad2(v) {
-	return String(v ?? "").padStart(2, "0");
+function pad2(value) {
+	return String(value ?? "").padStart(2, "0");
 }
 
-function normalizeYear2(v) {
-	const d = String(v ?? "").replace(/\D/g, "");
+function normalizeYear2(value) {
+	const d = String(value ?? "").replace(/\D/g, "");
 
 	if (!d) return "";
-	if (d.length >= 4) return d.slice(-2);
+
+	if (d.length >= 4) {
+		return d.slice(-2);
+	}
 
 	return d.padStart(2, "0").slice(-2);
 }
 
-function normalizeMonthDay(v) {
-	const d = String(v ?? "").replace(/\D/g, "");
+function normalizeMonthDay(value) {
+	const d = String(value ?? "").replace(/\D/g, "");
 
 	if (!d) return "";
 
@@ -61,7 +66,7 @@ function splitDateISO(iso) {
 		};
 	}
 
-	const [yyyy, mm, dd] = iso.split("-");
+	const [yyyy, mm, dd] = String(iso).split("-");
 
 	return {
 		dia: dd ? pad2(dd) : "",
@@ -71,16 +76,42 @@ function splitDateISO(iso) {
 }
 
 /* ============================================================
-   buildIngresoFields
-   ============================================================ */
+   LUGAR DE NACIMIENTO
+============================================================ */
+
+function getLugarNacimiento(payload) {
+	const trabajador = payload?.trabajador || {};
+
+	const valores = [
+		trabajador.lugarNacimiento,
+		trabajador.nacimientoLugar,
+		trabajador.lugar_de_nacimiento,
+
+		payload?.["nacimiento-paciente"],
+		payload?.nacimientoPaciente,
+		payload?.lugarNacimiento,
+		payload?.trabajadorLugarNacimiento,
+	];
+
+	const encontrado = valores.find(
+		(value) =>
+			value !== undefined &&
+			value !== null &&
+			String(value).trim() !== "",
+	);
+
+	return cleanText(encontrado);
+}
+
+/* ============================================================
+   BUILD FIELDS
+============================================================ */
 
 function buildIngresoFields(payload) {
-	const t = payload.trabajador || {};
-	const fam = payload.familiar || {};
-	const int = payload.internacion || {};
-	const fi = payload.fechaIngreso || {};
-
-	// ===== Fechas =====
+	const t = payload?.trabajador || {};
+	const fam = payload?.familiar || {};
+	const int = payload?.internacion || {};
+	const fi = payload?.fechaIngreso || {};
 
 	const nac = splitDateISO(t.nacimiento);
 
@@ -88,10 +119,9 @@ function buildIngresoFields(payload) {
 	const ingMes = normalizeMonthDay(fi.mes);
 	const ingAnio = normalizeYear2(fi.anio);
 
-	// ===== Apellido / Nombre =====
-
 	const apellidoPaciente = cleanText(t.apellido);
 	const nombrePaciente = cleanText(t.nombre);
+
 	const nombreCompleto = `${apellidoPaciente} ${nombrePaciente}`.trim();
 
 	const edad = t.edad ? `${String(t.edad).trim()} AÑOS` : "";
@@ -112,35 +142,25 @@ function buildIngresoFields(payload) {
 		.filter(Boolean)
 		.join("/");
 
-	const os = cleanText(payload.OS);
-	const afiliado = cleanText(payload.afiliadoPaciente);
+	const os = cleanText(payload?.OS);
+	const afiliado = cleanText(payload?.afiliadoPaciente);
 	const dni = cleanText(t.dni);
-	const diagnostico = cleanText(payload.diagnostico);
-	const medicoSolicitante = cleanText(payload.medicoSolicitante);
-	const historiaClinica = cleanText(payload.historiaClinica);
+	const diagnostico = cleanText(payload?.diagnostico);
+	const medicoSolicitante = cleanText(payload?.medicoSolicitante);
+	const historiaClinica = cleanText(payload?.historiaClinica);
 
-	// =========================================================
-	// LUGAR DE NACIMIENTO
-	// =========================================================
-	//
-	// IMPORTANTE:
-	// Antes estaba usando t.localidad.
-	// Eso hacía que el campo "nacimiento-paciente"
-	// mostrara la localidad/domicilio del paciente.
-	//
-	// Ahora toma exclusivamente el lugar de nacimiento.
-	//
-	const lugarNacimiento = cleanText(
-		t.lugarNacimiento ||
-			payload["nacimiento-paciente"] ||
-			payload.nacimientoPaciente ||
-			payload.lugarNacimiento ||
-			"",
-	);
+	/*
+	 * ESTE ES EL VALOR QUE VA AL PDF.
+	 */
+	const lugarNacimiento = getLugarNacimiento(payload);
 
-	// ===== Habitación/Cama =====
+	console.log("[INGRESOS-PDF] LUGAR DE NACIMIENTO:", lugarNacimiento);
 
-	const esUTI = payload.tipoIngreso === "UTI";
+	/* ========================================================
+	   HABITACIÓN / CAMA
+	======================================================== */
+
+	const esUTI = payload?.tipoIngreso === "UTI";
 
 	let habitacionCamaTexto = "";
 
@@ -160,9 +180,9 @@ function buildIngresoFields(payload) {
 	const parentescoVal = cleanText(fam.parentezco);
 
 	return {
-		// =========================================================
-		// HC
-		// =========================================================
+		/* ======================================================
+		   HISTORIA CLÍNICA
+		====================================================== */
 
 		"hc-paciente": historiaClinica,
 		hc: historiaClinica,
@@ -171,11 +191,11 @@ function buildIngresoFields(payload) {
 		"historia-clinica": historiaClinica,
 		"nro-hc": historiaClinica,
 
-		// =========================================================
-		// OBRA SOCIAL
-		// =========================================================
+		/* ======================================================
+		   OBRA SOCIAL
+		====================================================== */
 
-		os: os,
+		os,
 		"o-s": os,
 		"o.s": os,
 		"obra-social": os,
@@ -187,76 +207,120 @@ function buildIngresoFields(payload) {
 		"a-r-t": os,
 		art_os: os,
 
-		// =========================================================
-		// AFILIADO
-		// =========================================================
+		/* ======================================================
+		   AFILIADO
+		====================================================== */
 
 		"afiliado-paciente": afiliado,
 		"afiliado-no": afiliado,
-		afiliado: afiliado,
+		afiliado,
 		"nro-afiliado": afiliado,
 		"n-afiliado": afiliado,
 
-		// =========================================================
-		// PACIENTE
-		// =========================================================
+		/* ======================================================
+		   PACIENTE
+		====================================================== */
 
 		"apellido-paciente": apellidoPaciente,
+
 		"paciente-apellido": apellidoPaciente,
+
 		apellido: apellidoPaciente,
 
 		"nombre-paciente": nombrePaciente,
+
 		"paciente-nombre": nombrePaciente,
+
 		nombre: nombrePaciente,
 
 		"nombres-paciente": nombreCompleto,
+
 		"paciente-nombre-completo": nombreCompleto,
+
 		"nombre-completo": nombreCompleto,
+
 		"apellido-nombre": nombreCompleto,
+
 		nombres: nombreCompleto,
 
-		// =========================================================
-		// SEXO
-		// =========================================================
+		/* ======================================================
+		   SEXO
+		====================================================== */
 
 		"masculino-paciente": esMasculino,
+
 		"femenino-paciente": esFemenino,
+
 		masculino: esMasculino,
+
 		femenino: esFemenino,
+
 		"sexo-m": esMasculino,
+
 		"sexo-f": esFemenino,
+
 		"paciente-sexo": cleanText(t.sexo),
+
 		sexo: cleanText(t.sexo),
 
-		// =========================================================
-		// DOCUMENTO
-		// =========================================================
+		/* ======================================================
+		   DNI
+		====================================================== */
 
 		"dni-paciente": dni,
-		dni: dni,
+		dni,
 		documento: dni,
 		"paciente-dni": dni,
 		"nro-documento": dni,
 		"n-documento": dni,
 
-		// =========================================================
-		// FECHA DE NACIMIENTO
-		// =========================================================
+		/* ======================================================
+		   FECHA NACIMIENTO
+		====================================================== */
 
 		dia: nac.dia,
 		mes: nac.mes,
 		año: nac.anio,
 		anio: nac.anio,
+
 		"fecha-nacimiento": nacimientoFecha,
+
 		"paciente-nacimiento": nacimientoFecha,
+
 		"paciente-dia": nac.dia,
+
 		"paciente-mes": nac.mes,
+
 		"paciente-anio": nac.anio,
+
 		"paciente-año": nac.anio,
 
-		// =========================================================
-		// FECHA DE INGRESO
-		// =========================================================
+		/* ======================================================
+		   LUGAR DE NACIMIENTO
+
+		   ⚠️ IMPORTANTE:
+		   El PDF tiene el campo mal escrito como
+		   "nacmiento-paciente" (sin la primera "i").
+		   Ese es el nombre EXACTO que hay que usar.
+		====================================================== */
+
+		"nacmiento-paciente": lugarNacimiento,
+
+		/* Los demás quedan por compatibilidad, pero NO existen
+		   en este template. Si algún día corregís el PDF,
+		   ya están listos. */
+
+		"nacimiento-paciente": lugarNacimiento,
+
+		"lugar-nacimiento": lugarNacimiento,
+
+		nacimientoPaciente: lugarNacimiento,
+
+		lugarNacimiento: lugarNacimiento,
+
+		/* ======================================================
+		   FECHA INGRESO
+		====================================================== */
 
 		"dia-int": ingDia,
 		"mes-int": ingMes,
@@ -271,111 +335,137 @@ function buildIngresoFields(payload) {
 		ingreso: ingresoFecha,
 		"fecha-ingreso": ingresoFecha,
 
-		// =========================================================
-		// EDAD
-		// =========================================================
+		/* ======================================================
+		   EDAD
+		====================================================== */
 
-		edad: edad,
+		edad,
 		"edad-paciente": edad,
 		"paciente-edad": edad,
 		"edad-anios": edad,
 		"edad-años": edad,
 
-		// =========================================================
-		// UBICACIÓN
-		// =========================================================
+		/* ======================================================
+		   LOCALIDAD
+		====================================================== */
 
 		"localidad-paciente": cleanText(t.localidad),
+
 		localidad: cleanText(t.localidad),
+
 		"paciente-localidad": cleanText(t.localidad),
 
+		/* ======================================================
+		   PROVINCIA
+		====================================================== */
+
 		"provincia-paciente": cleanText(t.provincia),
+
 		provincia: cleanText(t.provincia),
+
 		"paciente-provincia": cleanText(t.provincia),
 
-		// =========================================================
-		// LUGAR DE NACIMIENTO
-		// =========================================================
-		//
-		// ESTE ES EL CAMPO DEL PDF QUE NECESITÁS.
-		//
-		"nacimiento-paciente": lugarNacimiento,
-		"lugar-nacimiento": lugarNacimiento,
-		nacimientoPaciente: lugarNacimiento,
-		lugarNacimiento: lugarNacimiento,
-
-		// =========================================================
-		// DOMICILIO
-		// =========================================================
+		/* ======================================================
+		   DOMICILIO
+		====================================================== */
 
 		"domicilio-paciente": domicilio,
-		domicilio: domicilio,
+
+		domicilio,
 		"paciente-domicilio": domicilio,
+
 		"domicilio-habitual": domicilio,
+
 		"domicilio-habitual-paciente": domicilio,
 
-		// =========================================================
-		// TELÉFONO
-		// =========================================================
+		/* ======================================================
+		   TELÉFONO
+		====================================================== */
 
 		"telefono-paciente": cleanText(t.telefono),
+
 		telefono: cleanText(t.telefono),
+
 		"paciente-telefono": cleanText(t.telefono),
+
 		celular: cleanText(t.telefono),
 
-		// =========================================================
-		// FAMILIAR
-		// =========================================================
+		/* ======================================================
+		   FAMILIAR
+		====================================================== */
 
 		"familiar-nombre": cleanText(fam.nombre),
+
 		"nombre-familiar": cleanText(fam.nombre),
+
 		familiar: cleanText(fam.nombre),
 
 		"familiar-telefono": cleanText(fam.telefono),
+
 		"telefono-familiar": cleanText(fam.telefono),
 
 		"familiar-parenteszco": parentescoVal,
+
 		"familiar-parentezco": parentescoVal,
+
 		"familiar-parentesco": parentescoVal,
+
 		parenteszco: parentescoVal,
+
 		parentezco: parentescoVal,
+
 		parentesco: parentescoVal,
+
 		"parentezco-familiar": parentescoVal,
+
 		"parentesco-familiar": parentescoVal,
 
-		// =========================================================
-		// INTERNACIÓN
-		// =========================================================
+		/* ======================================================
+		   INTERNACIÓN
+		====================================================== */
 
-		servicio: cleanText(payload.tipoIngreso),
-		"tipo-ingreso": cleanText(payload.tipoIngreso),
+		servicio: cleanText(payload?.tipoIngreso),
+
+		"tipo-ingreso": cleanText(payload?.tipoIngreso),
 
 		"habitacion-cama": habitacionCamaTexto,
+
 		habitacion: habitacionCamaTexto,
+
 		cama: habitacionCamaTexto,
 
 		"cama-numero": cleanText(int.camaNumero),
+
 		"cama-letra": cleanText(int.camaLetra),
 
-		// =========================================================
-		// DIAGNÓSTICO / MÉDICO
-		// =========================================================
+		/* ======================================================
+		   DIAGNÓSTICO
+		====================================================== */
 
 		cx: diagnostico,
 		"cx-0": diagnostico,
-		diagnostico: diagnostico,
+		diagnostico,
 		"diagnostico-ingreso": diagnostico,
+
 		"diagnostico-al-ingreso": diagnostico,
 
+		/* ======================================================
+		   MÉDICO
+		====================================================== */
+
 		"nombre-dr": medicoSolicitante,
+
 		"medico-solicitante": medicoSolicitante,
+
 		medico: medicoSolicitante,
+
 		"medico-cabecera": medicoSolicitante,
+
 		"medico-de-cabecera": medicoSolicitante,
 
-		// =========================================================
-		// EGRESO
-		// =========================================================
+		/* ======================================================
+		   EGRESO
+		====================================================== */
 
 		e: "",
 		"fecha-egreso": "",
@@ -383,7 +473,9 @@ function buildIngresoFields(payload) {
 	};
 }
 
-/* ---------------- filler genérico ---------------- */
+/* ============================================================
+   FILL PDF
+============================================================ */
 
 function fillFormFields(form, fields) {
 	const missing = [];
@@ -392,29 +484,36 @@ function fillFormFields(form, fields) {
 	for (const [name, value] of Object.entries(fields || {})) {
 		let ok = false;
 
-		// 1) TEXT FIELD
+		/* TEXT */
+
 		try {
 			const tf = form.getTextField(name);
 
-			tf.setText(value == null ? "" : String(value).toUpperCase());
+			tf.setText(value == null ? "" : String(value));
 
 			ok = true;
 			filled.push(name);
 		} catch {}
 
-		// 2) CHECKBOX
+		/* CHECKBOX */
+
 		if (!ok) {
 			try {
 				const cb = form.getCheckBox(name);
 
-				value === true ? cb.check() : cb.uncheck();
+				if (value === true) {
+					cb.check();
+				} else {
+					cb.uncheck();
+				}
 
 				ok = true;
 				filled.push(name);
 			} catch {}
 		}
 
-		// 3) RADIO
+		/* RADIO */
+
 		if (!ok) {
 			try {
 				const rg = form.getRadioGroup(name);
@@ -428,7 +527,8 @@ function fillFormFields(form, fields) {
 			} catch {}
 		}
 
-		// 4) DROPDOWN
+		/* DROPDOWN */
+
 		if (!ok) {
 			try {
 				const dd = form.getDropdown(name);
@@ -447,47 +547,19 @@ function fillFormFields(form, fields) {
 		}
 	}
 
-	console.log("\n========== [INGRESOS-PDF] RESULTADO ==========");
+	console.log("[INGRESOS-PDF] Campos rellenados:", filled.length);
 
-	console.log("✅ Campos rellenados:", filled.length);
-
-	console.log("   " + filled.join(", "));
-
-	console.log("❌ Campos NO encontrados en el template:", missing.length);
-
-	if (missing.length) {
-		console.log("   " + missing.join(", "));
-	}
-
-	const allPdfFields = form.getFields().map((f) => f.getName());
-
-	console.log(
-		"\n📋 Campos REALES que tiene el PDF (" + allPdfFields.length + "):",
-	);
-
-	console.log("   " + allPdfFields.join(", "));
-
-	const notCovered = allPdfFields.filter((n) => !filled.includes(n));
-
-	if (notCovered.length) {
-		console.log("\n⚠️ Campos del PDF que NO estamos rellenando:");
-
-		console.log("   " + notCovered.join(", "));
-	}
-
-	console.log("==============================================\n");
+	console.log("[INGRESOS-PDF] Campos no encontrados:", missing);
 
 	return {
 		filled,
 		missing,
-		allPdfFields,
-		notCovered,
 	};
 }
 
 /* ============================================================
-   GET → debug / annotate
-   ============================================================ */
+   GET
+============================================================ */
 
 export async function GET(req) {
 	try {
@@ -511,6 +583,7 @@ export async function GET(req) {
 		const pdfDoc = await PDFDocument.load(bytes);
 
 		const form = pdfDoc.getForm();
+
 		const pages = pdfDoc.getPages();
 
 		const fieldsInfo = [];
@@ -577,8 +650,6 @@ export async function GET(req) {
 			});
 		}
 
-		// annotate
-
 		const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
 		for (const field of form.getFields()) {
@@ -636,14 +707,16 @@ export async function GET(req) {
 				error: "No se pudo procesar el template",
 				detail: e?.message || String(e),
 			},
-			{ status: 500 },
+			{
+				status: 500,
+			},
 		);
 	}
 }
 
 /* ============================================================
-   POST → genera el PDF de ingreso
-   ============================================================ */
+   POST
+============================================================ */
 
 export async function POST(req) {
 	try {
@@ -660,6 +733,26 @@ export async function POST(req) {
 			);
 		}
 
+		/* ======================================================
+		   DEBUG DEL PAYLOAD
+		====================================================== */
+
+		const lugarNacimiento = getLugarNacimiento(payload);
+
+		console.log("========================================");
+
+		console.log("[INGRESOS-PDF] TIPO:", payload.tipoIngreso);
+
+		console.log("[INGRESOS-PDF] LUGAR NACIMIENTO:", lugarNacimiento);
+
+		console.log("[INGRESOS-PDF] trabajador:", payload.trabajador);
+
+		console.log("========================================");
+
+		/* ======================================================
+		   CARGAR PDF
+		====================================================== */
+
 		const pdfFile = getTemplatePath();
 
 		const templateBytes = await fs.readFile(pdfFile);
@@ -668,42 +761,62 @@ export async function POST(req) {
 
 		const form = srcDoc.getForm();
 
-		/*
-		 * Construimos TODOS los campos del PDF.
-		 *
-		 * "nacimiento-paciente" recibe ahora
-		 * el lugar de nacimiento real del paciente.
-		 */
+		/* ======================================================
+		   CAMPOS
+		====================================================== */
+
 		const fields = buildIngresoFields(payload);
 
 		fillFormFields(form, fields);
 
-		/*
-		 * Seguridad adicional:
-		 * nos aseguramos explícitamente de que
-		 * el campo exacto del PDF reciba el lugar
-		 * de nacimiento.
-		 */
-		const lugarNacimiento = cleanText(
-			payload?.trabajador?.lugarNacimiento ||
-				payload?.["nacimiento-paciente"] ||
-				payload?.nacimientoPaciente ||
-				payload?.lugarNacimiento ||
-				"",
-		);
+		/* ======================================================
+		   CAMPO EXACTO DEL PDF:
+		   "nacmiento-paciente" (sin la primera "i")
+		====================================================== */
 
 		try {
-			const nacimientoField = form.getTextField("nacimiento-paciente");
+			const field = form.getTextField("nacmiento-paciente");
 
-			nacimientoField.setText(lugarNacimiento);
+			field.setText(lugarNacimiento);
+
+			console.log(
+				'[INGRESOS-PDF] Campo "nacmiento-paciente" seteado:',
+				lugarNacimiento,
+			);
 		} catch (error) {
-			console.warn(
-				'[INGRESOS-PDF] No se encontró el campo "nacimiento-paciente" en el PDF:',
+			console.error(
+				'[INGRESOS-PDF] ERROR campo "nacmiento-paciente":',
 				error?.message || error,
 			);
 		}
 
+		/* ======================================================
+		   ⚠️ OPCIÓN A:
+		   NO reemplazamos las apariencias ni aplanamos.
+		   De esta forma el PDF conserva la tipografía y el
+		   estilo original de cada campo, tal como se ve
+		   cuando lo completás a mano en tu PC.
+		====================================================== */
+
+		/* (comentado a propósito)
+		try {
+			const font = await srcDoc.embedFont(
+				StandardFonts.Helvetica
+			);
+			form.updateFieldAppearances(font);
+		} catch (error) {
+			console.warn(
+				"[INGRESOS-PDF] No se pudieron actualizar las apariencias:",
+				error?.message || error
+			);
+		}
+
 		form.flatten();
+		*/
+
+		/* ======================================================
+		   PÁGINAS
+		====================================================== */
 
 		const tipo = payload.tipoIngreso === "UTI" ? "UTI" : "PISO";
 
@@ -718,11 +831,23 @@ export async function POST(req) {
 			.map((p) => Number(p) - 1)
 			.filter((i) => i >= 0 && i < totalPages);
 
+		console.log("[INGRESOS-PDF] Páginas:", keep);
+
+		/* ======================================================
+		   COPIAR PÁGINAS
+		====================================================== */
+
 		const outDoc = await PDFDocument.create();
 
 		const copied = await outDoc.copyPages(srcDoc, zeroBased);
 
-		copied.forEach((pg) => outDoc.addPage(pg));
+		copied.forEach((page) => {
+			outDoc.addPage(page);
+		});
+
+		/* ======================================================
+		   GUARDAR
+		====================================================== */
 
 		const outBytes = await outDoc.save();
 
