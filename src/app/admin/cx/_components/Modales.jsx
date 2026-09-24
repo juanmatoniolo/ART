@@ -15,10 +15,10 @@ import {
 // ── ModalEstudio ──
 export function ModalEstudio({ cx, estudio, onSave, onCancel }) {
   const [profesional, setProfesional] = useState(
-    estudio === "ecg" ? cx.ecgProfesional || "" : cx.labProfesional || ""
+    estudio === "ecg" ? cx.ecgProfesional || "" : cx.labProfesional || "",
   );
   const [fecha, setFecha] = useState(
-    estudio === "ecg" ? (cx.ecgFecha || "") : (cx.labFecha || "")
+    estudio === "ecg" ? cx.ecgFecha || "" : cx.labFecha || "",
   );
   const opciones =
     estudio === "ecg"
@@ -120,7 +120,10 @@ export function ModalRealizacion({ cx, onConfirm, onCancel }) {
           <button className={styles.cancelBtn} onClick={onCancel}>
             Cancelar
           </button>
-          <button className={styles.saveBtn} onClick={() => onConfirm(fechaRealizacion)}>
+          <button
+            className={styles.saveBtn}
+            onClick={() => onConfirm(fechaRealizacion)}
+          >
             Confirmar como realizada
           </button>
         </div>
@@ -163,7 +166,10 @@ export function ModalEdicion({ cx, onSave, onCancel }) {
               {cx.pacienteDatos?.apellido} {cx.pacienteDatos?.nombre}
             </strong>
             {cx.pacienteDatos?.dni && (
-              <span> DNI {formatNumberWithThousands(cx.pacienteDatos.dni)}</span>
+              <span>
+                {" "}
+                DNI {formatNumberWithThousands(cx.pacienteDatos.dni)}
+              </span>
             )}
           </p>
 
@@ -203,8 +209,20 @@ export function ModalEdicion({ cx, onSave, onCancel }) {
               </select>
             </label>
 
-            <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 12 }}>
-              <p style={{ margin: 0, fontWeight: 600, marginBottom: 8 }}>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
                 🫀 ECG Preoperatorio
               </p>
               <label className={styles.formGroup}>
@@ -230,8 +248,20 @@ export function ModalEdicion({ cx, onSave, onCancel }) {
               </label>
             </div>
 
-            <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 12 }}>
-              <p style={{ margin: 0, fontWeight: 600, marginBottom: 8 }}>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 12,
+                padding: 12,
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
                 🧪 Laboratorio
               </p>
               <label className={styles.formGroup}>
@@ -276,6 +306,7 @@ export function ModalFicha({ cx, mapping, canonical, onClose }) {
   const dr = getDoctor(cx);
   const preop = preopStatus(cx);
   const dias = daysUntil(cx.fechaEstimada);
+  const familiar = cx.pacienteDatos?.familiar || {};
 
   const handleDownload = (type) => {
     downloadCxPdf(cx, type, mapping, canonical);
@@ -316,15 +347,36 @@ export function ModalFicha({ cx, mapping, canonical, onClose }) {
             {cx.pacienteDatos?.edad && (
               <div className={styles.fichaRow}>
                 <span className={styles.fichaKey}>Edad</span>
-                <span className={styles.fichaVal}>{cx.pacienteDatos.edad} años</span>
+                <span className={styles.fichaVal}>
+                  {cx.pacienteDatos.edad} años
+                </span>
+              </div>
+            )}
+            {cx.pacienteDatos?.afiliado && (
+              <div className={styles.fichaRow}>
+                <span className={styles.fichaKey}>N° Afiliado</span>
+                <span className={styles.fichaVal}>
+                  {cx.pacienteDatos.afiliado}
+                </span>
+              </div>
+            )}
+            {cx.pacienteDatos?.historiaClinica && (
+              <div className={styles.fichaRow}>
+                <span className={styles.fichaKey}>HC</span>
+                <span className={styles.fichaVal}>
+                  {cx.pacienteDatos.historiaClinica}
+                </span>
               </div>
             )}
           </div>
+
           <div className={styles.fichaSection}>
             <h3>Cirugía</h3>
             <div className={styles.fichaRow}>
               <span className={styles.fichaKey}>Procedimiento</span>
-              <span className={styles.fichaVal}>{cx.formulario?.cx || "—"}</span>
+              <span className={styles.fichaVal}>
+                {cx.formulario?.cx || "—"}
+              </span>
             </div>
             <div className={styles.fichaRow}>
               <span className={styles.fichaKey}>Cirujano</span>
@@ -344,6 +396,32 @@ export function ModalFicha({ cx, mapping, canonical, onClose }) {
               </span>
             </div>
           </div>
+
+          {/* 🆕 Familiar */}
+          {(familiar.nombre || familiar.telefono || familiar.parentezco) && (
+            <div className={styles.fichaSection}>
+              <h3>Familiar responsable</h3>
+              {familiar.nombre && (
+                <div className={styles.fichaRow}>
+                  <span className={styles.fichaKey}>Nombre</span>
+                  <span className={styles.fichaVal}>{familiar.nombre}</span>
+                </div>
+              )}
+              {familiar.parentezco && (
+                <div className={styles.fichaRow}>
+                  <span className={styles.fichaKey}>Parentezco</span>
+                  <span className={styles.fichaVal}>{familiar.parentezco}</span>
+                </div>
+              )}
+              {familiar.telefono && (
+                <div className={styles.fichaRow}>
+                  <span className={styles.fichaKey}>Teléfono</span>
+                  <span className={styles.fichaVal}>{familiar.telefono}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className={styles.fichaSection}>
             <h3>Preoperatorio</h3>
             <div className={styles.fichaRow}>
@@ -404,7 +482,7 @@ export function ModalListaDia({ cirugias, onClose }) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [fecha, setFecha] = useState(hoy);
   const lista = cirugias.filter(
-    (cx) => !cx.realizada && cx.fechaEstimada?.slice(0, 10) === fecha
+    (cx) => !cx.realizada && cx.fechaEstimada?.slice(0, 10) === fecha,
   );
 
   return (
@@ -454,11 +532,13 @@ export function ModalListaDia({ cirugias, onClose }) {
                       <td>{i + 1}</td>
                       <td>
                         <strong>
-                          {cx.pacienteDatos?.apellido} {cx.pacienteDatos?.nombre}
+                          {cx.pacienteDatos?.apellido}{" "}
+                          {cx.pacienteDatos?.nombre}
                         </strong>
                         {cx.pacienteDatos?.dni && (
                           <div className={styles.dniSmall}>
-                            DNI {formatNumberWithThousands(cx.pacienteDatos.dni)}
+                            DNI{" "}
+                            {formatNumberWithThousands(cx.pacienteDatos.dni)}
                           </div>
                         )}
                       </td>

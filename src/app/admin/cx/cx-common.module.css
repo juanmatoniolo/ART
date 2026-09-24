@@ -830,3 +830,12 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
+
+.bannerSuccess {
+  border: 1px solid rgba(16,185,129,0.35);
+  background: rgba(6,78,59,0.35);
+  color: #a7f3d0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 4px;
+}

@@ -38,7 +38,8 @@ export default function SolicitudesTab({
           <thead>
             <tr>
               <th>Paciente</th>
-              <th>Teléfono</th>
+              <th>Contacto</th>
+              <th>Familiar</th>
               <th>Localidad</th>
               <th>Fecha solicitud</th>
               <th>Estado</th>
@@ -55,6 +56,20 @@ export default function SolicitudesTab({
                   <div className={styles.subText}>DNI {sol.dni}</div>
                 </td>
                 <td>{sol.telefono || "—"}</td>
+                {/* 🆕 Familiar */}
+                <td className={styles.cellName}>
+                  {sol.familiarNombre ? (
+                    <>
+                      <strong>{sol.familiarNombre}</strong>
+                      <div className={styles.subText}>
+                        {sol.familiarParentezco || "—"}
+                        {sol.familiarTelefono ? ` · ${sol.familiarTelefono}` : ""}
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ color: "#6b7280" }}>—</span>
+                  )}
+                </td>
                 <td>
                   {sol.localidad}, {sol.provincia}
                 </td>
@@ -64,14 +79,15 @@ export default function SolicitudesTab({
                 <td>
                   <span
                     className={`${styles.estadoBadge} ${
-                      sol.atendida ? styles.estadoAtendida : styles.estadoPendiente
+                      sol.atendida
+                        ? styles.estadoAtendida
+                        : styles.estadoPendiente
                     }`}
                   >
                     {sol.atendida ? "Atendida" : "Pendiente"}
                   </span>
                 </td>
                 <td className={styles.actionsCell}>
-                  {/* Botones siempre visibles */}
                   <button
                     className={styles.iconBtn}
                     title="Ver detalles"
@@ -101,7 +117,6 @@ export default function SolicitudesTab({
                     🗑️
                   </button>
 
-                  {/* Botones solo para no atendidas */}
                   {!sol.atendida && (
                     <>
                       <button
@@ -115,7 +130,9 @@ export default function SolicitudesTab({
                         className={`${styles.iconBtn} ${styles.iconBtnWarning}`}
                         title="Marcar como atendida sin cirugía"
                         onClick={async () => {
-                          if (confirm("¿Marcar como atendida sin cargar cirugía?")) {
+                          if (
+                            confirm("¿Marcar como atendida sin cargar cirugía?")
+                          ) {
                             try {
                               await fetch(
                                 `https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia/${sol.id}.json`,
@@ -126,7 +143,7 @@ export default function SolicitudesTab({
                                     atendida: true,
                                     fechaAtendida: Date.now(),
                                   }),
-                                }
+                                },
                               );
                               if (onRecargar) onRecargar();
                             } catch (e) {

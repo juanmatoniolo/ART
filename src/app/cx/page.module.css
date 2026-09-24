@@ -404,3 +404,18 @@
     font-size: 0.9rem;
   }
 }
+
+
+.sectionHint {
+  display: block;
+  margin: -4px 0 16px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6b7280; /* gris claro */
+  opacity: 0.9;
+}
+
+/* Modo oscuro */
+:global([data-tema="oscuro"]) .sectionHint {
+  color: #9ca3af;
+}

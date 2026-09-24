@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import {
+  push,
+  ref,
+  set,
+  get,
+  child,
+  runTransaction,
+} from "firebase/database";
+import { getSession } from "@/utils/session";
 import styles from "./cx-common.module.css";
 
 // ── Componentes ──
@@ -38,26 +48,33 @@ import {
   isCanonNombresPaciente,
   isCanonServicio,
   isCanonEdadPacienteUI,
+  isCanonDiaInt,
+  isCanonMesInt,
+  isCanonAnioInt,
+  isCanonFamiliarNombre,
+  isCanonFamiliarParentezco,
+  isCanonFamiliarTelefono,
+  isCanonDocumento,
+  isCanonHabitacionCama,
   loadSuggestions,
   saveSuggestions,
   addSuggestion,
   computeAgeYears,
   formatNumberWithThousands,
   generateSafeFilename,
-  safeUpper,
-  parseFormattedNumber,
-  isLikelyCheckbox,
+  onlyDigits,
+  parseHCNumber,
 } from "./_utils/helpers";
-import { PDFDocument } from "pdf-lib";
 
 // ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
-const TEMPLATE_FRENTE_URL = "/templates/FRENTE-CX.pdf";
-const TEMPLATE_DORSO_URL = "/templates/DORSO-CX.pdf";
 const CIRUGIAS_DB_URL =
   "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
 const SOLICITUDES_DB_URL =
   "https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia";
+
+const HC_PATH = "historias-clinicas";
+const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
 
 export default function Page() {
   const router = useRouter();
@@ -73,6 +90,18 @@ export default function Page() {
   const [fechaEstimada, setFechaEstimada] = useState("");
   const [saving, setSaving] = useState(false);
   const [mensajeExito, setMensajeExito] = useState("");
+
+  // ── HC lookup ──
+  const [hcLookup, setHcLookup] = useState({
+    loading: false,
+    searched: false,
+    dni: "",
+    match: null,
+    nextNumber: null,
+    loadingNext: false,
+  });
+  const lastLookupDniRef = useRef("");
+  const [creatingHc, setCreatingHc] = useState(false);
 
   // ── Estados generales ──
   const [activeTab, setActiveTab] = useState("form");
@@ -137,62 +166,120 @@ export default function Page() {
       canonicalToInternal[canon].push(internalName);
     }
     for (const k of Object.keys(canonicalToInternal)) {
-      canonicalToInternal[k] = Array.from(new Set(canonicalToInternal[k])).sort();
+      canonicalToInternal[k] = Array.from(
+        new Set(canonicalToInternal[k]),
+      ).sort();
     }
     return { canonicalToInternal, internalToCanonical };
   }, [mapping]);
 
   const canonKeys = useMemo(
     () => (canonical ? Object.keys(canonical.canonicalToInternal) : []),
-    [canonical]
+    [canonical],
   );
+
   const canonCX = useMemo(() => canonKeys.find(isCanonCX), [canonKeys]);
   const canonDoctor = useMemo(() => canonKeys.find(isCanonDoctor), [canonKeys]);
-  const canonApellido = useMemo(() => canonKeys.find(isCanonApellido), [canonKeys]);
+  const canonApellido = useMemo(
+    () => canonKeys.find(isCanonApellido),
+    [canonKeys],
+  );
   const canonNombre = useMemo(() => canonKeys.find(isCanonNombre), [canonKeys]);
   const canonDNI = useMemo(() => canonKeys.find(isCanonDNI), [canonKeys]);
   const canonEdad = useMemo(() => canonKeys.find(isCanonEdad), [canonKeys]);
   const canonEdadPaciente = useMemo(
     () => canonKeys.find(isCanonEdadPaciente),
-    [canonKeys]
+    [canonKeys],
   );
   const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
   const canonMes = useMemo(() => canonKeys.find(isCanonMes), [canonKeys]);
   const canonAnio = useMemo(() => canonKeys.find(isCanonAnio), [canonKeys]);
-  const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
-  const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
+  const canonLocalidad = useMemo(
+    () => canonKeys.find(isCanonLocalidad),
+    [canonKeys],
+  );
+  const canonProvincia = useMemo(
+    () => canonKeys.find(isCanonProvincia),
+    [canonKeys],
+  );
   const canonDomicilioPaciente = useMemo(
     () => canonKeys.find(isCanonDomicilioPaciente),
-    [canonKeys]
+    [canonKeys],
   );
   const canonNacimientoPaciente = useMemo(
     () => canonKeys.find(isCanonNacimientoPaciente),
-    [canonKeys]
+    [canonKeys],
   );
   const canonHCPaciente = useMemo(
     () => canonKeys.find(isCanonHCPaciente),
-    [canonKeys]
+    [canonKeys],
   );
-  const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
-  const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
+  const canonNombres = useMemo(
+    () => canonKeys.find(isCanonNombresPaciente),
+    [canonKeys],
+  );
+  const canonServicio = useMemo(
+    () => canonKeys.find(isCanonServicio),
+    [canonKeys],
+  );
   const canonART = useMemo(() => canonKeys.find(isCanonART), [canonKeys]);
-  const canonTelefono = useMemo(() => canonKeys.find(isCanonTelefono), [canonKeys]);
+  const canonTelefono = useMemo(
+    () => canonKeys.find(isCanonTelefono),
+    [canonKeys],
+  );
+
+  const canonDiaInt = useMemo(() => canonKeys.find(isCanonDiaInt), [canonKeys]);
+  const canonMesInt = useMemo(() => canonKeys.find(isCanonMesInt), [canonKeys]);
+  const canonAnioInt = useMemo(
+    () => canonKeys.find(isCanonAnioInt),
+    [canonKeys],
+  );
+  const canonFamiliarNombre = useMemo(
+    () => canonKeys.find(isCanonFamiliarNombre),
+    [canonKeys],
+  );
+  const canonFamiliarParentezco = useMemo(
+    () => canonKeys.find(isCanonFamiliarParentezco),
+    [canonKeys],
+  );
+  const canonFamiliarTelefono = useMemo(
+    () => canonKeys.find(isCanonFamiliarTelefono),
+    [canonKeys],
+  );
+  const canonDocumento = useMemo(
+    () => canonKeys.find(isCanonDocumento),
+    [canonKeys],
+  );
+  const canonHabitacionCama = useMemo(
+    () => canonKeys.find(isCanonHabitacionCama),
+    [canonKeys],
+  );
 
   // Inicializar formulario
   useEffect(() => {
     if (!canonical || !mapping) return;
     const initial = {};
     for (const k of Object.keys(canonical.canonicalToInternal).sort((a, b) =>
-      a.localeCompare(b, "es")
-    )) initial[k] = "";
+      a.localeCompare(b, "es"),
+    ))
+      initial[k] = "";
     if (
       Object.keys(mapping).some(
-        (k) => k.includes("masculino-paciente") || k.includes("femenino-paciente")
+        (k) =>
+          k.includes("masculino-paciente") || k.includes("femenino-paciente"),
       )
     )
       initial["sexo"] = "";
     if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio))
       initial["servicio"] = "PISO";
+
+    initial.__familiarNombre = "";
+    initial.__familiarParentezco = "";
+    initial.__familiarTelefono = "";
+    initial.__hcExtra = "";
+    initial.__artOtra = "";
+    initial.__habitacionCama = "";
+
     setForm(initial);
   }, [canonical, mapping]);
 
@@ -201,11 +288,24 @@ export default function Page() {
     if (!canonical) return;
     let seeded = loadSuggestions();
     if (canonLocalidad) seeded = addSuggestion(seeded, canonLocalidad, "CHAJARÍ");
-    if (canonProvincia) seeded = addSuggestion(seeded, canonProvincia, "ENTRE RIOS");
+    if (canonProvincia)
+      seeded = addSuggestion(seeded, canonProvincia, "ENTRE RIOS");
     if (canonNacimientoPaciente) {
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, "CHAJARÍ, ENTRE RIOS");
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, "CONCORDIA, ENTRE RIOS");
-      seeded = addSuggestion(seeded, canonNacimientoPaciente, "PARANÁ, ENTRE RIOS");
+      seeded = addSuggestion(
+        seeded,
+        canonNacimientoPaciente,
+        "CHAJARÍ, ENTRE RIOS",
+      );
+      seeded = addSuggestion(
+        seeded,
+        canonNacimientoPaciente,
+        "CONCORDIA, ENTRE RIOS",
+      );
+      seeded = addSuggestion(
+        seeded,
+        canonNacimientoPaciente,
+        "PARANÁ, ENTRE RIOS",
+      );
     }
     setSuggestions(seeded);
     saveSuggestions(seeded);
@@ -248,12 +348,14 @@ export default function Page() {
     if (mode === "paciente" && selectedPaciente) {
       const t = selectedPaciente.trabajador || {};
       const art = selectedPaciente.ART || {};
+      const fam = selectedPaciente.familiar || {};
       const newForm = { ...form };
       if (canonApellido) newForm[canonApellido] = t.apellido || "";
       if (canonNombre) newForm[canonNombre] = t.nombre || "";
       if (canonDNI) newForm[canonDNI] = t.dni || "";
       if (canonEdad) newForm[canonEdad] = t.edad ? `${t.edad} años` : "";
-      if (canonEdadPaciente) newForm[canonEdadPaciente] = t.edad ? `${t.edad} años` : "";
+      if (canonEdadPaciente)
+        newForm[canonEdadPaciente] = t.edad ? `${t.edad} años` : "";
       if (t.sexo) newForm.sexo = t.sexo;
       if (canonTelefono && t.telefono) newForm[canonTelefono] = t.telefono;
       if (canonDia && t.nacimiento) {
@@ -269,7 +371,18 @@ export default function Page() {
         newForm[canonDomicilioPaciente] = calleNumero;
       }
       if (canonART && art.nombre) newForm[canonART] = art.nombre;
+
+      if (fam.nombre) newForm.__familiarNombre = fam.nombre;
+      if (fam.parentezco) newForm.__familiarParentezco = fam.parentezco;
+      if (fam.telefono) newForm.__familiarTelefono = fam.telefono;
+      if (selectedPaciente.historiaClinica)
+        newForm.__hcExtra = selectedPaciente.historiaClinica;
+
       setForm(newForm);
+      if (t.dni) {
+        lastLookupDniRef.current = "";
+        lookupDniInHC(onlyDigits(t.dni));
+      }
     }
   }, [selectedPaciente, mode, canonical]);
 
@@ -312,33 +425,45 @@ export default function Page() {
   const orderedResto = useMemo(() => {
     if (!canonical) return [];
     const all = Object.keys(canonical.canonicalToInternal);
-    const knownSet = new Set([
-      "masculino-paciente",
-      "femenino-paciente",
-      "sexo",
-      canonNombres,
-      canonServicio,
-      canonEdad,
-      canonEdadPaciente,
-      canonART,
-      canonCX,
-      canonDoctor,
-      canonApellido,
-      canonNombre,
-      canonDia,
-      canonMes,
-      canonAnio,
-      canonLocalidad,
-      canonProvincia,
-      canonNacimientoPaciente,
-      canonDomicilioPaciente,
-      canonHCPaciente,
-      canonTelefono,
-    ].filter(Boolean));
+    const knownSet = new Set(
+      [
+        "masculino-paciente",
+        "femenino-paciente",
+        "sexo",
+        canonNombres,
+        canonServicio,
+        canonEdad,
+        canonEdadPaciente,
+        canonART,
+        canonCX,
+        canonDoctor,
+        canonApellido,
+        canonNombre,
+        canonDia,
+        canonMes,
+        canonAnio,
+        canonLocalidad,
+        canonProvincia,
+        canonNacimientoPaciente,
+        canonDomicilioPaciente,
+        canonHCPaciente,
+        canonTelefono,
+        canonDiaInt,
+        canonMesInt,
+        canonAnioInt,
+        canonFamiliarNombre,
+        canonFamiliarParentezco,
+        canonFamiliarTelefono,
+        canonDocumento,
+        canonHabitacionCama,
+      ].filter(Boolean),
+    );
     for (const k of all) {
       if (isCanonEdadPacienteUI(k)) knownSet.add(k);
     }
-    return all.filter((k) => !knownSet.has(k)).sort((a, b) => a.localeCompare(b, "es"));
+    return all
+      .filter((k) => !knownSet.has(k))
+      .sort((a, b) => a.localeCompare(b, "es"));
   }, [
     canonical,
     canonNombres,
@@ -359,28 +484,15 @@ export default function Page() {
     canonDomicilioPaciente,
     canonHCPaciente,
     canonTelefono,
+    canonDiaInt,
+    canonMesInt,
+    canonAnioInt,
+    canonFamiliarNombre,
+    canonFamiliarParentezco,
+    canonFamiliarTelefono,
+    canonDocumento,
+    canonHabitacionCama,
   ]);
-
-  function getCanonFieldType(canonName) {
-    const internals = canonical?.canonicalToInternal?.[canonName] || [];
-    return mapping?.[internals?.[0]]?.[0]?.field_type;
-  }
-
-  function getAutoCompleteAttr(canonName) {
-    const n = (canonName || "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[()]/g, "");
-    if (n === "provincia") return "address-level1";
-    if (n === "localidad") return "address-level2";
-    if (n.includes("domicilio") || n.includes("direccion")) return "street-address";
-    if (n.includes("telefono") || n.includes("celular")) return "tel";
-    if (n.includes("dni") || n.includes("hc") || n.includes("historia-clinica"))
-      return "off";
-    if (n.includes("nacimiento") || n.includes("nacmiento")) return "address-level2";
-    return "on";
-  }
 
   function generateFilename(type) {
     const apellido = canonApellido
@@ -389,106 +501,314 @@ export default function Page() {
     const nombre = canonNombre
       ? (form?.[canonNombre] ?? "").toString().trim()
       : "";
-    const baseName = apellido && nombre ? `${apellido} ${nombre}` : apellido || nombre || "Paciente";
+    const baseName =
+      apellido && nombre
+        ? `${apellido} ${nombre}`
+        : apellido || nombre || "Paciente";
     const safeName = generateSafeFilename(baseName);
     return !safeName || safeName.trim() === ""
       ? `Paciente-${type}-${Date.now()}`
       : `${safeName}-${type}`;
   }
 
-  // ── Función central para llenar PDF (acepta formDataOverride) ──
-  async function buildFilledPdfBytes(templateUrl, formDataOverride = null) {
-    if (!mapping || !canonical) throw new Error("Mapping no cargado");
-    const templateBytes = await fetch(templateUrl, { cache: "no-store" }).then((r) => {
-      if (!r.ok) throw new Error(`No pude cargar template PDF (${r.status})`);
-      return r.arrayBuffer();
-    });
-    const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
-    const pdfForm = pdfDoc.getForm();
-    const trySetText = (fieldName, value) => {
-      const v = safeUpper((value ?? "").toString()).trim();
-      if (!v) return;
-      try {
-        pdfForm.getTextField(fieldName).setText(v);
-      } catch {}
-    };
-    const tryCheck = (fieldName, shouldCheck) => {
-      if (!shouldCheck) return;
-      try {
-        pdfForm.getCheckBox(fieldName).check();
-      } catch {}
-    };
-
-    const formData = formDataOverride || form;
-
-    const apellido = canonApellido
-      ? (formData?.[canonApellido] ?? "").toString().trim()
-      : "";
-    const nombre = canonNombre
-      ? (formData?.[canonNombre] ?? "").toString().trim()
-      : "";
-    const nombresPaciente = [apellido, nombre].filter(Boolean).join(" ").trim();
-    const d = canonDia ? formData?.[canonDia] : "";
-    const m = canonMes ? formData?.[canonMes] : "";
-    const y = canonAnio ? formData?.[canonAnio] : "";
-    const edadValuePrint = computeAgeYears(d, m, y)
-      ? `${computeAgeYears(d, m, y)} años`
-      : "";
-    const doctorRaw = canonDoctor
-      ? (formData?.[canonDoctor] ?? "").toString().trim()
-      : "";
-    const doctorPrint =
-      doctorRaw && !/^dr\.?\s/i.test(doctorRaw) ? `Dr. ${doctorRaw}` : doctorRaw;
-
-    trySetText("apellido-paciente", apellido);
-    trySetText("nombre-paciente", nombre);
-    trySetText("nombres-paciente", nombresPaciente);
-    trySetText("edad", edadValuePrint);
-    trySetText("edad-paciente", edadValuePrint);
-    trySetText("servicio", "PISO");
-    const sexValue = formData?.sexo;
-    tryCheck("masculino-paciente", sexValue === "M");
-    tryCheck("femenino-paciente", sexValue === "F");
-
-    for (const canonName of Object.keys(canonical.canonicalToInternal)) {
-      if (canonName === "sexo") continue;
-      let canonValue = formData?.[canonName];
-      if (canonName === canonHCPaciente && canonValue)
-        canonValue = parseFormattedNumber(canonValue);
-      if (canonDoctor && canonName === canonDoctor) canonValue = doctorPrint;
-      if (canonEdad && canonName === canonEdad) canonValue = edadValuePrint;
-      if (canonEdadPaciente && canonName === canonEdadPaciente)
-        canonValue = edadValuePrint;
-      if (canonNombres && canonName === canonNombres)
-        canonValue = nombresPaciente;
-      if (canonServicio && canonName === canonServicio) canonValue = "PISO";
-      const isBtn = isLikelyCheckbox(getCanonFieldType(canonName));
-      for (const internal of canonical.canonicalToInternal[canonName] || []) {
-        if (isBtn) tryCheck(internal, !!canonValue);
-        else trySetText(internal, canonValue);
+  // ══════════════════════════════════════════════════════════════
+  // HC LOOKUP
+  // ══════════════════════════════════════════════════════════════
+  const calcularProximoNumeroHC = async () => {
+    const [snapHC, snapCounter] = await Promise.all([
+      get(child(ref(db), HC_PATH)),
+      get(child(ref(db), COUNTER_GENERAL_PATH)),
+    ]);
+    let maxReal = 0;
+    if (snapHC.exists()) {
+      for (const item of Object.values(snapHC.val())) {
+        const n = parseHCNumber(item);
+        if (Number.isFinite(n) && n > maxReal) maxReal = n;
       }
-      if (isBtn) tryCheck(canonName, !!canonValue);
-      else trySetText(canonName, canonValue);
     }
-    pdfForm.flatten();
-    return await pdfDoc.save();
+    const counterVal = snapCounter.exists()
+      ? Number(snapCounter.val() || 0)
+      : 0;
+    return Math.max(maxReal, counterVal) + 1;
+  };
+
+  const lookupDniInHC = async (dniDigits) => {
+    if (!dniDigits || dniDigits.length < 7) return;
+    if (lastLookupDniRef.current === dniDigits) return;
+    lastLookupDniRef.current = dniDigits;
+
+    setHcLookup({
+      loading: true,
+      searched: false,
+      dni: dniDigits,
+      match: null,
+      nextNumber: null,
+      loadingNext: false,
+    });
+
+    try {
+      const snap = await get(child(ref(db), HC_PATH));
+      const matchesDni = (itemDniRaw) => {
+        const itemDni = onlyDigits(itemDniRaw);
+        if (!itemDni) return false;
+        if (itemDni === dniDigits) return true;
+        if (dniDigits.length === 11 && itemDni === dniDigits.slice(2, 10))
+          return true;
+        if (itemDni.length === 11 && dniDigits === itemDni.slice(2, 10))
+          return true;
+        return false;
+      };
+
+      let match = null;
+      if (snap.exists()) {
+        for (const [id, v] of Object.entries(snap.val())) {
+          if (matchesDni(v.dni || v.documento)) {
+            match = {
+              id,
+              nombre_apellido: v.nombre_apellido || v.nombre || "",
+              dni: v.dni || v.documento || "",
+              historia_clinica:
+                v.historia_clinica || v.historia_clinica_1 || "",
+            };
+            break;
+          }
+        }
+      }
+
+      setHcLookup({
+        loading: false,
+        searched: true,
+        dni: dniDigits,
+        match,
+        nextNumber: null,
+        loadingNext: !match,
+      });
+
+      if (!match) {
+        try {
+          const next = await calcularProximoNumeroHC();
+          setHcLookup((prev) => ({
+            ...prev,
+            nextNumber: next,
+            loadingNext: false,
+          }));
+        } catch (err) {
+          console.error("Error calculando próximo HC:", err);
+          setHcLookup((prev) => ({ ...prev, loadingNext: false }));
+        }
+      }
+    } catch (err) {
+      console.error("Error buscando DNI en HC:", err);
+      setHcLookup({
+        loading: false,
+        searched: true,
+        dni: dniDigits,
+        match: null,
+        nextNumber: null,
+        loadingNext: false,
+      });
+    }
+  };
+
+  const handleDNIBlur = (rawDni) => {
+    const digits = onlyDigits(rawDni);
+    if (digits.length >= 7) lookupDniInHC(digits);
+  };
+
+  const forceLookupDni = () => {
+    const digits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
+    if (digits.length < 7) {
+      alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+      return;
+    }
+    lastLookupDniRef.current = "";
+    lookupDniInHC(digits);
+  };
+
+  const aplicarHistoriaClinica = (hc) => {
+    if (!hc) return;
+    const numero = String(hc.historia_clinica || "");
+    if (canonHCPaciente) setValue(canonHCPaciente, numero);
+    setValue("__hcExtra", numero);
+
+    const partes = (hc.nombre_apellido || "").split(",").map((s) => s.trim());
+    if (partes[0] && canonApellido && !(form[canonApellido] || "").trim()) {
+      setValue(canonApellido, partes[0]);
+    }
+    if (partes[1] && canonNombre && !(form[canonNombre] || "").trim()) {
+      setValue(canonNombre, partes[1]);
+    }
+    setMensajeExito(`HC #${numero} aplicada al formulario.`);
+    setTimeout(() => setMensajeExito(""), 3000);
+  };
+
+  const crearHistoriaClinica = async () => {
+    const dniDigits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
+    if (dniDigits.length < 7) {
+      alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+      return;
+    }
+    const apellido = canonApellido ? form?.[canonApellido] : "";
+    const nombre = canonNombre ? form?.[canonNombre] : "";
+    if (!apellido || !nombre) {
+      alert("Completá apellido y nombre antes de crear la HC");
+      return;
+    }
+    const numeroPreview = hcLookup.nextNumber
+      ? ` (se asignará el N° ${hcLookup.nextNumber})`
+      : "";
+    const ok = window.confirm(
+      `¿Crear una nueva historia clínica PISO para "${apellido} ${nombre}" (DNI ${dniDigits})${numeroPreview}?`,
+    );
+    if (!ok) return;
+
+    setCreatingHc(true);
+    try {
+      const snapshot = await get(child(ref(db), HC_PATH));
+      let maxReal = 0;
+      if (snapshot.exists()) {
+        for (const item of Object.values(snapshot.val())) {
+          const n = parseHCNumber(item);
+          if (Number.isFinite(n) && n > maxReal) maxReal = n;
+        }
+      }
+
+      const counterRef = ref(db, COUNTER_GENERAL_PATH);
+      const tx = await runTransaction(
+        counterRef,
+        (currentValue) => Number(currentValue || 0) + 1,
+      );
+      if (!tx.committed) throw new Error("No se pudo reservar el número");
+      const reservedNumber = Number(tx.snapshot.val() || 0);
+
+      let finalNumber = reservedNumber > maxReal ? reservedNumber : maxReal + 1;
+      if (finalNumber !== reservedNumber) await set(counterRef, finalNumber);
+
+      const newNumber = String(finalNumber);
+      const session = (typeof getSession === "function" && getSession()) || {};
+      const userName =
+        session.user || session.usuario || session.nombre || "sistema";
+      const userKey = session.id || session.key || "";
+      const now = Date.now();
+      const newRef = push(ref(db, HC_PATH));
+      const nombreCompleto = `${apellido} ${nombre}`.trim().toUpperCase();
+
+      await set(newRef, {
+        nombre_apellido: nombreCompleto,
+        dni: dniDigits,
+        historia_clinica: newNumber,
+        alertas: [],
+        createdBy: userName,
+        createdByUserKey: userKey,
+        createdAt: now,
+        modifiedBy: userName,
+        modifiedByUserKey: userKey,
+        modifiedAt: now,
+      });
+
+      if (canonHCPaciente) setValue(canonHCPaciente, newNumber);
+      setValue("__hcExtra", newNumber);
+      lastLookupDniRef.current = "";
+      await lookupDniInHC(dniDigits);
+      setMensajeExito(`✅ HC PISO #${newNumber} creada correctamente`);
+      setTimeout(() => setMensajeExito(""), 4000);
+    } catch (err) {
+      console.error("Error creando HC:", err);
+      alert("No se pudo crear la historia clínica.");
+    } finally {
+      setCreatingHc(false);
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // PDF vía API
+  // ══════════════════════════════════════════════════════════════
+
+  function buildPdfPayloadFromForm() {
+    const formularioLimpio = {};
+    Object.keys(form).forEach((k) => {
+      if (!k.startsWith("__")) formularioLimpio[k] = form[k];
+    });
+
+    // ✅ HC: si está cargada la usamos; si no, fallback al DNI formateado (lo hace el API)
+    const hcFromForm =
+      form?.__hcExtra ||
+      (canonHCPaciente ? form?.[canonHCPaciente] || "" : "");
+    const dniValue = canonDNI ? form?.[canonDNI] || "" : "";
+
+    // ✅ Lugar de nacimiento
+    const lugarNacimientoValue = canonNacimientoPaciente
+      ? form?.[canonNacimientoPaciente] || ""
+      : "";
+
+    return {
+      pacienteDatos: {
+        apellido: canonApellido ? form?.[canonApellido] || "" : "",
+        nombre: canonNombre ? form?.[canonNombre] || "" : "",
+        dni: dniValue,
+        edad: edadCalculada || "",
+        sexo: form?.sexo || "",
+        fechaNacimiento:
+          form?.[canonAnio] && form?.[canonMes] && form?.[canonDia]
+            ? `${form[canonAnio]}-${String(form[canonMes]).padStart(2, "0")}-${String(form[canonDia]).padStart(2, "0")}`
+            : "",
+        localidad: canonLocalidad ? form?.[canonLocalidad] || "" : "",
+        provincia: canonProvincia ? form?.[canonProvincia] || "" : "",
+        domicilio: canonDomicilioPaciente
+          ? form?.[canonDomicilioPaciente] || ""
+          : "",
+        telefono: canonTelefono ? form?.[canonTelefono] || "" : "",
+        historiaClinica: hcFromForm,
+        habitacionCama: form?.__habitacionCama || "",
+        lugarNacimiento: lugarNacimientoValue,
+      },
+      familiar: {
+        nombre: form?.__familiarNombre || "",
+        parentezco: form?.__familiarParentezco || "",
+        telefono: form?.__familiarTelefono || "",
+      },
+      formulario: formularioLimpio,
+      fechaEstimada: fechaEstimada || "",
+      fechaCirugia: (() => {
+        if (!fechaEstimada) return null;
+        const [y, m, d] = fechaEstimada.split("-");
+        return { dia: d || "", mes: m || "", anio: y || "" };
+      })(),
+      servicio: "PISO",
+      habitacionCama: form?.__habitacionCama || "",
+      lugarNacimiento: lugarNacimientoValue,
+    };
   }
 
-  async function downloadPdf(templateUrl, type) {
+  async function downloadPdf(type) {
     try {
       setError("");
-      const bytes = await buildFilledPdfBytes(templateUrl);
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const payload = buildPdfPayloadFromForm();
+      const fileName = `${generateFilename(type)}.pdf`;
+
+      const res = await fetch("/api/cx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, type, fileName }),
+      });
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(`Error ${res.status}: ${detail}`);
+      }
+
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${generateFilename(type)}.pdf`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1200);
     } catch (e) {
       setError(e?.message || "Error al generar descarga");
+      console.error(e);
     }
   }
 
@@ -504,10 +824,6 @@ export default function Page() {
       pacienteId = optionalData.pacienteId || pacienteId;
     }
 
-    if (!fecha) {
-      alert("Por favor ingrese una fecha estimativa para la cirugía");
-      return false;
-    }
     const apellido = canonApellido ? formData[canonApellido] : "";
     const nombre = canonNombre ? formData[canonNombre] : "";
     if (!apellido || !nombre) {
@@ -517,12 +833,32 @@ export default function Page() {
 
     setSaving(true);
     try {
+      const formularioLimpio = {};
+      Object.keys(formData).forEach((k) => {
+        if (!k.startsWith("__")) formularioLimpio[k] = formData[k];
+      });
+
+      const hcValue =
+        formData.__hcExtra ||
+        (canonHCPaciente ? formData[canonHCPaciente] || "" : "");
+      const dniValue = formData[canonDNI] || "";
+      const lugarNacimientoValue = canonNacimientoPaciente
+        ? formData[canonNacimientoPaciente] || ""
+        : "";
+
+      const fechaCirugia = (() => {
+        if (!fecha) return { dia: "", mes: "", anio: "" };
+        const [y, m, d] = fecha.split("-");
+        return { dia: d || "", mes: m || "", anio: y || "" };
+      })();
+
       const data = {
         pacienteId,
         pacienteDatos: {
           apellido,
           nombre,
-          dni: formData[canonDNI] || "",
+          dni: dniValue,
+          afiliado: dniValue,
           fechaNacimiento:
             formData[canonAnio] && formData[canonMes] && formData[canonDia]
               ? `${formData[canonAnio]}-${formData[canonMes]}-${formData[canonDia]}`
@@ -533,9 +869,18 @@ export default function Page() {
           provincia: formData[canonProvincia] || "",
           domicilio: formData[canonDomicilioPaciente] || "",
           telefono: formData[canonTelefono] || "",
+          historiaClinica: hcValue,
+          habitacionCama: formData.__habitacionCama || "",
+          lugarNacimiento: lugarNacimientoValue,
+          familiar: {
+            nombre: formData.__familiarNombre || "",
+            parentezco: formData.__familiarParentezco || "",
+            telefono: formData.__familiarTelefono || "",
+          },
         },
-        fechaEstimada: fecha,
-        formulario: formData,
+        fechaEstimada: fecha || "",
+        fechaCirugia,
+        formulario: formularioLimpio,
         realizada: false,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -555,6 +900,15 @@ export default function Page() {
         Object.keys(prev).forEach((k) => (reset[k] = ""));
         return reset;
       });
+      lastLookupDniRef.current = "";
+      setHcLookup({
+        loading: false,
+        searched: false,
+        dni: "",
+        match: null,
+        nextNumber: null,
+        loadingNext: false,
+      });
       return true;
     } catch (err) {
       console.error(err);
@@ -572,7 +926,10 @@ export default function Page() {
       const res = await fetch(`${SOLICITUDES_DB_URL}.json`);
       const data = await res.json();
       if (data) {
-        let lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        let lista = Object.entries(data).map(([id, value]) => ({
+          id,
+          ...value,
+        }));
         lista.sort((a, b) => (b.fechaSolicitud || 0) - (a.fechaSolicitud || 0));
         setSolicitudes(lista);
       } else {
@@ -589,7 +946,6 @@ export default function Page() {
     if (activeTab === "solicitudes") cargarSolicitudes();
   }, [activeTab]);
 
-  // ── Funciones para solicitudes ──
   const buildFormFromSolicitud = (solicitud) => {
     const nuevoForm = {};
     if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || "";
@@ -609,48 +965,75 @@ export default function Page() {
       if (canonMes) nuevoForm[canonMes] = m || "";
       if (canonAnio) nuevoForm[canonAnio] = y || "";
     }
+    if (solicitud.familiarNombre)
+      nuevoForm.__familiarNombre = solicitud.familiarNombre;
+    if (solicitud.familiarParentezco)
+      nuevoForm.__familiarParentezco = solicitud.familiarParentezco;
+    if (solicitud.familiarTelefono)
+      nuevoForm.__familiarTelefono = solicitud.familiarTelefono;
     return nuevoForm;
   };
 
-  const descargarFrenteSolicitud = async (solicitud) => {
-    const formData = buildFormFromSolicitud(solicitud);
+  const descargarPdfSolicitud = async (solicitud, type) => {
     try {
-      const bytes = await buildFilledPdfBytes(TEMPLATE_FRENTE_URL, formData);
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const nuevoForm = buildFormFromSolicitud(solicitud);
+      const lugarNacimientoValue = solicitud.lugarNacimiento || "";
+
+      const payload = {
+        pacienteDatos: {
+          apellido: solicitud.apellido || "",
+          nombre: solicitud.nombre || "",
+          dni: solicitud.dni || "",
+          edad: solicitud.edad ? String(solicitud.edad) : "",
+          sexo: solicitud.sexo || "",
+          fechaNacimiento: solicitud.nacimiento || "",
+          localidad: solicitud.localidad || "",
+          provincia: solicitud.provincia || "",
+          domicilio: solicitud.domicilio || "",
+          telefono: solicitud.telefono || "",
+          historiaClinica: solicitud.historiaClinica || "",
+          lugarNacimiento: lugarNacimientoValue,
+        },
+        familiar: {
+          nombre: solicitud.familiarNombre || "",
+          parentezco: solicitud.familiarParentezco || "",
+          telefono: solicitud.familiarTelefono || "",
+        },
+        formulario: nuevoForm,
+        fechaEstimada: "",
+        servicio: "PISO",
+        lugarNacimiento: lugarNacimientoValue,
+      };
+
+      const baseName =
+        `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() ||
+        "Paciente";
+      const fileName = `${generateSafeFilename(baseName)}-${type}.pdf`;
+
+      const res = await fetch("/api/cx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, type, fileName }),
+      });
+
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const baseName =
-        `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
-      a.download = `${generateSafeFilename(baseName)}-Frente.pdf`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1200);
     } catch (e) {
-      setError(e?.message || "Error al generar Frente");
+      setError(e?.message || "Error al generar PDF");
+      console.error(e);
     }
   };
 
-  const descargarDorsoSolicitud = async (solicitud) => {
-    const formData = buildFormFromSolicitud(solicitud);
-    try {
-      const bytes = await buildFilledPdfBytes(TEMPLATE_DORSO_URL, formData);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const baseName =
-        `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
-      a.download = `${generateSafeFilename(baseName)}-Dorso.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1200);
-    } catch (e) {
-      setError(e?.message || "Error al generar Dorso");
-    }
-  };
+  const descargarFrenteSolicitud = (s) => descargarPdfSolicitud(s, "Frente");
+  const descargarDorsoSolicitud = (s) => descargarPdfSolicitud(s, "Dorso");
 
   const eliminarSolicitud = async (id) => {
     if (!confirm("¿Eliminar permanentemente esta solicitud?")) return;
@@ -668,18 +1051,23 @@ export default function Page() {
     setModalSolicitudData(solicitud);
   };
 
-  // ── Cargar solicitud al formulario (con mensaje bonito) ──
   const cargarSolicitudEnFormulario = (solicitud) => {
     const nuevoForm = buildFormFromSolicitud(solicitud);
     setForm((prev) => ({ ...prev, ...nuevoForm }));
     setActiveTab("form");
     setMode("manual");
     setSelectedPaciente(null);
-    setMensajeExito("Solicitud cargada al formulario. Complete los datos de cirugía y guarde.");
+    setPendingSolicitudId(solicitud.id);
+    setMensajeExito(
+      "Solicitud cargada al formulario. Complete los datos de cirugía y guarde.",
+    );
     setTimeout(() => setMensajeExito(""), 4000);
+    if (solicitud.dni) {
+      lastLookupDniRef.current = "";
+      lookupDniInHC(onlyDigits(solicitud.dni));
+    }
   };
 
-  // ── Guardar cirugía y eliminar solicitud ──
   const guardarCXYEliminarSolicitud = async () => {
     const success = await guardarCX();
     if (success && pendingSolicitudId) {
@@ -702,7 +1090,9 @@ export default function Page() {
       const res = await fetch(`${CIRUGIAS_DB_URL}.json`);
       if (!res.ok) throw new Error("Error al cargar cirugías");
       const data = await res.json();
-      setCirugias(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
+      setCirugias(
+        data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : [],
+      );
     } catch (err) {
       setError("No se pudieron cargar las cirugías.");
     } finally {
@@ -737,9 +1127,13 @@ export default function Page() {
     const nuevoFormulario = { ...(cx.formulario || {}) };
     if (formEdit.tipoCirugia) nuevoFormulario.cx = formEdit.tipoCirugia;
     else delete nuevoFormulario.cx;
-    let doctorKey = Object.keys(nuevoFormulario).find(
-      (k) => k.toLowerCase().includes("doctor") || k.toLowerCase().includes("dr") || k === "nombre-dr"
-    ) || "nombre-dr";
+    let doctorKey =
+      Object.keys(nuevoFormulario).find(
+        (k) =>
+          k.toLowerCase().includes("doctor") ||
+          k.toLowerCase().includes("dr") ||
+          k === "nombre-dr",
+      ) || "nombre-dr";
     nuevoFormulario[doctorKey] = formEdit.doctor;
 
     const updates = {
@@ -776,7 +1170,6 @@ export default function Page() {
     fetchCirugias();
   };
 
-  // ── Navegación foja ──
   const goToNuevaFoja = () => router.push("/admin/cx/foja");
   const goToVerFojas = () => router.push("/admin/cx/foja/medicos");
 
@@ -814,12 +1207,9 @@ export default function Page() {
         <div className={styles.formColumn}>
           {error && <div className={styles.bannerError}>{error}</div>}
           {mensajeExito && (
-            <div className={styles.bannerSuccess}>
-              {mensajeExito}
-            </div>
+            <div className={styles.bannerSuccess}>{mensajeExito}</div>
           )}
 
-          {/* Botones Foja */}
           <div
             style={{
               display: "flex",
@@ -849,7 +1239,6 @@ export default function Page() {
             </button>
           </div>
 
-          {/* Pestañas */}
           <div className={styles.tabsContainer}>
             <button
               className={`${styles.tabButton} ${
@@ -877,7 +1266,6 @@ export default function Page() {
             </button>
           </div>
 
-          {/* Contenido de pestañas */}
           {activeTab === "form" && (
             <FormularioCX
               form={form}
@@ -917,6 +1305,12 @@ export default function Page() {
               guardarCXYEliminarSolicitud={guardarCXYEliminarSolicitud}
               saving={saving}
               edadCalculada={edadCalculada}
+              hcLookup={hcLookup}
+              onDNIBlur={handleDNIBlur}
+              onForceLookupDni={forceLookupDni}
+              onAplicarHC={aplicarHistoriaClinica}
+              onCrearHC={crearHistoriaClinica}
+              creatingHc={creatingHc}
             />
           )}
           {activeTab === "solicitudes" && (
@@ -955,7 +1349,6 @@ export default function Page() {
           )}
         </div>
 
-        {/* Sidebar solo en formulario */}
         {activeTab === "form" && (
           <aside className={styles.sidebar}>
             <div className={styles.sidebarCard}>
@@ -965,16 +1358,29 @@ export default function Page() {
                 </div>
                 <div className={styles.patientInfo}>
                   <div className={styles.patientName}>
-                    {[canonApellido && form?.[canonApellido], canonNombre && form?.[canonNombre]]
+                    {[
+                      canonApellido && form?.[canonApellido],
+                      canonNombre && form?.[canonNombre],
+                    ]
                       .filter(Boolean)
-                      .join(" ") || <span className={styles.patientNameEmpty}>Sin nombre</span>}
+                      .join(" ") || (
+                      <span className={styles.patientNameEmpty}>
+                        Sin nombre
+                      </span>
+                    )}
                   </div>
                   {edadCalculada && (
-                    <div className={styles.patientAge}>{edadCalculada} años</div>
+                    <div className={styles.patientAge}>
+                      {edadCalculada} años
+                    </div>
                   )}
-                  {canonHCPaciente && form?.[canonHCPaciente] && (
+                  {(form.__hcExtra ||
+                    (canonHCPaciente && form?.[canonHCPaciente])) && (
                     <div className={styles.patientHC}>
-                      HC {formatNumberWithThousands(form[canonHCPaciente])}
+                      HC{" "}
+                      {formatNumberWithThousands(
+                        form.__hcExtra || form[canonHCPaciente],
+                      )}
                     </div>
                   )}
                 </div>
@@ -989,7 +1395,7 @@ export default function Page() {
               <p className={styles.downloadTitle}>Descargar PDF</p>
               <button
                 className={styles.downloadBtn}
-                onClick={() => downloadPdf(TEMPLATE_FRENTE_URL, "Frente")}
+                onClick={() => downloadPdf("Frente")}
               >
                 <span className={styles.downloadIcon}>↓</span>
                 <span className={styles.downloadBtnText}>
@@ -999,7 +1405,7 @@ export default function Page() {
               </button>
               <button
                 className={styles.downloadBtn}
-                onClick={() => downloadPdf(TEMPLATE_DORSO_URL, "Dorso")}
+                onClick={() => downloadPdf("Dorso")}
               >
                 <span className={styles.downloadIcon}>↓</span>
                 <span className={styles.downloadBtnText}>
@@ -1008,14 +1414,14 @@ export default function Page() {
                 </span>
               </button>
               <p className={styles.sidebarNote}>
-                Los PDFs se generan con los datos del formulario y se descargan listos para imprimir.
+                Los PDFs se generan con los datos del formulario y se descargan
+                listos para imprimir.
               </p>
             </div>
           </aside>
         )}
       </div>
 
-      {/* Modales */}
       {modalRealizar && (
         <ModalRealizacion
           cx={modalRealizar}
@@ -1039,7 +1445,10 @@ export default function Page() {
         />
       )}
       {modalListaDia && (
-        <ModalListaDia cirugias={cirugias} onClose={() => setModalListaDia(false)} />
+        <ModalListaDia
+          cirugias={cirugias}
+          onClose={() => setModalListaDia(false)}
+        />
       )}
       {modalEstudio && (
         <ModalEstudio
@@ -1052,7 +1461,6 @@ export default function Page() {
         />
       )}
 
-      {/* Modal de visualización de solicitud */}
       {modalSolicitudData && (
         <ModalSolicitud
           solicitud={modalSolicitudData}
@@ -1063,15 +1471,16 @@ export default function Page() {
   );
 }
 
-// ── Componente ModalSolicitud (dentro del mismo archivo) ──
+// ── ModalSolicitud ──
 function ModalSolicitud({ solicitud, onClose }) {
-  const styles = require("./cx-common.module.css"); // o importado arriba, pero mejor usar el mismo objeto
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2>Detalles de la solicitud</h2>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+          <button className={styles.closeBtn} onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className={styles.modalBody}>
           <div className={styles.detailRow}>
@@ -1091,8 +1500,8 @@ function ModalSolicitud({ solicitud, onClose }) {
             {solicitud.sexo === "M"
               ? "Masculino"
               : solicitud.sexo === "F"
-              ? "Femenino"
-              : "-"}
+                ? "Femenino"
+                : "-"}
           </div>
           <div className={styles.detailRow}>
             <strong>Fecha nacimiento:</strong> {solicitud.nacimiento || "-"}
@@ -1107,9 +1516,33 @@ function ModalSolicitud({ solicitud, onClose }) {
             <strong>Domicilio:</strong> {solicitud.domicilio || "-"}
           </div>
           <div className={styles.detailRow}>
-            <strong>Lugar de nacimiento:</strong> {solicitud.lugarNacimiento || "-"}
+            <strong>Lugar de nacimiento:</strong>{" "}
+            {solicitud.lugarNacimiento || "-"}
+          </div>
+
+          <div
+            className={styles.detailRow}
+            style={{
+              marginTop: 12,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: 12,
+            }}
+          >
+            <strong style={{ color: "#6fa17b" }}>
+              👨‍👩‍👧 Familiar responsable
+            </strong>
           </div>
           <div className={styles.detailRow}>
+            <strong>Nombre:</strong> {solicitud.familiarNombre || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Parentezco:</strong> {solicitud.familiarParentezco || "-"}
+          </div>
+          <div className={styles.detailRow}>
+            <strong>Teléfono:</strong> {solicitud.familiarTelefono || "-"}
+          </div>
+
+          <div className={styles.detailRow} style={{ marginTop: 12 }}>
             <strong>Fecha de solicitud:</strong>{" "}
             {solicitud.fechaSolicitud
               ? new Date(solicitud.fechaSolicitud).toLocaleString()

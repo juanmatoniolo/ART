@@ -21,6 +21,10 @@ const FORM_VACIO = {
   localidad: "",
   provincia: "",
   telefono: "",
+  /* 🆕 Familiar responsable */
+  familiarNombre: "",
+  familiarParentezco: "",
+  familiarTelefono: "",
 };
 
 /* ---------- helpers de fecha ---------- */
@@ -99,7 +103,6 @@ export default function FormularioCirugia() {
       : "";
   }, [form.nacDia, form.nacMes, form.nacAnio]);
 
-  // Función para calcular edad
   const calcularEdad = (fecha) => {
     if (!fecha) return "";
     const [year, month, day] = fecha.split("-");
@@ -166,6 +169,11 @@ export default function FormularioCirugia() {
 - Localidad: ${form.localidad}
 - Provincia: ${form.provincia}
 - Teléfono de contacto: ${form.telefono}
+--------------------------------
+*FAMILIAR RESPONSABLE*
+- Nombre: ${form.familiarNombre || "—"}
+- Parentezco: ${form.familiarParentezco || "—"}
+- Teléfono: ${form.familiarTelefono || "—"}
 --------------------------------
 *Enviado desde el sistema de Clínica de la Unión*
     `.trim();
@@ -525,6 +533,57 @@ export default function FormularioCirugia() {
                 inputMode="tel"
                 disabled={enviando}
                 required
+              />
+            </div>
+          </div>
+
+          {/* 🆕 FAMILIAR RESPONSABLE */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Familiar responsable</h2>
+            <span className={styles.sectionHint}>
+              Datos de algún familiar o persona de confianza para poder comunicarnos en caso de urgencia.
+            </span>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="familiarNombre">Nombre completo</label>
+              <input
+                type="text"
+                id="familiarNombre"
+                name="familiarNombre"
+                value={form.familiarNombre}
+                onChange={handleChange}
+                placeholder="Apellido y nombre del familiar"
+                className={styles.input}
+                disabled={enviando}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="familiarParentezco">Parentezco</label>
+              <input
+                type="text"
+                id="familiarParentezco"
+                name="familiarParentezco"
+                value={form.familiarParentezco}
+                onChange={handleChange}
+                placeholder="Ej: Cónyuge, Hijo/a, Madre, Padre..."
+                className={styles.input}
+                disabled={enviando}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="familiarTelefono">Teléfono</label>
+              <input
+                type="tel"
+                id="familiarTelefono"
+                name="familiarTelefono"
+                value={form.familiarTelefono}
+                onChange={handleChange}
+                placeholder="Ej: 3456 123456"
+                className={styles.input}
+                inputMode="tel"
+                disabled={enviando}
               />
             </div>
           </div>
