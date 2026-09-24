@@ -730,3 +730,475 @@
         page-break-after: auto;
     }
 }
+
+/* ============================================ */
+/*  TOOLBAR DE SELECCIÓN                        */
+/* ============================================ */
+.listToolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.toolbarLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toolbarCount {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-left: auto;
+}
+
+.rpCardCheckbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+.rpCardSelected {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    background: #eff6ff;
+}
+
+/* ============================================ */
+/*  RECETA IMPRESA — compacta, 4 por A4         */
+/* ============================================ */
+.printArea {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+
+
+    .printArea,
+    .printArea * {
+        visibility: visible;
+    }
+
+    .printArea {
+        position: absolute;
+        inset: 0;
+        display: block;
+        background: white;
+    }
+
+    .printSheet {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 2mm;
+        padding: 4mm;
+        width: 210mm;
+        height: 297mm;
+        box-sizing: border-box;
+        page-break-after: always;
+        break-after: page;
+    }
+
+    .printSheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    .printPage {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: hidden;
+    }
+}
+
+/* Estructura interna de cada receta */
+.printRp {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed #cbd5e1;
+    /* guía de corte — se imprime muy suave */
+    padding: 3mm 3.5mm;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    color: #111;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    background: #fff;
+}
+
+/* Membrete */
+.printHeader {
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+}
+
+.printLogo {
+    width: 13mm;
+    height: 13mm;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.printHeaderText {
+    flex: 1;
+    min-width: 0;
+}
+
+.printClinicName {
+    font-weight: 700;
+    font-size: 10.5pt;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+}
+
+.printClinicAddr {
+    font-weight: 700;
+    font-size: 8.5pt;
+    line-height: 1.2;
+    margin-top: 0.5mm;
+}
+
+.printDivider {
+    border-top: 0.6pt solid #94a3b8;
+    margin: 0.5mm 0;
+}
+
+/* Filas con label + línea para escribir */
+.printFieldRow {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5mm;
+    font-size: 9pt;
+    line-height: 1.25;
+}
+
+.printLabel {
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.printUnderline {
+    flex: 1;
+    min-width: 0;
+    border-bottom: 0.6pt solid #111;
+    padding: 0 1mm 0.5mm;
+    min-height: 4.5mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.printDate {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Cuerpo */
+.printBody {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    min-height: 0;
+}
+
+.printSolicitaRow {
+    display: flex;
+    gap: 1.5mm;
+    font-size: 9pt;
+    line-height: 1.2;
+}
+
+.printSolicitaText {
+    flex: 1;
+    border-bottom: 0.5pt dotted #94a3b8;
+    padding-bottom: 0.5mm;
+    font-style: italic;
+    overflow: hidden;
+}
+
+.printCodesBlock {
+    margin-top: 1mm;
+    border-top: 0.5pt dashed #cbd5e1;
+    padding-top: 1mm;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.printCodesTitle {
+    font-weight: 700;
+    font-size: 8.5pt;
+    margin-bottom: 0.8mm;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.printCodeRow {
+    display: flex;
+    align-items: baseline;
+    gap: 1mm;
+    font-size: 8.5pt;
+    line-height: 1.35;
+}
+
+.printCode {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+}
+
+.printCodeDots {
+    flex: 1;
+    border-bottom: 0.4pt dotted #64748b;
+    margin-bottom: 1mm;
+    min-width: 4mm;
+}
+
+.printCodeType {
+    font-size: 7.5pt;
+    color: #475569;
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.printCuerpoLibre {
+    font-size: 8.5pt;
+    line-height: 1.3;
+    border-top: 0.5pt dashed #cbd5e1;
+    padding-top: 1mm;
+    margin-top: 1mm;
+    overflow: hidden;
+    max-height: 15mm;
+}
+
+.printFooterRow {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5mm;
+    font-size: 8.5pt;
+    border-top: 0.6pt solid #94a3b8;
+    padding-top: 1mm;
+    margin-top: auto;
+}
+
+/* Firma */
+.printFirma {
+    text-align: center;
+    margin-top: 2mm;
+}
+
+.printFirmaLine {
+    border-top: 0.6pt solid #111;
+    width: 55mm;
+    margin: 0 auto 0.8mm;
+}
+
+.printFirmaNombre {
+    font-weight: 700;
+    font-size: 8.5pt;
+    line-height: 1.15;
+}
+
+.printFirmaMeta {
+    font-size: 7.5pt;
+    color: #475569;
+    line-height: 1.15;
+}
+
+/* ============================================ */
+/*  Barra de atajos (reemplaza a .listToolbar  */
+/*  cuando se usa como toolbar superior)        */
+/* ============================================ */
+.atajosBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.atajosHint {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-left: auto;
+}
+
+/* ============================================ */
+/*  Toolbar de selección (carrito / historial)  */
+/*  FIX: colores oscuros                        */
+/* ============================================ */
+.listToolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.toolbarLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #d1d5db;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toolbarLabel input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #6fa17b;
+}
+
+.toolbarCount {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-left: auto;
+}
+
+.rpCardCheckbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #6fa17b;
+}
+
+/* FIX: selección oscura en vez de celeste claro */
+.rpCardSelected {
+    outline: 2px solid #6fa17b;
+    outline-offset: -2px;
+    background: rgba(111, 161, 123, 0.1);
+}
+
+/* ============================================ */
+/*  Estadísticas — tablas y filtros             */
+/* ============================================ */
+.statsFilter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    flex-wrap: wrap;
+}
+
+.kpiSub {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.tableBlock {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    overflow-x: auto;
+}
+
+.dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: #e5e7eb;
+}
+
+.dataTable th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dataTable td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.dataTable tfoot td {
+    border-top: 1px solid rgba(111, 161, 123, 0.3);
+    border-bottom: none;
+    background: rgba(111, 161, 123, 0.08);
+    color: #d1fae5;
+}
+
+.numCol {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.rankCell {
+    width: 32px;
+    color: #6b7280;
+    font-weight: 700;
+    text-align: center;
+}
+
+.codeCell {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #93c5fd;
+    white-space: nowrap;
+}
+
+.pctBadge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(111, 161, 123, 0.18);
+    color: #a7f3d0;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
