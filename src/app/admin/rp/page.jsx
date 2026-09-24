@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { ref, set, get, remove } from 'firebase/database';
+import { ref, set, get, remove, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import useDoctors from '@/app/admin/medicos/hooks/useDoctors';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -30,6 +30,21 @@ import Estadisticas from './Estadisticas';
 const todayISO = () => new Date().toISOString().split('T')[0];
 const makeId = (p = 'rp') =>
     `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const normCodeStr = (c) => String(c ?? '').replace(/\D/g, '');
+
+const parseCantidad = (v) => {
+    const n = Number(String(v ?? '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+};
+
+// Prácticas que permiten agregar insumos (gasto clínico)
+// 43.02.01 = Curación, 13.01.10 = Sutura
+const INSUMOS_PRACTICAS_CODES = ['430201', '130110'];
+const esPracticaConInsumos = (codigo) => {
+    const n = normCodeStr(codigo);
+    return INSUMOS_PRACTICAS_CODES.includes(n);
+};
 
 const initialPaciente = () => ({
     pacienteId: '', nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '',
@@ -362,9 +377,134 @@ function LabSearch({ onAdd, nomenclador, loading }) {
     );
 }
 
-function PracticaRow({ item, onRemove, showCost, hayAoter }) {
+function InsumoPicker({ onAdd, insumos, loading }) {
+    const [q, setQ] = useState('');
+    const debounced = useDebounce(q, 250);
+
+    const fuse = useMemo(() => {
+        if (!insumos.length) return null;
+        return new Fuse(insumos, {
+            keys: ['nombre'],
+            threshold: 0.35,
+            ignoreLocation: true,
+            minMatchCharLength: 2,
+        });
+    }, [insumos]);
+
+    const results = useMemo(() => {
+        if (!debounced.trim() || !fuse) return [];
+        return fuse.search(debounced).slice(0, 15).map((r) => r.item);
+    }, [debounced, fuse]);
+
+    return (
+        <div className={styles.searchBlock}>
+            <input
+                className={styles.input}
+                placeholder="Buscar medicamento o descartable…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                disabled={loading}
+            />
+            {results.length > 0 && (
+                <div className={styles.resultsList}>
+                    {results.map((r, i) => (
+                        <div
+                            key={`${r.id}-${i}`}
+                            className={styles.resultItem}
+                            onClick={() => { onAdd(r); setQ(''); }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onAdd(r); setQ('');
+                                }
+                            }}
+                        >
+                            <div className={styles.resultMain}>
+                                <strong>{r.nombre}</strong>
+                                <div className={styles.meta}>
+                                    {r.tipo === 'medicamento' ? '💊 Medicamento' : '🧷 Descartable'}
+                                    {' · '}{r.presentacion}
+                                    {' · '}{money(r.precioFacturacion)}
+                                </div>
+                            </div>
+                            <button
+                                className={styles.btnAdd}
+                                onClick={(e) => { e.stopPropagation(); onAdd(r); setQ(''); }}
+                                tabIndex={-1}
+                            >
+                                + Agregar
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function InsumoChips({ insumos }) {
+    if (!insumos || insumos.length === 0) return null;
+    return (
+        <div className={styles.insumosChipsRow}>
+            {insumos.map((ins) => {
+                const cant = parseCantidad(ins.cantidad);
+                const cantTxt = Number.isInteger(cant)
+                    ? cant
+                    : cant.toLocaleString('es-AR', { maximumFractionDigits: 3 });
+                const chipClass =
+                    ins.tipo === 'medicamento'
+                        ? styles.insumoChipMed
+                        : styles.insumoChipDesc;
+                return (
+                    <span
+                        key={ins.id}
+                        className={`${styles.insumoChip} ${chipClass}`}
+                        title={`${ins.nombre} — ${money(ins.precioFacturacion)} c/u × ${cantTxt}`}
+                    >
+                        <span>
+                            {ins.tipo === 'medicamento' ? '💊' : '🧷'} {ins.nombre}
+                        </span>
+                        <span className={styles.insumoChipQty}>× {cantTxt}</span>
+                    </span>
+                );
+            })}
+        </div>
+    );
+}
+
+function PracticaRow({
+    item,
+    onRemove,
+    showCost,
+    hayAoter,
+    insumosCatalogo = [],
+    loadingInsumos = false,
+    onAddInsumo,
+    onRemoveInsumo,
+    onChangeInsumoCantidad,
+}) {
     const tipo = tipoCostoPorOrigen(item.origen, hayAoter);
     const sub = getSubCodigoInfo(item.codigo);
+    const desg = item.costo?.desglose || {};
+    const permiteInsumos = esPracticaConInsumos(item.codigo);
+    const [showInsumoPicker, setShowInsumoPicker] = useState(false);
+
+    const badge =
+        desg.honorarioOrigen === 'aoter' && desg.gastoOrigen === 'nacional'
+            ? ' · Hon AOTER + Gto NN'
+            : desg.honorarioOrigen === 'aoter'
+            ? ' · Hon AOTER'
+            : null;
+
+    const totalInsumos = (item.insumos || []).reduce(
+        (a, x) =>
+            a +
+            (Number(x.precioFacturacion) || 0) * parseCantidad(x.cantidad),
+        0
+    );
+
     return (
         <div className={styles.practicaRow}>
             <div className={styles.practicaMain}>
@@ -374,11 +514,99 @@ function PracticaRow({ item, onRemove, showCost, hayAoter }) {
                         ? `AOTER · Comp. ${item.complejidad}`
                         : item.capituloNombre}
                     {tipo ? ` · ${tipo}` : ''}
+                    {badge || ''}
                 </div>
                 {sub && <div className={styles.codeSub}>↳ {sub}</div>}
+
+                <InsumoChips insumos={item.insumos} />
+
+                {permiteInsumos && (
+                    <div className={styles.insumosBlock}>
+                        <div className={styles.insumosHeader}>
+                            <span>💉 Insumos / medicación (gasto clínico)</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowInsumoPicker((v) => !v)}
+                            >
+                                {showInsumoPicker ? '✕ Cerrar' : '➕ Agregar insumo'}
+                            </button>
+                        </div>
+
+                        {showInsumoPicker && (
+                            <InsumoPicker
+                                insumos={insumosCatalogo}
+                                loading={loadingInsumos}
+                                onAdd={(ins) => onAddInsumo?.(item.id, ins)}
+                            />
+                        )}
+
+                        {(item.insumos || []).length > 0 && (
+                            <div className={styles.insumosList}>
+                                {item.insumos.map((ins) => {
+                                    const cant = parseCantidad(ins.cantidad);
+                                    const subtotal =
+                                        (Number(ins.precioFacturacion) || 0) * cant;
+                                    return (
+                                        <div key={ins.id} className={styles.insumoItem}>
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <strong>{ins.nombre}</strong>
+                                                <div className={styles.meta}>
+                                                    {ins.presentacion}
+                                                    {' · '}
+                                                    {money(ins.precioFacturacion)} c/u
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.insumoActions}>
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    className={styles.insumoQty}
+                                                    value={ins.cantidad ?? ''}
+                                                    onChange={(e) =>
+                                                        onChangeInsumoCantidad?.(
+                                                            item.id,
+                                                            ins.id,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    onFocus={(e) => e.target.select()}
+                                                    title="Cantidad (acepta decimales: 0.3)"
+                                                />
+                                                <span className={styles.insumoQtyHint}>u.</span>
+
+                                                <span className={styles.insumoSubtotal}>
+                                                    {money(subtotal)}
+                                                </span>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onRemoveInsumo?.(item.id, ins.id)
+                                                    }
+                                                    title="Quitar"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div className={styles.insumosTotal}>
+                                    Subtotal insumos: {money(totalInsumos)}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
+
             {showCost && (
-                <div className={styles.costo}>{money(item.costo?.total ?? 0)}</div>
+                <div className={styles.costo}>
+                    <div>Hon: {money(item.costo?.honorarioMedico ?? 0)}</div>
+                    <div>Gto: {money(item.costo?.gastoSanatorial ?? 0)}</div>
+                    <div><strong>{money(item.costo?.total ?? 0)}</strong></div>
+                </div>
             )}
             <button className={styles.btnRemove} onClick={() => onRemove(item.id)} title="Quitar">
                 ✕
@@ -405,7 +633,18 @@ function LabRow({ item, onRemove }) {
 
 function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selected, onToggleSelect }) {
     const total = (rp.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
+    const totalHon = (rp.practicas || []).reduce(
+        (a, p) => a + (p.costo?.honorarioMedico || 0), 0
+    );
+    const totalGto = (rp.practicas || []).reduce(
+        (a, p) => a + (p.costo?.gastoSanatorial || 0), 0
+    );
     const cantLabs = (rp.estudiosLab || []).length;
+
+    const practicasConInsumos = (rp.practicas || []).filter(
+        (p) => Array.isArray(p.insumos) && p.insumos.length > 0
+    );
+
     return (
         <div className={`${styles.rpCard} ${selected ? styles.rpCardSelected : ''}`}>
             <div className={styles.rpCardHeader}>
@@ -437,8 +676,32 @@ function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selecte
                 {rp.esLab
                     ? `${cantLabs} estudio(s) de laboratorio`
                     : `${rp.practicas?.length || 0} práctica(s)`}
-                {!rp.esLab && ` · Total: ${money(total)}`}
             </div>
+            {!rp.esLab && (
+                <div className={styles.meta}>
+                    Hon: {money(totalHon)} · Gto: {money(totalGto)} ·{' '}
+                    <strong>{money(total)}</strong>
+                </div>
+            )}
+
+            {practicasConInsumos.length > 0 && (
+                <div className={styles.practicaMiniBlock}>
+                    {practicasConInsumos.map((p) => (
+                        <div key={p.id} className={styles.practicaMini}>
+                            <div className={styles.practicaMiniHeader}>
+                                <span className={styles.practicaMiniCodigo}>
+                                    {p.codigo}
+                                </span>
+                                <span className={styles.practicaMiniDesc}>
+                                    {p.descripcion}
+                                </span>
+                            </div>
+                            <InsumoChips insumos={p.insumos} />
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div className={styles.rpCardActions}>
                 {onPrint && (
                     <button
@@ -506,6 +769,9 @@ export default function RPPage() {
     const [loadingNomen, setLoadingNomen] = useState(true);
     const [loadingBioq, setLoadingBioq] = useState(true);
 
+    const [insumosCatalogo, setInsumosCatalogo] = useState([]);
+    const [loadingInsumos, setLoadingInsumos] = useState(true);
+
     const { doctors } = useDoctors();
 
     const [rp, setRp] = useState(newRp);
@@ -530,7 +796,32 @@ export default function RPPage() {
                 ]);
                 const conv = convSnap.exists() ? convSnap.val() : {};
                 setConvenios(conv);
-                setConvenioSel(Object.keys(conv)[0] || '');
+
+                const keys = Object.keys(conv);
+                let elegir = '';
+                if (keys.length > 0) {
+                    let stored = null;
+                    try { stored = localStorage.getItem('convenioActivo'); } catch {}
+
+                    if (stored && conv[stored]) {
+                        elegir = stored;
+                    } else {
+                        const sorted = [...keys].sort((a, b) => {
+                            const aT = Number(
+                                conv[a]?.createdAt ?? conv[a]?.creado ??
+                                conv[a]?.fecha ?? conv[a]?.updatedAt ?? 0
+                            );
+                            const bT = Number(
+                                conv[b]?.createdAt ?? conv[b]?.creado ??
+                                conv[b]?.fecha ?? conv[b]?.updatedAt ?? 0
+                            );
+                            return bT - aT;
+                        });
+                        elegir = sorted[0];
+                    }
+                }
+                setConvenioSel(elegir);
+                try { if (elegir) localStorage.setItem('convenioActivo', elegir); } catch {}
 
                 if (rpSnap.exists()) {
                     const h = rpSnap.val();
@@ -551,6 +842,54 @@ export default function RPPage() {
                 console.error('Error cargando:', e);
             }
         })();
+    }, [isClient]);
+
+    // Catálogo de insumos (live)
+    useEffect(() => {
+        if (!isClient) return;
+        const refItems = ref(db, 'medydescartables');
+        const unsub = onValue(refItems, (snap) => {
+            if (!snap.exists()) {
+                setInsumosCatalogo([]);
+                setLoadingInsumos(false);
+                return;
+            }
+            const data = snap.val();
+            const lista = [];
+
+            if (data.medicamentos) {
+                Object.entries(data.medicamentos).forEach(([key, d]) => {
+                    if (d.activo === false) return;
+                    lista.push({
+                        id: `medicamento|${key}`,
+                        key,
+                        categoria: 'medicamentos',
+                        tipo: 'medicamento',
+                        nombre: d.nombre || key.replace(/_/g, ' '),
+                        presentacion: d.presentacion || 'unidad',
+                        precioFacturacion: Number(d.precioFacturacion) || 0,
+                    });
+                });
+            }
+            if (data.descartables) {
+                Object.entries(data.descartables).forEach(([key, d]) => {
+                    if (d.activo === false) return;
+                    lista.push({
+                        id: `descartable|${key}`,
+                        key,
+                        categoria: 'descartables',
+                        tipo: 'descartable',
+                        nombre: d.nombre || key.replace(/_/g, ' '),
+                        presentacion: d.presentacion || 'unidad',
+                        precioFacturacion: Number(d.precioFacturacion) || 0,
+                    });
+                });
+            }
+            lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            setInsumosCatalogo(lista);
+            setLoadingInsumos(false);
+        });
+        return () => unsub();
     }, [isClient]);
 
     const loadPacientes = useCallback(async () => {
@@ -648,24 +987,100 @@ export default function RPPage() {
     const selectAll = useCallback((list) => setSelectedIds(new Set(list.map((r) => r.id))), []);
     const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-    // ============ Prácticas / Labs ============
-    const addPractica = useCallback((item) => {
-        let costo = { total: 0, honorarioMedico: 0, gastoSanatorial: 0, formula: '' };
-        if (item.origen === 'aoter') {
-            const { cirujano } = obtenerHonorariosAoter(item.complejidad, valoresConvenio);
-            costo = {
-                honorarioMedico: cirujano, gastoSanatorial: 0, total: cirujano,
-                formula: `AOTER Comp.${item.complejidad}`,
-            };
-        } else {
-            const c = calcularPractica(item, valoresConvenio);
-            costo = {
-                honorarioMedico: c.honorarioMedico || 0,
-                gastoSanatorial: c.gastoSanatorial || 0,
-                total: c.total || 0,
-                formula: c.formula || '',
+    // ============ Cálculo combinado AOTER / NN + insumos ============
+    const calcularCostoConDesglose = useCallback((item, insumos = []) => {
+        const codeNorm = normCodeStr(item.codigo);
+        const totalInsumos = (insumos || []).reduce(
+            (a, x) => a + (Number(x.precioFacturacion) || 0) * parseCantidad(x.cantidad),
+            0
+        );
+
+        if (!codeNorm) {
+            return {
+                honorarioMedico: 0,
+                gastoSanatorial: totalInsumos,
+                total: totalInsumos,
+                formula: '',
             };
         }
+
+        const nnItem =
+            item.origen === 'nacional'
+                ? item
+                : nacional.find((p) => normCodeStr(p.codigo) === codeNorm);
+
+        const aoterMatches = aoter.filter(
+            (p) => normCodeStr(p.codigo) === codeNorm
+        );
+        const aoterItem =
+            item.origen === 'aoter'
+                ? item
+                : aoterMatches.sort(
+                      (a, b) => (b.complejidad || 0) - (a.complejidad || 0)
+                  )[0];
+
+        let nnCalc = null;
+        if (nnItem) nnCalc = calcularPractica(nnItem, valoresConvenio);
+
+        let aoterHonor = 0;
+        let aoterFormula = '';
+        if (aoterItem) {
+            const { cirujano } = obtenerHonorariosAoter(
+                aoterItem.complejidad,
+                valoresConvenio
+            );
+            aoterHonor = Number(cirujano) || 0;
+            aoterFormula = `AOTER Comp.${aoterItem.complejidad}`;
+        }
+
+        let base;
+        if (aoterItem && nnItem) {
+            const gasto = Number(nnCalc?.gastoSanatorial) || 0;
+            base = {
+                honorarioMedico: aoterHonor,
+                gastoSanatorial: gasto,
+                total: aoterHonor + gasto,
+                formula: `${aoterFormula} + gasto NN`,
+                desglose: { honorarioOrigen: 'aoter', gastoOrigen: 'nacional' },
+            };
+        } else if (nnItem) {
+            base = {
+                honorarioMedico: Number(nnCalc?.honorarioMedico) || 0,
+                gastoSanatorial: Number(nnCalc?.gastoSanatorial) || 0,
+                total: Number(nnCalc?.total) || 0,
+                formula: nnCalc?.formula || '',
+                desglose: { honorarioOrigen: 'nacional', gastoOrigen: 'nacional' },
+            };
+        } else if (aoterItem) {
+            base = {
+                honorarioMedico: aoterHonor,
+                gastoSanatorial: 0,
+                total: aoterHonor,
+                formula: aoterFormula,
+                desglose: { honorarioOrigen: 'aoter', gastoOrigen: null },
+            };
+        } else {
+            base = {
+                honorarioMedico: 0,
+                gastoSanatorial: 0,
+                total: 0,
+                formula: '',
+                desglose: { honorarioOrigen: null, gastoOrigen: null },
+            };
+        }
+
+        const gastoConInsumos = base.gastoSanatorial + totalInsumos;
+        return {
+            ...base,
+            gastoSanatorial: gastoConInsumos,
+            total: base.honorarioMedico + gastoConInsumos,
+        };
+    }, [nacional, aoter, valoresConvenio]);
+
+    // ============ Prácticas / Labs ============
+    const addPractica = useCallback((item) => {
+        const insumos = [];
+        const costo = calcularCostoConDesglose(item, insumos);
         setRp((prev) => ({
             ...prev,
             practicas: [
@@ -679,15 +1094,78 @@ export default function RPPage() {
                     capitulo: item.capitulo ?? '',
                     capituloNombre: item.capituloNombre ?? '',
                     region_nombre: item.region_nombre ?? '',
+                    insumos,
                     costo,
                 },
             ],
         }));
-    }, [valoresConvenio]);
+    }, [calcularCostoConDesglose]);
 
     const removePractica = useCallback((id) => {
         setRp((prev) => ({ ...prev, practicas: prev.practicas.filter((p) => p.id !== id) }));
     }, []);
+
+    const recalcularCosto = useCallback((practica, insumos) => {
+        const nuevoCosto = calcularCostoConDesglose(practica, insumos);
+        return { ...practica, insumos, costo: nuevoCosto };
+    }, [calcularCostoConDesglose]);
+
+    const addInsumo = useCallback((practicaId, insumo) => {
+        setRp((prev) => ({
+            ...prev,
+            practicas: prev.practicas.map((p) => {
+                if (p.id !== practicaId) return p;
+                const actuales = p.insumos || [];
+                const existente = actuales.find((x) => x.id === insumo.id);
+                let nuevos;
+                if (existente) {
+                    const nuevaCant = parseCantidad(existente.cantidad) + 1;
+                    nuevos = actuales.map((x) =>
+                        x.id === insumo.id ? { ...x, cantidad: String(nuevaCant) } : x
+                    );
+                } else {
+                    nuevos = [
+                        ...actuales,
+                        {
+                            id: insumo.id,
+                            key: insumo.key,
+                            categoria: insumo.categoria,
+                            tipo: insumo.tipo,
+                            nombre: insumo.nombre,
+                            presentacion: insumo.presentacion,
+                            precioFacturacion: Number(insumo.precioFacturacion) || 0,
+                            cantidad: '1',
+                        },
+                    ];
+                }
+                return recalcularCosto(p, nuevos);
+            }),
+        }));
+    }, [recalcularCosto]);
+
+    const removeInsumo = useCallback((practicaId, insumoId) => {
+        setRp((prev) => ({
+            ...prev,
+            practicas: prev.practicas.map((p) => {
+                if (p.id !== practicaId) return p;
+                const nuevos = (p.insumos || []).filter((x) => x.id !== insumoId);
+                return recalcularCosto(p, nuevos);
+            }),
+        }));
+    }, [recalcularCosto]);
+
+    const setInsumoCantidad = useCallback((practicaId, insumoId, rawValue) => {
+        setRp((prev) => ({
+            ...prev,
+            practicas: prev.practicas.map((p) => {
+                if (p.id !== practicaId) return p;
+                const nuevos = (p.insumos || []).map((x) =>
+                    x.id === insumoId ? { ...x, cantidad: rawValue } : x
+                );
+                return recalcularCosto(p, nuevos);
+            }),
+        }));
+    }, [recalcularCosto]);
 
     const addLab = useCallback((item) => {
         setRp((prev) => ({
@@ -772,23 +1250,9 @@ export default function RPPage() {
             }));
         } else {
             const practicas = (atajo.practicas || []).map((p) => {
-                let costo;
-                if (p.origen === 'aoter') {
-                    const { cirujano } = obtenerHonorariosAoter(p.complejidad, valoresConvenio);
-                    costo = {
-                        honorarioMedico: cirujano, gastoSanatorial: 0, total: cirujano,
-                        formula: `AOTER Comp.${p.complejidad}`,
-                    };
-                } else {
-                    const c = calcularPractica(p, valoresConvenio);
-                    costo = {
-                        honorarioMedico: c.honorarioMedico || 0,
-                        gastoSanatorial: c.gastoSanatorial || 0,
-                        total: c.total || 0,
-                        formula: c.formula || '',
-                    };
-                }
-                return { ...p, costo, id: makeId('prac') };
+                const insumos = Array.isArray(p.insumos) ? p.insumos : [];
+                const costo = calcularCostoConDesglose(p, insumos);
+                return { ...p, insumos, costo, id: makeId('prac') };
             });
             setRp((prev) => ({
                 ...prev,
@@ -798,7 +1262,7 @@ export default function RPPage() {
                 diagnostico: atajo.diagnostico || '',
             }));
         }
-    }, [valoresConvenio, rp.esLab]);
+    }, [calcularCostoConDesglose, rp.esLab]);
 
     // ============ Carrito ============
     const canAddToList =
@@ -820,11 +1284,22 @@ export default function RPPage() {
         try {
             const now = Date.now();
             const saves = carrito.map((r) => {
-                const total = (r.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
+                const totalHonorarios = (r.practicas || []).reduce(
+                    (a, p) => a + (Number(p.costo?.honorarioMedico) || 0),
+                    0
+                );
+                const totalGastos = (r.practicas || []).reduce(
+                    (a, p) => a + (Number(p.costo?.gastoSanatorial) || 0),
+                    0
+                );
+                const total = totalHonorarios + totalGastos;
+
                 const payload = sanitizeForFirebase({
                     ...r,
                     convenio: convenioSel,
                     convenioNombre: convenios[convenioSel]?.nombre || convenioSel,
+                    totalHonorarios,
+                    totalGastos,
                     total,
                     createdAt: now,
                     updatedAt: now,
@@ -895,7 +1370,12 @@ export default function RPPage() {
             ...base,
             ...clean,
             esLab: !!clean.esLab,
-            practicas: Array.isArray(clean.practicas) ? clean.practicas : [],
+            practicas: Array.isArray(clean.practicas)
+                ? clean.practicas.map((p) => ({
+                      ...p,
+                      insumos: Array.isArray(p.insumos) ? p.insumos : [],
+                  }))
+                : [],
             estudiosLab: Array.isArray(clean.estudiosLab) ? clean.estudiosLab : [],
             solicitaManual: clean.solicitaManual || '',
             paciente: { ...initialPaciente(), ...(clean.paciente || {}) },
@@ -911,7 +1391,12 @@ export default function RPPage() {
             ...base,
             ...rpToEdit,
             esLab: !!rpToEdit.esLab,
-            practicas: Array.isArray(rpToEdit.practicas) ? rpToEdit.practicas : [],
+            practicas: Array.isArray(rpToEdit.practicas)
+                ? rpToEdit.practicas.map((p) => ({
+                      ...p,
+                      insumos: Array.isArray(p.insumos) ? p.insumos : [],
+                  }))
+                : [],
             estudiosLab: Array.isArray(rpToEdit.estudiosLab) ? rpToEdit.estudiosLab : [],
             solicitaManual: rpToEdit.solicitaManual || '',
             paciente: { ...initialPaciente(), ...(rpToEdit.paciente || {}) },
@@ -927,6 +1412,12 @@ export default function RPPage() {
     }
 
     const totalRp = rp.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
+    const totalHonRp = rp.practicas.reduce(
+        (a, p) => a + (p.costo?.honorarioMedico || 0), 0
+    );
+    const totalGtoRp = rp.practicas.reduce(
+        (a, p) => a + (p.costo?.gastoSanatorial || 0), 0
+    );
     const totalCarrito = carrito.reduce(
         (a, r) => a + (r.practicas || []).reduce((b, p) => b + (p.costo?.total || 0), 0),
         0
@@ -954,7 +1445,11 @@ export default function RPPage() {
                     <select
                         className={styles.select}
                         value={convenioSel}
-                        onChange={(e) => setConvenioSel(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setConvenioSel(v);
+                            try { localStorage.setItem('convenioActivo', v); } catch {}
+                        }}
                     >
                         {Object.keys(convenios).map((k) => (
                             <option key={k} value={k}>{convenios[k]?.nombre || k}</option>
@@ -1083,8 +1578,21 @@ export default function RPPage() {
                                                 onRemove={removePractica}
                                                 showCost={true}
                                                 hayAoter={hayAoterRp}
+                                                insumosCatalogo={insumosCatalogo}
+                                                loadingInsumos={loadingInsumos}
+                                                onAddInsumo={addInsumo}
+                                                onRemoveInsumo={removeInsumo}
+                                                onChangeInsumoCantidad={setInsumoCantidad}
                                             />
                                         ))}
+                                        <div className={styles.totalRow}>
+                                            <span>Honorarios</span>
+                                            <strong>{money(totalHonRp)}</strong>
+                                        </div>
+                                        <div className={styles.totalRow}>
+                                            <span>Gastos clínicos</span>
+                                            <strong>{money(totalGtoRp)}</strong>
+                                        </div>
                                         <div className={styles.totalRow}>
                                             <span>Total RP (solo interno)</span>
                                             <strong>{money(totalRp)}</strong>

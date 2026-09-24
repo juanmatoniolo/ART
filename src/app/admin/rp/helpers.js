@@ -74,13 +74,11 @@ export const tipoCostoPorOrigen = (origen, hayAoter) => {
 
 // =====================================================================
 //  SUB-CÓDIGOS — leyendas que se muestran debajo del código
-//  (clave sin puntos ni espacios para que matchee tanto "43.02.01"
-//   como "430201")
+//  (clave sin puntos ni espacios)
 // =====================================================================
 const SUBCodigos = {
-	430201: "Incluye medicación + descartables",
-	// Agregá más acá si necesitás:
-	// "430202": "Incluye material descartable",
+	430201: "Incluye medicación + descartables", // Curación
+	130110: "Incluye medicación + descartables", // Sutura de herida
 };
 
 export function getSubCodigoInfo(codigo) {
@@ -92,6 +90,25 @@ export function getSubCodigoInfo(codigo) {
 // =====================================================================
 //  HTML DE IMPRESIÓN
 // =====================================================================
+function renderInsumosHtml(insumos) {
+	if (!Array.isArray(insumos) || insumos.length === 0) return "";
+	const parseCant = (v) => {
+		const n = Number(String(v ?? "").replace(",", "."));
+		return Number.isFinite(n) ? n : 0;
+	};
+	const chips = insumos
+		.map((i) => {
+			const cant = parseCant(i.cantidad);
+			const cantTxt = Number.isInteger(cant)
+				? cant
+				: cant.toLocaleString("es-AR", { maximumFractionDigits: 3 });
+			const icon = i.tipo === "medicamento" ? "💊" : "🧷";
+			return `<span class="insumo-chip">${icon} ${esc(i.nombre)} × ${esc(cantTxt)}</span>`;
+		})
+		.join("");
+	return `<div class="insumos-row">${chips}</div>`;
+}
+
 function renderRpHtml(rp, logoSrc) {
 	const pac = rp.paciente || {};
 	const med = rp.medico || {};
@@ -144,7 +161,8 @@ function renderRpHtml(rp, logoSrc) {
                             <span class="code-desc">${esc(p.descripcion)}</span>
                             <span class="code-type">${esc(tipo)}</span>
                         </div>
-                        ${sub ? `<div class="code-sub">↳ ${esc(sub)}</div>` : ""}`;
+                        ${sub ? `<div class="code-sub">↳ ${esc(sub)}</div>` : ""}
+                        ${renderInsumosHtml(p.insumos)}`;
 					})
 					.join("")}
             </div>`
@@ -338,7 +356,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     .code-type { font-size: 7.5pt; font-style: italic; color: #475569; white-space: nowrap; }
     .italic { font-style: italic; }
 
-    /* 👇 Sub-código: leyenda debajo del código (ej: "Incluye medicación...") */
     .code-sub {
         font-size: 7.5pt;
         font-style: italic;
@@ -346,6 +363,25 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         padding-left: 24mm;
         margin-top: -0.4mm;
         margin-bottom: 0.8mm;
+    }
+
+    .insumos-row {
+        padding-left: 24mm;
+        margin-top: -0.2mm;
+        margin-bottom: 1.2mm;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1mm;
+    }
+    .insumo-chip {
+        display: inline-block;
+        font-size: 7pt;
+        padding: 0.4mm 1.6mm;
+        border: 0.5pt solid #cbd5e1;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        white-space: nowrap;
     }
 
     .bottom {

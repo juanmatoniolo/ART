@@ -1022,3 +1022,149 @@
     padding-left: 4px;
     border-left: 2px solid rgba(147, 197, 253, 0.35);
 }
+
+.insumosBlock {
+    margin-top: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+.insumosHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    margin-bottom: 6px;
+}
+.insumosHeader button {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: inherit;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+.insumosList {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.insumoItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    gap: 8px;
+}
+.insumoActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.insumoActions button {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    cursor: pointer;
+}
+.insumosTotal {
+    text-align: right;
+    font-weight: 600;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.insumoQty {
+    width: 72px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.3);
+    color: inherit;
+    text-align: center;
+    font-size: 0.9em;
+}
+.insumoQty:focus {
+    outline: none;
+    border-color: rgba(120, 180, 255, 0.8);
+}
+.insumoQtyHint {
+    font-size: 0.75em;
+    opacity: 0.6;
+    margin-left: 4px;
+}
+.insumoSubtotal {
+    min-width: 80px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.insumosChipsRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+.insumoChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 0.72em;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 999px;
+    background: rgba(120, 180, 255, 0.12);
+    border: 1px solid rgba(120, 180, 255, 0.35);
+    color: inherit;
+    white-space: nowrap;
+}
+.insumoChipMed {
+    background: rgba(255, 200, 100, 0.12);
+    border-color: rgba(255, 200, 100, 0.4);
+}
+.insumoChipDesc {
+    background: rgba(120, 220, 160, 0.12);
+    border-color: rgba(120, 220, 160, 0.4);
+}
+.insumoChipQty {
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+.practicaMiniBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+.practicaMini {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85em;
+}
+.practicaMiniHeader {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: baseline;
+    color: inherit;
+}
+.practicaMiniCodigo {
+    font-weight: 600;
+    opacity: 0.9;
+}
+.practicaMiniDesc {
+    opacity: 0.75;
+}
