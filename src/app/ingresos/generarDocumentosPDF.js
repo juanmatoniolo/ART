@@ -1,13 +1,49 @@
 /**
- * Genera un PDF (A4) con la documentación (fotos) en grilla 2×3 por página.
+ * Genera un PDF (A4) con la documentación:
+ *   - Imágenes → grilla 2×3 por página
+ *   - PDFs → se embeben sus páginas originales
  * Devuelve un Blob PDF, o null si no hay documentos válidos.
  * No fusiona con nada: el caller decide cómo combinarlo.
  */
-export async function generarDocumentosPDFBlob({ docs, form }) {
-	if (!Array.isArray(docs) || docs.length === 0) return null;
 
-	const { PDFDocument } = await import("pdf-lib");
+/* =========================================================
+   Helpers para identificar y cargar archivos
+   ========================================================= */
 
+function isPdfDoc(doc) {
+	return /\.pdf$/i.test(doc?.name || "");
+}
+
+function loadImage(src) {
+	return new Promise((resolve) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = () => resolve(null);
+		img.src = src;
+	});
+}
+
+async function loadFileBytes(fileId) {
+	try {
+		const res = await fetch(`/api/documentos/proxy?id=${fileId}`);
+		if (!res.ok) {
+			console.warn(
+				`[docs] No se pudo cargar ${fileId}: HTTP ${res.status}`,
+			);
+			return null;
+		}
+		return await res.arrayBuffer();
+	} catch (err) {
+		console.warn(`[docs] Error cargando ${fileId}:`, err);
+		return null;
+	}
+}
+
+/* =========================================================
+   Grilla de imágenes (2×3 por página)
+   ========================================================= */
+
+async function buildImageCanvases({ docs, form }) {
 	const PAGE_W = 1240;
 	const PAGE_H = 1754;
 	const MARGIN = 60;
@@ -18,25 +54,16 @@ export async function generarDocumentosPDFBlob({ docs, form }) {
 	const CELL_H = (PAGE_H - MARGIN * 2 - 110 - GAP * (ROWS - 1)) / ROWS;
 
 	const loaded = await Promise.all(
-		docs.map(
-			(d) =>
-				new Promise((resolve) => {
-					const img = new Image();
-					img.onload = () => resolve({ img, doc: d });
-					img.onerror = () => resolve(null);
-					img.src = `/api/documentos/proxy?id=${d.fileId}`;
-				}),
-		),
+		docs.map(async (d) => {
+			const img = await loadImage(`/api/documentos/proxy?id=${d.fileId}`);
+			return img ? { img, doc: d } : null;
+		}),
 	);
 	const valid = loaded.filter(Boolean);
-	if (!valid.length) return null;
+	if (!valid.length) return [];
 
 	const perPage = COLS * ROWS;
 	const totalPages = Math.ceil(valid.length / perPage);
-
-	const pdf = await PDFDocument.create();
-	const A4_W = 595.28;
-	const A4_H = 841.89;
 
 	const paciente =
 		`${form?.trabajadorApellido || ""} ${form?.trabajadorNombre || ""}`
@@ -45,6 +72,8 @@ export async function generarDocumentosPDFBlob({ docs, form }) {
 	const os = (form?.OS || "").toUpperCase();
 	const afiliado = form?.afiliadoPaciente || "";
 	const hoy = new Date().toLocaleDateString("es-AR");
+
+	const canvases = [];
 
 	for (let p = 0; p < totalPages; p++) {
 		const slice = valid.slice(p * perPage, (p + 1) * perPage);
@@ -105,22 +134,79 @@ export async function generarDocumentosPDFBlob({ docs, form }) {
 			);
 		});
 
-		const pngDataUrl = canvas.toDataURL("image/png");
-		const pngBase64 = pngDataUrl.split(",")[1];
-		const pngBytes = Uint8Array.from(atob(pngBase64), (c) =>
-			c.charCodeAt(0),
-		);
-		const pngImage = await pdf.embedPng(pngBytes);
+		canvases.push(canvas);
+	}
 
-		const page = pdf.addPage([A4_W, A4_H]);
-		const scale = A4_W / pngImage.width;
-		const imgH = pngImage.height * scale;
-		page.drawImage(pngImage, {
-			x: 0,
-			y: A4_H - imgH,
-			width: A4_W,
-			height: imgH,
+	return canvases;
+}
+
+/* =========================================================
+   Generar PDF combinado (imágenes + PDFs)
+   ========================================================= */
+
+export async function generarDocumentosPDFBlob({ docs, form }) {
+	const allDocs = Array.isArray(docs) ? docs : [];
+	if (allDocs.length === 0) return null;
+
+	const { PDFDocument } = await import("pdf-lib");
+	const pdf = await PDFDocument.create();
+	const A4_W = 595.28;
+	const A4_H = 841.89;
+
+	const imageDocs = allDocs.filter((d) => !isPdfDoc(d));
+	const pdfDocs = allDocs.filter((d) => isPdfDoc(d));
+
+	/* ───── 1) Grilla de imágenes (si hay) ───── */
+	if (imageDocs.length > 0) {
+		const canvases = await buildImageCanvases({
+			docs: imageDocs,
+			form,
 		});
+
+		for (const canvas of canvases) {
+			const pngDataUrl = canvas.toDataURL("image/png");
+			const pngBase64 = pngDataUrl.split(",")[1];
+			const pngBytes = Uint8Array.from(atob(pngBase64), (c) =>
+				c.charCodeAt(0),
+			);
+			const pngImage = await pdf.embedPng(pngBytes);
+
+			const page = pdf.addPage([A4_W, A4_H]);
+			const scale = A4_W / pngImage.width;
+			const imgH = pngImage.height * scale;
+			page.drawImage(pngImage, {
+				x: 0,
+				y: A4_H - imgH,
+				width: A4_W,
+				height: imgH,
+			});
+		}
+	}
+
+	/* ───── 2) PDFs: embeber sus páginas tal cual ───── */
+	for (const doc of pdfDocs) {
+		try {
+			const bytes = await loadFileBytes(doc.fileId);
+			if (!bytes) continue;
+
+			const srcDoc = await PDFDocument.load(bytes, {
+				ignoreEncryption: true,
+			});
+			const pageIndices = srcDoc.getPageIndices();
+			const copiedPages = await pdf.copyPages(srcDoc, pageIndices);
+			copiedPages.forEach((p) => pdf.addPage(p));
+		} catch (err) {
+			console.warn(
+				`[docs] No se pudo embeber "${doc.name}":`,
+				err?.message || err,
+			);
+		}
+	}
+
+	/* ───── 3) Validación ───── */
+	if (pdf.getPageCount() === 0) {
+		console.warn("[docs] No se pudo generar ninguna página");
+		return null;
 	}
 
 	const bytes = await pdf.save();

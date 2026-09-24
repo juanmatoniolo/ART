@@ -56,6 +56,52 @@ async function getNextDocumentNumber(folderId) {
 	return max + 1;
 }
 
+/* ============================================================
+   Detecta el tipo real del archivo subido
+============================================================ */
+function detectFileType(file) {
+	const name = String(file?.name || "").toLowerCase();
+	const type = String(file?.type || "").toLowerCase();
+
+	/* PDF */
+	if (type === "application/pdf" || name.endsWith(".pdf")) {
+		return { ext: "pdf", mimeType: "application/pdf", isPdf: true };
+	}
+
+	/* WebP */
+	if (type === "image/webp" || name.endsWith(".webp")) {
+		return { ext: "webp", mimeType: "image/webp", isPdf: false };
+	}
+
+	/* PNG */
+	if (type === "image/png" || name.endsWith(".png")) {
+		return { ext: "png", mimeType: "image/png", isPdf: false };
+	}
+
+	/* JPEG */
+	if (
+		type === "image/jpeg" ||
+		type === "image/jpg" ||
+		name.endsWith(".jpg") ||
+		name.endsWith(".jpeg")
+	) {
+		return { ext: "jpg", mimeType: "image/jpeg", isPdf: false };
+	}
+
+	/* Fallback: respetamos la extensión del nombre original si existe */
+	if (name.includes(".")) {
+		const ext = name.split(".").pop();
+		return {
+			ext,
+			mimeType: type || "application/octet-stream",
+			isPdf: false,
+		};
+	}
+
+	/* Último fallback */
+	return { ext: "bin", mimeType: "application/octet-stream", isPdf: false };
+}
+
 export async function POST(req) {
 	try {
 		const formData = await req.formData();
@@ -69,13 +115,22 @@ export async function POST(req) {
 			);
 		}
 
+		/* ✅ Detectar tipo real del archivo */
+		const { ext, mimeType, isPdf } = detectFileType(file);
+
 		const folderId = await getOrCreateFolder(folderName);
 		const nextNum = await getNextDocumentNumber(folderId);
-		const fileName = `documento${nextNum}.webp`;
+
+		/* ✅ Nombre con la extensión correcta */
+		const fileName = `documento${nextNum}.${ext}`;
 
 		const arrayBuffer = await file.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);
 		const stream = Readable.from(buffer);
+
+		console.log(
+			`[UPLOAD] Subiendo ${fileName} (${mimeType}, ${buffer.length} bytes)`,
+		);
 
 		const uploaded = await drive.files.create({
 			requestBody: {
@@ -83,14 +138,14 @@ export async function POST(req) {
 				parents: [folderId],
 			},
 			media: {
-				mimeType: "image/webp",
+				mimeType: mimeType, // ✅ mime correcto según el tipo
 				body: stream,
 			},
-			fields: "id, name, webViewLink",
+			fields: "id, name, webViewLink, mimeType",
 			supportsAllDrives: true,
 		});
 
-		// Hacer el archivo visible (cualquiera con el link puede verlo)
+		/* Hacer visible con link */
 		try {
 			await drive.permissions.create({
 				fileId: uploaded.data.id,
@@ -109,6 +164,8 @@ export async function POST(req) {
 			fileId: uploaded.data.id,
 			name: uploaded.data.name,
 			url: uploaded.data.webViewLink,
+			mimeType: uploaded.data.mimeType,
+			isPdf,
 			folderId,
 		});
 	} catch (err) {

@@ -35,6 +35,14 @@ export function uploadWithProgress(url, formData, onProgress, signal) {
 	});
 }
 
+/* =========================================================
+   Helpers para identificar y cargar archivos
+   ========================================================= */
+
+function isPdfDoc(doc) {
+	return /\.pdf$/i.test(doc?.name || "");
+}
+
 function loadImage(src) {
 	return new Promise((resolve) => {
 		const img = new Image();
@@ -43,6 +51,26 @@ function loadImage(src) {
 		img.src = src;
 	});
 }
+
+async function loadFileBytes(fileId) {
+	try {
+		const res = await fetch(`/api/documentos/proxy?id=${fileId}`);
+		if (!res.ok) {
+			console.warn(
+				`[docs] No se pudo cargar ${fileId}: HTTP ${res.status}`,
+			);
+			return null;
+		}
+		return await res.arrayBuffer();
+	} catch (err) {
+		console.warn(`[docs] Error cargando ${fileId}:`, err);
+		return null;
+	}
+}
+
+/* =========================================================
+   Collage de IMÁGENES (grilla 2×3 por página)
+   ========================================================= */
 
 async function buildCollageCanvases({ docs, form }) {
 	const PAGE_W = 1240;
@@ -135,31 +163,71 @@ async function buildCollageCanvases({ docs, form }) {
 	return canvases;
 }
 
-export async function generarFrentePDFBlob({ docs, form }) {
-	const canvases = await buildCollageCanvases({ docs, form });
-	if (!canvases.length) throw new Error("No se pudieron cargar las imágenes");
+/* =========================================================
+   FRENTE: grilla de imágenes + PDFs embebidos
+   ========================================================= */
 
+export async function generarFrentePDFBlob({ docs, form }) {
 	const { PDFDocument } = await import("pdf-lib");
 	const pdf = await PDFDocument.create();
 	const A4_W = 595.28;
 	const A4_H = 841.89;
 
-	for (const canvas of canvases) {
-		const pngDataUrl = canvas.toDataURL("image/png");
-		const pngBase64 = pngDataUrl.split(",")[1];
-		const pngBytes = Uint8Array.from(atob(pngBase64), (c) =>
-			c.charCodeAt(0),
-		);
-		const pngImage = await pdf.embedPng(pngBytes);
-		const page = pdf.addPage([A4_W, A4_H]);
-		const scale = A4_W / pngImage.width;
-		const imgH = pngImage.height * scale;
-		page.drawImage(pngImage, {
-			x: 0,
-			y: A4_H - imgH,
-			width: A4_W,
-			height: imgH,
+	const allDocs = Array.isArray(docs) ? docs : [];
+	const imageDocs = allDocs.filter((d) => !isPdfDoc(d));
+	const pdfDocs = allDocs.filter((d) => isPdfDoc(d));
+
+	/* ─────── 1) Grilla de imágenes (si hay) ─────── */
+	if (imageDocs.length > 0) {
+		const canvases = await buildCollageCanvases({
+			docs: imageDocs,
+			form,
 		});
+
+		for (const canvas of canvases) {
+			const pngDataUrl = canvas.toDataURL("image/png");
+			const pngBase64 = pngDataUrl.split(",")[1];
+			const pngBytes = Uint8Array.from(atob(pngBase64), (c) =>
+				c.charCodeAt(0),
+			);
+			const pngImage = await pdf.embedPng(pngBytes);
+			const page = pdf.addPage([A4_W, A4_H]);
+			const scale = A4_W / pngImage.width;
+			const imgH = pngImage.height * scale;
+			page.drawImage(pngImage, {
+				x: 0,
+				y: A4_H - imgH,
+				width: A4_W,
+				height: imgH,
+			});
+		}
+	}
+
+	/* ─────── 2) PDFs: embeber sus páginas tal cual ─────── */
+	for (const doc of pdfDocs) {
+		try {
+			const bytes = await loadFileBytes(doc.fileId);
+			if (!bytes) continue;
+
+			const srcDoc = await PDFDocument.load(bytes, {
+				ignoreEncryption: true,
+			});
+			const pageIndices = srcDoc.getPageIndices();
+			const copiedPages = await pdf.copyPages(srcDoc, pageIndices);
+			copiedPages.forEach((p) => pdf.addPage(p));
+		} catch (err) {
+			console.warn(
+				`[docs] No se pudo embeber "${doc.name}":`,
+				err?.message || err,
+			);
+		}
+	}
+
+	/* ─────── 3) Validación final ─────── */
+	if (pdf.getPageCount() === 0) {
+		throw new Error(
+			"No se pudieron cargar los documentos. Verificá que las imágenes o PDFs se hayan subido correctamente.",
+		);
 	}
 
 	const bytes = await pdf.save();
@@ -167,8 +235,9 @@ export async function generarFrentePDFBlob({ docs, form }) {
 }
 
 /* =========================================================
-   DORSO: completa "nombres-paciente" y deja SOLO la hoja 1
+   DORSO (sin cambios)
    ========================================================= */
+
 export async function generarDorsoPDFBlob({ pacienteNombre = "" } = {}) {
 	const res = await fetch("/templates/DORSO-CX.pdf");
 	if (!res.ok) {

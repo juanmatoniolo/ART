@@ -13,7 +13,12 @@ import {
 
 const styles = { ...stylesBase, ...stylesOwn };
 
-const UPLOAD_TIMEOUT_MS = 30000;
+/* Timeouts diferenciados:
+   - Imágenes WebP: livianas, 45s sobra
+   - PDFs: hasta 5 MB, pueden tardar; 3 min de margen */
+const UPLOAD_TIMEOUT_IMG_MS = 45000;
+const UPLOAD_TIMEOUT_PDF_MS = 180000;
+const PDF_MAX_MB = 5;
 
 /* Nombre del archivo: APELLIDO_NOMBRE_DNI_OS_AFILIADO.webp */
 function buildDocFileName(form, ext = "webp") {
@@ -34,6 +39,28 @@ function buildDocFileName(form, ext = "webp") {
     ].filter(Boolean);
     const base = parts.join("_") || "DOCUMENTO";
     return `${base}.${ext}`;
+}
+
+/* Sanitiza el nombre original del PDF */
+function sanitizePdfName(originalName) {
+    const base = String(originalName || "documento")
+        .replace(/\.pdf$/i, "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Za-z0-9._-]/g, "")
+        .toUpperCase();
+    return `${base || "DOCUMENTO"}.pdf`;
+}
+
+/* URL del proxy para mostrar inline (mismo origin, sin CORS) */
+function buildProxyUrl(fileId) {
+    return `/api/documentos/proxy?id=${encodeURIComponent(fileId)}`;
+}
+
+/* URL del proxy con parámetros para iframe (sin toolbar ni panel) */
+function buildProxyEmbedUrl(fileId) {
+    return `${buildProxyUrl(fileId)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
 }
 
 function uploadWithProgress(url, formData, onProgress, signal) {
@@ -61,7 +88,12 @@ function uploadWithProgress(url, formData, onProgress, signal) {
         };
         xhr.onerror = () => reject(new Error("Error de red. Revisá tu conexión."));
         xhr.ontimeout = () => reject(new Error("Tiempo de espera agotado"));
-        xhr.onabort = () => reject(new Error("Subida cancelada por tiempo de espera"));
+        xhr.onabort = () =>
+            reject(
+                new Error(
+                    "La subida tardó más de lo esperado. Verificá tu conexión e intentá de nuevo.",
+                ),
+            );
         if (signal) signal.addEventListener("abort", () => xhr.abort());
         xhr.send(formData);
     });
@@ -73,9 +105,11 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
     const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
     const [imgErrors, setImgErrors] = useState({});
     const [cropPreview, setCropPreview] = useState(null);
+    const [pdfUploading, setPdfUploading] = useState(false);
 
     const cameraInputRef = useRef(null);
     const galleryInputRef = useRef(null);
+    const pdfInputRef = useRef(null);
 
     const [uploadState, setUploadState] = useState({
         active: false,
@@ -96,23 +130,32 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
             error: "",
         });
 
-    /* Abre directo la cámara trasera, sin cartel intermedio */
-    const openCamera = () => {
+    const validarPaciente = () => {
         if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
             alert("Completá apellido y nombre antes de subir documentación.");
-            return;
+            return false;
         }
+        return true;
+    };
+
+    const openCamera = () => {
+        if (!validarPaciente()) return;
         cameraInputRef.current?.click();
     };
 
     const openGallery = () => {
-        if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
-            alert("Completá apellido y nombre antes de subir documentación.");
-            return;
-        }
+        if (!validarPaciente()) return;
         galleryInputRef.current?.click();
     };
 
+    const openPdfPicker = () => {
+        if (!validarPaciente()) return;
+        pdfInputRef.current?.click();
+    };
+
+    /* =========================================================
+       IMÁGENES: WebP + crop + subida
+       ========================================================= */
     const handleFileSelected = async (e) => {
         const files = Array.from(e.target.files || []);
         e.target.value = "";
@@ -175,7 +218,10 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                 fd.append("folderName", buildFolderName(form));
 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+                const timeoutId = setTimeout(
+                    () => controller.abort(),
+                    UPLOAD_TIMEOUT_IMG_MS,
+                );
 
                 let data;
                 try {
@@ -183,7 +229,7 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                         "/api/documentos/upload",
                         fd,
                         (pct) => setUploadState((s) => ({ ...s, percent: pct })),
-                        controller.signal
+                        controller.signal,
                     );
                 } finally {
                     clearTimeout(timeoutId);
@@ -218,14 +264,100 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
         setUploadSuccessMsg(
             total === 1
                 ? `✅ "${nuevos[0].name}" subido correctamente`
-                : `✅ ${total} documentos subidos correctamente`
+                : `✅ ${total} documentos subidos correctamente`,
         );
         setTimeout(() => setUploadSuccessMsg(""), 5000);
     };
 
+    /* =========================================================
+       PDF: subida directa (máx 5 MB)
+       ========================================================= */
+    const handlePdfSelected = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+
+        if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+            alert("Solo se permiten archivos PDF.");
+            return;
+        }
+
+        const maxBytes = PDF_MAX_MB * 1024 * 1024;
+        if (file.size > maxBytes) {
+            const mb = (file.size / 1024 / 1024).toFixed(2);
+            alert(
+                `El PDF no puede pesar más de ${PDF_MAX_MB} MB. ` +
+                `Este archivo pesa ${mb} MB.`,
+            );
+            return;
+        }
+
+        setUploadSuccessMsg("");
+        setPdfUploading(true);
+        setUploadState({
+            active: true,
+            currentFile: 1,
+            totalFiles: 1,
+            percent: 0,
+            stage: "subiendo",
+            error: "",
+        });
+
+        try {
+            const fd = new FormData();
+            const finalName = sanitizePdfName(file.name);
+            fd.append("file", file, finalName);
+            fd.append("folderName", buildFolderName(form));
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(
+                () => controller.abort(),
+                UPLOAD_TIMEOUT_PDF_MS,
+            );
+
+            let data;
+            try {
+                data = await uploadWithProgress(
+                    "/api/documentos/upload",
+                    fd,
+                    (pct) => setUploadState((s) => ({ ...s, percent: pct })),
+                    controller.signal,
+                );
+            } finally {
+                clearTimeout(timeoutId);
+            }
+
+            setDocs((prev) => [
+                ...prev,
+                {
+                    fileId: data.fileId,
+                    name: data.name,
+                    url: data.url,
+                    fecha: Date.now(),
+                },
+            ]);
+            resetUploadState();
+            setUploadSuccessMsg(`✅ PDF "${file.name}" subido correctamente`);
+            setTimeout(() => setUploadSuccessMsg(""), 5000);
+        } catch (err) {
+            const esTimeout = /tardó más|tiempo de espera/i.test(err.message);
+            setUploadState((s) => ({
+                ...s,
+                active: false,
+                percent: 0,
+                stage: "",
+                error: esTimeout
+                    ? `${err.message} Tip: si el PDF pesa cerca de ${PDF_MAX_MB} MB, comprimilo antes de subirlo.`
+                    : `${err.message} Volvé a intentar.`,
+            }));
+        } finally {
+            setPdfUploading(false);
+        }
+    };
+
     const handleDeleteDoc = async (doc) => {
         const ok = window.confirm(
-            `¿Eliminar "${doc.name}"?\n\nSe borra de Google Drive y de la ficha del paciente.`
+            `¿Eliminar "${doc.name}"?\n\nSe borra de Google Drive y de la ficha del paciente.`,
         );
         if (!ok) return;
         setDeletingDocId(doc.fileId);
@@ -253,13 +385,16 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
     };
 
     const disabled =
-        uploadState.active || !form.trabajadorApellido || !form.trabajadorNombre;
+        uploadState.active ||
+        pdfUploading ||
+        !form.trabajadorApellido ||
+        !form.trabajadorNombre;
 
     return (
         <>
             <Section
                 title="6) Documentación"
-                subtitle="Se convierten a WebP, se recortan y se suben a Google Drive."
+                subtitle="Fotos (WebP, recortadas) o PDFs. Se suben a Google Drive."
             >
                 <div className={styles.docAddCard}>
                     <div className={styles.docAddActions}>
@@ -280,6 +415,18 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                         >
                             <span className={styles.docAddBtnIcon}>🖼️</span>
                             <span className={styles.docAddBtnLabel}>Galería</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.docAddBtn}
+                            onClick={openPdfPicker}
+                            disabled={disabled}
+                            title={`Subir PDF (máx ${PDF_MAX_MB} MB)`}
+                        >
+                            <span className={styles.docAddBtnIcon}>📄</span>
+                            <span className={styles.docAddBtnLabel}>
+                                {pdfUploading ? "Subiendo…" : "Subir PDF"}
+                            </span>
                         </button>
                     </div>
 
@@ -317,6 +464,13 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                     accept="image/*"
                     multiple
                     onChange={handleFileSelected}
+                    style={{ display: "none" }}
+                />
+                <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={handlePdfSelected}
                     style={{ display: "none" }}
                 />
 
@@ -377,34 +531,56 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                 {docs.length > 0 && (
                     <div className={styles.docListSection}>
                         <div className={styles.docListHeader}>
-                            <h3 className={styles.docListTitle}>Documentos en este ingreso</h3>
+                            <h3 className={styles.docListTitle}>
+                                Documentos en este ingreso
+                            </h3>
                             <span className={styles.docListCount}>{docs.length}</span>
                         </div>
 
                         <div className={styles.docList}>
                             {docs.map((d, idx) => {
-                                const broken = imgErrors[d.fileId];
+                                const isPdf = /\.pdf$/i.test(d.name || "");
+                                const broken = imgErrors[d.fileId] && !isPdf;
                                 const isDeleting = deletingDocId === d.fileId;
 
                                 return (
                                     <article key={d.fileId} className={styles.docCard}>
+                                        {/* Preview: iframe para PDF, img para imágenes */}
                                         <button
                                             type="button"
                                             className={styles.docCardImageWrap}
-                                            onClick={() => {
-                                                if (!broken)
-                                                    window.open(d.url, "_blank", "noopener,noreferrer");
-                                            }}
+                                            onClick={() =>
+                                                window.open(
+                                                    buildProxyUrl(d.fileId),
+                                                    "_blank",
+                                                    "noopener,noreferrer",
+                                                )
+                                            }
                                             aria-label={`Ver ${d.name}`}
+                                            title="Abrir en pestaña nueva"
                                         >
-                                            {broken ? (
+                                            {isPdf ? (
+                                                <iframe
+                                                    src={buildProxyEmbedUrl(d.fileId)}
+                                                    title={d.name}
+                                                    loading="lazy"
+                                                    className={styles.docCardImage}
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        border: 0,
+                                                        background: "#fff",
+                                                        pointerEvents: "none",
+                                                    }}
+                                                />
+                                            ) : broken ? (
                                                 <div className={styles.docCardImageFallback}>
                                                     <span>📄</span>
                                                     <span>Sin vista previa</span>
                                                 </div>
                                             ) : (
                                                 <img
-                                                    src={`/api/documentos/proxy?id=${d.fileId}`}
+                                                    src={buildProxyUrl(d.fileId)}
                                                     alt={d.name}
                                                     loading="lazy"
                                                     decoding="async"
@@ -417,12 +593,32 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                                                     }
                                                 />
                                             )}
-                                            <span className={styles.docCardBadge}>#{idx + 1}</span>
+                                            <span className={styles.docCardBadge}>
+                                                #{idx + 1}
+                                            </span>
+                                            {isPdf && (
+                                                <span
+                                                    className={styles.docCardBadge}
+                                                    style={{
+                                                        left: "auto",
+                                                        right: 8,
+                                                        background: "rgba(239,68,68,0.85)",
+                                                        color: "#fff",
+                                                    }}
+                                                >
+                                                    PDF
+                                                </span>
+                                            )}
                                         </button>
 
                                         <div className={styles.docCardInfo}>
-                                            <div className={styles.docCardStatus}>✅ Subido</div>
-                                            <div className={styles.docCardName} title={d.name}>
+                                            <div className={styles.docCardStatus}>
+                                                ✅ Subido
+                                            </div>
+                                            <div
+                                                className={styles.docCardName}
+                                                title={d.name}
+                                            >
                                                 {d.name}
                                             </div>
                                         </div>
@@ -432,7 +628,11 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                                                 type="button"
                                                 className={styles.docActionSecondary}
                                                 onClick={() =>
-                                                    window.open(d.url, "_blank", "noopener,noreferrer")
+                                                    window.open(
+                                                        buildProxyUrl(d.fileId),
+                                                        "_blank",
+                                                        "noopener,noreferrer",
+                                                    )
                                                 }
                                                 disabled={broken}
                                                 aria-label="Ver documento"
