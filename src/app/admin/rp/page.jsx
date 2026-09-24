@@ -18,6 +18,7 @@ import {
     sanitizeForFirebase,
     extraerValoresConvenio,
     tipoCostoPorOrigen,
+    getSubCodigoInfo,
     buildPrintHtml,
 } from './helpers';
 import { SaveAtajoModal, AtajosModal } from './AtajosModal';
@@ -44,7 +45,7 @@ const newRp = () => ({
     medico: initialMedico(),
     practicas: [],
     estudiosLab: [],
-    solicitaManual: '',   // 👈 texto editable de "Se solicita"
+    solicitaManual: '',
     diagnostico: '',
     fecha: todayISO(),
 });
@@ -255,37 +256,43 @@ function PracticaSearch({ onAdd, nacional, aoter, loading }) {
             />
             {results.length > 0 && (
                 <div className={styles.resultsList}>
-                    {results.map((r, i) => (
-                        <div
-                            key={`${r.origen}-${r.codigo}-${i}`}
-                            className={styles.resultItem}
-                            onClick={() => { onAdd(r); setQ(''); }}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    onAdd(r); setQ('');
-                                }
-                            }}
-                        >
-                            <div className={styles.resultMain}>
-                                <strong>{r.codigo}</strong> — {r.descripcion}
-                                <div className={styles.meta}>
-                                    {r.origen === 'aoter'
-                                        ? `${r.region_nombre || r.region} · Comp. ${r.complejidad}`
-                                        : `${r.capitulo} · ${r.capituloNombre}`}
-                                </div>
-                            </div>
-                            <button
-                                className={styles.btnAdd}
-                                onClick={(e) => { e.stopPropagation(); onAdd(r); setQ(''); }}
-                                tabIndex={-1}
+                    {results.map((r, i) => {
+                        const sub = getSubCodigoInfo(r.codigo);
+                        return (
+                            <div
+                                key={`${r.origen}-${r.codigo}-${i}`}
+                                className={styles.resultItem}
+                                onClick={() => { onAdd(r); setQ(''); }}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onAdd(r); setQ('');
+                                    }
+                                }}
                             >
-                                + Agregar
-                            </button>
-                        </div>
-                    ))}
+                                <div className={styles.resultMain}>
+                                    <strong>{r.codigo}</strong> — {r.descripcion}
+                                    <div className={styles.meta}>
+                                        {r.origen === 'aoter'
+                                            ? `${r.region_nombre || r.region} · Comp. ${r.complejidad}`
+                                            : `${r.capitulo} · ${r.capituloNombre}`}
+                                    </div>
+                                    {sub && (
+                                        <div className={styles.codeSub}>↳ {sub}</div>
+                                    )}
+                                </div>
+                                <button
+                                    className={styles.btnAdd}
+                                    onClick={(e) => { e.stopPropagation(); onAdd(r); setQ(''); }}
+                                    tabIndex={-1}
+                                >
+                                    + Agregar
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -357,6 +364,7 @@ function LabSearch({ onAdd, nomenclador, loading }) {
 
 function PracticaRow({ item, onRemove, showCost, hayAoter }) {
     const tipo = tipoCostoPorOrigen(item.origen, hayAoter);
+    const sub = getSubCodigoInfo(item.codigo);
     return (
         <div className={styles.practicaRow}>
             <div className={styles.practicaMain}>
@@ -367,6 +375,7 @@ function PracticaRow({ item, onRemove, showCost, hayAoter }) {
                         : item.capituloNombre}
                     {tipo ? ` · ${tipo}` : ''}
                 </div>
+                {sub && <div className={styles.codeSub}>↳ {sub}</div>}
             </div>
             {showCost && (
                 <div className={styles.costo}>{money(item.costo?.total ?? 0)}</div>
@@ -722,6 +731,7 @@ export default function RPPage() {
             practicas: rp.practicas,
             estudiosLab: rp.estudiosLab,
             solicitaManual: rp.solicitaManual || '',
+            diagnostico: rp.diagnostico || '',
             createdAt: Date.now(),
             updatedAt: Date.now(),
         };
@@ -733,7 +743,7 @@ export default function RPPage() {
             console.error(e);
             alert('❌ Error guardando atajo: ' + (e?.message || e));
         }
-    }, [rp.practicas, rp.estudiosLab, rp.esLab, rp.solicitaManual]);
+    }, [rp.practicas, rp.estudiosLab, rp.esLab, rp.solicitaManual, rp.diagnostico]);
 
     const deleteAtajo = useCallback(async (id) => {
         if (!window.confirm('¿Eliminar este atajo?')) return;
@@ -758,6 +768,7 @@ export default function RPPage() {
                 estudiosLab,
                 practicas: [],
                 solicitaManual: atajo.solicitaManual || '',
+                diagnostico: atajo.diagnostico || '',
             }));
         } else {
             const practicas = (atajo.practicas || []).map((p) => {
@@ -784,6 +795,7 @@ export default function RPPage() {
                 practicas,
                 estudiosLab: [],
                 solicitaManual: atajo.solicitaManual || '',
+                diagnostico: atajo.diagnostico || '',
             }));
         }
     }, [valoresConvenio, rp.esLab]);
@@ -924,7 +936,6 @@ export default function RPPage() {
         ? rp.estudiosLab.length > 0
         : rp.practicas.length > 0;
 
-    // 👇 Preview de "Se solicita" para el placeholder del input
     const solicitaAuto = rp.esLab
         ? rp.estudiosLab.map((l) => l.descripcion).join(' · ')
         : rp.practicas.map((p) => p.descripcion).join(' · ');
@@ -985,7 +996,6 @@ export default function RPPage() {
                             </span>
                         </div>
 
-                        {/* Toggle LAB */}
                         <label className={`${styles.labToggle} ${rp.esLab ? styles.labToggleOn : ''}`}>
                             <input
                                 type="checkbox"
@@ -1037,7 +1047,6 @@ export default function RPPage() {
                             </div>
                         </div>
 
-                        {/* Bloque condicional: prácticas o laboratorio */}
                         {rp.esLab ? (
                             <div className={styles.field}>
                                 <label className={styles.label}>Estudios de laboratorio</label>
@@ -1085,7 +1094,6 @@ export default function RPPage() {
                             </div>
                         )}
 
-                        {/* 👇 Campo editable "Se solicita" */}
                         <div className={styles.field}>
                             <label className={styles.label}>Se solicita (editable)</label>
                             <input

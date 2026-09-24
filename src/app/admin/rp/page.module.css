@@ -1012,3 +1012,13 @@
     color: #6b7280;
     font-style: italic;
 }
+
+/* Sub-código (leyenda debajo del código, ej: "Incluye medicación + descartables") */
+.codeSub {
+    margin-top: 3px;
+    font-size: 12px;
+    font-style: italic;
+    color: #93c5fd;
+    padding-left: 4px;
+    border-left: 2px solid rgba(147, 197, 253, 0.35);
+}

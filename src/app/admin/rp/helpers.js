@@ -73,6 +73,23 @@ export const tipoCostoPorOrigen = (origen, hayAoter) => {
 };
 
 // =====================================================================
+//  SUB-CÓDIGOS — leyendas que se muestran debajo del código
+//  (clave sin puntos ni espacios para que matchee tanto "43.02.01"
+//   como "430201")
+// =====================================================================
+const SUBCodigos = {
+	430201: "Incluye medicación + descartables",
+	// Agregá más acá si necesitás:
+	// "430202": "Incluye material descartable",
+};
+
+export function getSubCodigoInfo(codigo) {
+	if (!codigo) return null;
+	const key = String(codigo).replace(/[.\s]/g, "");
+	return SUBCodigos[key] || null;
+}
+
+// =====================================================================
 //  HTML DE IMPRESIÓN
 // =====================================================================
 function renderRpHtml(rp, logoSrc) {
@@ -120,12 +137,14 @@ function renderRpHtml(rp, logoSrc) {
                 ${practicas
 					.map((p) => {
 						const tipo = tipoCostoPorOrigen(p.origen, hayAoter);
+						const sub = getSubCodigoInfo(p.codigo);
 						return `
                         <div class="code-row">
                             <span class="code">${esc(p.codigo)}</span>
                             <span class="code-desc">${esc(p.descripcion)}</span>
                             <span class="code-type">${esc(tipo)}</span>
-                        </div>`;
+                        </div>
+                        ${sub ? `<div class="code-sub">↳ ${esc(sub)}</div>` : ""}`;
 					})
 					.join("")}
             </div>`
@@ -283,7 +302,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     .val.grow { flex: 1; min-width: 0; }
     .val.italic { font-style: italic; }
 
-    /* Bloque "Solicita" */
     .solicita {
         display: flex; align-items: flex-start;
         gap: 1.6mm; font-size: 9.5pt; line-height: 1.4;
@@ -297,7 +315,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         border-bottom: 0.6pt solid #111;
     }
 
-    /* 🔑 Códigos: crecen solo lo necesario. NO absorben el sobrante. */
     .codes {
         flex: 0 1 auto;
         max-height: 78mm;
@@ -321,8 +338,16 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     .code-type { font-size: 7.5pt; font-style: italic; color: #475569; white-space: nowrap; }
     .italic { font-style: italic; }
 
-    /* 🔑 Bottom (DG + Fecha + Firma): empujado al fondo de la tarjeta.
-       El espacio sobrante queda ARRIBA del bloque (margin-top: auto). */
+    /* 👇 Sub-código: leyenda debajo del código (ej: "Incluye medicación...") */
+    .code-sub {
+        font-size: 7.5pt;
+        font-style: italic;
+        color: #475569;
+        padding-left: 24mm;
+        margin-top: -0.4mm;
+        margin-bottom: 0.8mm;
+    }
+
     .bottom {
         margin-top: auto;
         border-top: 0.6pt solid #94a3b8;
@@ -334,8 +359,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     }
     .dg-row, .fecha-row { display: flex; align-items: baseline; gap: 1.6mm; font-size: 9pt; }
 
-    /* 🔑 Firma: espacio blanco ARRIBA de la línea (para firmar cómodo),
-       poca separación ABAJO (para que quede pegada al fondo). */
     .firma {
         margin-top: 14mm;
         text-align: center;
