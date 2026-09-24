@@ -11,9 +11,17 @@
   --accent-weak: rgba(47, 111, 78, 0.10);
 
   --shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+
+  /* 👇 Fallbacks por si next/font no carga (raro, pero por las dudas) */
+  --font-sans-fallback: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono-fallback: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
-/* Reset que evita overflow horizontal */
+/* ============================================================ */
+/*  Reset / box-sizing                                           */
+/* ============================================================ */
 *,
 *::before,
 *::after {
@@ -23,32 +31,136 @@
 html,
 body {
   overflow-x: hidden;
-  /* red de seguridad */
   max-width: 100%;
 }
 
-/* Inputs y botones heredan el box-sizing del padre */
 input,
 select,
 textarea,
 button {
   box-sizing: border-box;
   max-width: 100%;
+  font-family: inherit;
+  /* 👈 inputs heredan la fuente del padre */
 }
 
-/* Los svg/emoji dentro de botones no rompen el layout */
 button>svg {
   flex-shrink: 0;
 }
 
-html,
+/* ============================================================ */
+/*  Tipografía base                                              */
+/* ============================================================ */
+html {
+  font-family: var(--font-sans), var(--font-sans-fallback);
+  font-feature-settings:
+    "cv02", "cv03", "cv04", "cv11",
+    /* alternativas de Inter para 1, l, g, a */
+    "ss01", "ss03";
+  font-variation-settings: "opsz" 32;
+  /* Inter variable — tamaño óptico */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
+  width: 100%;
+  padding: 0;
+  margin: 0;
+
+  font-size: 15px;
+  /* 👈 base cómoda para admin (antes heredaba 16px) */
+  line-height: 1.55;
+  /* 👈 más aire que el 1.4 por defecto */
+  letter-spacing: -0.01em;
+  /* 👈 sutil tensión para pantalla (Inter se ve mejor así) */
 }
 
-/* Foco visible accesible en toda la app */
+/* Títulos con más peso y aire */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-top: 0;
+  color: var(--text);
+}
+
+h1 {
+  font-weight: 800;
+}
+
+h2 {
+  font-weight: 700;
+}
+
+h3 {
+  font-weight: 700;
+}
+
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
+/* Párrafos y texto secundario */
+p {
+  margin-top: 0;
+  line-height: 1.6;
+}
+
+small {
+  font-size: 0.875em;
+  color: var(--muted);
+}
+
+/* ============================================================ */
+/*  Números tabulares para datos médicos / financieros           */
+/* ============================================================ */
+/* Esto hace que los dígitos ocupen ancho fijo → tablas alineadas */
+table,
+code,
+kbd,
+samp,
+pre,
+.tabular,
+[data-tabular] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv11";
+}
+
+/* Códigos en monoespaciada */
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono), var(--font-mono-fallback);
+}
+
+/* ============================================================ */
+/*  Accesibilidad                                                */
+/* ============================================================ */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* En pantallas grandes subimos un toque la base */
+@media (min-width: 1600px) {
+  body {
+    font-size: 15.5px;
+  }
+}
+
+@media (min-width: 2000px) {
+  body {
+    font-size: 16px;
+  }
 }

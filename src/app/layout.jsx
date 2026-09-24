@@ -1,5 +1,21 @@
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { SessionProvider } from '@/context/SessionContext';
+
+// 👇 Fuente principal — sans-serif moderna, excelente legibilidad
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+  // Si querés usar la versión variable (recomendado), no pongas "weight"
+});
+
+// 👇 Fuente monoespaciada — para códigos (prácticas, labs, DNI, matrículas)
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono',
+});
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://art-xi-six.vercel.app';
 
@@ -66,13 +82,15 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  // sin maximumScale ni userScalable:false → permite zoom (accesibilidad)
   themeColor: '#0f3d26',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
+    <html
+      lang="es"
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="bg-bg text-text antialiased" suppressHydrationWarning>
         <SessionProvider>{children}</SessionProvider>
       </body>
