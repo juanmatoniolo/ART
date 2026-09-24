@@ -801,7 +801,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                             fontSize: 12,
                                                         }}
                                                     >
-                                                        👁️ Ver
+                                                        👁️
                                                     </button>
                                                     <button
                                                         type="button"
@@ -822,7 +822,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         {isReplacing
                                                             ? "⏳"
                                                             : "🔄"}{" "}
-                                                        Cambiar
+                                                        
                                                     </button>
                                                     <button
                                                         type="button"

@@ -916,3 +916,35 @@
         font-size: 12px;
     }
 }
+
+/* Fila de acciones de la tarjeta: permite wrap y compacta */
+.docCardActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.docCardActions button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* Ver / Cambiar como botones "pill" compactos */
+.docActionSecondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    border-radius: 8px;
+    min-height: 28px;
+}
+
+.docActionDanger {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    border-radius: 8px;
+    min-height: 28px;
+}
