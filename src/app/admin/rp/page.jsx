@@ -8,79 +8,27 @@ import { useDebounce } from '@/hooks/useDebounce';
 import Fuse from 'fuse.js';
 import {
     money,
-    parseNumber,
     calcularPractica,
     obtenerHonorariosAoter,
 } from '../Facturacion/utils/calculos';
+
 import styles from './page.module.css';
+import {
+    fmtDate,
+    sanitizeForFirebase,
+    extraerValoresConvenio,
+    tipoCostoPorOrigen,
+    buildPrintHtml,
+} from './helpers';
+import { SaveAtajoModal, AtajosModal } from './AtajosModal';
+import Estadisticas from './Estadisticas';
 
 // =====================================================================
-//  HELPERS
+//  HELPERS LOCALES
 // =====================================================================
 const todayISO = () => new Date().toISOString().split('T')[0];
 const makeId = (p = 'rp') =>
     `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-const fmtDate = (iso) => {
-    if (!iso) return '—';
-    const [y, m, d] = String(iso).split('-');
-    return `${d}/${m}/${y}`;
-};
-
-const fmtDateLong = (iso) => {
-    if (!iso) return '—';
-    try {
-        return new Date(iso).toLocaleDateString('es-AR', {
-            day: '2-digit', month: 'long', year: 'numeric',
-        });
-    } catch { return iso; }
-};
-
-const fmtPct = (n, total) =>
-    total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '—';
-
-function chunk(arr, size) {
-    const out = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
-}
-
-const esc = (s) =>
-    String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-
-function sanitizeForFirebase(value) {
-    if (Array.isArray(value)) return value.map(sanitizeForFirebase);
-    if (value && typeof value === 'object') {
-        const out = {};
-        for (const [k, v] of Object.entries(value)) {
-            if (v === undefined) continue;
-            out[k] = sanitizeForFirebase(v);
-        }
-        return out;
-    }
-    return value;
-}
-
-function extraerValoresConvenio(c) {
-    if (!c?.valores_generales) return { honorarios_medicos: [] };
-    const out = { honorarios_medicos: c.honorarios_medicos || [] };
-    for (const [k, v] of Object.entries(c.valores_generales)) {
-        out[k] = typeof v === 'number' ? v : parseNumber(v);
-    }
-    return out;
-}
-
-const tipoCostoPorOrigen = (origen, hayAoter) => {
-    if (origen === 'aoter') return 'Honorario Médico';
-    if (origen === 'bioquimica') return 'Gasto Sanatorial';
-    if (hayAoter) return 'Gasto Sanatorial';
-    return '';
-};
 
 const initialPaciente = () => ({
     pacienteId: '', nombreCompleto: '', dni: '', artSeguro: '', nroSiniestro: '',
@@ -90,337 +38,20 @@ const initialMedico = () => ({
 });
 const newRp = () => ({
     id: makeId(),
-    tipoDoc: 'RP',                // fijo, ya no se elige
+    tipoDoc: 'RP',
+    esLab: false,
     paciente: initialPaciente(),
     medico: initialMedico(),
     practicas: [],
     estudiosLab: [],
+    solicitaManual: '',   // 👈 texto editable de "Se solicita"
     diagnostico: '',
     fecha: todayISO(),
 });
 
 // =====================================================================
-//  HTML DE IMPRESIÓN
-// =====================================================================
-
-function renderRpHtml(rp, logoSrc) {
-    const pac = rp.paciente || {};
-    const med = rp.medico || {};
-    const practicas = rp.practicas || [];
-    const labs = rp.estudiosLab || [];
-
-    const hayAoter = practicas.some((p) => p.origen === 'aoter');
-
-    const solicitaParts = [
-        ...practicas.map((p) => esc(p.descripcion)),
-        ...labs.map((l) => esc(l.descripcion)),
-    ];
-    const solicitaTxt = solicitaParts.length ? solicitaParts.join(' · ') : '—';
-
-    const codesHtml = practicas.length
-        ? practicas
-            .map((p) => {
-                const tipo = tipoCostoPorOrigen(p.origen, hayAoter);
-                return `
-                <div class="code-row">
-                    <span class="code">${esc(p.codigo)}</span>
-                    <span class="code-desc">${esc(p.descripcion)}</span>
-                    <span class="code-type">${esc(tipo)}</span>
-                </div>`;
-            })
-            .join('')
-        : '<div class="code-row"><span class="code-desc italic">Sin prácticas cargadas</span></div>';
-
-    const labHtml = labs.length
-        ? `
-        <div class="lab-block">
-            <div class="lab-title">🧪 Estudios de laboratorio</div>
-            ${labs.map((l) => `
-                <div class="code-row">
-                    <span class="code">${esc(l.codigo)}</span>
-                    <span class="code-desc">${esc(l.descripcion)}</span>
-                    <span class="code-type"></span>
-                </div>`).join('')}
-        </div>`
-        : '';
-
-    return `
-        <div class="rp">
-            <div class="head">
-                <img class="logo" src="${logoSrc}" alt="logo" />
-                <div class="clinic">
-                    <div class="clinic-name">CLINICA DE LA UNION S.A</div>
-                    <div class="clinic-addr">AV. SIBURU 1085 - CHAJARI, E.R (3228)</div>
-                </div>
-                <div class="tipo-badge">${esc(rp.tipoDoc || 'RP')}</div>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="row">
-                <span class="lbl">Paciente:</span>
-                <span class="val bold grow">${esc(pac.nombreCompleto)}</span>
-            </div>
-            <div class="row">
-                <span class="lbl">DNI:</span>
-                <span class="val grow">${esc(pac.dni)}</span>
-                <span class="lbl">ART:</span>
-                <span class="val grow">${esc(pac.artSeguro)}</span>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="solicita">
-                <span class="lbl">Solicita:</span>
-                <span class="val italic grow">${solicitaTxt}</span>
-            </div>
-
-            <div class="codes">
-                <div class="codes-title">Códigos</div>
-                ${codesHtml}
-            </div>
-
-            ${labHtml}
-
-            <div class="bottom">
-                <div class="dg-row">
-                    <span class="lbl">DG:</span>
-                    <span class="val grow">${esc(rp.diagnostico)}</span>
-                </div>
-                <div class="fecha-row">
-                    <span class="lbl">Fecha:</span>
-                    <span class="val bold">${esc(fmtDate(rp.fecha))}</span>
-                </div>
-
-                <div class="firma">
-                    <div class="firma-line"></div>
-                    <div class="firma-name">Dr/a. ${esc(med.apellido)}, ${esc(med.nombre)}</div>
-                    ${med.matricula ? `<div class="firma-meta">MP ${esc(med.matricula)}</div>` : ''}
-                    ${med.especialidad ? `<div class="firma-meta">${esc(med.especialidad)}</div>` : ''}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function buildPrintHtml(rps, logoSrc) {
-    const sheets = chunk(rps, 4);
-    const body = sheets
-        .map(
-            (sheet) => `
-            <div class="sheet">
-                ${sheet.map((rp) => renderRpHtml(rp, logoSrc)).join('')}
-            </div>`
-        )
-        .join('');
-
-    return `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<title>Recetas / RP</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
-<style>
-    @page { size: A4 portrait; margin: 0; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
-
-    .toolbar {
-        position: sticky; top: 0; z-index: 100;
-        display: flex; align-items: center; gap: 12px;
-        padding: 12px 20px;
-        background: #1f2937; color: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        flex-wrap: wrap;
-    }
-    .toolbar .btn {
-        cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.08); color: #fff;
-        padding: 8px 16px; border-radius: 8px;
-        font-size: 14px; font-weight: 600; font-family: inherit;
-        transition: all 0.15s;
-    }
-    .toolbar .btn:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
-    .toolbar .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .toolbar .btn-primary { background: linear-gradient(90deg, #44794d, #6fa17b); border-color: transparent; }
-    .toolbar .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
-    .toolbar .hint { font-size: 12px; color: #cbd5e1; margin-left: auto; }
-
-    .sheet {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        width: 210mm; height: 297mm;
-        padding: 4mm; gap: 3mm;
-        page-break-after: always;
-        break-after: page;
-        background: #fff;
-    }
-    .sheet:last-child { page-break-after: auto; break-after: auto; }
-
-    .rp {
-        width: 100%; height: 100%;
-        padding: 4mm 4.5mm 3.5mm;
-        border: 1px dashed #cbd5e1;
-        display: flex; flex-direction: column;
-        gap: 1.6mm;
-        font-size: 9pt; line-height: 1.3;
-        color: #000; overflow: hidden;
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-
-    .head { display: flex; align-items: center; gap: 3mm; flex-shrink: 0; }
-    .logo { width: 13mm; height: 13mm; object-fit: contain; flex-shrink: 0; }
-    .clinic { flex: 1; min-width: 0; }
-    .clinic-name { font-weight: 800; font-size: 10.5pt; letter-spacing: 0.3px; line-height: 1.05; }
-    .clinic-addr { font-weight: 700; font-size: 8.5pt; line-height: 1.15; margin-top: 0.6mm; }
-    .tipo-badge {
-        font-size: 8pt; font-weight: 700;
-        border: 1px solid #111; border-radius: 999px;
-        padding: 0.6mm 2.5mm; letter-spacing: 0.5px;
-        flex-shrink: 0;
-    }
-
-    .sep { border-top: 0.6pt solid #94a3b8; margin: 0.2mm 0; flex-shrink: 0; }
-    .row { display: flex; align-items: baseline; gap: 1.6mm; flex-shrink: 0; }
-    .lbl { font-weight: 700; white-space: nowrap; flex-shrink: 0; }
-    .val {
-        border-bottom: 0.6pt solid #111;
-        padding: 0 1mm 0.4mm;
-        min-height: 4mm; min-width: 12mm;
-    }
-    .val.bold { font-weight: 700; }
-    .val.grow { flex: 1; min-width: 0; }
-    .val.italic { font-style: italic; }
-
-    .solicita {
-        display: flex; align-items: flex-start;
-        gap: 1.6mm; font-size: 9.5pt; line-height: 1.4;
-        flex-shrink: 0;
-        min-height: 22mm;
-        padding: 1mm 0 2mm;
-    }
-    .solicita .lbl { padding-top: 0.8mm; }
-    .solicita .val {
-        min-height: 18mm; padding: 1mm 1mm 0.5mm;
-        display: flex; align-items: flex-start;
-        border-bottom: 0.6pt solid #111;
-    }
-
-    .codes {
-        flex: 1; min-height: 0;
-        border-top: 0.5pt dashed #cbd5e1;
-        padding-top: 1.5mm; overflow: hidden;
-    }
-    .codes-title {
-        font-weight: 800; font-size: 8pt;
-        text-transform: uppercase; letter-spacing: 0.5px;
-        color: #334155; margin-bottom: 1.2mm;
-    }
-    .code-row {
-        display: grid;
-        grid-template-columns: 22mm 1fr auto;
-        gap: 2mm; align-items: baseline;
-        font-size: 8.5pt; line-height: 1.4;
-        padding: 0.4mm 0;
-    }
-    .code { font-family: 'Courier New', monospace; font-weight: 700; white-space: nowrap; }
-    .code-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .code-type { font-size: 7.5pt; font-style: italic; color: #475569; white-space: nowrap; }
-    .italic { font-style: italic; }
-
-    .lab-block {
-        border-top: 0.5pt dashed #cbd5e1;
-        padding-top: 1.5mm; margin-top: 1mm;
-        flex-shrink: 0; font-size: 8.5pt;
-        max-height: 30mm; overflow: hidden;
-    }
-    .lab-title {
-        font-weight: 800; font-size: 8pt;
-        text-transform: uppercase; letter-spacing: 0.5px;
-        color: #334155; margin-bottom: 1mm;
-    }
-
-    .bottom {
-        margin-top: auto;
-        border-top: 0.6pt solid #94a3b8;
-        padding-top: 2mm;
-        display: flex; flex-direction: column;
-        gap: 1.5mm; flex-shrink: 0;
-    }
-    .dg-row, .fecha-row { display: flex; align-items: baseline; gap: 1.6mm; font-size: 9pt; }
-
-    .firma { margin-top: 4mm; text-align: center; padding-top: 2mm; }
-    .firma-line { border-top: 0.7pt solid #111; width: 55mm; margin: 0 auto 1.2mm; }
-    .firma-name { font-weight: 700; font-size: 8.5pt; line-height: 1.15; }
-    .firma-meta { font-size: 7.5pt; color: #475569; line-height: 1.15; }
-
-    @media screen {
-        body { background: #e5e7eb; padding: 0; }
-        #content { padding: 6mm 0; }
-        .sheet { margin: 0 auto 6mm; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-    }
-    @media print {
-        body { background: #fff; padding: 0; }
-        #content { padding: 0; }
-        .no-print { display: none !important; }
-        .sheet { margin: 0; box-shadow: none; }
-    }
-</style>
-</head>
-<body>
-
-<div class="toolbar no-print">
-    <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="btn" id="btnPdf" onclick="downloadPdf()">📥 Descargar PDF</button>
-    <span class="hint">Tip: usá "Descargar PDF" para guardar el archivo directamente.</span>
-</div>
-
-<div id="content">
-${body}
-</div>
-
-<script>
-async function downloadPdf() {
-    const btn = document.getElementById('btnPdf');
-    const sheets = document.querySelectorAll('.sheet');
-    if (!sheets.length) return;
-    const originalText = btn.textContent;
-    btn.disabled = true; btn.textContent = '⏳ Generando…';
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-        for (let i = 0; i < sheets.length; i++) {
-            const canvas = await html2canvas(sheets[i], {
-                scale: 3, useCORS: true,
-                backgroundColor: '#ffffff', logging: false,
-                windowWidth: sheets[i].scrollWidth,
-                windowHeight: sheets[i].scrollHeight,
-            });
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-        }
-        const stamp = new Date().toISOString().slice(0, 10);
-        pdf.save('recetas-rp-' + stamp + '.pdf');
-    } catch (err) {
-        console.error(err);
-        alert('Error al generar PDF: ' + (err && err.message ? err.message : err));
-    } finally {
-        btn.disabled = false; btn.textContent = originalText;
-    }
-}
-<\/script>
-</body>
-</html>`;
-}
-
-// =====================================================================
 //  SUBCOMPONENTES
 // =====================================================================
-
 function PacientePicker({ paciente, setPaciente, pacientes, loading, onFocusLoad }) {
     const [q, setQ] = useState('');
     const [open, setOpen] = useState(false);
@@ -625,7 +256,19 @@ function PracticaSearch({ onAdd, nacional, aoter, loading }) {
             {results.length > 0 && (
                 <div className={styles.resultsList}>
                     {results.map((r, i) => (
-                        <div key={`${r.origen}-${r.codigo}-${i}`} className={styles.resultItem}>
+                        <div
+                            key={`${r.origen}-${r.codigo}-${i}`}
+                            className={styles.resultItem}
+                            onClick={() => { onAdd(r); setQ(''); }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onAdd(r); setQ('');
+                                }
+                            }}
+                        >
                             <div className={styles.resultMain}>
                                 <strong>{r.codigo}</strong> — {r.descripcion}
                                 <div className={styles.meta}>
@@ -634,7 +277,11 @@ function PracticaSearch({ onAdd, nacional, aoter, loading }) {
                                         : `${r.capitulo} · ${r.capituloNombre}`}
                                 </div>
                             </div>
-                            <button className={styles.btnAdd} onClick={() => { onAdd(r); setQ(''); }}>
+                            <button
+                                className={styles.btnAdd}
+                                onClick={(e) => { e.stopPropagation(); onAdd(r); setQ(''); }}
+                                tabIndex={-1}
+                            >
                                 + Agregar
                             </button>
                         </div>
@@ -674,14 +321,30 @@ function LabSearch({ onAdd, nomenclador, loading }) {
             {results.length > 0 && (
                 <div className={styles.resultsList}>
                     {results.map((r, i) => (
-                        <div key={`${r.codigo}-${i}`} className={styles.resultItem}>
+                        <div
+                            key={`${r.codigo}-${i}`}
+                            className={styles.resultItem}
+                            onClick={() => { onAdd(r); setQ(''); }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onAdd(r); setQ('');
+                                }
+                            }}
+                        >
                             <div className={styles.resultMain}>
                                 <strong>{r.codigo}</strong> — {r.descripcion}
                                 {r.unidadBioquimica > 0 && (
                                     <div className={styles.meta}>UB: {r.unidadBioquimica}</div>
                                 )}
                             </div>
-                            <button className={styles.btnAdd} onClick={() => { onAdd(r); setQ(''); }}>
+                            <button
+                                className={styles.btnAdd}
+                                onClick={(e) => { e.stopPropagation(); onAdd(r); setQ(''); }}
+                                tabIndex={-1}
+                            >
                                 + Agregar
                             </button>
                         </div>
@@ -731,8 +394,8 @@ function LabRow({ item, onRemove }) {
     );
 }
 
-function RPCard({ rp, onDelete, onEdit, onPrint, selectable, selected, onToggleSelect }) {
-    const total = rp.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
+function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selected, onToggleSelect }) {
+    const total = (rp.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
     const cantLabs = (rp.estudiosLab || []).length;
     return (
         <div className={`${styles.rpCard} ${selected ? styles.rpCardSelected : ''}`}>
@@ -743,11 +406,16 @@ function RPCard({ rp, onDelete, onEdit, onPrint, selectable, selected, onToggleS
                         className={styles.rpCardCheckbox}
                         checked={!!selected}
                         onChange={() => onToggleSelect(rp.id)}
-                        aria-label="Seleccionar RP para imprimir"
+                        aria-label="Seleccionar RP"
                     />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong>{rp.tipoDoc} · {rp.paciente?.nombreCompleto || 'Sin paciente'}</strong>
+                    <strong>
+                        {rp.tipoDoc}
+                        {rp.esLab ? ' LAB' : ''}
+                        {' · '}
+                        {rp.paciente?.nombreCompleto || 'Sin paciente'}
+                    </strong>
                     <div className={styles.meta}>DNI: {rp.paciente?.dni || '—'}</div>
                 </div>
                 <span className={styles.badge}>{fmtDate(rp.fecha)}</span>
@@ -757,403 +425,56 @@ function RPCard({ rp, onDelete, onEdit, onPrint, selectable, selected, onToggleS
                 {rp.medico?.matricula ? ` · MP ${rp.medico.matricula}` : ''}
             </div>
             <div className={styles.meta}>
-                {rp.practicas?.length || 0} práctica(s)
-                {cantLabs > 0 ? ` · 🧪 ${cantLabs} lab` : ''}
-                {' · Total: '}{money(total)}
+                {rp.esLab
+                    ? `${cantLabs} estudio(s) de laboratorio`
+                    : `${rp.practicas?.length || 0} práctica(s)`}
+                {!rp.esLab && ` · Total: ${money(total)}`}
             </div>
             <div className={styles.rpCardActions}>
-                {onPrint && <button className={styles.btnGhost} onClick={() => onPrint(rp)}>🖨️</button>}
-                {onEdit && <button className={styles.btnGhost} onClick={() => onEdit(rp)}>✏️</button>}
-                {onDelete && <button className={styles.btnDanger} onClick={() => onDelete(rp.id)}>🗑️</button>}
-            </div>
-        </div>
-    );
-}
-
-// =====================================================================
-//  MODALES DE ATAJOS
-// =====================================================================
-const overlayStyle = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 200, padding: 16,
-};
-const modalStyle = {
-    background: '#111827', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 12, padding: 20, width: '100%', maxWidth: 560,
-    maxHeight: '85vh', overflow: 'auto', color: '#e5e7eb',
-};
-
-function SaveAtajoModal({ open, onClose, onSave }) {
-    const [nombre, setNombre] = useState('');
-    useEffect(() => { if (open) setNombre(''); }, [open]);
-    if (!open) return null;
-    return (
-        <div style={overlayStyle} onClick={onClose}>
-            <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                <h3 style={{ marginTop: 0 }}>💾 Guardar atajo</h3>
-                <p style={{ fontSize: 13, color: '#9ca3af' }}>
-                    Guardá las prácticas y estudios de laboratorio actuales como atajo
-                    reutilizable. Después solo elegís paciente y médico.
-                </p>
-                <input
-                    className={styles.input}
-                    placeholder="Nombre del atajo (ej: Consulta trauma + RX)"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    autoFocus
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
-                    <button className={styles.btnGhost} onClick={onClose}>Cancelar</button>
+                {onPrint && (
                     <button
-                        className={styles.btnPrimary}
-                        disabled={nombre.trim().length < 3}
-                        onClick={() => { onSave(nombre.trim()); }}
+                        className={styles.btnGhost}
+                        onClick={() => onPrint(rp)}
+                        title="Imprimir"
                     >
-                        Guardar atajo
+                        🖨️ Imprimir
                     </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function AtajosModal({ open, onClose, atajos, onApply, onDelete }) {
-    if (!open) return null;
-    return (
-        <div style={overlayStyle} onClick={onClose}>
-            <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                <h3 style={{ marginTop: 0 }}>📋 Atajos guardados ({atajos.length})</h3>
-                {atajos.length === 0 ? (
-                    <p style={{ color: '#9ca3af', fontSize: 13 }}>
-                        Todavía no hay atajos. Cargá prácticas y estudios, y después dale a
-                        <b> 💾 Guardar atajo</b>.
-                    </p>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                        {atajos.map((a) => (
-                            <div key={a.id} style={{
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 8, padding: 12,
-                                display: 'flex', alignItems: 'center', gap: 12,
-                            }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <strong>{a.nombre}</strong>
-                                    <div className={styles.meta}>
-                                        {a.practicas?.length || 0} práctica(s)
-                                        {(a.estudiosLab?.length || 0) > 0
-                                            ? ` · 🧪 ${a.estudiosLab.length} lab`
-                                            : ''}
-                                    </div>
-                                </div>
-                                <button
-                                    className={styles.btnPrimary}
-                                    onClick={() => { onApply(a); onClose(); }}
-                                >
-                                    Aplicar
-                                </button>
-                                <button
-                                    className={styles.btnDanger}
-                                    onClick={() => onDelete(a.id)}
-                                    title="Eliminar atajo"
-                                >
-                                    🗑️
-                                </button>
-                            </div>
-                        ))}
-                    </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-                    <button className={styles.btnGhost} onClick={onClose}>Cerrar</button>
-                </div>
+                {onDownload && (
+                    <button
+                        className={styles.btnGhost}
+                        onClick={() => onDownload(rp)}
+                        title="Descargar PDF"
+                    >
+                        📥 PDF
+                    </button>
+                )}
+                {onEdit && (
+                    <button
+                        className={styles.btnGhost}
+                        onClick={() => onEdit(rp)}
+                        title="Editar"
+                    >
+                        ✏️
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        className={styles.btnDanger}
+                        onClick={() => onDelete(rp.id)}
+                        title="Eliminar"
+                    >
+                        🗑️
+                    </button>
+                )}
             </div>
         </div>
-    );
-}
-
-// =====================================================================
-//  ESTADÍSTICAS (sin gráficos)
-// =====================================================================
-function Estadisticas({ historial }) {
-    const [medicoSel, setMedicoSel] = useState('todos');
-
-    // Agrupar por médico
-    const medicosList = useMemo(() => {
-        const map = new Map();
-        historial.forEach((r) => {
-            const id = r.medico?.id || r.medico?.apellido || 'sin_medico';
-            const nombre = r.medico?.apellido
-                ? `${r.medico.apellido}, ${r.medico.nombre}`
-                : 'Sin médico';
-            if (!map.has(id)) {
-                map.set(id, { id, nombre, cantidad: 0, monto: 0, rps: [] });
-            }
-            const m = map.get(id);
-            m.cantidad += 1;
-            m.monto += r.total || 0;
-            m.rps.push(r);
-        });
-        return [...map.values()].sort((a, b) => b.monto - a.monto);
-    }, [historial]);
-
-    const totalGeneral = medicosList.reduce((a, m) => a + m.monto, 0);
-    const totalRps = historial.length;
-
-    // Si hay un médico seleccionado
-    const medicoData = useMemo(
-        () => (medicoSel === 'todos' ? null : medicosList.find((m) => m.id === medicoSel) || null),
-        [medicoSel, medicosList]
-    );
-
-    // Datos a mostrar según selección
-    const rpsVisibles = useMemo(
-        () => (medicoData ? medicoData.rps : historial),
-        [medicoData, historial]
-    );
-
-    // Códigos agregados (prácticas + labs) del set visible
-    const codigosList = useMemo(() => {
-        const map = new Map();
-        rpsVisibles.forEach((r) => {
-            (r.practicas || []).forEach((p) => {
-                const k = p.codigo || '—';
-                const prev = map.get(k) || {
-                    codigo: k, descripcion: p.descripcion, cantidad: 0,
-                    origen: p.origen || '',
-                };
-                prev.cantidad += 1;
-                map.set(k, prev);
-            });
-            (r.estudiosLab || []).forEach((l) => {
-                const k = l.codigo || '—';
-                const prev = map.get(k) || {
-                    codigo: k, descripcion: l.descripcion, cantidad: 0,
-                    origen: 'bioquimica',
-                };
-                prev.cantidad += 1;
-                map.set(k, prev);
-            });
-        });
-        return [...map.values()].sort((a, b) => b.cantidad - a.cantidad);
-    }, [rpsVisibles]);
-
-    const totalCodigos = codigosList.reduce((a, c) => a + c.cantidad, 0);
-
-    const montoVisible = rpsVisibles.reduce((a, r) => a + (r.total || 0), 0);
-    const promedioVisible = rpsVisibles.length > 0 ? montoVisible / rpsVisibles.length : 0;
-
-    return (
-        <section className={styles.stats}>
-            {/* Filtro */}
-            <div className={styles.statsFilter}>
-                <label className={styles.labelInline}>
-                    Filtrar por médico:
-                    <select
-                        className={styles.select}
-                        value={medicoSel}
-                        onChange={(e) => setMedicoSel(e.target.value)}
-                    >
-                        <option value="todos">Todos los médicos ({totalRps} RPs)</option>
-                        {medicosList.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.nombre} ({m.cantidad} RPs)
-                            </option>
-                        ))}
-                    </select>
-                </label>
-            </div>
-
-            {historial.length === 0 ? (
-                <div className={styles.empty}>
-                    Todavía no hay RPs guardadas para mostrar estadísticas.
-                </div>
-            ) : (
-                <>
-                    {/* KPIs del set visible */}
-                    <div className={styles.kpiGrid}>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiLabel}>Monto total</div>
-                            <div className={styles.kpiValue}>$ {money(montoVisible)}</div>
-                            <div className={styles.kpiSub}>
-                                {medicoData
-                                    ? `${fmtPct(montoVisible, totalGeneral)} del total general`
-                                    : 'Suma de todas las RPs'}
-                            </div>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiLabel}>RPs generadas</div>
-                            <div className={styles.kpiValue}>{rpsVisibles.length}</div>
-                            <div className={styles.kpiSub}>
-                                {medicoData
-                                    ? `${fmtPct(rpsVisibles.length, totalRps)} del total`
-                                    : `${totalRps} en total`}
-                            </div>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiLabel}>Promedio por RP</div>
-                            <div className={styles.kpiValue}>$ {money(promedioVisible)}</div>
-                            <div className={styles.kpiSub}>
-                                Sobre {rpsVisibles.length} RP(s)
-                            </div>
-                        </div>
-                        <div className={styles.kpiCard}>
-                            <div className={styles.kpiLabel}>
-                                {medicoData ? 'Médicos' : 'Médicos activos'}
-                            </div>
-                            <div className={styles.kpiValue}>
-                                {medicoData ? 1 : medicosList.length}
-                            </div>
-                            <div className={styles.kpiSub}>
-                                {medicoData
-                                    ? medicoData.nombre
-                                    : 'Con al menos 1 RP'}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Tabla por médico — solo en vista "Todos" */}
-                    {medicoSel === 'todos' && medicosList.length > 0 && (
-                        <div className={styles.tableBlock}>
-                            <h3 className={styles.chartTitle}>
-                                🩺 Ranking de médicos por monto
-                            </h3>
-                            <table className={styles.dataTable}>
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Médico</th>
-                                        <th className={styles.numCol}>RPs</th>
-                                        <th className={styles.numCol}>Monto</th>
-                                        <th className={styles.numCol}>% del total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {medicosList.map((m, i) => (
-                                        <tr key={m.id}>
-                                            <td className={styles.rankCell}>{i + 1}</td>
-                                            <td>{m.nombre}</td>
-                                            <td className={styles.numCol}>{m.cantidad}</td>
-                                            <td className={styles.numCol}>$ {money(m.monto)}</td>
-                                            <td className={styles.numCol}>
-                                                <span className={styles.pctBadge}>
-                                                    {fmtPct(m.monto, totalGeneral)}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colSpan={2}><b>Total</b></td>
-                                        <td className={styles.numCol}><b>{totalRps}</b></td>
-                                        <td className={styles.numCol}><b>$ {money(totalGeneral)}</b></td>
-                                        <td className={styles.numCol}><b>100%</b></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Listado de RPs — solo cuando hay médico seleccionado */}
-                    {medicoData && (
-                        <div className={styles.tableBlock}>
-                            <h3 className={styles.chartTitle}>
-                                📋 RPs de {medicoData.nombre} ({medicoData.rps.length})
-                            </h3>
-                            <table className={styles.dataTable}>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Paciente</th>
-                                        <th className={styles.numCol}>Práct.</th>
-                                        <th className={styles.numCol}>🧪 Lab</th>
-                                        <th className={styles.numCol}>Monto</th>
-                                        <th className={styles.numCol}>% del médico</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {medicoData.rps
-                                        .slice()
-                                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                                        .map((r) => (
-                                            <tr key={r.id}>
-                                                <td>{fmtDate(r.fecha)}</td>
-                                                <td>{r.paciente?.nombreCompleto || '—'}</td>
-                                                <td className={styles.numCol}>
-                                                    {r.practicas?.length || 0}
-                                                </td>
-                                                <td className={styles.numCol}>
-                                                    {(r.estudiosLab || []).length}
-                                                </td>
-                                                <td className={styles.numCol}>
-                                                    $ {money(r.total || 0)}
-                                                </td>
-                                                <td className={styles.numCol}>
-                                                    <span className={styles.pctBadge}>
-                                                        {fmtPct(r.total || 0, medicoData.monto)}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colSpan={4}><b>Total</b></td>
-                                        <td className={styles.numCol}>
-                                            <b>$ {money(medicoData.monto)}</b>
-                                        </td>
-                                        <td className={styles.numCol}><b>100%</b></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Códigos más usados (según set visible) */}
-                    {codigosList.length > 0 && (
-                        <div className={styles.tableBlock}>
-                            <h3 className={styles.chartTitle}>
-                                🔝 Códigos más solicitados
-                                {medicoData ? ` — ${medicoData.nombre}` : ''}
-                            </h3>
-                            <table className={styles.dataTable}>
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Código</th>
-                                        <th>Descripción</th>
-                                        <th className={styles.numCol}>Veces</th>
-                                        <th className={styles.numCol}>%</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {codigosList.map((c, i) => (
-                                        <tr key={c.codigo}>
-                                            <td className={styles.rankCell}>{i + 1}</td>
-                                            <td className={styles.codeCell}>{c.codigo}</td>
-                                            <td>{c.descripcion?.slice(0, 55)}</td>
-                                            <td className={styles.numCol}>{c.cantidad}</td>
-                                            <td className={styles.numCol}>
-                                                <span className={styles.pctBadge}>
-                                                    {fmtPct(c.cantidad, totalCodigos)}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </>
-            )}
-        </section>
     );
 }
 
 // =====================================================================
 //  MAIN
 // =====================================================================
-
 export default function RPPage() {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => setIsClient(true), []);
@@ -1318,7 +639,7 @@ export default function RPPage() {
     const selectAll = useCallback((list) => setSelectedIds(new Set(list.map((r) => r.id))), []);
     const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-    // ============ Prácticas ============
+    // ============ Prácticas / Labs ============
     const addPractica = useCallback((item) => {
         let costo = { total: 0, honorarioMedico: 0, gastoSanatorial: 0, formula: '' };
         if (item.origen === 'aoter') {
@@ -1359,7 +680,6 @@ export default function RPPage() {
         setRp((prev) => ({ ...prev, practicas: prev.practicas.filter((p) => p.id !== id) }));
     }, []);
 
-    // ============ Laboratorio ============
     const addLab = useCallback((item) => {
         setRp((prev) => ({
             ...prev,
@@ -1382,30 +702,38 @@ export default function RPPage() {
         }));
     }, []);
 
+    // ============ Toggle LAB ============
+    const toggleEsLab = useCallback((checked) => {
+        setRp((prev) => ({
+            ...prev,
+            esLab: !!checked,
+            practicas: checked ? [] : prev.practicas,
+            estudiosLab: checked ? prev.estudiosLab : [],
+        }));
+    }, []);
+
     // ============ Atajos ============
     const saveAtajo = useCallback(async (nombre) => {
         if (!nombre) return;
         const atajo = {
             id: makeId('atajo'),
             nombre,
+            esLab: !!rp.esLab,
             practicas: rp.practicas,
             estudiosLab: rp.estudiosLab,
+            solicitaManual: rp.solicitaManual || '',
             createdAt: Date.now(),
             updatedAt: Date.now(),
         };
         try {
-            await set(
-                ref(db, `rp/atajos/${atajo.id}`),
-                sanitizeForFirebase(atajo)
-            );
+            await set(ref(db, `rp/atajos/${atajo.id}`), sanitizeForFirebase(atajo));
             setAtajos((prev) => [atajo, ...prev]);
             setSaveAtajoOpen(false);
-            alert(`✅ Atajo "${nombre}" guardado.`);
         } catch (e) {
             console.error(e);
             alert('❌ Error guardando atajo: ' + (e?.message || e));
         }
-    }, [rp.practicas, rp.estudiosLab]);
+    }, [rp.practicas, rp.estudiosLab, rp.esLab, rp.solicitaManual]);
 
     const deleteAtajo = useCallback(async (id) => {
         if (!window.confirm('¿Eliminar este atajo?')) return;
@@ -1419,39 +747,52 @@ export default function RPPage() {
     }, []);
 
     const applyAtajo = useCallback((atajo) => {
-        const practicas = (atajo.practicas || []).map((p) => {
-            let costo;
-            if (p.origen === 'aoter') {
-                const { cirujano } = obtenerHonorariosAoter(p.complejidad, valoresConvenio);
-                costo = {
-                    honorarioMedico: cirujano, gastoSanatorial: 0, total: cirujano,
-                    formula: `AOTER Comp.${p.complejidad}`,
-                };
-            } else {
-                const c = calcularPractica(p, valoresConvenio);
-                costo = {
-                    honorarioMedico: c.honorarioMedico || 0,
-                    gastoSanatorial: c.gastoSanatorial || 0,
-                    total: c.total || 0,
-                    formula: c.formula || '',
-                };
-            }
-            return { ...p, costo, id: makeId('prac') };
-        });
+        const esLab = !!rp.esLab;
 
-        const estudiosLab = (atajo.estudiosLab || []).map((l) => ({
-            ...l, id: makeId('lab'),
-        }));
+        if (esLab) {
+            const estudiosLab = (atajo.estudiosLab || []).map((l) => ({
+                ...l, id: makeId('lab'),
+            }));
+            setRp((prev) => ({
+                ...prev,
+                estudiosLab,
+                practicas: [],
+                solicitaManual: atajo.solicitaManual || '',
+            }));
+        } else {
+            const practicas = (atajo.practicas || []).map((p) => {
+                let costo;
+                if (p.origen === 'aoter') {
+                    const { cirujano } = obtenerHonorariosAoter(p.complejidad, valoresConvenio);
+                    costo = {
+                        honorarioMedico: cirujano, gastoSanatorial: 0, total: cirujano,
+                        formula: `AOTER Comp.${p.complejidad}`,
+                    };
+                } else {
+                    const c = calcularPractica(p, valoresConvenio);
+                    costo = {
+                        honorarioMedico: c.honorarioMedico || 0,
+                        gastoSanatorial: c.gastoSanatorial || 0,
+                        total: c.total || 0,
+                        formula: c.formula || '',
+                    };
+                }
+                return { ...p, costo, id: makeId('prac') };
+            });
+            setRp((prev) => ({
+                ...prev,
+                practicas,
+                estudiosLab: [],
+                solicitaManual: atajo.solicitaManual || '',
+            }));
+        }
+    }, [valoresConvenio, rp.esLab]);
 
-        setRp((prev) => ({ ...prev, practicas, estudiosLab }));
-    }, [valoresConvenio]);
-
-    // ============ Agregar / Guardar ============
-    // 👇 Bioquímicos cuentan igual que los demás
+    // ============ Carrito ============
     const canAddToList =
         rp.paciente.nombreCompleto &&
         rp.medico.id &&
-        (rp.practicas.length > 0 || rp.estudiosLab.length > 0);
+        (rp.esLab ? rp.estudiosLab.length > 0 : rp.practicas.length > 0);
 
     const addToList = useCallback(() => {
         if (!canAddToList) return;
@@ -1467,7 +808,7 @@ export default function RPPage() {
         try {
             const now = Date.now();
             const saves = carrito.map((r) => {
-                const total = r.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
+                const total = (r.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
                 const payload = sanitizeForFirebase({
                     ...r,
                     convenio: convenioSel,
@@ -1491,13 +832,13 @@ export default function RPPage() {
         } finally { setSaving(false); }
     }, [carrito, convenioSel, convenios, clearSelection]);
 
-    // ============ Impresión ============
-    const openPrintWindow = useCallback((rps) => {
+    // ============ Impresión / Descarga ============
+    const openOutputWindow = useCallback((rps, mode) => {
         if (!rps?.length) return;
         const logoSrc = `${window.location.origin}/logo.png`;
-        const html = buildPrintHtml(rps, logoSrc);
+        const html = buildPrintHtml(rps, logoSrc, mode);
         const w = window.open('', '_blank', 'width=1100,height=900,scrollbars=yes');
-        if (!w) { alert('⚠️ Habilitá las ventanas emergentes para imprimir.'); return; }
+        if (!w) { alert('⚠️ Habilitá las ventanas emergentes.'); return; }
         w.document.open();
         w.document.write(html);
         w.document.close();
@@ -1510,11 +851,22 @@ export default function RPPage() {
             ? list.filter((r) => selectedIds.has(r.id))
             : list;
         if (!toPrint.length) return;
-        openPrintWindow(toPrint);
-    }, [selectedIds, openPrintWindow]);
+        openOutputWindow(toPrint, 'print');
+    }, [selectedIds, openOutputWindow]);
 
-    const printOne = useCallback((r) => openPrintWindow([r]), [openPrintWindow]);
+    const downloadList = useCallback((list) => {
+        if (!list?.length) return;
+        const toPrint = selectedIds.size > 0
+            ? list.filter((r) => selectedIds.has(r.id))
+            : list;
+        if (!toPrint.length) return;
+        openOutputWindow(toPrint, 'download');
+    }, [selectedIds, openOutputWindow]);
 
+    const printOne = useCallback((r) => openOutputWindow([r], 'print'), [openOutputWindow]);
+    const downloadOne = useCallback((r) => openOutputWindow([r], 'download'), [openOutputWindow]);
+
+    // ============ Historial ============
     const deleteHistorial = useCallback(async (id) => {
         if (!window.confirm('¿Eliminar esta RP del historial?')) return;
         try {
@@ -1525,8 +877,35 @@ export default function RPPage() {
     }, []);
 
     const editFromHistorial = (r) => {
-        setRp(sanitizeForFirebase({ ...r }));
+        const clean = sanitizeForFirebase({ ...r });
+        const base = newRp();
+        setRp({
+            ...base,
+            ...clean,
+            esLab: !!clean.esLab,
+            practicas: Array.isArray(clean.practicas) ? clean.practicas : [],
+            estudiosLab: Array.isArray(clean.estudiosLab) ? clean.estudiosLab : [],
+            solicitaManual: clean.solicitaManual || '',
+            paciente: { ...initialPaciente(), ...(clean.paciente || {}) },
+            medico: { ...initialMedico(), ...(clean.medico || {}) },
+        });
         setActiveTab('nueva');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const editFromCart = (rpToEdit) => {
+        const base = newRp();
+        setRp({
+            ...base,
+            ...rpToEdit,
+            esLab: !!rpToEdit.esLab,
+            practicas: Array.isArray(rpToEdit.practicas) ? rpToEdit.practicas : [],
+            estudiosLab: Array.isArray(rpToEdit.estudiosLab) ? rpToEdit.estudiosLab : [],
+            solicitaManual: rpToEdit.solicitaManual || '',
+            paciente: { ...initialPaciente(), ...(rpToEdit.paciente || {}) },
+            medico: { ...initialMedico(), ...(rpToEdit.medico || {}) },
+        });
+        removeFromCart(rpToEdit.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -1537,11 +916,18 @@ export default function RPPage() {
 
     const totalRp = rp.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
     const totalCarrito = carrito.reduce(
-        (a, r) => a + r.practicas.reduce((b, p) => b + (p.costo?.total || 0), 0),
+        (a, r) => a + (r.practicas || []).reduce((b, p) => b + (p.costo?.total || 0), 0),
         0
     );
     const hayAoterRp = rp.practicas.some((p) => p.origen === 'aoter');
-    const hasContent = rp.practicas.length > 0 || rp.estudiosLab.length > 0;
+    const hasContent = rp.esLab
+        ? rp.estudiosLab.length > 0
+        : rp.practicas.length > 0;
+
+    // 👇 Preview de "Se solicita" para el placeholder del input
+    const solicitaAuto = rp.esLab
+        ? rp.estudiosLab.map((l) => l.descripcion).join(' · ')
+        : rp.practicas.map((p) => p.descripcion).join(' · ');
 
     return (
         <div className={styles.page}>
@@ -1581,10 +967,7 @@ export default function RPPage() {
                         <h2 className={styles.sectionTitle}>Nueva RP</h2>
 
                         <div className={styles.atajosBar}>
-                            <button
-                                className={styles.btnGhost}
-                                onClick={() => setAtajosOpen(true)}
-                            >
+                            <button className={styles.btnGhost} onClick={() => setAtajosOpen(true)}>
                                 📋 Atajos ({atajos.length})
                             </button>
                             <button
@@ -1592,7 +975,7 @@ export default function RPPage() {
                                 onClick={() => setSaveAtajoOpen(true)}
                                 disabled={!hasContent}
                                 title={!hasContent
-                                    ? 'Cargá prácticas o laboratorio primero'
+                                    ? 'Cargá al menos un código primero'
                                     : 'Guardar como atajo'}
                             >
                                 💾 Guardar atajo
@@ -1601,6 +984,26 @@ export default function RPPage() {
                                 Aplicá un atajo y solo elegí paciente + médico.
                             </span>
                         </div>
+
+                        {/* Toggle LAB */}
+                        <label className={`${styles.labToggle} ${rp.esLab ? styles.labToggleOn : ''}`}>
+                            <input
+                                type="checkbox"
+                                checked={!!rp.esLab}
+                                onChange={(e) => toggleEsLab(e.target.checked)}
+                            />
+                            <span className={styles.labToggleBox} aria-hidden="true" />
+                            <span className={styles.labToggleContent}>
+                                <span className={styles.labToggleTitle}>
+                                    Es una RP solo de laboratorio
+                                </span>
+                                <span className={styles.labToggleHint}>
+                                    {rp.esLab
+                                        ? 'Se van a solicitar únicamente estudios de laboratorio.'
+                                        : 'Se van a solicitar prácticas médicas (nacional / AOTER).'}
+                                </span>
+                            </span>
+                        </label>
 
                         <div className={styles.grid2}>
                             <div className={styles.field}>
@@ -1634,49 +1037,67 @@ export default function RPPage() {
                             </div>
                         </div>
 
-                        <div className={styles.field}>
-                            <label className={styles.label}>Prácticas / estudios solicitados</label>
-                            <PracticaSearch
-                                onAdd={addPractica}
-                                nacional={nacional}
-                                aoter={aoter}
-                                loading={loadingNomen}
-                            />
+                        {/* Bloque condicional: prácticas o laboratorio */}
+                        {rp.esLab ? (
+                            <div className={styles.field}>
+                                <label className={styles.label}>Estudios de laboratorio</label>
+                                <LabSearch
+                                    onAdd={addLab}
+                                    nomenclador={nacionalBioq}
+                                    loading={loadingBioq}
+                                />
 
-                            {rp.practicas.length > 0 && (
-                                <div className={styles.practicasList}>
-                                    {rp.practicas.map((p) => (
-                                        <PracticaRow
-                                            key={p.id}
-                                            item={p}
-                                            onRemove={removePractica}
-                                            showCost={true}
-                                            hayAoter={hayAoterRp}
-                                        />
-                                    ))}
-                                    <div className={styles.totalRow}>
-                                        <span>Total RP (solo interno)</span>
-                                        <strong>{money(totalRp)}</strong>
+                                {rp.estudiosLab.length > 0 && (
+                                    <div className={styles.practicasList}>
+                                        {rp.estudiosLab.map((l) => (
+                                            <LabRow key={l.id} item={l} onRemove={removeLab} />
+                                        ))}
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className={styles.field}>
+                                <label className={styles.label}>Prácticas / estudios solicitados</label>
+                                <PracticaSearch
+                                    onAdd={addPractica}
+                                    nacional={nacional}
+                                    aoter={aoter}
+                                    loading={loadingNomen}
+                                />
 
+                                {rp.practicas.length > 0 && (
+                                    <div className={styles.practicasList}>
+                                        {rp.practicas.map((p) => (
+                                            <PracticaRow
+                                                key={p.id}
+                                                item={p}
+                                                onRemove={removePractica}
+                                                showCost={true}
+                                                hayAoter={hayAoterRp}
+                                            />
+                                        ))}
+                                        <div className={styles.totalRow}>
+                                            <span>Total RP (solo interno)</span>
+                                            <strong>{money(totalRp)}</strong>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 👇 Campo editable "Se solicita" */}
                         <div className={styles.field}>
-                            <label className={styles.label}>🧪 Estudios de laboratorio</label>
-                            <LabSearch
-                                onAdd={addLab}
-                                nomenclador={nacionalBioq}
-                                loading={loadingBioq}
+                            <label className={styles.label}>Se solicita (editable)</label>
+                            <input
+                                type="text"
+                                className={styles.input}
+                                placeholder={solicitaAuto || 'Cargá códigos para autocompletar…'}
+                                value={rp.solicitaManual || ''}
+                                onChange={(e) => setRp((prev) => ({ ...prev, solicitaManual: e.target.value }))}
                             />
-
-                            {rp.estudiosLab.length > 0 && (
-                                <div className={styles.practicasList}>
-                                    {rp.estudiosLab.map((l) => (
-                                        <LabRow key={l.id} item={l} onRemove={removeLab} />
-                                    ))}
-                                </div>
-                            )}
+                            <p className={styles.hintInline}>
+                                Si lo dejás vacío, se autocompleta con las descripciones de los códigos.
+                            </p>
                         </div>
 
                         <div className={styles.field}>
@@ -1697,7 +1118,9 @@ export default function RPPage() {
                             <button
                                 className={styles.btnPrimary}
                                 disabled={!canAddToList}
-                                title={!canAddToList ? 'Completá paciente, médico y al menos 1 práctica o estudio' : ''}
+                                title={!canAddToList
+                                    ? 'Completá paciente, médico y al menos 1 código'
+                                    : ''}
                                 onClick={addToList}
                             >
                                 ➕ Agregar a la lista
@@ -1736,19 +1159,22 @@ export default function RPPage() {
                                         selected={selectedIds.has(r.id)}
                                         onToggleSelect={toggleSelect}
                                         onDelete={removeFromCart}
-                                        onEdit={(rpToEdit) => {
-                                            setRp(rpToEdit);
-                                            removeFromCart(rpToEdit.id);
-                                        }}
+                                        onEdit={editFromCart}
                                         onPrint={printOne}
+                                        onDownload={downloadOne}
                                     />
                                 ))}
                             </div>
                             <div className={styles.cartActions}>
                                 <button className={styles.btnGhost} onClick={() => printList(carrito)}>
-                                    🖨️ / 📥 {selectedIds.size > 0
-                                        ? `Seleccionadas (${selectedIds.size})`
-                                        : 'Todas'}
+                                    🖨️ Imprimir {selectedIds.size > 0
+                                        ? `(${selectedIds.size})`
+                                        : 'todas'}
+                                </button>
+                                <button className={styles.btnGhost} onClick={() => downloadList(carrito)}>
+                                    📥 Descargar {selectedIds.size > 0
+                                        ? `(${selectedIds.size})`
+                                        : 'todas'}
                                 </button>
                                 <button className={styles.btnPrimary} onClick={saveAll} disabled={saving}>
                                     {saving ? 'Guardando…' : '💾 Guardar todas'}
@@ -1780,13 +1206,22 @@ export default function RPPage() {
                                     {selectedIds.size} seleccionada(s)
                                 </span>
                                 <button
-                                    className={styles.btnPrimary}
+                                    className={styles.btnGhost}
                                     onClick={() => printList(historial)}
                                     disabled={historial.length === 0}
                                 >
-                                    🖨️ / 📥 {selectedIds.size > 0
-                                        ? `Seleccionadas (${selectedIds.size})`
-                                        : 'Todas'}
+                                    🖨️ Imprimir {selectedIds.size > 0
+                                        ? `(${selectedIds.size})`
+                                        : 'todas'}
+                                </button>
+                                <button
+                                    className={styles.btnPrimary}
+                                    onClick={() => downloadList(historial)}
+                                    disabled={historial.length === 0}
+                                >
+                                    📥 Descargar {selectedIds.size > 0
+                                        ? `(${selectedIds.size})`
+                                        : 'todas'}
                                 </button>
                             </div>
 
@@ -1801,6 +1236,7 @@ export default function RPPage() {
                                         onDelete={deleteHistorial}
                                         onEdit={editFromHistorial}
                                         onPrint={printOne}
+                                        onDownload={downloadOne}
                                     />
                                 ))}
                             </div>
@@ -1815,6 +1251,7 @@ export default function RPPage() {
                 open={saveAtajoOpen}
                 onClose={() => setSaveAtajoOpen(false)}
                 onSave={saveAtajo}
+                hasContent={hasContent}
             />
             <AtajosModal
                 open={atajosOpen}

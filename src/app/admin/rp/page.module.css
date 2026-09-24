@@ -2,16 +2,31 @@
    Página (dark theme)
 ===================================================================== */
 .page {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 8px 4px 80px;
+    padding: 10px 6px 90px;
     color: #e5e7eb;
+    font-size: 15px;
+}
+
+@media (min-width: 1600px) {
+    .page {
+        font-size: 16px;
+    }
+}
+
+@media (min-width: 2000px) {
+    .page {
+        font-size: 17px;
+        max-width: 1500px;
+    }
 }
 
 .loading {
     text-align: center;
     padding: 60px;
     color: #9ca3af;
+    font-size: 15px;
 }
 
 /* =====================================================================
@@ -22,27 +37,27 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
 }
 
 .title {
-    margin: 0 0 4px;
-    font-size: 22px;
+    margin: 0 0 6px;
+    font-size: 26px;
     color: #f0f9ff;
 }
 
 .subtitle {
     margin: 0;
     color: #9ca3af;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .labelInline {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #d1d5db;
 }
@@ -53,9 +68,8 @@
 .tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 0;
     overflow-x: auto;
 }
 
@@ -64,9 +78,9 @@
     color: #9ca3af;
     border: none;
     border-bottom: 2px solid transparent;
-    padding: 10px 16px;
+    padding: 12px 18px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     white-space: nowrap;
     transition: all 0.15s;
@@ -90,13 +104,13 @@
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 22px;
+    margin-bottom: 22px;
 }
 
 .sectionTitle {
-    margin: 0 0 16px;
-    font-size: 16px;
+    margin: 0 0 18px;
+    font-size: 18px;
     color: #f0f9ff;
 }
 
@@ -120,11 +134,11 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 .label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #d1d5db;
     display: flex;
@@ -135,16 +149,17 @@
 .input,
 .select,
 .textarea {
-    padding: 10px 12px;
+    padding: 11px 13px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 15px;
     background: #0f172a;
     color: #e5e7eb;
     outline: none;
     transition: border 0.15s;
     width: 100%;
     box-sizing: border-box;
+    font-family: inherit;
 }
 
 .input::placeholder,
@@ -161,7 +176,6 @@
 
 .textarea {
     resize: vertical;
-    font-family: inherit;
 }
 
 .select option {
@@ -178,8 +192,8 @@
 .loadingInline {
     position: absolute;
     right: 12px;
-    top: 10px;
-    font-size: 12px;
+    top: 11px;
+    font-size: 13px;
     color: #6b7280;
 }
 
@@ -192,16 +206,16 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    max-height: 280px;
+    max-height: 320px;
     overflow-y: auto;
     z-index: 40;
 }
 
 .dropdownItem {
-    padding: 10px 12px;
+    padding: 11px 13px;
     cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: 14px;
+    font-size: 15px;
     color: #e5e7eb;
 }
 
@@ -214,9 +228,9 @@
 }
 
 .empty {
-    padding: 12px;
+    padding: 14px;
     color: #6b7280;
-    font-size: 13px;
+    font-size: 14px;
     text-align: center;
 }
 
@@ -225,19 +239,23 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 13px 15px;
     background: rgba(111, 161, 123, 0.1);
     border: 1px solid rgba(111, 161, 123, 0.3);
     border-radius: 8px;
 }
 
+.selectedCard strong {
+    font-size: 15px;
+}
+
 .meta {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
 }
 
 /* =====================================================================
-   Búsqueda de prácticas
+   Búsqueda
 ===================================================================== */
 .searchBlock {
     position: relative;
@@ -248,7 +266,7 @@
     background: #1f2937;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    max-height: 380px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
@@ -257,7 +275,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
+    padding: 11px 13px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -266,7 +284,7 @@
 }
 
 .resultMain {
-    font-size: 14px;
+    font-size: 15px;
     flex: 1;
     min-width: 0;
     color: #e5e7eb;
@@ -277,7 +295,7 @@
 }
 
 /* =====================================================================
-   Lista de prácticas
+   Listas
 ===================================================================== */
 .practicasList {
     margin-top: 12px;
@@ -290,7 +308,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
+    padding: 11px 13px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     background: #0f172a;
 }
@@ -301,24 +319,24 @@
 
 .practicaMain {
     flex: 1;
-    font-size: 14px;
+    font-size: 15px;
     color: #e5e7eb;
 }
 
 .costo {
-    font-weight: 600;
+    font-weight: 700;
     color: #6fa17b;
     font-variant-numeric: tabular-nums;
-    min-width: 100px;
+    min-width: 110px;
     text-align: right;
 }
 
 .totalRow {
     display: flex;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 13px 16px;
     background: rgba(111, 161, 123, 0.1);
-    font-size: 15px;
+    font-size: 16px;
     border-top: 1px solid rgba(111, 161, 123, 0.3);
     color: #d1fae5;
 }
@@ -333,9 +351,9 @@
 .btnRemove {
     cursor: pointer;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    padding: 8px 14px;
+    padding: 9px 15px;
     border: 1px solid transparent;
     transition: all 0.15s;
     font-family: inherit;
@@ -361,8 +379,13 @@
     border-color: rgba(255, 255, 255, 0.15);
 }
 
-.btnGhost:hover {
+.btnGhost:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.05);
+}
+
+.btnGhost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btnDanger {
@@ -378,8 +401,8 @@
 .btnAdd {
     background: #059669;
     color: #fff;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 7px 13px;
+    font-size: 14px;
     white-space: nowrap;
 }
 
@@ -391,8 +414,8 @@
     background: transparent;
     color: #6b7280;
     border: none;
-    font-size: 16px;
-    padding: 4px 8px;
+    font-size: 18px;
+    padding: 4px 10px;
 }
 
 .btnRemove:hover {
@@ -404,7 +427,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 18px;
 }
 
 /* =====================================================================
@@ -412,18 +435,18 @@
 ===================================================================== */
 .cartGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 12px;
 }
 
 .rpCard {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 13px 15px;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
 }
 
 .rpCardHeader {
@@ -434,10 +457,10 @@
 }
 
 .badge {
-    font-size: 11px;
+    font-size: 12px;
     background: rgba(111, 161, 123, 0.2);
     color: #a7f3d0;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 999px;
     font-weight: 600;
 }
@@ -446,12 +469,85 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
 .rpCardActions button {
-    padding: 4px 10px;
-    font-size: 12px;
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* =====================================================================
+   Toolbar de selección
+===================================================================== */
+.listToolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.toolbarLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #d1d5db;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toolbarLabel input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+    accent-color: #6fa17b;
+}
+
+.toolbarCount {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-left: auto;
+}
+
+.rpCardCheckbox {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #6fa17b;
+}
+
+.rpCardSelected {
+    outline: 2px solid #6fa17b;
+    outline-offset: -2px;
+    background: rgba(111, 161, 123, 0.1);
+}
+
+/* =====================================================================
+   Barra de atajos
+===================================================================== */
+.atajosBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    margin-bottom: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.atajosHint {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-left: auto;
 }
 
 /* =====================================================================
@@ -463,9 +559,20 @@
     gap: 16px;
 }
 
+.statsFilter {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    flex-wrap: wrap;
+}
+
 .kpiGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
 }
 
@@ -473,675 +580,61 @@
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 16px;
+    padding: 18px;
 }
 
 .kpiLabel {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .kpiValue {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 800;
     color: #f0f9ff;
 }
 
-.chartBlock {
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 20px;
-}
-
-.chartTitle {
-    margin: 0 0 16px;
-    font-size: 15px;
-    color: #f0f9ff;
-}
-
-.barChart {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.barRow {
-    display: grid;
-    grid-template-columns: 180px 1fr 140px;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-}
-
-@media (max-width: 700px) {
-    .barRow {
-        grid-template-columns: 1fr;
-        gap: 4px;
-    }
-}
-
-.barLabel {
-    color: #d1d5db;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.barTrack {
-    height: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.barFill {
-    height: 100%;
-    background: linear-gradient(90deg, #44794d, #6fa17b);
-    border-radius: 4px;
-    transition: width 0.4s ease;
-}
-
-.barFillAlt {
-    background: linear-gradient(90deg, #1d4ed8, #60a5fa);
-}
-
-.barFillWarn {
-    background: linear-gradient(90deg, #b45309, #fbbf24);
-}
-
-.barValue {
-    color: #f0f9ff;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-.barValue small {
-    color: #9ca3af;
-    font-weight: 400;
-}
-
-/* =====================================================================
-   IMPRESIÓN — formato RP limpio
-===================================================================== */
-.printArea {
-    display: none;
-}
-
-.printPage {
-    padding: 20mm 15mm;
-    background: #fff;
-    color: #000;
-}
-
-.printRp {
-    font-family: "Times New Roman", Times, serif;
-    font-size: 13pt;
-    line-height: 1.6;
-    color: #000;
-    background: #fff;
-    min-height: 200mm;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Datos paciente */
-.printPacienteBlock {
-    margin-bottom: 12mm;
-    padding-bottom: 4mm;
-    border-bottom: 1px solid #000;
-}
-
-.printLine {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 3mm;
-    align-items: baseline;
-}
-
-.printLabel {
-    font-weight: bold;
-    min-width: 130px;
-    color: #000;
-}
-
-.printValue {
-    flex: 1;
-    border-bottom: 1px dotted #666;
-    padding-bottom: 1mm;
-    min-height: 6mm;
-}
-
-/* Cuerpo libre */
-.printCuerpo {
-    flex: 1;
-    margin-bottom: 10mm;
-    min-height: 110mm;
-}
-
-.printPracticas {
-    margin-bottom: 6mm;
-}
-
-.printPracticaItem {
-    display: flex;
-    gap: 8mm;
-    margin-bottom: 3mm;
-    padding-left: 4mm;
-    font-size: 12pt;
-}
-
-.printPracticaCod {
-    font-weight: bold;
-    font-family: "Courier New", monospace;
-    min-width: 30mm;
-}
-
-.printPracticaDesc {
-    flex: 1;
-}
-
-.printCuerpoLibre {
-    margin-top: 6mm;
-    padding: 3mm;
-    white-space: pre-wrap;
-    font-size: 12pt;
-    border-top: 1px dashed #999;
-}
-
-.printBlank {
-    height: 6mm;
-    border-bottom: 1px dotted #ccc;
-    margin-bottom: 4mm;
-}
-
-/* DG + Fecha */
-.printFooterBlock {
-    margin-top: auto;
-    padding-top: 6mm;
-    border-top: 1px solid #000;
-    margin-bottom: 12mm;
-}
-
-/* Firma */
-.printFirma {
-    text-align: right;
-    margin-top: 10mm;
-}
-
-.printFirmaLine {
-    border-top: 1px solid #000;
-    width: 70mm;
-    margin-left: auto;
-    margin-bottom: 2mm;
-}
-
-.printFirmaNombre {
-    font-weight: bold;
-    font-size: 12pt;
-}
-
-.printFirmaMeta {
-    font-size: 11pt;
-    color: #333;
-}
-
-.pageBreak {
-    page-break-after: always;
-    height: 1px;
-}
-
-/* =====================================================================
-   @media print
-===================================================================== */
-@media print {
-
-    .header,
-    .tabs,
-    .editor,
-    .cart,
-    .history,
-    .stats,
-    .cartActions,
-    .editorActions {
-        display: none !important;
-    }
-
-    .page {
-        padding: 0;
-        max-width: none;
-        background: #fff;
-    }
-
-    .printArea {
-        display: block !important;
-    }
-
-    .printPage {
-        padding: 0;
-        page-break-after: always;
-    }
-
-    .printPage:last-child {
-        page-break-after: auto;
-    }
-}
-
-/* ============================================ */
-/*  TOOLBAR DE SELECCIÓN                        */
-/* ============================================ */
-.listToolbar {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.6rem 0.8rem;
-    margin-bottom: 0.75rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    flex-wrap: wrap;
-}
-
-.toolbarLabel {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    user-select: none;
-}
-
-.toolbarCount {
-    font-size: 0.85rem;
-    color: #64748b;
-    margin-left: auto;
-}
-
-.rpCardCheckbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    margin-right: 0.5rem;
-    flex-shrink: 0;
-}
-
-.rpCardSelected {
-    outline: 2px solid #3b82f6;
-    outline-offset: -2px;
-    background: #eff6ff;
-}
-
-/* ============================================ */
-/*  RECETA IMPRESA — compacta, 4 por A4         */
-/* ============================================ */
-.printArea {
-    display: none;
-}
-
-@media print {
-    @page {
-        size: A4 portrait;
-        margin: 0;
-    }
-
-
-
-    .printArea,
-    .printArea * {
-        visibility: visible;
-    }
-
-    .printArea {
-        position: absolute;
-        inset: 0;
-        display: block;
-        background: white;
-    }
-
-    .printSheet {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 2mm;
-        padding: 4mm;
-        width: 210mm;
-        height: 297mm;
-        box-sizing: border-box;
-        page-break-after: always;
-        break-after: page;
-    }
-
-    .printSheet:last-child {
-        page-break-after: auto;
-        break-after: auto;
-    }
-
-    .printPage {
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
-        page-break-inside: avoid;
-        break-inside: avoid;
-        overflow: hidden;
-    }
-}
-
-/* Estructura interna de cada receta */
-.printRp {
-    width: 100%;
-    height: 100%;
-    border: 1px dashed #cbd5e1;
-    /* guía de corte — se imprime muy suave */
-    padding: 3mm 3.5mm;
-    box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 9pt;
-    color: #111;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5mm;
-    background: #fff;
-}
-
-/* Membrete */
-.printHeader {
-    display: flex;
-    align-items: center;
-    gap: 3mm;
-}
-
-.printLogo {
-    width: 13mm;
-    height: 13mm;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.printHeaderText {
-    flex: 1;
-    min-width: 0;
-}
-
-.printClinicName {
-    font-weight: 700;
-    font-size: 10.5pt;
-    letter-spacing: 0.3px;
-    line-height: 1.1;
-}
-
-.printClinicAddr {
-    font-weight: 700;
-    font-size: 8.5pt;
-    line-height: 1.2;
-    margin-top: 0.5mm;
-}
-
-.printDivider {
-    border-top: 0.6pt solid #94a3b8;
-    margin: 0.5mm 0;
-}
-
-/* Filas con label + línea para escribir */
-.printFieldRow {
-    display: flex;
-    align-items: baseline;
-    gap: 1.5mm;
-    font-size: 9pt;
-    line-height: 1.25;
-}
-
-.printLabel {
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.printUnderline {
-    flex: 1;
-    min-width: 0;
-    border-bottom: 0.6pt solid #111;
-    padding: 0 1mm 0.5mm;
-    min-height: 4.5mm;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.printDate {
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-/* Cuerpo */
-.printBody {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5mm;
-    min-height: 0;
-}
-
-.printSolicitaRow {
-    display: flex;
-    gap: 1.5mm;
-    font-size: 9pt;
-    line-height: 1.2;
-}
-
-.printSolicitaText {
-    flex: 1;
-    border-bottom: 0.5pt dotted #94a3b8;
-    padding-bottom: 0.5mm;
-    font-style: italic;
-    overflow: hidden;
-}
-
-.printCodesBlock {
-    margin-top: 1mm;
-    border-top: 0.5pt dashed #cbd5e1;
-    padding-top: 1mm;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.printCodesTitle {
-    font-weight: 700;
-    font-size: 8.5pt;
-    margin-bottom: 0.8mm;
-    color: #334155;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
-
-.printCodeRow {
-    display: flex;
-    align-items: baseline;
-    gap: 1mm;
-    font-size: 8.5pt;
-    line-height: 1.35;
-}
-
-.printCode {
-    font-weight: 700;
-    font-family: 'Courier New', monospace;
-    white-space: nowrap;
-}
-
-.printCodeDots {
-    flex: 1;
-    border-bottom: 0.4pt dotted #64748b;
-    margin-bottom: 1mm;
-    min-width: 4mm;
-}
-
-.printCodeType {
-    font-size: 7.5pt;
-    color: #475569;
-    font-style: italic;
-    white-space: nowrap;
-}
-
-.printCuerpoLibre {
-    font-size: 8.5pt;
-    line-height: 1.3;
-    border-top: 0.5pt dashed #cbd5e1;
-    padding-top: 1mm;
-    margin-top: 1mm;
-    overflow: hidden;
-    max-height: 15mm;
-}
-
-.printFooterRow {
-    display: flex;
-    align-items: baseline;
-    gap: 1.5mm;
-    font-size: 8.5pt;
-    border-top: 0.6pt solid #94a3b8;
-    padding-top: 1mm;
-    margin-top: auto;
-}
-
-/* Firma */
-.printFirma {
-    text-align: center;
-    margin-top: 2mm;
-}
-
-.printFirmaLine {
-    border-top: 0.6pt solid #111;
-    width: 55mm;
-    margin: 0 auto 0.8mm;
-}
-
-.printFirmaNombre {
-    font-weight: 700;
-    font-size: 8.5pt;
-    line-height: 1.15;
-}
-
-.printFirmaMeta {
-    font-size: 7.5pt;
-    color: #475569;
-    line-height: 1.15;
-}
-
-/* ============================================ */
-/*  Barra de atajos (reemplaza a .listToolbar  */
-/*  cuando se usa como toolbar superior)        */
-/* ============================================ */
-.atajosBar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    margin-bottom: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    flex-wrap: wrap;
-}
-
-.atajosHint {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-left: auto;
-}
-
-/* ============================================ */
-/*  Toolbar de selección (carrito / historial)  */
-/*  FIX: colores oscuros                        */
-/* ============================================ */
-.listToolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    flex-wrap: wrap;
-}
-
-.toolbarLabel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #d1d5db;
-    cursor: pointer;
-    user-select: none;
-}
-
-.toolbarLabel input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: #6fa17b;
-}
-
-.toolbarCount {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-left: auto;
-}
-
-.rpCardCheckbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    flex-shrink: 0;
-    accent-color: #6fa17b;
-}
-
-/* FIX: selección oscura en vez de celeste claro */
-.rpCardSelected {
-    outline: 2px solid #6fa17b;
-    outline-offset: -2px;
-    background: rgba(111, 161, 123, 0.1);
-}
-
-/* ============================================ */
-/*  Estadísticas — tablas y filtros             */
-/* ============================================ */
-.statsFilter {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    flex-wrap: wrap;
-}
-
 .kpiSub {
-    font-size: 11px;
+    font-size: 12px;
     color: #9ca3af;
-    margin-top: 4px;
+    margin-top: 6px;
     font-style: italic;
 }
 
+/* =====================================================================
+   Tablas (estadísticas)
+===================================================================== */
 .tableBlock {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 20px;
-    margin-top: 16px;
+}
+
+.tableTitle {
+    margin: 0 0 16px;
+    font-size: 16px;
+    color: #f0f9ff;
+}
+
+.tableScroll {
     overflow-x: auto;
+    max-height: 620px;
+    overflow-y: auto;
 }
 
 .dataTable {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
     color: #e5e7eb;
+}
+
+.dataTableFixed {
+    table-layout: fixed;
 }
 
 .dataTable th {
@@ -1151,14 +644,19 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: #9ca3af;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #111827;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .dataTable td {
-    padding: 10px 12px;
+    padding: 11px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     vertical-align: middle;
+    overflow: hidden;
 }
 
 .dataTable tbody tr:hover {
@@ -1192,13 +690,325 @@
     white-space: nowrap;
 }
 
+.ellipsisCell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 0;
+}
+
 .pctBadge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 3px 9px;
     border-radius: 999px;
     background: rgba(111, 161, 123, 0.18);
     color: #a7f3d0;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   Selector múltiple de médicos
+===================================================================== */
+.multiSelect {
+    position: relative;
+    min-width: 260px;
+    flex: 1;
+    max-width: 420px;
+}
+
+.multiSelectBtn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+}
+
+.multiSelectBtn:hover {
+    border-color: rgba(111, 161, 123, 0.5);
+}
+
+.multiSelectArrow {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.multiSelectDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    z-index: 50;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.multiSelectActions {
+    display: flex;
+    gap: 8px;
+}
+
+.multiSelectActions .btnGhost {
+    padding: 5px 10px;
+    font-size: 13px;
+}
+
+.multiSelectList {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.multiSelectItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #e5e7eb;
+}
+
+.multiSelectItem:hover {
+    background: rgba(111, 161, 123, 0.12);
+}
+
+.multiSelectItem input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #6fa17b;
+    flex-shrink: 0;
+}
+
+.multiSelectName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multiSelectMeta {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   Modales
+===================================================================== */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 16px;
+}
+
+.modalCard {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 22px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    color: #e5e7eb;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modalCardWide {
+    max-width: 720px;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.modalTitle {
+    margin: 0;
+    font-size: 18px;
+    color: #f0f9ff;
+}
+
+.modalClose {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+.modalClose:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e5e7eb;
+}
+
+.modalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.modalHelp {
+    margin: 0;
+    font-size: 13px;
+    color: #9ca3af;
+    line-height: 1.5;
+}
+
+.modalSummary {
+    font-size: 13px;
+    color: #9ca3af;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 4px;
+}
+
+.emptyMsg {
+    padding: 16px;
+    color: #9ca3af;
+    font-size: 14px;
+    text-align: center;
+    margin: 0;
+}
+
+/* =====================================================================
+   Chips de atajos (estilo "atajos de mail")
+===================================================================== */
+.atajosChipsGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.atajoChip {
+    display: flex;
+    align-items: stretch;
+    background: rgba(111, 161, 123, 0.12);
+    border: 1px solid rgba(111, 161, 123, 0.35);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.15s;
+}
+
+.atajoChip:hover {
+    background: rgba(111, 161, 123, 0.2);
+    border-color: rgba(111, 161, 123, 0.6);
+}
+
+.atajoChipMain {
+    background: transparent;
+    border: none;
+    color: #e5e7eb;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    text-align: left;
+    min-width: 160px;
+    max-width: 260px;
+}
+
+.atajoChipNombre {
+    font-weight: 700;
+    font-size: 14px;
+    color: #d1fae5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.atajoChipMeta {
+    font-size: 11px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.atajoChipDelete {
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba(111, 161, 123, 0.35);
+    color: #9ca3af;
+    padding: 0 12px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.atajoChipDelete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+/* Filas de resultados clickeables */
+.resultItem {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.resultItem:hover {
+    background: rgba(111, 161, 123, 0.1);
+}
+
+.resultItem:active {
+    background: rgba(111, 161, 123, 0.18);
+}
+
+/* Texto de ayuda debajo de inputs */
+.hintInline {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #6b7280;
+    font-style: italic;
 }
