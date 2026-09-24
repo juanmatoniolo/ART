@@ -16,8 +16,9 @@ import {
   Pill,
   BookOpen,
   FolderTree,
-  Stethoscope,   // <-- agregar
-  HardHat,       // <-- icono para ART (riesgos del trabajo)
+  Stethoscope,
+  HardHat,
+  ClipboardList,   // <-- NUEVO (para RP)
   Settings,
   LogOut,
   Menu,
@@ -68,6 +69,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/cx", label: "CX", icon: FolderTree },
     { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },  // <-- NUEVA LÍNEA
     { href: "/admin/art", label: "ART", icon: HardHat },  // <-- NUEVA LÍNEA
+    { href: "/admin/rp", label: "RP", icon: ClipboardList },   // <-- NUEVA LÍNEA
   ];
 
   return (

@@ -1,0 +1,732 @@
+/* =====================================================================
+   Página (dark theme)
+===================================================================== */
+.page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 8px 4px 80px;
+    color: #e5e7eb;
+}
+
+.loading {
+    text-align: center;
+    padding: 60px;
+    color: #9ca3af;
+}
+
+/* =====================================================================
+   Header
+===================================================================== */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.title {
+    margin: 0 0 4px;
+    font-size: 22px;
+    color: #f0f9ff;
+}
+
+.subtitle {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.labelInline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #d1d5db;
+}
+
+/* =====================================================================
+   Tabs
+===================================================================== */
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0;
+    overflow-x: auto;
+}
+
+.tab {
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+
+.tab:hover {
+    color: #e5e7eb;
+}
+
+.tabActive {
+    color: #6fa17b;
+    border-bottom-color: #6fa17b;
+}
+
+/* =====================================================================
+   Secciones
+===================================================================== */
+.editor,
+.cart,
+.history {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.sectionTitle {
+    margin: 0 0 16px;
+    font-size: 16px;
+    color: #f0f9ff;
+}
+
+/* =====================================================================
+   Formulario
+===================================================================== */
+.grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 700px) {
+    .grid2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #d1d5db;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input,
+.select,
+.textarea {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #0f172a;
+    color: #e5e7eb;
+    outline: none;
+    transition: border 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+    color: #6b7280;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: #6fa17b;
+    box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.15);
+}
+
+.textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.select option {
+    background: #0f172a;
+}
+
+/* =====================================================================
+   Pickers
+===================================================================== */
+.picker {
+    position: relative;
+}
+
+.loadingInline {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 40;
+}
+
+.dropdownItem {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+    color: #e5e7eb;
+}
+
+.dropdownItem:last-child {
+    border-bottom: none;
+}
+
+.dropdownItem:hover {
+    background: rgba(111, 161, 123, 0.15);
+}
+
+.empty {
+    padding: 12px;
+    color: #6b7280;
+    font-size: 13px;
+    text-align: center;
+}
+
+.selectedCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(111, 161, 123, 0.1);
+    border: 1px solid rgba(111, 161, 123, 0.3);
+    border-radius: 8px;
+}
+
+.meta {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* =====================================================================
+   Búsqueda de prácticas
+===================================================================== */
+.searchBlock {
+    position: relative;
+}
+
+.resultsList {
+    margin-top: 8px;
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.resultItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resultItem:last-child {
+    border-bottom: none;
+}
+
+.resultMain {
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    color: #e5e7eb;
+}
+
+.resultMain strong {
+    color: #93c5fd;
+}
+
+/* =====================================================================
+   Lista de prácticas
+===================================================================== */
+.practicasList {
+    margin-top: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.practicaRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: #0f172a;
+}
+
+.practicaRow:last-child {
+    border-bottom: none;
+}
+
+.practicaMain {
+    flex: 1;
+    font-size: 14px;
+    color: #e5e7eb;
+}
+
+.costo {
+    font-weight: 600;
+    color: #6fa17b;
+    font-variant-numeric: tabular-nums;
+    min-width: 100px;
+    text-align: right;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(111, 161, 123, 0.1);
+    font-size: 15px;
+    border-top: 1px solid rgba(111, 161, 123, 0.3);
+    color: #d1fae5;
+}
+
+/* =====================================================================
+   Botones
+===================================================================== */
+.btnPrimary,
+.btnGhost,
+.btnDanger,
+.btnAdd,
+.btnRemove {
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.btnPrimary {
+    background: linear-gradient(90deg, #44794d, #6fa17b);
+    color: #fff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.btnPrimary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnGhost {
+    background: transparent;
+    color: #d1d5db;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btnGhost:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btnDanger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btnDanger:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.btnAdd {
+    background: #059669;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.btnAdd:hover {
+    background: #047857;
+}
+
+.btnRemove {
+    background: transparent;
+    color: #6b7280;
+    border: none;
+    font-size: 16px;
+    padding: 4px 8px;
+}
+
+.btnRemove:hover {
+    color: #ef4444;
+}
+
+.editorActions,
+.cartActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+/* =====================================================================
+   Carrito / tarjetas
+===================================================================== */
+.cartGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.rpCard {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rpCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.badge {
+    font-size: 11px;
+    background: rgba(111, 161, 123, 0.2);
+    color: #a7f3d0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.rpCardActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.rpCardActions button {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+/* =====================================================================
+   ESTADÍSTICAS
+===================================================================== */
+.stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.kpiCard {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.kpiLabel {
+    font-size: 12px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.kpiValue {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0f9ff;
+}
+
+.chartBlock {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.chartTitle {
+    margin: 0 0 16px;
+    font-size: 15px;
+    color: #f0f9ff;
+}
+
+.barChart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.barRow {
+    display: grid;
+    grid-template-columns: 180px 1fr 140px;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+@media (max-width: 700px) {
+    .barRow {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
+.barLabel {
+    color: #d1d5db;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.barTrack {
+    height: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    background: linear-gradient(90deg, #44794d, #6fa17b);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.barFillAlt {
+    background: linear-gradient(90deg, #1d4ed8, #60a5fa);
+}
+
+.barFillWarn {
+    background: linear-gradient(90deg, #b45309, #fbbf24);
+}
+
+.barValue {
+    color: #f0f9ff;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.barValue small {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+/* =====================================================================
+   IMPRESIÓN — formato RP limpio
+===================================================================== */
+.printArea {
+    display: none;
+}
+
+.printPage {
+    padding: 20mm 15mm;
+    background: #fff;
+    color: #000;
+}
+
+.printRp {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 13pt;
+    line-height: 1.6;
+    color: #000;
+    background: #fff;
+    min-height: 200mm;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Datos paciente */
+.printPacienteBlock {
+    margin-bottom: 12mm;
+    padding-bottom: 4mm;
+    border-bottom: 1px solid #000;
+}
+
+.printLine {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 3mm;
+    align-items: baseline;
+}
+
+.printLabel {
+    font-weight: bold;
+    min-width: 130px;
+    color: #000;
+}
+
+.printValue {
+    flex: 1;
+    border-bottom: 1px dotted #666;
+    padding-bottom: 1mm;
+    min-height: 6mm;
+}
+
+/* Cuerpo libre */
+.printCuerpo {
+    flex: 1;
+    margin-bottom: 10mm;
+    min-height: 110mm;
+}
+
+.printPracticas {
+    margin-bottom: 6mm;
+}
+
+.printPracticaItem {
+    display: flex;
+    gap: 8mm;
+    margin-bottom: 3mm;
+    padding-left: 4mm;
+    font-size: 12pt;
+}
+
+.printPracticaCod {
+    font-weight: bold;
+    font-family: "Courier New", monospace;
+    min-width: 30mm;
+}
+
+.printPracticaDesc {
+    flex: 1;
+}
+
+.printCuerpoLibre {
+    margin-top: 6mm;
+    padding: 3mm;
+    white-space: pre-wrap;
+    font-size: 12pt;
+    border-top: 1px dashed #999;
+}
+
+.printBlank {
+    height: 6mm;
+    border-bottom: 1px dotted #ccc;
+    margin-bottom: 4mm;
+}
+
+/* DG + Fecha */
+.printFooterBlock {
+    margin-top: auto;
+    padding-top: 6mm;
+    border-top: 1px solid #000;
+    margin-bottom: 12mm;
+}
+
+/* Firma */
+.printFirma {
+    text-align: right;
+    margin-top: 10mm;
+}
+
+.printFirmaLine {
+    border-top: 1px solid #000;
+    width: 70mm;
+    margin-left: auto;
+    margin-bottom: 2mm;
+}
+
+.printFirmaNombre {
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.printFirmaMeta {
+    font-size: 11pt;
+    color: #333;
+}
+
+.pageBreak {
+    page-break-after: always;
+    height: 1px;
+}
+
+/* =====================================================================
+   @media print
+===================================================================== */
+@media print {
+
+    .header,
+    .tabs,
+    .editor,
+    .cart,
+    .history,
+    .stats,
+    .cartActions,
+    .editorActions {
+        display: none !important;
+    }
+
+    .page {
+        padding: 0;
+        max-width: none;
+        background: #fff;
+    }
+
+    .printArea {
+        display: block !important;
+    }
+
+    .printPage {
+        padding: 0;
+        page-break-after: always;
+    }
+
+    .printPage:last-child {
+        page-break-after: auto;
+    }
+}
