@@ -54,6 +54,23 @@ export default function ARTComunicador() {
     });
   }, [arts, tab]);
 
+  // ─── NUEVO: nombres de las ARTs seleccionadas ─────────────────────────
+  const selectedArtsNames = useMemo(() => {
+    if (selectedArts.size === 0) return [];
+    const names = [];
+    selectedArts.forEach((id) => {
+      const art = arts.find((a) => a.id === id);
+      if (art?.nombre) names.push(art.nombre);
+    });
+    return names;
+  }, [selectedArts, arts]);
+
+  const selectedArtsLabel = useMemo(() => {
+    if (selectedArtsNames.length === 0) return "";
+    if (selectedArtsNames.length === 1) return selectedArtsNames[0];
+    return `${selectedArtsNames.length} ARTs`;
+  }, [selectedArtsNames]);
+
   if (artsError) {
     return (
       <main className={styles.page}>
@@ -344,6 +361,9 @@ export default function ARTComunicador() {
                   loading={loadingPacientes}
                   paciente={paciente}
                   setPaciente={setPaciente}
+                  // ─── NUEVAS PROPS ────────────────────────────────────
+                  selectedArtsNames={selectedArtsNames}
+                  selectedArtsLabel={selectedArtsLabel}
                 />
                 <PasoMedico
                   key={`medico-${resetKey}`}
