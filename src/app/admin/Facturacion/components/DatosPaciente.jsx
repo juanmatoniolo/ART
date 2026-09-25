@@ -39,6 +39,10 @@ export default function DatosPaciente({
   setPaciente,
   onSiguiente,
   onPacienteSeleccionado,
+  // ─── NUEVOS PROPS ────────────────────────────────────────────────
+  draftId = '',
+  onActualizarDatos = null,
+  savingPaciente = false,
 }) {
   const [seguroCustom, setSeguroCustom] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -230,6 +234,11 @@ export default function DatosPaciente({
       return;
     }
     onSiguiente();
+  };
+
+  const handleActualizarDatos = () => {
+    if (!onActualizarDatos || savingPaciente) return;
+    onActualizarDatos();
   };
 
   const selectValue = showCustomInput ? 'Otro' : (paciente.artSeguro || '');
@@ -426,6 +435,52 @@ export default function DatosPaciente({
             placeholder="Opcional"
             className={styles.input}
           />
+
+          {/* ─── Botón Actualizar datos del paciente ──────────────────────── */}
+          {onActualizarDatos && (
+            <>
+              <button
+                type="button"
+                onClick={handleActualizarDatos}
+                disabled={savingPaciente || !paciente.pacienteId}
+                title={
+                  !paciente.pacienteId
+                    ? 'Seleccioná un paciente existente del buscador para poder actualizarlo'
+                    : savingPaciente
+                    ? 'Guardando…'
+                    : 'Actualiza los datos del paciente en el servidor (no crea borrador de factura)'
+                }
+                style={{
+                  marginTop: 10,
+                  padding: '10px 14px',
+                  width: '100%',
+                  background: (savingPaciente || !paciente.pacienteId) ? '#94a3b8' : '#16a34a',
+                  color: '#ffffff',
+                  border: '1px solid ' + ((savingPaciente || !paciente.pacienteId) ? '#94a3b8' : '#15803d'),
+                  borderRadius: 8,
+                  fontSize: '0.95em',
+                  fontWeight: 600,
+                  cursor: (savingPaciente || !paciente.pacienteId) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'background 0.15s',
+                  opacity: (savingPaciente || !paciente.pacienteId) ? 0.7 : 1,
+                }}
+              >
+                {savingPaciente
+                  ? '⏳ Guardando…'
+                  : '💾 Actualizar datos del paciente'}
+              </button>
+
+              <small className={styles.help} style={{ marginTop: 6, display: 'block' }}>
+                {!paciente.pacienteId
+                  ? '⚠️ Seleccioná un paciente del buscador para habilitar este botón.'
+                  : 'Actualiza los datos en el servidor sin crear borrador de factura.'}
+              </small>
+            </>
+          )}
         </div>
 
         <div className={styles.formGroup}>

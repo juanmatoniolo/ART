@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ref, push, set, update, get } from 'firebase/database';
+import { ref, push, set, update, get, remove } from 'firebase/database';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
@@ -59,6 +59,15 @@ const prettyLabel = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+// ─── Estado de cierre ─────────────────────────────────────────────────────
+const EMPTY_CIERRE = { fkt: null, cx: null, siniestro: null };
+
+const derivarEstado = (cierre) => {
+  if (!cierre) return 'borrador';
+  const completo = cierre.fkt && cierre.cx && cierre.siniestro;
+  return completo ? 'cerrado' : 'borrador';
+};
+
 function aplicarPrestadorEnPractica(calculoBase, prestadorTipo) {
   const honor = safeNum(calculoBase?.honorarioMedico);
   const gasto = safeNum(calculoBase?.gastoSanatorial);
@@ -98,23 +107,9 @@ const patchEsSoloTexto = (patch) => {
   return Object.keys(patch).every((k) => !numericKeys.has(k));
 };
 
-// Componente Modal reutilizable
-function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmText = 'Aceptar', showInput = false }) {
-  const [input, setInput] = useState(inputValue || '');
-  useEffect(() => {
-    if (open && showInput) setInput(inputValue || '');
-  }, [open, inputValue, showInput]);
-
+// ─── Modal genérico (alertas) ─────────────────────────────────────────────
+function Modal({ open, title, message, onClose, onConfirm, confirmText = 'Aceptar' }) {
   if (!open) return null;
-
-  const handleConfirm = () => {
-    if (showInput) {
-      onConfirm(input);
-    } else {
-      onConfirm();
-    }
-  };
-
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -123,20 +118,129 @@ function Modal({ open, title, message, inputValue, onClose, onConfirm, confirmTe
           <button className={styles.modalClose} onClick={onClose} aria-label="Cerrar">✕</button>
         </div>
         <div className={styles.modalBody}>
-          {message && <p className={styles.modalText}>{message}</p>}
-          {showInput && (
+          {message && <p className={styles.modalText} style={{ whiteSpace: 'pre-line' }}>{message}</p>}
+        </div>
+        <div className={styles.modalActions}>
+          <button className={styles.btnPrimario} onClick={onConfirm}>{confirmText}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal "Guardar borrador" con switch de STRO ──────────────────────────
+function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente, onConfirm, saving }) {
+  const [nombre, setNombre] = useState(nombreInicial || '');
+  const [cerrarSTRO, setCerrarSTRO] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setNombre(nombreInicial || '');
+      setCerrarSTRO(!!cerradoActualmente);
+    }
+  }, [open, nombreInicial, cerradoActualmente]);
+
+  if (!open) return null;
+
+  const handleConfirm = () => {
+    if (saving) return;
+    if (!nombre?.trim()) return;
+    onConfirm({ nombre: nombre.trim(), cerrarSTRO });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !saving && nombre?.trim()) {
+      e.preventDefault();
+      handleConfirm();
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={saving ? undefined : onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Guardar borrador</h3>
+          <button
+            type="button"
+            className={styles.modalClose}
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+        <div className={styles.modalBody}>
+          <p className={styles.modalText}>Ingresá un nombre para el siniestro:</p>
+          <input
+            className={styles.modalInput}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Nombre del siniestro"
+            autoFocus
+            disabled={saving}
+            onKeyDown={handleKeyDown}
+          />
+
+          {/* Switch ¿Cerrar STRO? */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 16,
+              padding: '12px 14px',
+              background: cerrarSTRO ? '#fef3c7' : '#f1f5f9',
+              border: `2px solid ${cerrarSTRO ? '#f59e0b' : '#cbd5e1'}`,
+              borderRadius: 10,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
             <input
-              className={styles.modalInput}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Escribí el nombre…"
-              autoFocus
+              type="checkbox"
+              checked={cerrarSTRO}
+              onChange={(e) => setCerrarSTRO(e.target.checked)}
+              disabled={saving}
+              style={{
+                width: 18,
+                height: 18,
+                accentColor: '#f59e0b',
+                cursor: saving ? 'not-allowed' : 'pointer',
+              }}
             />
+            <span style={{ fontWeight: 600, color: '#0f172a' }}>
+              📄 ¿Cerrar el STRO también?
+            </span>
+          </label>
+
+                 {cerrarSTRO ? (
+            <div style={{ marginTop: 8, fontSize: '0.85em', color: '#92400e', paddingLeft: 4 }}>
+              El siniestro quedará marcado como <b>cerrado</b>.
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, fontSize: '0.85em', color: '#475569', paddingLeft: 4 }}>
+              El siniestro quedará guardado como <b>borrador</b> (abierto).
+            </div>
           )}
         </div>
         <div className={styles.modalActions}>
-          <button className={styles.btnSecundario} onClick={onClose}>Cancelar</button>
-          <button className={styles.btnPrimario} onClick={handleConfirm}>{confirmText}</button>
+          <button
+            type="button"
+            className={styles.btnSecundario}
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={styles.btnPrimario}
+            onClick={handleConfirm}
+            disabled={saving || !nombre?.trim()}
+          >
+            {saving ? '⏳ Guardando…' : '💾 Guardar'}
+          </button>
         </div>
       </div>
     </div>
@@ -176,9 +280,20 @@ export default function FacturaContainer() {
   const [draftId, setDraftId] = useState('');
   const [lockMsg, setLockMsg] = useState('');
 
-  // Estados para modales
-  const [modalConfirm, setModalConfirm] = useState(null); // { title, message, onConfirm }
-  const [modalPrompt, setModalPrompt] = useState(null); // { title, message, onConfirm }
+  // ─── Cierre (solo para saber si está cerrado o no) ────────────────────
+  const [cierre, setCierre] = useState(EMPTY_CIERRE);
+
+  // ─── Actualizar datos del paciente ────────────────────────────────────
+  const [savingPaciente, setSavingPaciente] = useState(false);
+  const savingPacienteRef = useRef(false);
+
+  // ─── Guardar borrador ─────────────────────────────────────────────────
+  const [showGuardarModal, setShowGuardarModal] = useState(false);
+  const [savingGuardar, setSavingGuardar] = useState(false);
+  const savingGuardarRef = useRef(false);
+
+  // Modales de alerta
+  const [modalConfirm, setModalConfirm] = useState(null);
 
   const resetStoredDraftId = useCallback(() => {
     setDraftId('');
@@ -220,6 +335,7 @@ export default function FacturaContainer() {
     return { honor, gasto, total: honor + gasto };
   }, [practicas, cirugias, laboratorios, medicamentos, descartables]);
 
+  // Carga inicial
   useEffect(() => {
     if (!isClient) return;
 
@@ -234,6 +350,7 @@ export default function FacturaContainer() {
       setDescartables([]);
       setActiveTab('datos');
       setDraftId('');
+      setCierre(EMPTY_CIERRE);
     } else if (!draftFromUrl) {
       setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
       setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
@@ -249,6 +366,7 @@ export default function FacturaContainer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, newFromUrl, draftFromUrl]);
 
+  // Cargar draft desde URL
   useEffect(() => {
     if (!isClient) return;
     if (!draftFromUrl) return;
@@ -292,26 +410,14 @@ export default function FacturaContainer() {
 
         const nombre = findValue(
           [pacienteData, v],
-          'nombreCompleto',
-          'nombre',
-          'apellido',
-          'fullName',
-          'pacienteNombre',
-          'nombrePaciente'
+          'nombreCompleto', 'nombre', 'apellido', 'fullName', 'pacienteNombre', 'nombrePaciente'
         );
-
         const dni = findValue([pacienteData, v], 'dni', 'documento', 'DNI', 'Documento');
-
         const art = findValue([pacienteData, v], 'artSeguro', 'art', 'seguro', 'artNombre', 'ART');
-
         const siniestro = findValue(
           [pacienteData, v],
-          'nroSiniestro',
-          'siniestro',
-          'numeroSiniestro',
-          'NroSiniestro'
+          'nroSiniestro', 'siniestro', 'numeroSiniestro', 'NroSiniestro'
         );
-
         const fecha = findValue([pacienteData, v], 'fechaAtencion', 'fecha', 'atencion', 'fecha_atencion') || todayISO();
 
         setPaciente({
@@ -328,6 +434,15 @@ export default function FacturaContainer() {
         setLaboratorios(Array.isArray(v?.laboratorios) ? v.laboratorios : []);
         setMedicamentos(Array.isArray(v?.medicamentos) ? v.medicamentos : []);
         setDescartables(Array.isArray(v?.descartables) ? v.descartables : []);
+
+        if (v?.cierre && typeof v.cierre === 'object') {
+          setCierre({ ...EMPTY_CIERRE, ...v.cierre });
+        } else if (estado === 'cerrado') {
+          const ts = v?.cerradoAt || v?.updatedAt || v?.createdAt || Date.now();
+          setCierre({ fkt: ts, cx: ts, siniestro: ts });
+        } else {
+          setCierre(EMPTY_CIERRE);
+        }
 
         if (v?.convenio) {
           if (convenios && convenios[v.convenio]) {
@@ -357,6 +472,7 @@ export default function FacturaContainer() {
     };
   }, [draftFromUrl, isClient, convenios]);
 
+  // Guardar en localStorage
   useEffect(() => {
     if (!isClient || loadingStorage) return;
 
@@ -381,6 +497,7 @@ export default function FacturaContainer() {
     draftId,
   ]);
 
+  // Buscar duplicados
   const [existentes, setExistentes] = useState([]);
 
   const findExisting = useCallback(
@@ -389,8 +506,9 @@ export default function FacturaContainer() {
       const artNombre = paciente?.artSeguro || '';
       const nroSiniestro = paciente?.nroSiniestro || '';
       const key = normalizeSiniestroKey(artNombre, nroSiniestro);
+      const curStro = String(nroSiniestro).trim();
 
-      const tieneSiniestro = String(nroSiniestro).trim() !== '';
+      const tieneSiniestro = curStro !== '';
       if (!dniDigits && !tieneSiniestro) return [];
 
       const snap = await get(ref(db, 'Facturacion'));
@@ -402,15 +520,20 @@ export default function FacturaContainer() {
         .map(([id, v]) => ({ id, ...v }))
         .filter((v) => {
           const vDni = onlyDigits(v?.paciente?.dni || v?.dni || '');
+          const vStro = String(v?.paciente?.nroSiniestro || v?.nroSiniestro || '').trim();
           const vKey =
             v?.siniestroKey ||
             normalizeSiniestroKey(
               v?.paciente?.artSeguro || v?.artSeguro || '',
               v?.paciente?.nroSiniestro || v?.nroSiniestro || ''
             );
-          const matchDni = dniDigits && vDni && vDni === dniDigits;
-          const matchSiniestro = tieneSiniestro && vKey === key;
-          return matchDni || matchSiniestro;
+
+          if (dniDigits) {
+            if (!vDni || vDni !== dniDigits) return false;
+            return vStro === curStro;
+          }
+          if (tieneSiniestro) return vKey === key;
+          return false;
         })
         .map((v) => ({
           id: v.id,
@@ -444,8 +567,9 @@ export default function FacturaContainer() {
     };
   }, [isClient, paciente?.dni, paciente?.artSeguro, paciente?.nroSiniestro, draftId, findExisting]);
 
+  // ─── Guardar en RTDB ──────────────────────────────────────────────────
   const guardarEnRTDB = useCallback(
-    async ({ estado, nombre, forceNew = false }) => {
+    async ({ estado, nombre, forceNew = false, cierreOverride = null }) => {
       setLockMsg('');
 
       const convenioNombre = convenios?.[convenioSel]?.nombre || convenioSel;
@@ -465,8 +589,11 @@ export default function FacturaContainer() {
       const prevSnap = await get(ref(db, `Facturacion/${id}`));
       const prev = prevSnap.exists() ? prevSnap.val() : null;
 
+      const cierreFinal = cierreOverride || cierre || EMPTY_CIERRE;
+      const estadoDerivado = estado || derivarEstado(cierreFinal);
+
       const payload = {
-        estado,
+        estado: estadoDerivado,
         nombre: nombre || paciente?.nombreCompleto || 'Siniestro',
         updatedAt: now,
         siniestroKey,
@@ -482,6 +609,8 @@ export default function FacturaContainer() {
         medicamentos: medicamentos || [],
         descartables: descartables || [],
 
+        cierre: cierreFinal,
+
         totales: {
           honorarios: safeNum(totalesFactura.honor),
           gastos: safeNum(totalesFactura.gasto),
@@ -491,24 +620,41 @@ export default function FacturaContainer() {
         createdAt: prev?.createdAt ? prev.createdAt : now,
       };
 
-      if (estado === 'cerrado') {
-        payload.facturaNro = prev?.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
+        // Solo cambiamos el estado y guardamos el timestamp de cierre.
+      // NO asignamos facturaNro (eso lo maneja el flujo de facturación).
+      if (estadoDerivado === 'cerrado') {
         payload.cerradoAt = now;
+      } else {
+        payload.cerradoAt = null;
       }
 
+      // 1) Guardar el registro en Facturacion
       await set(ref(db, `Facturacion/${id}`), { id, ...(prev || {}), ...payload });
 
+      // 2) SOLO si el estado final es CERRADO → marcar el paciente como cerrado
+      //    Si es BORRADOR → NO llamar a cerrarPacientePorFactura
+      if (estadoDerivado === 'cerrado') {
+        try {
+          await cerrarPacientePorFactura({ id, ...payload }, id);
+        } catch (e) {
+          console.warn('cerrarPacientePorFactura falló (no crítico):', e);
+        }
+      }
+
+      // 3) Actualizar SIEMPRE el índice de siniestros DESPUÉS de cualquier otra operación
+      //    (para que si algo lo pisó, quede con el estado correcto)
       await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
-        status: estado,
+        status: estadoDerivado,
         id,
         updatedAt: now,
         dni: paciente?.dni || '',
       });
 
-      await cerrarPacientePorFactura({ id, ...payload }, id);
+      // 4) Estado local
+      if (estadoDerivado === 'borrador') setDraftId(id);
+      if (estadoDerivado === 'cerrado') setDraftId('');
 
-      if (estado === 'borrador') setDraftId(id);
-      if (estado === 'cerrado') setDraftId('');
+      setCierre(cierreFinal);
 
       return { id, ...payload };
     },
@@ -523,6 +669,7 @@ export default function FacturaContainer() {
       convenioSel,
       convenios,
       draftId,
+      cierre,
     ]
   );
 
@@ -671,8 +818,168 @@ export default function FacturaContainer() {
     setLockMsg('Carga nueva: al guardar se creara un borrador independiente.');
   }, [draftFromUrl, resetStoredDraftId]);
 
-  // ===== Reemplazo de alert/confirm/prompt por modales =====
+  // ─── Actualizar datos del paciente (NO crea borrador) ────────────────
+  const actualizarDatosPaciente = useCallback(async () => {
+    if (savingPacienteRef.current) return;
 
+    if (!paciente.pacienteId) {
+      alert('Este paciente no está vinculado a un registro. Seleccionalo desde el buscador.');
+      return;
+    }
+    if (!paciente.nombreCompleto || !paciente.dni) {
+      alert('Completá nombre y DNI antes de actualizar.');
+      return;
+    }
+
+    savingPacienteRef.current = true;
+    setSavingPaciente(true);
+
+    try {
+      const now = Date.now();
+
+      const nombreLimpio = String(paciente.nombreCompleto || '').trim();
+      const partes = nombreLimpio.split(/\s+/);
+      const apellido = partes[0] || '';
+      const nombre = partes.slice(1).join(' ') || '';
+
+      await update(ref(db, `pacientes/${paciente.pacienteId}`), {
+        'trabajador/apellido': apellido,
+        'trabajador/nombre': nombre,
+        'trabajador/dni': onlyDigits(paciente.dni),
+        'ART/nombre': paciente.artSeguro || '',
+        'ART/nroSiniestro': paciente.nroSiniestro || '',
+        updatedAt: now,
+      });
+
+      if (draftId) {
+        const snap = await get(ref(db, `Facturacion/${draftId}`));
+        if (snap.exists()) {
+          const prev = snap.val();
+          const oldStro = String(prev?.paciente?.nroSiniestro || '').trim();
+          const newStro = String(paciente.nroSiniestro || '').trim();
+          const art = paciente.artSeguro || '';
+
+          const oldKey = prev?.siniestroKey || normalizeSiniestroKey(prev?.paciente?.artSeguro || '', oldStro);
+          const newKey = normalizeSiniestroKey(art, newStro);
+
+          await update(ref(db, `Facturacion/${draftId}`), {
+            paciente: {
+              ...prev.paciente,
+              nombreCompleto: nombreLimpio,
+              dni: paciente.dni,
+              artSeguro: art,
+              nroSiniestro: newStro,
+            },
+            siniestroKey: newKey,
+            updatedAt: now,
+          });
+
+          if (oldKey !== newKey) {
+            await remove(ref(db, `Facturacion/siniestros/${oldKey}`)).catch(() => {});
+            await update(ref(db, `Facturacion/siniestros/${newKey}`), {
+              status: cierre && cierre.siniestro ? 'cerrado' : 'borrador',
+              id: draftId,
+              updatedAt: now,
+              dni: paciente.dni || '',
+            });
+          }
+        }
+      }
+
+      alert('✅ Datos del paciente actualizados.');
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || 'Error al actualizar los datos.');
+    } finally {
+      savingPacienteRef.current = false;
+      setSavingPaciente(false);
+    }
+  }, [paciente, draftId, cierre]);
+
+  // ─── Abrir modal guardar ─────────────────────────────────────────────
+  const abrirGuardar = useCallback(() => {
+    if (!isClient) return;
+    setShowGuardarModal(true);
+  }, [isClient]);
+
+  // ─── Confirmar guardado (con switch STRO + lock anti doble click) ────
+  const confirmarGuardar = useCallback(
+    async ({ nombre, cerrarSTRO }) => {
+      if (savingGuardarRef.current) return;
+      if (!nombre?.trim()) return;
+
+      savingGuardarRef.current = true;
+      setSavingGuardar(true);
+
+      try {
+        const now = Date.now();
+        const cierreOverride = cerrarSTRO
+          ? {
+              fkt: cierre.fkt || now,
+              cx: cierre.cx || now,
+              siniestro: cierre.siniestro || now,
+            }
+          : EMPTY_CIERRE;
+
+        await guardarEnRTDB({
+          nombre,
+          estado: cerrarSTRO ? 'cerrado' : 'borrador',
+          cierreOverride,
+        });
+
+        setShowGuardarModal(false);
+        setModalConfirm({
+          title: cerrarSTRO ? '✅ Guardado y cerrado' : '✅ Borrador guardado',
+          message: cerrarSTRO
+            ? `El siniestro fue guardado y CERRADO.\nNombre: ${nombre}`
+            : `El borrador fue guardado.\nNombre: ${nombre}`,
+          onConfirm: () => setModalConfirm(null),
+        });
+      } catch (e) {
+        console.error(e);
+        setModalConfirm({
+          title: 'Error',
+          message: lockMsg || e?.message || 'Error al guardar.',
+          onConfirm: () => setModalConfirm(null),
+        });
+      } finally {
+        savingGuardarRef.current = false;
+        setSavingGuardar(false);
+      }
+    },
+    [guardarEnRTDB, cierre, lockMsg]
+  );
+
+  // ─── Guardar como copia nueva ────────────────────────────────────────
+  const guardarSiniestroNuevo = useCallback(() => {
+    if (!isClient) return;
+    setModalConfirm({
+      title: 'Guardar como nuevo',
+      message: 'Se creará una copia nueva del siniestro. ¿Continuar?',
+      onConfirm: async () => {
+        setModalConfirm(null);
+        if (savingGuardarRef.current) return;
+        savingGuardarRef.current = true;
+        setSavingGuardar(true);
+        try {
+          const saved = await guardarEnRTDB({
+            estado: 'borrador',
+            nombre: paciente?.nombreCompleto || 'Siniestro',
+            forceNew: true,
+          });
+          router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
+        } catch (e) {
+          console.error(e);
+          alert(e?.message || 'Error al guardar la copia.');
+        } finally {
+          savingGuardarRef.current = false;
+          setSavingGuardar(false);
+        }
+      },
+    });
+  }, [isClient, paciente, guardarEnRTDB, router]);
+
+  // ─── Limpiar factura ──────────────────────────────────────────────────
   const limpiarFactura = useCallback(() => {
     if (!isClient) return;
     setModalConfirm({
@@ -694,6 +1001,7 @@ export default function FacturaContainer() {
         });
         setActiveTab('datos');
         setDraftId('');
+        setCierre(EMPTY_CIERRE);
         localStorage.removeItem('FACTURACION_DRAFT_ID');
         Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
         setModalConfirm(null);
@@ -701,133 +1009,8 @@ export default function FacturaContainer() {
     });
   }, [isClient]);
 
-  const guardarSiniestro = useCallback(() => {
-    if (!isClient) return;
-    setModalPrompt({
-      title: 'Guardar borrador',
-      message: 'Ingresá un nombre para el siniestro:',
-      onConfirm: async (nombre) => {
-        if (!nombre?.trim()) {
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: 'El nombre no puede estar vacío.',
-            onConfirm: () => setModalConfirm(null),
-          });
-          return;
-        }
-        try {
-          const saved = await guardarEnRTDB({ estado: 'borrador', nombre });
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Borrador guardado',
-            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
-            onConfirm: () => setModalConfirm(null),
-          });
-        } catch (e) {
-          console.error(e);
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: lockMsg || e?.message || 'Error al guardar el borrador.',
-            onConfirm: () => setModalConfirm(null),
-          });
-        }
-      },
-    });
-  }, [isClient, paciente, guardarEnRTDB, lockMsg]);
-
-  const guardarSiniestroNuevo = useCallback(() => {
-    if (!isClient) return;
-    setModalPrompt({
-      title: 'Guardar como nuevo',
-      message: 'Ingresá un nombre para el nuevo borrador:',
-      onConfirm: async (nombre) => {
-        if (!nombre?.trim()) {
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: 'El nombre no puede estar vacío.',
-            onConfirm: () => setModalConfirm(null),
-          });
-          return;
-        }
-        try {
-          const saved = await guardarEnRTDB({ estado: 'borrador', nombre, forceNew: true });
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Borrador nuevo guardado',
-            message: `ART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
-            onConfirm: () => {
-              setModalConfirm(null);
-              router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
-            },
-          });
-        } catch (e) {
-          console.error(e);
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: lockMsg || e?.message || 'Error al guardar el nuevo borrador.',
-            onConfirm: () => setModalConfirm(null),
-          });
-        }
-      },
-    });
-  }, [isClient, paciente, guardarEnRTDB, lockMsg, router]);
-
-  const cerrarSiniestro = useCallback(() => {
-    if (!isClient) return;
-    if (!paciente.nombreCompleto || !paciente.dni) {
-      setModalConfirm({
-        title: 'Datos incompletos',
-        message: 'Completá los datos del paciente primero.',
-        onConfirm: () => {
-          setModalConfirm(null);
-          setActiveTab('datos');
-        },
-      });
-      return;
-    }
-    setModalPrompt({
-      title: 'Cerrar y facturar',
-      message: 'Ingresá un nombre para el siniestro:',
-      onConfirm: async (nombre) => {
-        if (!nombre?.trim()) {
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: 'El nombre no puede estar vacío.',
-            onConfirm: () => setModalConfirm(null),
-          });
-          return;
-        }
-        try {
-          const saved = await guardarEnRTDB({ estado: 'cerrado', nombre });
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Factura generada',
-            message: `Nro: ${saved.facturaNro}\nART: ${paciente.artSeguro || 'SIN ART'}\nSiniestro: ${paciente.nroSiniestro || '-'}\nID: ${saved.id}`,
-            onConfirm: () => {
-              setModalConfirm(null);
-              limpiarFactura();
-              router.replace('/admin/Facturacion/Nuevo');
-            },
-          });
-        } catch (e) {
-          console.error(e);
-          setModalPrompt(null);
-          setModalConfirm({
-            title: 'Error',
-            message: lockMsg || e?.message || 'Error al cerrar y generar factura.',
-            onConfirm: () => setModalConfirm(null),
-          });
-        }
-      },
-    });
-  }, [isClient, paciente, guardarEnRTDB, lockMsg, limpiarFactura, router]);
-
   const puedeNavegar = Boolean(paciente.nombreCompleto && paciente.dni);
+  const estaCerrado = !!(cierre.fkt && cierre.cx && cierre.siniestro);
 
   const tabs = [
     { key: 'datos', label: '👤 Datos Paciente' },
@@ -848,7 +1031,7 @@ export default function FacturaContainer() {
 
   return (
     <div className={styles.container}>
-      {/* Modales */}
+      {/* Modales de alerta */}
       <Modal
         open={!!modalConfirm}
         title={modalConfirm?.title || ''}
@@ -857,15 +1040,15 @@ export default function FacturaContainer() {
         onConfirm={modalConfirm?.onConfirm}
         confirmText="Aceptar"
       />
-      <Modal
-        open={!!modalPrompt}
-        title={modalPrompt?.title || ''}
-        message={modalPrompt?.message || ''}
-        showInput
-        inputValue={paciente.nombreCompleto || ''}
-        onClose={() => setModalPrompt(null)}
-        onConfirm={modalPrompt?.onConfirm}
-        confirmText="Guardar"
+
+      {/* Modal Guardar borrador con switch STRO */}
+      <GuardarBorradorModal
+        open={showGuardarModal}
+        onClose={() => setShowGuardarModal(false)}
+        nombreInicial={paciente?.nombreCompleto || ''}
+        cerradoActualmente={estaCerrado}
+        onConfirm={confirmarGuardar}
+        saving={savingGuardar}
       />
 
       <header className={styles.header}>
@@ -910,14 +1093,21 @@ export default function FacturaContainer() {
               🗑️ Limpiar
             </button>
 
-            <button
-              className={styles.btnPrimario}
-              onClick={cerrarSiniestro}
-              disabled={!puedeNavegar}
-              title={!puedeNavegar ? 'Complete nombre y DNI para cerrar el siniestro' : ''}
+            {/* Estado del siniestro */}
+            <span
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: '0.9em',
+                fontWeight: 600,
+                background: estaCerrado ? '#dcfce7' : '#fef3c7',
+                color: estaCerrado ? '#15803d' : '#92400e',
+                border: `1px solid ${estaCerrado ? '#22c55e' : '#f59e0b'}`,
+              }}
+              title={estaCerrado ? 'Este siniestro está cerrado' : 'Este siniestro es un borrador'}
             >
-              ✅ Cerrar Siniestro
-            </button>
+              {estaCerrado ? '✅ Cerrado' : '📝 Borrador'}
+            </span>
           </div>
         </div>
 
@@ -974,12 +1164,12 @@ export default function FacturaContainer() {
         )}
       </header>
 
-      {/* ===== CARTEL DE DUPLICADOS ===== */}
+      {/* Cartel de duplicados */}
       {existentes.length > 0 && (
         <div className={styles.duplicateAlert}>
           <div className={styles.duplicateHeader}>
             ⚠️ Este paciente ya tiene {existentes.length}{' '}
-            {existentes.length === 1 ? 'registro cargado' : 'registros cargados'}
+            {existentes.length === 1 ? 'registro cargado' : 'registros cargados'} con el mismo STRO
           </div>
           <div className={styles.duplicateBody}>
             <p>
@@ -1031,6 +1221,9 @@ export default function FacturaContainer() {
                 setPaciente={setPaciente}
                 onSiguiente={() => setActiveTab('practicas')}
                 onPacienteSeleccionado={marcarCargaIndependiente}
+                onActualizarDatos={actualizarDatosPaciente}
+                savingPaciente={savingPaciente}
+                draftId={draftId}
               />
             </motion.div>
           )}
@@ -1129,22 +1322,34 @@ export default function FacturaContainer() {
         </AnimatePresence>
       </div>
 
-      {/* ===== BARRA INFERIOR ===== */}
+      {/* Barra inferior */}
       <div className={styles.footerBar}>
         <div className={styles.footerActions}>
           {draftId ? (
-            <button className={styles.btnSecundario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
+            <button
+              className={styles.btnSecundario}
+              onClick={guardarSiniestroNuevo}
+              disabled={!puedeNavegar || savingGuardar}
+            >
               Guardar copia nueva
             </button>
           ) : null}
 
           {existentes.length > 0 && !draftId && (
-            <button className={styles.btnPrimario} onClick={guardarSiniestroNuevo} disabled={!puedeNavegar}>
+            <button
+              className={styles.btnPrimario}
+              onClick={guardarSiniestroNuevo}
+              disabled={!puedeNavegar || savingGuardar}
+            >
               Guardar como nuevo
             </button>
           )}
 
-          <button className={styles.btnSecundario} onClick={guardarSiniestro} disabled={!puedeNavegar}>
+          <button
+            className={styles.btnSecundario}
+            onClick={abrirGuardar}
+            disabled={!puedeNavegar || savingGuardar}
+          >
             {draftId ? 'Actualizar borrador' : 'Guardar borrador'}
           </button>
         </div>

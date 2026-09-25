@@ -1,6 +1,6 @@
 // src/app/admin/Facturacion/Facturados/hooks/useFacturados.js
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ref, onValue, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
@@ -34,6 +34,12 @@ export default function useFacturados() {
 
   // 👇 NUEVO: Nomencladores (valores generales y honorarios)
   const [nomencladores, setNomencladores] = useState({ valores_generales: {}, honorarios_medicos: [] });
+
+  // ─────────────────────────────────────────────────────────
+  //  PAGINACIÓN DE RENDER (no afecta datos ni filtros)
+  // ─────────────────────────────────────────────────────────
+  const PAGE_SIZE = 30;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Cargar nomencladores desde Firebase
   useEffect(() => {
@@ -236,6 +242,29 @@ export default function useFacturados() {
     });
   }, [items, q, estado, art, fechaDesde, fechaHasta]);
 
+  // ------------------------------------------------------------
+  //  LISTA VISIBLE (paginación de render)
+  // ------------------------------------------------------------
+  const visible = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
+
+  const hasMore = visibleCount < filtered.length;
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => prev + PAGE_SIZE);
+  }, []);
+
+  const loadAll = useCallback(() => {
+    setVisibleCount(filtered.length);
+  }, [filtered.length]);
+
+  // Resetear la paginación cuando cambian filtros, búsqueda u orden
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [q, estado, art, fechaDesde, fechaHasta, orden]);
+
   // Handlers de selección
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -246,11 +275,14 @@ export default function useFacturados() {
     });
   };
 
+  // Selecciona/deselecciona SOLO los visibles
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    const allVisibleSelected =
+      visible.length > 0 && visible.every(it => selectedIds.has(it.id));
+    if (allVisibleSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map(it => it.id)));
+      setSelectedIds(new Set(visible.map(it => it.id)));
     }
   };
 
@@ -1028,6 +1060,13 @@ export default function useFacturados() {
     counts,
     arts,
     filtered,
+    // 👇 PAGINACIÓN DE RENDER
+    visible,
+    hasMore,
+    loadMore,
+    loadAll,
+    totalFiltrados: filtered.length,
+    totalVisible: visible.length,
     // 👇 NUEVO: exponer nomencladores y función para obtener valores
     nomencladores,
     getValorPractica,

@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ref, update, remove, get } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import { money, parseNumber } from '../utils/calculos'; // 🔹 Importamos parseNumber
+import { money, parseNumber } from '../utils/calculos';
 import { cerrarPacientePorFactura } from '../utils/siniestroPacienteSync';
 import useFacturados from './Hook/useFacturados';
 import styles from './facturados.module.css';
@@ -68,6 +68,8 @@ export default function FacturadosPage() {
     deleting, deleteSelected,
     exportCompleto, exportJson,
     counts, arts, filtered,
+    // 👇 NUEVOS (paginación de render)
+    visible, hasMore, loadMore, loadAll, totalFiltrados,
   } = useFacturados();
 
   const [showMore, setShowMore] = useState(false);
@@ -82,7 +84,9 @@ export default function FacturadosPage() {
   const [arcaCopied, setArcaCopied] = useState(false);
   const [arcaLoadingId, setArcaLoadingId] = useState('');
 
-  const allSelected = selectedIds.size === filtered.length && filtered.length > 0;
+  // Ahora "todos seleccionados" se refiere a los VISIBLES
+  const allSelected =
+    visible.length > 0 && visible.every(it => selectedIds.has(it.id));
   const haySeleccion = selectedIds.size > 0;
 
   // ----- Acciones por tarjeta -----
@@ -195,174 +199,173 @@ export default function FacturadosPage() {
   }, [selectedIds, filtered]);
 
   // 🔹 Función para generar el script ARCA de un item completo
-const generateArcaScript = useCallback((fullItem) => {
-  if (!fullItem) return '';
+  const generateArcaScript = useCallback((fullItem) => {
+    if (!fullItem) return '';
 
-  const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
-  const practicas = toArr(fullItem.practicas);
-  const cirugias = toArr(fullItem.cirugias);
-  const laboratorios = toArr(fullItem.laboratorios);
-  const medicamentos = toArr(fullItem.medicamentos);
-  const descartables = toArr(fullItem.descartables);
+    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const practicas = toArr(fullItem.practicas);
+    const cirugias = toArr(fullItem.cirugias);
+    const laboratorios = toArr(fullItem.laboratorios);
+    const medicamentos = toArr(fullItem.medicamentos);
+    const descartables = toArr(fullItem.descartables);
 
-  if (
-    practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
-    medicamentos.length === 0 && descartables.length === 0
-  ) {
-    alert('No hay datos para generar el script.');
-    return '';
-  }
-
-  const art = fullItem.artNombre || fullItem.paciente?.artSeguro || '';
-  const iva = getIvaForArt(art);
-
-  const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
-  const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
-  const pickPrestador = (x) =>
-    x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
-    x?.prestadorNombre || x?.prestador || 'Médico';
-  const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
-  const pickCantidad = (x) => {
-    const c = x?.cantidad ?? x?.unidades ?? 1;
-    const n = safeNum(c);
-    return n > 0 ? n : 1;
-  };
-
-  // 🔹 MODIFICACIÓN: truncar55 convierte a MAYÚSCULAS
-  const truncar55 = (desc) => {
-    const upperDesc = String(desc).toUpperCase();
-    return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
-  };
-
-  const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
-  const ivaValue = ivaMapSelect[iva] || '0';
-
-  const rowsHonorarios = [];
-  const rowsGastos = [];
-
-  practicas.forEach((x) => {
-    const cantidad = pickCantidad(x);
-    const codigo = pickCode(x);
-    const descripcion = pickDescripcion(x);
-    const honorario = safeNum(x.honorarioMedico);
-    const gasto = safeNum(x.gastoSanatorial);
-    const prestador = pickPrestador(x);
-
-    if (honorario > 0) {
-      rowsHonorarios.push({
-        codigo: '2',
-        descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (honorario / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
+    if (
+      practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
+      medicamentos.length === 0 && descartables.length === 0
+    ) {
+      alert('No hay datos para generar el script.');
+      return '';
     }
-    if (gasto > 0) {
-      rowsGastos.push({
-        codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-  });
 
-  cirugias.forEach((x) => {
-    const cantidad = pickCantidad(x);
-    const codigo = pickCode(x);
-    const descripcion = pickDescripcion(x);
-    const honorario = safeNum(x.honorarioMedico);
-    const gasto = safeNum(x.gastoSanatorial);
-    const prestador = pickPrestador(x);
-    const rol = pickRol(x);
+    const art = fullItem.artNombre || fullItem.paciente?.artSeguro || '';
+    const iva = getIvaForArt(art);
 
-    if (honorario > 0) {
-      const desc = rol
-        ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
-        : `Dr ${prestador} - ${codigo} ${descripcion}`;
-      rowsHonorarios.push({
-        codigo: '2',
-        descripcion: truncar55(desc),
-        cantidad,
-        precio: (honorario / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-    if (gasto > 0) {
-      rowsGastos.push({
-        codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-  });
+    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+    const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+    const pickPrestador = (x) =>
+      x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
+      x?.prestadorNombre || x?.prestador || 'Médico';
+    const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
+    const pickCantidad = (x) => {
+      const c = x?.cantidad ?? x?.unidades ?? 1;
+      const n = safeNum(c);
+      return n > 0 ? n : 1;
+    };
 
-  const labHonorPorDoctor = new Map();
-  laboratorios.forEach((x) => {
-    const honorario = safeNum(x.honorarioMedico);
-    if (honorario > 0) {
-      const prestador = pickPrestador(x);
-      labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
-    }
-    const gasto = safeNum(x.gastoSanatorial);
-    if (gasto > 0) {
+    // 🔹 truncar55 convierte a MAYÚSCULAS
+    const truncar55 = (desc) => {
+      const upperDesc = String(desc).toUpperCase();
+      return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
+    };
+
+    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+    const ivaValue = ivaMapSelect[iva] || '0';
+
+    const rowsHonorarios = [];
+    const rowsGastos = [];
+
+    practicas.forEach((x) => {
+      const cantidad = pickCantidad(x);
       const codigo = pickCode(x);
       const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+
+      if (honorario > 0) {
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    cirugias.forEach((x) => {
       const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+      const rol = pickRol(x);
+
+      if (honorario > 0) {
+        const desc = rol
+          ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
+          : `Dr ${prestador} - ${codigo} ${descripcion}`;
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(desc),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    const labHonorPorDoctor = new Map();
+    laboratorios.forEach((x) => {
+      const honorario = safeNum(x.honorarioMedico);
+      if (honorario > 0) {
+        const prestador = pickPrestador(x);
+        labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
+      }
+      const gasto = safeNum(x.gastoSanatorial);
+      if (gasto > 0) {
+        const codigo = pickCode(x);
+        const descripcion = pickDescripcion(x);
+        const cantidad = pickCantidad(x);
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+    labHonorPorDoctor.forEach((total, prestador) => {
+      rowsHonorarios.push({
+        codigo: '2',
+        descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
+        cantidad: 1,
+        precio: total.toFixed(2),
+        iva: ivaValue,
+      });
+    });
+
+    const totalMedDesc = [...medicamentos, ...descartables].reduce(
+      (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
+      0
+    );
+    if (totalMedDesc > 0) {
       rowsGastos.push({
         codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
+        descripcion: 'MEDICACIÓN Y DESCARTABLES',
+        cantidad: 1,
+        precio: totalMedDesc.toFixed(2),
         iva: ivaValue,
       });
     }
-  });
-  labHonorPorDoctor.forEach((total, prestador) => {
-    rowsHonorarios.push({
-      codigo: '2',
-      descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
-      cantidad: 1,
-      precio: total.toFixed(2),
-      iva: ivaValue,
-    });
-  });
 
-  const totalMedDesc = [...medicamentos, ...descartables].reduce(
-    (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
-    0
-  );
-  if (totalMedDesc > 0) {
+    const paciente = fullItem.paciente || {};
+    const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
+    const dniPaciente = paciente.dni || '';
+    const pacienteDesc = `PTE ${nombrePaciente} - DNI ${dniPaciente} - ${art} -`.toUpperCase();
     rowsGastos.push({
-      codigo: '7',
-      descripcion: 'MEDICACIÓN Y DESCARTABLES', // ya en mayúsculas
+      codigo: '',
+      descripcion: pacienteDesc,
       cantidad: 1,
-      precio: totalMedDesc.toFixed(2),
-      iva: ivaValue,
+      precio: '0.00',
+      iva: '2',
     });
-  }
 
-  const paciente = fullItem.paciente || {};
-  const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
-  const dniPaciente = paciente.dni || '';
-  // 🔹 MODIFICACIÓN: convertir a MAYÚSCULAS
-  const pacienteDesc = `PTE ${nombrePaciente} - DNI ${dniPaciente} - ${art} -`.toUpperCase();
-  rowsGastos.push({
-    codigo: '',
-    descripcion: pacienteDesc,
-    cantidad: 1,
-    precio: '0.00',
-    iva: '2',
-  });
+    const rowsData = [...rowsHonorarios, ...rowsGastos];
+    if (rowsData.length === 0) return '';
 
-  const rowsData = [...rowsHonorarios, ...rowsGastos];
-  if (rowsData.length === 0) return '';
-
-  const rowsDataJson = JSON.stringify(rowsData);
-  return `
+    const rowsDataJson = JSON.stringify(rowsData);
+    return `
 (function() {
   const rowsData = ${rowsDataJson};
   const MEDIDA_UNIDADES = '7';
@@ -465,7 +468,7 @@ const generateArcaScript = useCallback((fullItem) => {
   alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
 })();
 `;
-}, []);
+  }, []);
 
   // 🔹 Función que obtiene el item completo y abre el modal ARCA
   const handleGenerarARCA = useCallback(async (id) => {
@@ -592,7 +595,11 @@ const generateArcaScript = useCallback((fullItem) => {
         <div className={styles.bulkBar}>
           <label className={styles.checkAll}>
             <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
-            <span>{haySeleccion ? `${selectedIds.size} seleccionado(s)` : 'Seleccionar todos'}</span>
+            <span>
+              {haySeleccion
+                ? `${selectedIds.size} seleccionado(s)`
+                : `Seleccionar los ${visible.length} visibles`}
+            </span>
           </label>
           {haySeleccion && (
             <div className={styles.bulkActions}>
@@ -623,67 +630,101 @@ const generateArcaScript = useCallback((fullItem) => {
         ) : filtered.length === 0 ? (
           <div className={styles.empty}>No hay registros con estos filtros.</div>
         ) : (
-          <div className={styles.grid}>
-            {filtered.map((it) => {
-              const busy = busyId === it.id || busyId === 'bulk';
-              const esCerrado = it.estado === 'cerrado';
-              return (
-                <article key={it.id} className={`${styles.card} ${esCerrado ? styles.cardClosed : ''}`}>
-                  <div className={styles.cardTop}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(it.id)}
-                      onChange={() => toggleSelect(it.id)}
-                      disabled={busy}
-                    />
-                    <span className={`${styles.badge} ${esCerrado ? styles.badgeClosed : styles.badgeDraft}`}>
-                      {esCerrado ? '✅ CERRADO' : '📝 BORRADOR'}
-                    </span>
-                    <span className={styles.date}>📅 {fmtDate(it.fecha)}</span>
-                    <span className={styles.total}>$ {money(it.total || 0)}</span>
-                  </div>
+          <>
+            <div className={styles.grid}>
+              {visible.map((it) => {
+                const busy = busyId === it.id || busyId === 'bulk';
+                const esCerrado = it.estado === 'cerrado';
+                return (
+                  <article key={it.id} className={`${styles.card} ${esCerrado ? styles.cardClosed : ''}`}>
+                    <div className={styles.cardTop}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(it.id)}
+                        onChange={() => toggleSelect(it.id)}
+                        disabled={busy}
+                      />
+                      <span className={`${styles.badge} ${esCerrado ? styles.badgeClosed : styles.badgeDraft}`}>
+                        {esCerrado ? '✅ CERRADO' : '📝 BORRADOR'}
+                      </span>
+                      <span className={styles.date}>📅 {fmtDate(it.fecha)}</span>
+                      <span className={styles.total}>$ {money(it.total || 0)}</span>
+                    </div>
 
-                  <div className={styles.name}>{it.pacienteNombre || 'Sin nombre'}</div>
+                    <div className={styles.name}>{it.pacienteNombre || 'Sin nombre'}</div>
 
-                  <div className={styles.pills}>
-                    <span className={styles.pill}>DNI: {it.dni || '—'}</span>
-                    <span className={styles.pill}>Stro: {it.nroSiniestro || '—'}</span>
-                    <span className={styles.pill}>{it.artNombre || 'SIN ART'}</span>
-                    {esCerrado && it.facturaNro && (
-                      <span className={`${styles.pill} ${styles.pillFactura}`}>🧾 {it.facturaNro}</span>
-                    )}
-                  </div>
+                    <div className={styles.pills}>
+                      <span className={styles.pill}>DNI: {it.dni || '—'}</span>
+                      <span className={styles.pill}>Stro: {it.nroSiniestro || '—'}</span>
+                      <span className={styles.pill}>{it.artNombre || 'SIN ART'}</span>
+                      {esCerrado && it.facturaNro && (
+                        <span className={`${styles.pill} ${styles.pillFactura}`}>🧾 {it.facturaNro}</span>
+                      )}
+                    </div>
 
-                  <div className={styles.actions}>
-                    {!esCerrado && (
-                      <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
-                        ▶ Retomar
+                    <div className={styles.actions}>
+                      {!esCerrado && (
+                        <Link className={`${styles.btn} ${styles.btnPrimary}`} href={`/admin/Facturacion/Nuevo?draft=${it.id}`}>
+                          ▶ Retomar
+                        </Link>
+                      )}
+                      <Link className={`${styles.btn} ${styles.btnGhost}`} href={`/admin/Facturacion/Facturados/${it.id}`}>
+                        👁 Ver
                       </Link>
-                    )}
-                    <Link className={`${styles.btn} ${styles.btnGhost}`} href={`/admin/Facturacion/Facturados/${it.id}`}>
-                      👁 Ver
-                    </Link>
-                    {/* 🔹 Reemplazamos el botón Imprimir por ARCA Script */}
-                    <button
-                      className={`${styles.btn} ${styles.btnGhost}`}
-                      onClick={() => handleGenerarARCA(it.id)}
-                      disabled={busy || arcaLoadingId === it.id}
-                    >
-                      {arcaLoadingId === it.id ? '⏳ Generando…' : '📋 ARCA Script'}
-                    </button>
-                    {!esCerrado && (
-                      <button className={`${styles.btn} ${styles.btnSuccess}`} onClick={() => marcarFacturado(it.id)} disabled={busy}>
-                        ✅ Facturar
+                      <button
+                        className={`${styles.btn} ${styles.btnGhost}`}
+                        onClick={() => handleGenerarARCA(it.id)}
+                        disabled={busy || arcaLoadingId === it.id}
+                      >
+                        {arcaLoadingId === it.id ? '⏳ Generando…' : '📋 ARCA Script'}
                       </button>
-                    )}
-                    <button className={`${styles.btn} ${styles.btnDanger}`} onClick={() => eliminarUno(it.id)} disabled={busy}>
-                      🗑️
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                      {!esCerrado && (
+                        <button className={`${styles.btn} ${styles.btnSuccess}`} onClick={() => marcarFacturado(it.id)} disabled={busy}>
+                          ✅ Facturar
+                        </button>
+                      )}
+                      <button className={`${styles.btn} ${styles.btnDanger}`} onClick={() => eliminarUno(it.id)} disabled={busy}>
+                        🗑️
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* PAGINACIÓN / CARGAR MÁS */}
+            {hasMore && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 12,
+                  padding: '24px 0',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button className={styles.btnPrimary} onClick={loadMore}>
+                  ⬇ Cargar 30 más ({visible.length} de {totalFiltrados})
+                </button>
+                <button className={styles.btnGhost} onClick={loadAll}>
+                  Cargar todos ({totalFiltrados})
+                </button>
+              </div>
+            )}
+
+            {!hasMore && totalFiltrados > 30 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '20px 0',
+                  color: '#64748b',
+                  fontSize: '0.9em',
+                }}
+              >
+                — Mostrando todos los {totalFiltrados} registros —
+              </div>
+            )}
+          </>
         )}
       </main>
 
