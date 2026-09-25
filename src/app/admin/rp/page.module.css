@@ -1168,3 +1168,35 @@
 .practicaMiniDesc {
     opacity: 0.75;
 }
+
+.tableScroll {
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+}
+
+.dataTable {
+    width: 100%;
+    min-width: 0;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.dataTableFixed {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 0;
+}
+
+.dataTable th,
+.dataTable td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ellipsisCell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;   /* truco para que ellipsis funcione dentro de table-layout: fixed */
+}

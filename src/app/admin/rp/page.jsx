@@ -460,19 +460,12 @@ function InsumoChips({ insumos }) {
                 const cantTxt = Number.isInteger(cant)
                     ? cant
                     : cant.toLocaleString('es-AR', { maximumFractionDigits: 3 });
-                const chipClass =
-                    ins.tipo === 'medicamento'
-                        ? styles.insumoChipMed
-                        : styles.insumoChipDesc;
-
-                // Texto plano: sin emoji, "_" → " ", truncado a 15 chars + "..."
                 const nombreLimpio = String(ins.nombre ?? '').replace(/_/g, ' ');
-                const nombreMostrar = truncarNombreInsumo(ins.nombre);
-
+                const nombreMostrar = truncarNombreInsumo(ins.nombre); // 10 chars now
                 return (
                     <span
                         key={ins.id}
-                        className={`${styles.insumoChip} ${chipClass}`}
+                        className={styles.insumoChip}
                         title={`${nombreLimpio} — ${money(ins.precioFacturacion)} c/u × ${cantTxt}`}
                     >
                         <span>{nombreMostrar}</span>
@@ -483,7 +476,6 @@ function InsumoChips({ insumos }) {
         </div>
     );
 }
-
 function PracticaRow({
     item,
     onRemove,

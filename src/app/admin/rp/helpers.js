@@ -90,26 +90,28 @@ export function getSubCodigoInfo(codigo) {
 // =====================================================================
 //  HTML DE IMPRESIÓN
 // =====================================================================
+// Nombre del insumo en texto plano: "_" → " ", truncado a 10 chars + "..."
+function truncarNombreInsumo(nombre) {
+	const limpio = String(nombre ?? "").replace(/_/g, " ");
+	return limpio.length > 10 ? `${limpio.slice(0, 10)}...` : limpio;
+}
+
 function renderInsumosHtml(insumos) {
 	if (!Array.isArray(insumos) || insumos.length === 0) return "";
 	const parseCant = (v) => {
 		const n = Number(String(v ?? "").replace(",", "."));
 		return Number.isFinite(n) ? n : 0;
 	};
-	const chips = insumos
+	const items = insumos
 		.map((i) => {
 			const cant = parseCant(i.cantidad);
 			const cantTxt = Number.isInteger(cant)
 				? cant
 				: cant.toLocaleString("es-AR", { maximumFractionDigits: 3 });
-			const icon = i.tipo === "medicamento" ? "💊" : "🧷";
-			// En el PEDIDO el nombre va completo (sin truncar),
-			// pero sí reemplazamos "_" por espacios.
-			const nombre = String(i.nombre ?? "").replace(/_/g, " ");
-			return `<span class="insumo-chip"> ${esc(nombre)} × ${esc(cantTxt)}</span>`;
+			return `<div class="insumo-line-item">${esc(truncarNombreInsumo(i.nombre))} × ${esc(cantTxt)}</div>`;
 		})
 		.join("");
-	return `<div class="insumos-row">${chips}</div>`;
+	return `<div class="insumos-line">${items}</div>`;
 }
 
 function renderRpHtml(rp, logoSrc) {
@@ -365,26 +367,19 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         color: #475569;
         padding-left: 24mm;
         margin-top: -0.4mm;
-        margin-bottom: 0.8mm;
+        margin-bottom: 0.6mm;
     }
 
-    .insumos-row {
+    /* Insumos: línea de texto plano, sin píldoras ni iconos */
+    .insumos-line {
         padding-left: 24mm;
         margin-top: -0.2mm;
-        margin-bottom: 1.2mm;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1mm;
-    }
-    .insumo-chip {
-        display: inline-block;
-        font-size: 7pt;
-        padding: 0.4mm 1.6mm;
-        border: 0.5pt solid #cbd5e1;
-        border-radius: 999px;
-        background: #f1f5f9;
-        color: #334155;
-        white-space: nowrap;
+        margin-bottom: 1mm;
+        font-size: 7.5pt;
+        font-style: italic;
+        color: #475569;
+        line-height: 1.3;
+        word-break: break-word;
     }
 
     .bottom {

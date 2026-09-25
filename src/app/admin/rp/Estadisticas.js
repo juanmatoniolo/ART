@@ -14,7 +14,25 @@ const money = (n) =>
 const fmtPct = (n, total) =>
     total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '—';
 
-// ---------- Selector múltiple con búsqueda ----------
+const getMontos = (r) => {
+    const practicas = Array.isArray(r.practicas) ? r.practicas : [];
+    const hon =
+        typeof r.totalHonorarios === 'number'
+            ? r.totalHonorarios
+            : practicas.reduce(
+                  (a, p) => a + (Number(p.costo?.honorarioMedico) || 0),
+                  0
+              );
+    const gto =
+        typeof r.totalGastos === 'number'
+            ? r.totalGastos
+            : practicas.reduce(
+                  (a, p) => a + (Number(p.costo?.gastoSanatorial) || 0),
+                  0
+              );
+    return { hon, gto, total: hon + gto };
+};
+
 function MedicoMultiSelect({ medicos, selected, onChange }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState('');
@@ -45,8 +63,8 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
     const label = allSelected
         ? `Todos los médicos (${medicos.length})`
         : selected.length === 1
-            ? medicos.find((m) => m.id === selected[0])?.nombre || '1 médico'
-            : `${selected.length} médicos seleccionados`;
+        ? medicos.find((m) => m.id === selected[0])?.nombre || '1 médico'
+        : `${selected.length} médicos seleccionados`;
 
     return (
         <div className={styles.multiSelect} ref={boxRef}>
@@ -96,9 +114,11 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
                                             checked={checked}
                                             onChange={() => toggle(m.id)}
                                         />
-                                        <span className={styles.multiSelectName}>{m.nombre}</span>
+                                        <span className={styles.multiSelectName}>
+                                            {m.nombre}
+                                        </span>
                                         <span className={styles.multiSelectMeta}>
-                                            {m.cantidad} RP · ${money(m.monto)}
+                                            {m.cantidad} RP · ${money(m.total)}
                                         </span>
                                     </label>
                                 );
@@ -111,13 +131,9 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
     );
 }
 
-// =====================================================================
-//  ESTADÍSTICAS
-// =====================================================================
 export default function Estadisticas({ historial }) {
     const [selectedMedicos, setSelectedMedicos] = useState([]);
 
-    // Agrupar por médico
     const medicosList = useMemo(() => {
         const map = new Map();
         historial.forEach((r) => {
@@ -126,20 +142,38 @@ export default function Estadisticas({ historial }) {
                 ? `${r.medico.apellido}, ${r.medico.nombre}`
                 : 'Sin médico';
             if (!map.has(id)) {
-                map.set(id, { id, nombre, cantidad: 0, monto: 0, rps: [] });
+                map.set(id, {
+                    id,
+                    nombre,
+                    cantidad: 0,
+                    hon: 0,
+                    gto: 0,
+                    total: 0,
+                });
             }
             const m = map.get(id);
+            const { hon, gto, total } = getMontos(r);
             m.cantidad += 1;
-            m.monto += r.total || 0;
-            m.rps.push(r);
+            m.hon += hon;
+            m.gto += gto;
+            m.total += total;
         });
-        return [...map.values()].sort((a, b) => b.monto - a.monto);
+        return [...map.values()].sort((a, b) => b.total - a.total);
     }, [historial]);
 
-    const totalGeneral = medicosList.reduce((a, m) => a + m.monto, 0);
-    const totalRps = historial.length;
+    const totales = useMemo(() => {
+        let hon = 0;
+        let gto = 0;
+        let total = 0;
+        historial.forEach((r) => {
+            const m = getMontos(r);
+            hon += m.hon;
+            gto += m.gto;
+            total += m.total;
+        });
+        return { hon, gto, total, rps: historial.length };
+    }, [historial]);
 
-    // Filtrar RPs visibles
     const rpsVisibles = useMemo(() => {
         if (selectedMedicos.length === 0) return historial;
         return historial.filter((r) => {
@@ -148,23 +182,70 @@ export default function Estadisticas({ historial }) {
         });
     }, [selectedMedicos, historial]);
 
-    // Ranking filtrado (solo los médicos visibles)
     const rankingVisible = useMemo(() => {
         if (selectedMedicos.length === 0) return medicosList;
         return medicosList.filter((m) => selectedMedicos.includes(m.id));
     }, [medicosList, selectedMedicos]);
 
-    const montoVisible = rpsVisibles.reduce((a, r) => a + (r.total || 0), 0);
-    const promedioVisible = rpsVisibles.length > 0 ? montoVisible / rpsVisibles.length : 0;
+    const visible = useMemo(() => {
+        let hon = 0;
+        let gto = 0;
+        let total = 0;
+        rpsVisibles.forEach((r) => {
+            const m = getMontos(r);
+            hon += m.hon;
+            gto += m.gto;
+            total += m.total;
+        });
+        const n = rpsVisibles.length;
+        return {
+            hon,
+            gto,
+            total,
+            promedio: n > 0 ? total / n : 0,
+            promedioHon: n > 0 ? hon / n : 0,
+            promedioGto: n > 0 ? gto / n : 0,
+        };
+    }, [rpsVisibles]);
 
-    // Códigos agregados
+    const topPorTotal = useMemo(
+        () =>
+            rankingVisible.length
+                ? [...rankingVisible].sort((a, b) => b.total - a.total)[0]
+                : null,
+        [rankingVisible]
+    );
+    const topPorHon = useMemo(
+        () =>
+            rankingVisible.length
+                ? [...rankingVisible].sort((a, b) => b.hon - a.hon)[0]
+                : null,
+        [rankingVisible]
+    );
+    const topPorGto = useMemo(
+        () =>
+            rankingVisible.length
+                ? [...rankingVisible].sort((a, b) => b.gto - a.gto)[0]
+                : null,
+        [rankingVisible]
+    );
+    const topPorCantidad = useMemo(
+        () =>
+            rankingVisible.length
+                ? [...rankingVisible].sort((a, b) => b.cantidad - a.cantidad)[0]
+                : null,
+        [rankingVisible]
+    );
+
     const codigosList = useMemo(() => {
         const map = new Map();
         rpsVisibles.forEach((r) => {
             (r.practicas || []).forEach((p) => {
                 const k = p.codigo || '—';
                 const prev = map.get(k) || {
-                    codigo: k, descripcion: p.descripcion, cantidad: 0,
+                    codigo: k,
+                    descripcion: p.descripcion,
+                    cantidad: 0,
                     origen: p.origen || '',
                 };
                 prev.cantidad += 1;
@@ -173,7 +254,9 @@ export default function Estadisticas({ historial }) {
             (r.estudiosLab || []).forEach((l) => {
                 const k = l.codigo || '—';
                 const prev = map.get(k) || {
-                    codigo: k, descripcion: l.descripcion, cantidad: 0,
+                    codigo: k,
+                    descripcion: l.descripcion,
+                    cantidad: 0,
                     origen: 'bioquimica',
                 };
                 prev.cantidad += 1;
@@ -184,6 +267,7 @@ export default function Estadisticas({ historial }) {
     }, [rpsVisibles]);
 
     const totalCodigos = codigosList.reduce((a, c) => a + c.cantidad, 0);
+    const topCodigo = codigosList[0] || null;
 
     if (historial.length === 0) {
         return (
@@ -197,7 +281,6 @@ export default function Estadisticas({ historial }) {
 
     return (
         <section className={styles.stats}>
-            {/* Filtro */}
             <div className={styles.statsFilter}>
                 <MedicoMultiSelect
                     medicos={medicosList}
@@ -214,60 +297,126 @@ export default function Estadisticas({ historial }) {
                 )}
             </div>
 
-            {/* KPIs */}
             <div className={styles.kpiGrid}>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>Monto total</div>
-                    <div className={styles.kpiValue}>$ {money(montoVisible)}</div>
+                    <div className={styles.kpiLabel}>💰 Honorarios médicos</div>
+                    <div className={styles.kpiValue}>$ {money(visible.hon)}</div>
+                    <div className={styles.kpiSub}>
+                        {fmtPct(visible.hon, visible.total)} del total
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🏥 Gastos clínicos / sanatoriales</div>
+                    <div className={styles.kpiValue}>$ {money(visible.gto)}</div>
+                    <div className={styles.kpiSub}>
+                        {fmtPct(visible.gto, visible.total)} del total
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🧾 Total facturado</div>
+                    <div className={styles.kpiValue}>$ {money(visible.total)}</div>
                     <div className={styles.kpiSub}>
                         {selectedMedicos.length > 0
-                            ? `${fmtPct(montoVisible, totalGeneral)} del total general`
+                            ? `${fmtPct(visible.total, totales.total)} del total general`
                             : 'Suma de todas las RPs'}
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>RPs generadas</div>
+                    <div className={styles.kpiLabel}>📄 RPs generadas</div>
                     <div className={styles.kpiValue}>{rpsVisibles.length}</div>
                     <div className={styles.kpiSub}>
                         {selectedMedicos.length > 0
-                            ? `${fmtPct(rpsVisibles.length, totalRps)} del total`
-                            : `${totalRps} en total`}
+                            ? `${fmtPct(rpsVisibles.length, totales.rps)} del total`
+                            : `${totales.rps} en total`}
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>Promedio por RP</div>
-                    <div className={styles.kpiValue}>$ {money(promedioVisible)}</div>
+                    <div className={styles.kpiLabel}>📊 Prom. Hon / RP</div>
+                    <div className={styles.kpiValue}>$ {money(visible.promedioHon)}</div>
                     <div className={styles.kpiSub}>Sobre {rpsVisibles.length} RP(s)</div>
                 </div>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>Médicos visibles</div>
-                    <div className={styles.kpiValue}>{rankingVisible.length}</div>
+                    <div className={styles.kpiLabel}>📊 Prom. Gasto / RP</div>
+                    <div className={styles.kpiValue}>$ {money(visible.promedioGto)}</div>
+                    <div className={styles.kpiSub}>Sobre {rpsVisibles.length} RP(s)</div>
+                </div>
+            </div>
+
+            <div className={styles.kpiGrid}>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🩺 Médico más recurrente</div>
+                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
+                        {topPorCantidad?.nombre || '—'}
+                    </div>
                     <div className={styles.kpiSub}>
-                        {selectedMedicos.length === 0 ? 'Con al menos 1 RP' : 'Filtrados'}
+                        {topPorCantidad?.cantidad || 0} RP(s)
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>💰 Top honorarios</div>
+                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
+                        {topPorHon?.nombre || '—'}
+                    </div>
+                    <div className={styles.kpiSub}>
+                        $ {money(topPorHon?.hon || 0)} en honorarios
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🏥 Top gastos clínicos</div>
+                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
+                        {topPorGto?.nombre || '—'}
+                    </div>
+                    <div className={styles.kpiSub}>
+                        $ {money(topPorGto?.gto || 0)} en gastos
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🔝 Código más pedido</div>
+                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
+                        {topCodigo?.codigo || '—'}
+                    </div>
+                    <div className={styles.kpiSub}>
+                        {topCodigo?.descripcion || '—'}
+                        {topCodigo ? ` · ${topCodigo.cantidad} vez(ces)` : ''}
+                    </div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>🏆 Top facturación total</div>
+                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
+                        {topPorTotal?.nombre || '—'}
+                    </div>
+                    <div className={styles.kpiSub}>
+                        $ {money(topPorTotal?.total || 0)} ·{' '}
+                        {topPorTotal?.cantidad || 0} RP(s)
                     </div>
                 </div>
             </div>
 
-            {/* Ranking de médicos */}
             {rankingVisible.length > 0 && (
                 <div className={styles.tableBlock}>
-                    <h3 className={styles.tableTitle}>🩺 Ranking de médicos por monto</h3>
+                    <h3 className={styles.tableTitle}>
+                        🩺 Ranking de médicos (Hon / Gasto / Total)
+                    </h3>
                     <div className={styles.tableScroll}>
                         <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
                             <colgroup>
                                 <col style={{ width: '48px' }} />
                                 <col />
+                                <col style={{ width: '70px' }} />
+                                <col style={{ width: '120px' }} />
+                                <col style={{ width: '120px' }} />
+                                <col style={{ width: '130px' }} />
                                 <col style={{ width: '90px' }} />
-                                <col style={{ width: '140px' }} />
-                                <col style={{ width: '110px' }} />
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>Médico</th>
                                     <th className={styles.numCol}>RPs</th>
-                                    <th className={styles.numCol}>Monto</th>
-                                    <th className={styles.numCol}>%</th>
+                                    <th className={styles.numCol}>Honorarios</th>
+                                    <th className={styles.numCol}>Gastos</th>
+                                    <th className={styles.numCol}>Total</th>
+                                    <th className={styles.numCol}>% del total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -276,10 +425,14 @@ export default function Estadisticas({ historial }) {
                                         <td className={styles.rankCell}>{i + 1}</td>
                                         <td className={styles.ellipsisCell}>{m.nombre}</td>
                                         <td className={styles.numCol}>{m.cantidad}</td>
-                                        <td className={styles.numCol}>$ {money(m.monto)}</td>
+                                        <td className={styles.numCol}>$ {money(m.hon)}</td>
+                                        <td className={styles.numCol}>$ {money(m.gto)}</td>
+                                        <td className={styles.numCol}>
+                                            <b>$ {money(m.total)}</b>
+                                        </td>
                                         <td className={styles.numCol}>
                                             <span className={styles.pctBadge}>
-                                                {fmtPct(m.monto, totalGeneral)}
+                                                {fmtPct(m.total, totales.total)}
                                             </span>
                                         </td>
                                     </tr>
@@ -288,8 +441,10 @@ export default function Estadisticas({ historial }) {
                             <tfoot>
                                 <tr>
                                     <td colSpan={2}><b>Total</b></td>
-                                    <td className={styles.numCol}><b>{totalRps}</b></td>
-                                    <td className={styles.numCol}><b>$ {money(totalGeneral)}</b></td>
+                                    <td className={styles.numCol}><b>{totales.rps}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totales.hon)}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totales.gto)}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totales.total)}</b></td>
                                     <td className={styles.numCol}><b>100%</b></td>
                                 </tr>
                             </tfoot>
@@ -298,7 +453,6 @@ export default function Estadisticas({ historial }) {
                 </div>
             )}
 
-            {/* Listado de RPs */}
             {rpsVisibles.length > 0 && (
                 <div className={styles.tableBlock}>
                     <h3 className={styles.tableTitle}>
@@ -312,10 +466,12 @@ export default function Estadisticas({ historial }) {
                             <colgroup>
                                 <col style={{ width: '100px' }} />
                                 <col />
-                                <col style={{ width: '90px' }} />
                                 <col style={{ width: '150px' }} />
                                 <col style={{ width: '80px' }} />
+                                <col style={{ width: '70px' }} />
                                 <col style={{ width: '110px' }} />
+                                <col style={{ width: '110px' }} />
+                                <col style={{ width: '120px' }} />
                             </colgroup>
                             <thead>
                                 <tr>
@@ -324,7 +480,9 @@ export default function Estadisticas({ historial }) {
                                     <th>Médico</th>
                                     <th className={styles.numCol}>Prácticas</th>
                                     <th className={styles.numCol}>🧪 Lab</th>
-                                    <th className={styles.numCol}>Monto</th>
+                                    <th className={styles.numCol}>Honorarios</th>
+                                    <th className={styles.numCol}>Gastos</th>
+                                    <th className={styles.numCol}>Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -335,6 +493,7 @@ export default function Estadisticas({ historial }) {
                                         const med = r.medico?.apellido
                                             ? `${r.medico.apellido}, ${r.medico.nombre}`
                                             : 'Sin médico';
+                                        const { hon, gto, total } = getMontos(r);
                                         return (
                                             <tr key={r.id}>
                                                 <td>{fmtDate(r.fecha)}</td>
@@ -349,7 +508,13 @@ export default function Estadisticas({ historial }) {
                                                     {(r.estudiosLab || []).length}
                                                 </td>
                                                 <td className={styles.numCol}>
-                                                    $ {money(r.total || 0)}
+                                                    $ {money(hon)}
+                                                </td>
+                                                <td className={styles.numCol}>
+                                                    $ {money(gto)}
+                                                </td>
+                                                <td className={styles.numCol}>
+                                                    <b>$ {money(total)}</b>
                                                 </td>
                                             </tr>
                                         );
@@ -357,9 +522,15 @@ export default function Estadisticas({ historial }) {
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colSpan={5}><b>Total</b></td>
+                                    <td colSpan={5}><b>Total visible</b></td>
                                     <td className={styles.numCol}>
-                                        <b>$ {money(montoVisible)}</b>
+                                        <b>$ {money(visible.hon)}</b>
+                                    </td>
+                                    <td className={styles.numCol}>
+                                        <b>$ {money(visible.gto)}</b>
+                                    </td>
+                                    <td className={styles.numCol}>
+                                        <b>$ {money(visible.total)}</b>
                                     </td>
                                 </tr>
                             </tfoot>
@@ -368,7 +539,6 @@ export default function Estadisticas({ historial }) {
                 </div>
             )}
 
-            {/* Códigos */}
             {codigosList.length > 0 && (
                 <div className={styles.tableBlock}>
                     <h3 className={styles.tableTitle}>🔝 Códigos más solicitados</h3>
@@ -395,7 +565,9 @@ export default function Estadisticas({ historial }) {
                                     <tr key={c.codigo}>
                                         <td className={styles.rankCell}>{i + 1}</td>
                                         <td className={styles.codeCell}>{c.codigo}</td>
-                                        <td className={styles.ellipsisCell}>{c.descripcion}</td>
+                                        <td className={styles.ellipsisCell}>
+                                            {c.descripcion}
+                                        </td>
                                         <td className={styles.numCol}>{c.cantidad}</td>
                                         <td className={styles.numCol}>
                                             <span className={styles.pctBadge}>
