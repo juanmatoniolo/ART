@@ -103,7 +103,10 @@ function renderInsumosHtml(insumos) {
 				? cant
 				: cant.toLocaleString("es-AR", { maximumFractionDigits: 3 });
 			const icon = i.tipo === "medicamento" ? "💊" : "🧷";
-			return `<span class="insumo-chip">${icon} ${esc(i.nombre)} × ${esc(cantTxt)}</span>`;
+			// En el PEDIDO el nombre va completo (sin truncar),
+			// pero sí reemplazamos "_" por espacios.
+			const nombre = String(i.nombre ?? "").replace(/_/g, " ");
+			return `<span class="insumo-chip"> ${esc(nombre)} × ${esc(cantTxt)}</span>`;
 		})
 		.join("");
 	return `<div class="insumos-row">${chips}</div>`;

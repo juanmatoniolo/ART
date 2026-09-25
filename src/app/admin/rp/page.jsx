@@ -38,6 +38,13 @@ const parseCantidad = (v) => {
     return Number.isFinite(n) ? n : 0;
 };
 
+// Muestra el nombre del insumo en texto plano, truncado a 15 caracteres
+// (reemplaza "_" por espacios y agrega "..." si se pasa del límite).
+const truncarNombreInsumo = (nombre) => {
+    const limpio = String(nombre ?? '').replace(/_/g, ' ');
+    return limpio.length > 15 ? `${limpio.slice(0, 15)}...` : limpio;
+};
+
 // Prácticas que permiten agregar insumos (gasto clínico)
 // 43.02.01 = Curación, 13.01.10 = Sutura
 const INSUMOS_PRACTICAS_CODES = ['430201', '130110'];
@@ -457,15 +464,18 @@ function InsumoChips({ insumos }) {
                     ins.tipo === 'medicamento'
                         ? styles.insumoChipMed
                         : styles.insumoChipDesc;
+
+                // Texto plano: sin emoji, "_" → " ", truncado a 15 chars + "..."
+                const nombreLimpio = String(ins.nombre ?? '').replace(/_/g, ' ');
+                const nombreMostrar = truncarNombreInsumo(ins.nombre);
+
                 return (
                     <span
                         key={ins.id}
                         className={`${styles.insumoChip} ${chipClass}`}
-                        title={`${ins.nombre} — ${money(ins.precioFacturacion)} c/u × ${cantTxt}`}
+                        title={`${nombreLimpio} — ${money(ins.precioFacturacion)} c/u × ${cantTxt}`}
                     >
-                        <span>
-                            {ins.tipo === 'medicamento' ? '💊' : '🧷'} {ins.nombre}
-                        </span>
+                        <span>{nombreMostrar}</span>
                         <span className={styles.insumoChipQty}>× {cantTxt}</span>
                     </span>
                 );
