@@ -49,6 +49,9 @@ export function sanitizeForFirebase(value) {
 	return value;
 }
 
+// =====================================================================
+//  CONVENIOS
+// =====================================================================
 export function extraerValoresConvenio(c) {
 	if (!c?.valores_generales) return { honorarios_medicos: [] };
 	const out = { honorarios_medicos: c.honorarios_medicos || [] };
@@ -77,7 +80,7 @@ export const tipoCostoPorOrigen = (origen, hayAoter) => {
 };
 
 // =====================================================================
-//  SUB-CÓDIGOS — leyendas debajo del código
+//  SUB-CÓDIGOS
 // =====================================================================
 const SUBCodigos = {
 	430201: "Incluye medicación + descartables", // Curación
@@ -93,30 +96,30 @@ export function getSubCodigoInfo(codigo) {
 // =====================================================================
 //  FIRMAS DE MÉDICOS
 //  Los archivos viven en /public/firmas/ y se sirven como /firmas/xxx.jpeg
-//  El matching es por apellido normalizado (mayúsculas, sin tildes,
-//  sin espacios extra). Para homónimos se exige además una parte del
-//  nombre (FIRMAS_ESPECIALES).
+//  El matching es por apellido (case-insensitive, sin tildes, sin espacios
+//  extra). Para homónimos se exige además una parte del nombre.
 // =====================================================================
 
-// apellido (normalizado) → ruta pública de la firma
+// apellido (normalizado) → archivo
 const FIRMAS_POR_APELLIDO = {
-	"BRARDA":     "/firmas/DR-BRARDA.jpeg",
-	"CANAGLIA":   "/firmas/DR-CANAGLIA.jpeg",
-	"CIANCIOSI":  "/firmas/DR-CIANCIOSI.jpeg",
-	"DEL PUERTO": "/firmas/DR-DEL-PUERTO.jpeg",
-	"FRESCO":     "/firmas/DR-FRESCO.jpeg",
-	"GIMENEZ":    "/firmas/DR-GIMENEZ.jpeg",
-	"LOVATTO":    "/firmas/DR-LOVATTO.jpeg",
-	"PERTUS":     "/firmas/DR-PERTUS.jpeg",
-	"SALOMON":    "/firmas/DR-SALOMON-ALEJANDRO.jpeg",
-	"ESPINOLA":   "/firmas/DRA-ESPINOLA.jpeg",
-	"GALLARDO":   "/firmas/DRA-GALLARDO.jpeg",
-	"ZABALLA":    "/firmas/DRA-ZABALLA.jpeg",
+	"BRARDA":       "/firmas/DR-BRARDA.jpeg",
+	"CANAGLIA":     "/firmas/DR-CANAGLIA.jpeg",
+	"CIANCIOSI":    "/firmas/DR-CIANCIOSI.jpeg",
+	"DEL PUERTO":   "/firmas/DR-DEL-PUERTO.jpeg",
+	"FRESCO":       "/firmas/DR-FRESCO.jpeg",
+	"GIMENEZ":      "/firmas/DR-GIMENEZ.jpeg",
+	"LOVATTO":      "/firmas/DR-LOVATTO.jpeg",
+	"PERTUS":       "/firmas/DR-PERTUS.jpeg",
+	"SALOMON":      "/firmas/DR-SALOMON-ALEJANDRO.jpeg",
+	"ESPINOLA":     "/firmas/DRA-ESPINOLA.jpeg",
+	"GALLARDO":     "/firmas/DRA-GALLARDO.jpeg",
+	"ZABALLA":      "/firmas/DRA-ZABALLA.jpeg",
 };
 
-// Homónimos: apellido + parte del nombre → firma.
+// Casos con apellido repetido: se exige que el nombre contenga `nombreMatch`.
 const FIRMAS_ESPECIALES = [
 	{ apellido: "PERCARA", nombreMatch: "JOSE", url: "/firmas/DR-PERCARA-JOSE.jpeg" },
+	// Si algún día agregás "Percara Gonzalo", va acá con su propio archivo.
 ];
 
 const _norm = (s) =>
@@ -127,18 +130,23 @@ const _norm = (s) =>
 		.replace(/[\u0300-\u036f]/g, "") // quita tildes y convierte Ñ → N
 		.replace(/\s+/g, " ");
 
+/**
+ * Devuelve la URL relativa (ej: "/firmas/DR-BRARDA.jpeg") o null.
+ * @param {{apellido?:string, nombre?:string}} medico
+ */
 export function getFirmaForMedico(medico) {
-	if (!medico?.apellido) return null;
-	const ape = _norm(medico.apellido);
-	const nom = _norm(medico.nombre);
-
-	for (const f of FIRMAS_ESPECIALES) {
-		if (f.apellido === ape && nom.includes(f.nombreMatch)) return f.url;
-	}
-	return FIRMAS_POR_APELLIDO[ape] || null;
+    if (!medico?.apellido) return null;
+    const ape = _norm(medico.apellido);
+    const nom = _norm(medico.nombre);
+    const url = FIRMAS_POR_APELLIDO[ape] || null;
+    console.log('[firma]', { apellidoOriginal: medico.apellido, ape, nom, url });
+    return url;
 }
-
-// Convierte URL relativa en absoluta (necesario dentro de Blob URL).
+/**
+ * Convierte la URL relativa en absoluta usando el origen del proyecto.
+ * Necesario porque la ventana de impresión (window.open('', '_blank'))
+ * no hereda el origen.
+ */
 function _toAbsolute(url, origin) {
 	if (!url) return null;
 	if (/^https?:\/\//i.test(url)) return url;
@@ -149,7 +157,7 @@ function _toAbsolute(url, origin) {
 // =====================================================================
 //  HTML DE IMPRESIÓN
 // =====================================================================
-// Nombre del insumo en texto plano: "_" → " ", truncado a 10 chars + "..."
+
 function truncarNombreInsumo(nombre) {
 	const limpio = String(nombre ?? "").replace(/_/g, " ");
 	return limpio.length > 10 ? `${limpio.slice(0, 10)}...` : limpio;
@@ -234,12 +242,9 @@ function renderRpHtml(rp, logoSrc, origin) {
 	}
 
 	// -----------------------------------------------------------------
-	//  Firma del médico (resuelta internamente por apellido).
-	//  - Si hay imagen → se dibuja ARRIBA de la línea.
-	//  - Si no → sólo línea + nombre.
+	//  Firma del médico
 	// -----------------------------------------------------------------
-	const firmaRel = getFirmaForMedico(med);
-	const firmaUrl = _toAbsolute(firmaRel, origin);
+	const firmaUrl = _toAbsolute(getFirmaForMedico(med), origin);
 
 	const firmaHtml = `
 		<div class="firma">
@@ -293,8 +298,13 @@ function renderRpHtml(rp, logoSrc, origin) {
     `;
 }
 
+/**
+ * @param {Array} rps      RPs a imprimir
+ * @param {string} logoSrc URL absoluta del logo (ej: "http://localhost:3000/logo.png")
+ * @param {"print"|"download"|"manual"} mode
+ */
 export function buildPrintHtml(rps, logoSrc, mode = "print") {
-	// Extraemos el origin desde logoSrc para resolver las firmas.
+	// Extraemos el origen desde logoSrc para resolver las firmas
 	let origin = "";
 	try {
 		origin = new URL(logoSrc).origin;
@@ -321,43 +331,15 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         </div>`
 			: "";
 
-	// Esperamos a que TODAS las imágenes (logo + firmas) terminen de cargar
-	// antes de disparar print() o downloadPdf().
-	const waitForImages = `
-		function waitForImages() {
-			var imgs = Array.prototype.slice.call(document.querySelectorAll('img'));
-			var pending = imgs.map(function (img) {
-				if (img.complete) return Promise.resolve();
-				return new Promise(function (res) {
-					img.addEventListener('load', res);
-					img.addEventListener('error', res);
-				});
-			});
-			return Promise.all(pending);
-		}
-	`;
-
 	const autoAction =
 		mode === "print"
-			? `<script>
-                ${waitForImages}
-                window.addEventListener('load', function () {
-                    waitForImages().then(function () {
-                        setTimeout(function () {
-                            try { window.focus(); window.print(); } catch (e) {}
-                        }, 300);
-                    });
-                });
-            <\/script>`
+			? `<script>window.addEventListener('load', function () {
+                    setTimeout(function () { try { window.focus(); window.print(); } catch (e) {} }, 500);
+                });<\/script>`
 			: mode === "download"
-				? `<script>
-                    ${waitForImages}
-                    window.addEventListener('load', function () {
-                        waitForImages().then(function () {
-                            setTimeout(function () { downloadPdf(); }, 300);
-                        });
-                    });
-                <\/script>`
+				? `<script>window.addEventListener('load', function () {
+                        setTimeout(function () { downloadPdf(); }, 500);
+                    });<\/script>`
 				: "";
 
 	return `<!DOCTYPE html>
@@ -470,41 +452,54 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     .italic { font-style: italic; }
 
     .code-sub {
-        font-size: 7.5pt; font-style: italic; color: #475569;
+        font-size: 7.5pt;
+        font-style: italic;
+        color: #475569;
         padding-left: 24mm;
-        margin-top: -0.4mm; margin-bottom: 0.6mm;
+        margin-top: -0.4mm;
+        margin-bottom: 0.6mm;
     }
 
     .insumos-line {
         padding-left: 24mm;
-        margin-top: -0.2mm; margin-bottom: 1mm;
-        font-size: 7.5pt; font-style: italic; color: #475569;
-        line-height: 1.3; word-break: break-word;
+        margin-top: -0.2mm;
+        margin-bottom: 1mm;
+        font-size: 7.5pt;
+        font-style: italic;
+        color: #475569;
+        line-height: 1.3;
+        word-break: break-word;
     }
 
     .bottom {
         margin-top: auto;
         border-top: 0.6pt solid #94a3b8;
         padding-top: 2mm;
-        display: flex; flex-direction: column;
-        gap: 1.5mm; flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5mm;
+        flex-shrink: 0;
     }
     .dg-row, .fecha-row { display: flex; align-items: baseline; gap: 1.6mm; font-size: 9pt; }
 
-    /* ------- Firma ------- */
+    /* -----------------------------------------------------------------
+       Firma: imagen (si hay) arriba de la línea, todo centrado.
+       ----------------------------------------------------------------- */
     .firma {
-        margin-top: 5mm;
+        margin-top: 6mm;
         padding-bottom: 1mm;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: flex-end;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
         text-align: center;
     }
     .firma-img {
         display: block;
-        max-height: 22mm;
-        max-width: 65mm;
+        max-height: 20mm;
+        max-width: 55mm;
         object-fit: contain;
-        margin-bottom: -3mm;   /* apoya la firma sobre la línea */
+        margin-bottom: -2mm;
     }
     .firma-line {
         border-top: 0.7pt solid #111;

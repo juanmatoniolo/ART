@@ -39,18 +39,24 @@ const parseCantidad = (v) => {
 };
 
 // Muestra el nombre del insumo en texto plano, truncado a 15 caracteres
-// (reemplaza "_" por espacios y agrega "..." si se pasa del límite).
 const truncarNombreInsumo = (nombre) => {
     const limpio = String(nombre ?? '').replace(/_/g, ' ');
     return limpio.length > 15 ? `${limpio.slice(0, 15)}...` : limpio;
 };
 
 // Prácticas que permiten agregar insumos (gasto clínico)
-// 43.02.01 = Curación, 13.01.10 = Sutura
 const INSUMOS_PRACTICAS_CODES = ['430201', '130110'];
 const esPracticaConInsumos = (codigo) => {
     const n = normCodeStr(codigo);
     return INSUMOS_PRACTICAS_CODES.includes(n);
+};
+
+// =====================================================================
+//  PERSISTENCIA (borrador + carrito) — localStorage
+// =====================================================================
+const STORAGE_KEYS = {
+    draft: 'rp_draft_v1',
+    carrito: 'rp_carrito_v1',
 };
 
 const initialPaciente = () => ({
@@ -71,6 +77,24 @@ const newRp = () => ({
     diagnostico: '',
     fecha: todayISO(),
 });
+
+// Sanea y completa un RP venido de localStorage
+const hydrateRp = (raw) => {
+    const base = newRp();
+    if (!raw || typeof raw !== 'object') return base;
+    return {
+        ...base,
+        ...raw,
+        esLab: !!raw.esLab,
+        paciente: { ...initialPaciente(), ...(raw.paciente || {}) },
+        medico: { ...initialMedico(), ...(raw.medico || {}) },
+        practicas: Array.isArray(raw.practicas) ? raw.practicas : [],
+        estudiosLab: Array.isArray(raw.estudiosLab) ? raw.estudiosLab : [],
+        solicitaManual: raw.solicitaManual || '',
+        diagnostico: raw.diagnostico || '',
+        fecha: raw.fecha || base.fecha,
+    };
+};
 
 // =====================================================================
 //  SUBCOMPONENTES
@@ -461,7 +485,7 @@ function InsumoChips({ insumos }) {
                     ? cant
                     : cant.toLocaleString('es-AR', { maximumFractionDigits: 3 });
                 const nombreLimpio = String(ins.nombre ?? '').replace(/_/g, ' ');
-                const nombreMostrar = truncarNombreInsumo(ins.nombre); // 10 chars now
+                const nombreMostrar = truncarNombreInsumo(ins.nombre);
                 return (
                     <span
                         key={ins.id}
@@ -476,6 +500,7 @@ function InsumoChips({ insumos }) {
         </div>
     );
 }
+
 function PracticaRow({
     item,
     onRemove,
@@ -785,6 +810,63 @@ export default function RPPage() {
     const [atajos, setAtajos] = useState([]);
     const [saveAtajoOpen, setSaveAtajoOpen] = useState(false);
     const [atajosOpen, setAtajosOpen] = useState(false);
+
+    // Flag para no pisar localStorage antes de restaurar
+    const restoredRef = useRef(false);
+
+    // ============================================================
+    //  RESTAURAR borrador y carrito desde localStorage (solo 1 vez)
+    // ============================================================
+    useEffect(() => {
+        if (!isClient || restoredRef.current) return;
+        restoredRef.current = true;
+
+        try {
+            const rawDraft = localStorage.getItem(STORAGE_KEYS.draft);
+            if (rawDraft) {
+                const parsed = JSON.parse(rawDraft);
+                setRp(hydrateRp(parsed));
+            }
+        } catch (e) {
+            console.warn('No se pudo restaurar el borrador:', e);
+        }
+
+        try {
+            const rawCart = localStorage.getItem(STORAGE_KEYS.carrito);
+            if (rawCart) {
+                const parsed = JSON.parse(rawCart);
+                if (Array.isArray(parsed)) {
+                    setCarrito(parsed.map((r) => hydrateRp(r)));
+                }
+            }
+        } catch (e) {
+            console.warn('No se pudo restaurar el carrito:', e);
+        }
+    }, [isClient]);
+
+    // ============================================================
+    //  PERSISTIR borrador en cada cambio
+    // ============================================================
+    useEffect(() => {
+        if (!isClient || !restoredRef.current) return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.draft, JSON.stringify(rp));
+        } catch (e) {
+            console.warn('No se pudo guardar el borrador:', e);
+        }
+    }, [rp, isClient]);
+
+    // ============================================================
+    //  PERSISTIR carrito en cada cambio (se limpia solo al guardar)
+    // ============================================================
+    useEffect(() => {
+        if (!isClient || !restoredRef.current) return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.carrito, JSON.stringify(carrito));
+        } catch (e) {
+            console.warn('No se pudo guardar el carrito:', e);
+        }
+    }, [carrito, isClient]);
 
     // ============ Cargas ============
     useEffect(() => {
@@ -1312,6 +1394,7 @@ export default function RPPage() {
             setHistorial((prev) => [...saved, ...prev].sort(
                 (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
             ));
+            // El useEffect de persistencia limpia localStorage al ver carrito=[]
             setCarrito([]);
             clearSelection();
             alert(`✅ ${carrito.length} RP guardadas.`);
@@ -1322,16 +1405,25 @@ export default function RPPage() {
     }, [carrito, convenioSel, convenios, clearSelection]);
 
     // ============ Impresión / Descarga ============
+    // Abre una pestaña normal (sin popup con tamaño) usando Blob URL.
     const openOutputWindow = useCallback((rps, mode) => {
         if (!rps?.length) return;
+
         const logoSrc = `${window.location.origin}/logo.png`;
-        const html = buildPrintHtml(rps, logoSrc, mode);
-        const w = window.open('', '_blank', 'width=1100,height=900,scrollbars=yes');
-        if (!w) { alert('⚠️ Habilitá las ventanas emergentes.'); return; }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
+        const html = buildPrintHtml(rps, logoSrc, mode);   // ← helpers resuelve las firmas
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const w = window.open(blobUrl, '_blank');
+        if (!w) {
+            URL.revokeObjectURL(blobUrl);
+            alert('⚠️ Habilitá las ventanas emergentes para poder imprimir.');
+            return;
+        }
         w.focus();
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     }, []);
 
     const printList = useCallback((list) => {
@@ -1364,6 +1456,29 @@ export default function RPPage() {
             setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
         } catch (e) { console.error(e); alert('Error al eliminar'); }
     }, []);
+
+    // Elimina del carrito todas las RP tildadas
+    const deleteSelectedFromCart = useCallback(() => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`¿Eliminar ${selectedIds.size} RP del carrito?`)) return;
+        setCarrito((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+        clearSelection();
+    }, [selectedIds, clearSelection]);
+
+    // Elimina del historial (Firebase) todas las RP tildadas
+    const deleteSelectedFromHistorial = useCallback(async () => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`¿Eliminar ${selectedIds.size} RP del historial? Esta acción no se puede deshacer.`)) return;
+        const ids = Array.from(selectedIds);
+        try {
+            await Promise.all(ids.map((id) => remove(ref(db, `rp/${id}`))));
+            setHistorial((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+            clearSelection();
+        } catch (e) {
+            console.error(e);
+            alert('Error al eliminar: ' + (e?.message || e));
+        }
+    }, [selectedIds, clearSelection]);
 
     const editFromHistorial = (r) => {
         const clean = sanitizeForFirebase({ ...r });
@@ -1666,6 +1781,14 @@ export default function RPPage() {
                                 <span className={styles.toolbarCount}>
                                     {selectedIds.size} seleccionada(s)
                                 </span>
+                                <button
+                                    className={styles.btnDanger}
+                                    onClick={deleteSelectedFromCart}
+                                    disabled={selectedIds.size === 0}
+                                    title={selectedIds.size === 0 ? 'Tildá al menos una RP' : 'Eliminar seleccionadas'}
+                                >
+                                    🗑️ Eliminar seleccionadas ({selectedIds.size})
+                                </button>
                             </div>
 
                             <div className={styles.cartGrid}>
@@ -1741,6 +1864,14 @@ export default function RPPage() {
                                         ? `(${selectedIds.size})`
                                         : 'todas'}
                                 </button>
+                                <button
+                                    className={styles.btnDanger}
+                                    onClick={deleteSelectedFromHistorial}
+                                    disabled={selectedIds.size === 0}
+                                    title={selectedIds.size === 0 ? 'Tildá al menos una RP' : 'Eliminar seleccionadas'}
+                                >
+                                    🗑️ Eliminar seleccionadas ({selectedIds.size})
+                                </button>
                             </div>
 
                             <div className={styles.cartGrid}>
@@ -1775,6 +1906,7 @@ export default function RPPage() {
                 open={atajosOpen}
                 onClose={() => setAtajosOpen(false)}
                 atajos={atajos}
+                onSave={saveAtajo}
                 onApply={applyAtajo}
                 onDelete={deleteAtajo}
             />
