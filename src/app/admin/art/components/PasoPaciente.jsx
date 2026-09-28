@@ -21,7 +21,8 @@ export default function PasoPaciente({
     const term = normalize(searchTerm.trim());
     if (!term) return [];
 
-    const normArts = selectedArtsNames.map((n) => normalize(n));
+    // ✅ CORRECCIÓN: Forzamos minúsculas en los nombres de las ARTs seleccionadas
+    const normArts = selectedArtsNames.map((n) => normalize(n).toLowerCase());
 
     // 1) Filtrar por término de búsqueda
     const results = pacientes
@@ -33,7 +34,9 @@ export default function PasoPaciente({
       })
       .map((p) => {
         // 2) Determinar si pertenece a alguna de las ARTs seleccionadas
-        const patArt = normalize(p.ART?.nombre || "");
+        // ✅ CORRECCIÓN: Forzamos minúsculas en la ART del paciente
+        const patArt = normalize(p.ART?.nombre || "").toLowerCase();
+        
         const matches =
           !tieneArtsSeleccionadas ||
           normArts.some(
