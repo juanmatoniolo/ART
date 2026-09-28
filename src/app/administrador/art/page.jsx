@@ -15,10 +15,8 @@ import useArts from "./hooks/useArts";
 import { generarAsunto, generarCuerpo, buildGmailUrl } from "./utils/generadores";
 import { FIREBASE_URL } from "./utils/firebase";
 
-const TAB_SINIESTROS = "siniestros";
-
 export default function ARTComunicador() {
-  // Ya no hay estado para tab, siempre es siniestros
+  const [tab, setTab] = useState("siniestros");
   const [selectedArts, setSelectedArts] = useState(new Set());
   const [destinatariosOff, setDestinatariosOff] = useState({});
   const [paciente, setPaciente] = useState(null);
@@ -40,17 +38,39 @@ export default function ARTComunicador() {
   const { atajos, loading: loadingAtajos, recargar: recargarAtajos } = useAtajos();
   const { arts, loading: loadingArts, error: artsError, addArt, updateArt, deleteArt, refetch: refetchArts } = useArts();
 
-  // Filtramos solo las ART que tienen contactos de siniestros
   const filteredArts = useMemo(() => {
     return arts.filter(art => {
-      const contacts = art.siniestros;
+      let contacts;
+      if (tab === "siniestros") {
+        contacts = art.siniestros;
+      } else if (tab === "facturacion") {
+        contacts = art.facturacion;
+      } else {
+        contacts = art.convenios;
+      }
       if (!contacts) return false;
       const list = Array.isArray(contacts) ? contacts : Object.values(contacts);
       return list.some(c => c && c.email);
     });
-  }, [arts]);
+  }, [arts, tab]);
 
-  // Si hay error en las ART, mostramos pantalla de error
+  // ─── NUEVO: nombres de las ARTs seleccionadas ─────────────────────────
+  const selectedArtsNames = useMemo(() => {
+    if (selectedArts.size === 0) return [];
+    const names = [];
+    selectedArts.forEach((id) => {
+      const art = arts.find((a) => a.id === id);
+      if (art?.nombre) names.push(art.nombre);
+    });
+    return names;
+  }, [selectedArts, arts]);
+
+  const selectedArtsLabel = useMemo(() => {
+    if (selectedArtsNames.length === 0) return "";
+    if (selectedArtsNames.length === 1) return selectedArtsNames[0];
+    return `${selectedArtsNames.length} ARTs`;
+  }, [selectedArtsNames]);
+
   if (artsError) {
     return (
       <main className={styles.page}>
@@ -69,6 +89,7 @@ export default function ARTComunicador() {
   }
 
   const limpiarTodo = () => {
+    setTab("siniestros");
     setSelectedArts(new Set());
     setDestinatariosOff({});
     setPaciente(null);
@@ -82,14 +103,13 @@ export default function ARTComunicador() {
 
   const cuerpoEditadoPorUsuario = useRef(false);
 
-  // Generar asunto y cuerpo siempre en modo siniestros
   const asunto = useMemo(
-    () => generarAsunto(paciente, TAB_SINIESTROS, atajosActivos),
-    [paciente, atajosActivos]
+    () => generarAsunto(paciente, tab, atajosActivos),
+    [paciente, tab, atajosActivos]
   );
   const cuerpo = useMemo(
-    () => generarCuerpo(paciente, TAB_SINIESTROS, atajosActivos, medico),
-    [paciente, atajosActivos, medico]
+    () => generarCuerpo(paciente, tab, atajosActivos, medico),
+    [paciente, tab, atajosActivos, medico]
   );
 
   useEffect(() => {
@@ -97,27 +117,46 @@ export default function ARTComunicador() {
   }, [cuerpo]);
   useEffect(() => {
     cuerpoEditadoPorUsuario.current = false;
-  }, [paciente, medico, atajosActivos]);
+  }, [paciente, medico, tab, atajosActivos]);
 
-  // Obtener contactos solo de siniestros
   const contactos = useMemo(() => {
     if (selectedArts.size === 0 || arts.length === 0) return [];
     const list = [];
     selectedArts.forEach((id) => {
       const art = arts.find((p) => p.id === id);
       if (art) {
-        let siniestros = art.siniestros;
-        if (typeof siniestros === "object" && !Array.isArray(siniestros)) {
-          siniestros = Object.values(siniestros);
+        if (tab === "siniestros") {
+          let siniestros = art.siniestros;
+          if (typeof siniestros === "object" && !Array.isArray(siniestros)) {
+            siniestros = Object.values(siniestros);
+          }
+          const contactosArray = Array.isArray(siniestros) ? siniestros : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
+        } else if (tab === "facturacion") {
+          let facturacion = art.facturacion;
+          if (typeof facturacion === "object" && !Array.isArray(facturacion)) {
+            facturacion = Object.values(facturacion);
+          }
+          const contactosArray = Array.isArray(facturacion) ? facturacion : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
+        } else {
+          let convenios = art.convenios;
+          if (typeof convenios === "object" && !Array.isArray(convenios)) {
+            convenios = Object.values(convenios);
+          }
+          const contactosArray = Array.isArray(convenios) ? convenios : [];
+          contactosArray.forEach((c) => {
+            if (c && c.email) list.push({ ...c, artId: id });
+          });
         }
-        const contactosArray = Array.isArray(siniestros) ? siniestros : [];
-        contactosArray.forEach((c) => {
-          if (c && c.email) list.push({ ...c, artId: id });
-        });
       }
     });
     return list.filter((c, i, arr) => arr.findIndex((x) => x.email === c.email) === i);
-  }, [selectedArts, arts]);
+  }, [selectedArts, tab, arts]);
 
   const emailsActivos = useMemo(
     () =>
@@ -130,20 +169,24 @@ export default function ARTComunicador() {
     return buildGmailUrl({ to: emailsActivos.join(","), subject: asunto, body: cuerpoEditado });
   }, [emailsActivos, asunto, cuerpoEditado]);
 
-  // Ahora la condición de envío siempre exige paciente (modo siniestros)
   const canSend = useMemo(() => {
     if (selectedArts.size === 0) return false;
     if (emailsActivos.length === 0) return false;
+    if (tab === "facturacion" || tab === "convenios") {
+      return true;
+    }
     return paciente && asunto && cuerpoEditado;
-  }, [selectedArts, emailsActivos, paciente, asunto, cuerpoEditado]);
+  }, [selectedArts, emailsActivos, tab, paciente, asunto, cuerpoEditado]);
 
   const faltantes = useMemo(() => {
     const f = [];
     if (selectedArts.size === 0) f.push("🏢 Seleccionar al menos una ART");
     if (emailsActivos.length === 0 && selectedArts.size > 0) f.push("📧 Activar al menos un destinatario");
-    if (!paciente) f.push("👤 Seleccionar un paciente");
+    if (tab === "siniestros") {
+      if (!paciente) f.push("👤 Seleccionar un paciente");
+    }
     return f;
-  }, [selectedArts, emailsActivos, paciente]);
+  }, [selectedArts, emailsActivos, tab, paciente]);
 
   const toggleArt = (id) =>
     setSelectedArts((prev) => {
@@ -269,14 +312,33 @@ export default function ARTComunicador() {
             <p className={styles.topSub}>Generá mails profesionales en segundos</p>
           </div>
         </div>
-        {/* La barra de pestañas se eliminó por completo */}
-        <button
-          className={styles.tinyBtn}
-          onClick={() => setMostrarFormAtajo(true)}
-          title="Gestionar atajos"
-        >
-          ⚙️
-        </button>
+        <section className={styles.modeTabs}>
+          <button
+            className={`${styles.modeTab} ${tab === "siniestros" ? styles.modeTabOn : ""}`}
+            onClick={() => setTab("siniestros")}
+          >
+            📋 Siniestros
+          </button>
+          <button
+            className={`${styles.modeTab} ${tab === "facturacion" ? styles.modeTabOn : ""}`}
+            onClick={() => setTab("facturacion")}
+          >
+            💰 Facturación
+          </button>
+          <button
+            className={`${styles.modeTab} ${tab === "convenios" ? styles.modeTabOn : ""}`}
+            onClick={() => setTab("convenios")}
+          >
+            📄 Convenios
+          </button>
+          <button
+            className={styles.tinyBtn}
+            onClick={() => setMostrarFormAtajo(true)}
+            title="Gestionar atajos"
+          >
+            ⚙️
+          </button>
+        </section>
       </header>
 
       <div className={styles.pageLayout}>
@@ -290,40 +352,46 @@ export default function ARTComunicador() {
             onManageArts={() => setMostrarGestionArts(true)}
           />
 
-          {/* Contenido de siniestros ahora siempre visible */}
-          <div className={styles.pacienteMedicoRow}>
-            <PasoPaciente
-              key={`paciente-${resetKey}`}
-              pacientes={pacientes}
-              loading={loadingPacientes}
-              paciente={paciente}
-              setPaciente={setPaciente}
-            />
-            <PasoMedico
-              key={`medico-${resetKey}`}
-              medico={medico}
-              setMedico={setMedico}
-            />
-          </div>
-          <AtajosDeMail
-            atajos={atajos}
-            loading={loadingAtajos}
-            atajosActivos={atajosActivos}
-            aplicarAtajo={aplicarAtajo}
-            quitarAtajo={quitarAtajo}
-            desactivarAtajo={desactivarAtajo}
-            setMostrarFormAtajo={setMostrarFormAtajo}
-            setEditandoAtajo={setEditandoAtajo}
-            setNuevoAtajoLabel={setNuevoAtajoLabel}
-            setNuevoAtajoAdjunto={setNuevoAtajoAdjunto}
-            setNuevoAtajoSolicitud={setNuevoAtajoSolicitud}
-            eliminarAtajo={eliminarAtajo}
-          />
+          {tab === "siniestros" && (
+            <>
+              <div className={styles.pacienteMedicoRow}>
+                <PasoPaciente
+                  key={`paciente-${resetKey}`}
+                  pacientes={pacientes}
+                  loading={loadingPacientes}
+                  paciente={paciente}
+                  setPaciente={setPaciente}
+                  // ─── NUEVAS PROPS ────────────────────────────────────
+                  selectedArtsNames={selectedArtsNames}
+                  selectedArtsLabel={selectedArtsLabel}
+                />
+                <PasoMedico
+                  key={`medico-${resetKey}`}
+                  medico={medico}
+                  setMedico={setMedico}
+                />
+              </div>
+              <AtajosDeMail
+                atajos={atajos}
+                loading={loadingAtajos}
+                atajosActivos={atajosActivos}
+                aplicarAtajo={aplicarAtajo}
+                quitarAtajo={quitarAtajo}
+                desactivarAtajo={desactivarAtajo}
+                setMostrarFormAtajo={setMostrarFormAtajo}
+                setEditandoAtajo={setEditandoAtajo}
+                setNuevoAtajoLabel={setNuevoAtajoLabel}
+                setNuevoAtajoAdjunto={setNuevoAtajoAdjunto}
+                setNuevoAtajoSolicitud={setNuevoAtajoSolicitud}
+                eliminarAtajo={eliminarAtajo}
+              />
+            </>
+          )}
 
           <div className={styles.block}>
             <div className={styles.blockTop}>
               <p className={styles.blockLabel}>📝 Asunto generado</p>
-              {atajosActivos.length > 0 && (
+              {atajosActivos.length > 0 && tab === "siniestros" && (
                 <div className={styles.blockBadges}>
                   {atajosActivos.map((a) => (
                     <span key={a.id} className={styles.badge}>⚡ {a.label}</span>

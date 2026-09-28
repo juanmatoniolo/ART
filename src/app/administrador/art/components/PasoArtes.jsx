@@ -24,10 +24,10 @@ const grupos = {
     color: '#ef4444',
     label: 'ASOCIART',
   },
-  medicalwork: {
-    nombres: ['Medical Work'],
+  medicarwork: {
+    nombres: ['Medicar Work'],
     color: '#06b6d4',
-    label: 'Medical Work',
+    label: 'Medicar Work',
   },
   comfye: {
     nombres: ['CONFYE'],
@@ -167,8 +167,33 @@ export default function PasoArtes({
   return (
     <div className={styles.block}>
       <div className={styles.blockTop}>
-        
-        
+        <p className={styles.blockLabel}>🏢 ARTs</p>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className={styles.tinyBtn} onClick={onManageArts}>⚙️ Gestionar</button>
+          <button
+            className={styles.tinyBtn}
+            onClick={() => setModoEditarOrden(!modoEditarOrden)}
+          >
+            {modoEditarOrden ? '🔒 Cancelar' : '✏️ Editar orden'}
+          </button>
+          {modoEditarOrden && (
+            <>
+              <button className={styles.tinyBtn} onClick={guardarOrden} style={{ background: '#22c55e', color: 'white' }}>
+                💾 Guardar
+              </button>
+              <button className={styles.tinyBtn} onClick={cancelarEdicion}>
+                ❌ Cancelar
+              </button>
+            </>
+          )}
+          <button
+            className={styles.tinyBtn}
+            onClick={() => toggleAllArts(!todasSeleccionadas)}
+            disabled={artsFiltradas.length === 0}
+          >
+            {todasSeleccionadas ? '❌ Quitar todas' : '✅ Todas'}
+          </button>
+        </div>
       </div>
 
       <div className={styles.atajosFilter}>
