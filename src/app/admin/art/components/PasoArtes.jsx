@@ -24,10 +24,10 @@ const grupos = {
     color: '#ef4444',
     label: 'ASOCIART',
   },
-  medicalwork: {
-    nombres: ['Medical Work'],
+  medicarwork: {
+    nombres: ['Medicar Work'],
     color: '#06b6d4',
-    label: 'Medical Work',
+    label: 'Medicar Work',
   },
   comfye: {
     nombres: ['CONFYE'],

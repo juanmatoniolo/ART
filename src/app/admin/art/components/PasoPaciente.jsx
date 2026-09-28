@@ -2,6 +2,30 @@ import { useState, useMemo, useRef } from "react";
 import styles from "../page.module.css";
 import { normalize } from "../utils/generadores";
 
+// ✅ NUEVA FUNCIÓN: Calcula la distancia de Levenshtein (tolerancia a errores de tipeo)
+// Devuelve un número que indica cuántas letras cambian entre dos palabras.
+function levenshtein(a, b) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
 export default function PasoPaciente({
   pacientes,
   loading,
@@ -21,7 +45,7 @@ export default function PasoPaciente({
     const term = normalize(searchTerm.trim());
     if (!term) return [];
 
-    // ✅ CORRECCIÓN: Forzamos minúsculas en los nombres de las ARTs seleccionadas
+    // Forzamos minúsculas en los nombres de las ARTs seleccionadas
     const normArts = selectedArtsNames.map((n) => normalize(n).toLowerCase());
 
     // 1) Filtrar por término de búsqueda
@@ -33,15 +57,27 @@ export default function PasoPaciente({
         return nombre.includes(term) || dni.includes(term) || siniestro.includes(term);
       })
       .map((p) => {
-        // 2) Determinar si pertenece a alguna de las ARTs seleccionadas
-        // ✅ CORRECCIÓN: Forzamos minúsculas en la ART del paciente
+        // Forzamos minúsculas en la ART del paciente
         const patArt = normalize(p.ART?.nombre || "").toLowerCase();
         
+        // ✅ LÓGICA DE COMPARACIÓN MEJORADA (Fuzzy Matching)
         const matches =
           !tieneArtsSeleccionadas ||
-          normArts.some(
-            (na) => na && patArt && (patArt === na || patArt.includes(na) || na.includes(patArt))
-          );
+          normArts.some((na) => {
+            if (!na || !patArt) return false;
+            
+            // 1. Coincidencia exacta o parcial (ej: "medical work" y "medical")
+            if (patArt === na || patArt.includes(na) || na.includes(patArt)) return true;
+            
+            // 2. Tolerancia a errores de tipeo (Fuzzy Matching)
+            // Si la diferencia de longitud es mucha, no gastamos recursos calculando
+            if (Math.abs(patArt.length - na.length) > 3) return false;
+            
+            // Si la distancia de Levenshtein es <= 2, lo consideramos un match
+            // Ej: "medicar work" vs "medical work" (distancia = 1)
+            return levenshtein(patArt, na) <= 2;
+          });
+
         return { ...p, _matchesArt: matches };
       });
 
