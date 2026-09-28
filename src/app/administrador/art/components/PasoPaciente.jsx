@@ -2,8 +2,40 @@ import { useState, useMemo, useRef } from "react";
 import styles from "../page.module.css";
 import { normalize } from "../utils/generadores";
 
-// ✅ NUEVA FUNCIÓN: Calcula la distancia de Levenshtein (tolerancia a errores de tipeo)
-// Devuelve un número que indica cuántas letras cambian entre dos palabras.
+// ✅ 1. Diccionario de equivalencias (abreviaturas y errores comunes)
+const EQUIVALENCIAS = {
+  "fed": "federacion",
+  "federación": "federacion",
+  "federacion": "federacion",
+  "ap": "art",
+  "art": "art",
+  "medicar": "medical",
+  "medical": "medical",
+  "segunda": "segunda",
+  "patronal": "patronal",
+  "work": "work",
+  "asociart": "asociart",
+  "comfye": "comfye",
+  "iaps": "iaps",
+  "iapser": "iaps",
+  "reconquista": "reconquista",
+  "victoria": "victoria",
+};
+
+// ✅ 2. Función para limpiar y expandir abreviaturas
+const limpiarYExpandir = (str) => {
+  if (!str) return "";
+  // Normalizar (quitar acentos, minúsculas)
+  let texto = (str || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  // Quitar puntos y caracteres especiales, excepto espacios
+  texto = texto.replace(/[^a-z0-9\s]/g, "");
+  // Dividir en palabras y expandir abreviaturas
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const expandidas = palabras.map(p => EQUIVALENCIAS[p] || p);
+  return expandidas.join(" ");
+};
+
+// ✅ 3. Función para calcular distancia de Levenshtein (tolerancia a errores de tipeo)
 function levenshtein(a, b) {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
@@ -26,12 +58,42 @@ function levenshtein(a, b) {
   return matrix[b.length][a.length];
 }
 
+// ✅ 4. Función maestra de comparación
+const sonSimilares = (artPaciente, artSeleccionada) => {
+  const a = limpiarYExpandir(artPaciente);
+  const b = limpiarYExpandir(artSeleccionada);
+
+  // 1. Coincidencia exacta (ej: "federacion patronal art" === "federacion patronal art")
+  if (a === b) return true;
+  
+  // 2. Coincidencia parcial (ej: "federacion patronal art" incluye a "federacion patronal")
+  if (a.includes(b) || b.includes(a)) return true;
+
+  // 3. Tolerancia a errores de tipeo (Levenshtein) por palabra
+  const palabrasA = a.split(/\s+/);
+  const palabrasB = b.split(/\s+/);
+  
+  // Si tienen diferente cantidad de palabras, no aplicamos Levenshtein
+  if (palabrasA.length !== palabrasB.length) return false;
+
+  let diferencias = 0;
+  for (let i = 0; i < palabrasA.length; i++) {
+    if (palabrasA[i] !== palabrasB[i]) {
+      // Si la distancia de Levenshtein es mayor a 2, cuenta como diferencia
+      if (levenshtein(palabrasA[i], palabrasB[i]) > 2) {
+        diferencias++;
+      }
+    }
+  }
+  // Si más de 1 palabra es muy diferente, no son similares
+  return diferencias <= 1;
+};
+
 export default function PasoPaciente({
   pacientes,
   loading,
   paciente,
   setPaciente,
-  // ─── NUEVOS PROPS ────────────────────────────────────────────────
   selectedArtsNames = [],   // array de nombres de ART seleccionadas
   selectedArtsLabel = "",   // texto para mostrar (ej: "COMFYE" o "2 ARTs")
 }) {
@@ -45,9 +107,6 @@ export default function PasoPaciente({
     const term = normalize(searchTerm.trim());
     if (!term) return [];
 
-    // Forzamos minúsculas en los nombres de las ARTs seleccionadas
-    const normArts = selectedArtsNames.map((n) => normalize(n).toLowerCase());
-
     // 1) Filtrar por término de búsqueda
     const results = pacientes
       .filter((p) => {
@@ -57,26 +116,12 @@ export default function PasoPaciente({
         return nombre.includes(term) || dni.includes(term) || siniestro.includes(term);
       })
       .map((p) => {
-        // Forzamos minúsculas en la ART del paciente
-        const patArt = normalize(p.ART?.nombre || "").toLowerCase();
+        const patArt = p.ART?.nombre || "";
         
-        // ✅ LÓGICA DE COMPARACIÓN MEJORADA (Fuzzy Matching)
+        // ✅ LÓGICA DE COMPARACIÓN MEJORADA
         const matches =
           !tieneArtsSeleccionadas ||
-          normArts.some((na) => {
-            if (!na || !patArt) return false;
-            
-            // 1. Coincidencia exacta o parcial (ej: "medical work" y "medical")
-            if (patArt === na || patArt.includes(na) || na.includes(patArt)) return true;
-            
-            // 2. Tolerancia a errores de tipeo (Fuzzy Matching)
-            // Si la diferencia de longitud es mucha, no gastamos recursos calculando
-            if (Math.abs(patArt.length - na.length) > 3) return false;
-            
-            // Si la distancia de Levenshtein es <= 2, lo consideramos un match
-            // Ej: "medicar work" vs "medical work" (distancia = 1)
-            return levenshtein(patArt, na) <= 2;
-          });
+          selectedArtsNames.some((na) => sonSimilares(patArt, na));
 
         return { ...p, _matchesArt: matches };
       });
