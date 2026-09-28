@@ -128,24 +128,24 @@ function Modal({ open, title, message, onClose, onConfirm, confirmText = 'Acepta
   );
 }
 
-// ─── Modal "Guardar borrador" con switch de STRO ──────────────────────────
-function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente, onConfirm, saving }) {
+// ─── Modal "Guardar borrador" con switch de PACIENTE ──────────────────────
+function GuardarBorradorModal({ open, onClose, nombreInicial, pacienteCerradoActualmente, onConfirm, saving }) {
   const [nombre, setNombre] = useState(nombreInicial || '');
-  const [cerrarSTRO, setCerrarSTRO] = useState(false);
+  const [cerrarPaciente, setCerrarPaciente] = useState(false);
 
   useEffect(() => {
     if (open) {
       setNombre(nombreInicial || '');
-      setCerrarSTRO(!!cerradoActualmente);
+      setCerrarPaciente(!!pacienteCerradoActualmente);
     }
-  }, [open, nombreInicial, cerradoActualmente]);
+  }, [open, nombreInicial, pacienteCerradoActualmente]);
 
   if (!open) return null;
 
   const handleConfirm = () => {
     if (saving) return;
     if (!nombre?.trim()) return;
-    onConfirm({ nombre: nombre.trim(), cerrarSTRO });
+    onConfirm({ nombre: nombre.trim(), cerrarPaciente });
   };
 
   const handleKeyDown = (e) => {
@@ -182,7 +182,7 @@ function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente
             onKeyDown={handleKeyDown}
           />
 
-          {/* Switch ¿Cerrar STRO? */}
+          {/* Switch ¿Marcar al paciente como cerrado? */}
           <label
             style={{
               display: 'flex',
@@ -190,8 +190,8 @@ function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente
               gap: 10,
               marginTop: 16,
               padding: '12px 14px',
-              background: cerrarSTRO ? '#fef3c7' : '#f1f5f9',
-              border: `2px solid ${cerrarSTRO ? '#f59e0b' : '#cbd5e1'}`,
+              background: cerrarPaciente ? '#fef3c7' : '#f1f5f9',
+              border: `2px solid ${cerrarPaciente ? '#f59e0b' : '#cbd5e1'}`,
               borderRadius: 10,
               cursor: saving ? 'not-allowed' : 'pointer',
               transition: 'all 0.15s',
@@ -199,8 +199,8 @@ function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente
           >
             <input
               type="checkbox"
-              checked={cerrarSTRO}
-              onChange={(e) => setCerrarSTRO(e.target.checked)}
+              checked={cerrarPaciente}
+              onChange={(e) => setCerrarPaciente(e.target.checked)}
               disabled={saving}
               style={{
                 width: 18,
@@ -210,17 +210,17 @@ function GuardarBorradorModal({ open, onClose, nombreInicial, cerradoActualmente
               }}
             />
             <span style={{ fontWeight: 600, color: '#0f172a' }}>
-              📄 ¿Cerrar el STRO también?
+              👤 ¿Marcar al PACIENTE como cerrado?
             </span>
           </label>
 
-                 {cerrarSTRO ? (
+          {cerrarPaciente ? (
             <div style={{ marginTop: 8, fontSize: '0.85em', color: '#92400e', paddingLeft: 4 }}>
-              El siniestro quedará marcado como <b>cerrado</b>.
+              El <b>paciente</b> quedará cerrado. La <b>factura se guarda igual como borrador</b>.
             </div>
           ) : (
             <div style={{ marginTop: 8, fontSize: '0.85em', color: '#475569', paddingLeft: 4 }}>
-              El siniestro quedará guardado como <b>borrador</b> (abierto).
+              El <b>paciente</b> queda activo. La factura se guarda como <b>borrador</b>.
             </div>
           )}
         </div>
@@ -292,6 +292,9 @@ export default function FacturaContainer() {
   const [savingGuardar, setSavingGuardar] = useState(false);
   const savingGuardarRef = useRef(false);
 
+  // ─── Estado del paciente (para el switch del modal) ───────────────────
+  const [pacienteCerrado, setPacienteCerrado] = useState(false);
+
   // Modales de alerta
   const [modalConfirm, setModalConfirm] = useState(null);
 
@@ -351,6 +354,7 @@ export default function FacturaContainer() {
       setActiveTab('datos');
       setDraftId('');
       setCierre(EMPTY_CIERRE);
+      setPacienteCerrado(false);
     } else if (!draftFromUrl) {
       setPaciente(getStorageItem(STORAGE_KEYS.PACIENTE, paciente));
       setPracticas(getStorageItem(STORAGE_KEYS.PRACTICAS, []));
@@ -442,6 +446,29 @@ export default function FacturaContainer() {
           setCierre({ fkt: ts, cx: ts, siniestro: ts });
         } else {
           setCierre(EMPTY_CIERRE);
+        }
+
+        // ─── Cargar estado de cierre del PACIENTE ───────────────────────
+        try {
+          const dniDigits = onlyDigits(dni);
+          if (dniDigits) {
+            const pacSnap = await get(ref(db, 'pacientes'));
+            if (pacSnap.exists()) {
+              const found = Object.entries(pacSnap.val()).find(([, p]) => {
+                return onlyDigits(p?.trabajador?.dni || '') === dniDigits;
+              });
+              if (found) {
+                const [, pac] = found;
+                const cerrado =
+                  pac?.estado === 'cerrado' ||
+                  pac?.cerradoPorFacturacionEstado === 'cerrado' ||
+                  !!pac?.cerradoAt;
+                if (alive) setPacienteCerrado(cerrado);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('No se pudo leer estado del paciente:', e);
         }
 
         if (v?.convenio) {
@@ -568,8 +595,10 @@ export default function FacturaContainer() {
   }, [isClient, paciente?.dni, paciente?.artSeguro, paciente?.nroSiniestro, draftId, findExisting]);
 
   // ─── Guardar en RTDB ──────────────────────────────────────────────────
+  // ⚠️ CAMBIO CLAVE: la factura SIEMPRE se guarda como 'borrador' desde este flujo.
+  //    El flag `cerrarPaciente` solo decide si además marcamos al PACIENTE como cerrado.
   const guardarEnRTDB = useCallback(
-    async ({ estado, nombre, forceNew = false, cierreOverride = null }) => {
+    async ({ estado, nombre, forceNew = false, cierreOverride = null, cerrarPaciente = false }) => {
       setLockMsg('');
 
       const convenioNombre = convenios?.[convenioSel]?.nombre || convenioSel;
@@ -590,10 +619,12 @@ export default function FacturaContainer() {
       const prev = prevSnap.exists() ? prevSnap.val() : null;
 
       const cierreFinal = cierreOverride || cierre || EMPTY_CIERRE;
-      const estadoDerivado = estado || derivarEstado(cierreFinal);
+
+      // La factura siempre queda como 'borrador' en este flujo.
+      const estadoFactura = estado || 'borrador';
 
       const payload = {
-        estado: estadoDerivado,
+        estado: estadoFactura,
         nombre: nombre || paciente?.nombreCompleto || 'Siniestro',
         updatedAt: now,
         siniestroKey,
@@ -620,9 +651,7 @@ export default function FacturaContainer() {
         createdAt: prev?.createdAt ? prev.createdAt : now,
       };
 
-        // Solo cambiamos el estado y guardamos el timestamp de cierre.
-      // NO asignamos facturaNro (eso lo maneja el flujo de facturación).
-      if (estadoDerivado === 'cerrado') {
+      if (estadoFactura === 'cerrado') {
         payload.cerradoAt = now;
       } else {
         payload.cerradoAt = null;
@@ -631,28 +660,27 @@ export default function FacturaContainer() {
       // 1) Guardar el registro en Facturacion
       await set(ref(db, `Facturacion/${id}`), { id, ...(prev || {}), ...payload });
 
-      // 2) SOLO si el estado final es CERRADO → marcar el paciente como cerrado
-      //    Si es BORRADOR → NO llamar a cerrarPacientePorFactura
-      if (estadoDerivado === 'cerrado') {
+      // 2) Cerrar SOLO el PACIENTE (no la factura)
+      if (cerrarPaciente) {
         try {
           await cerrarPacientePorFactura({ id, ...payload }, id);
+          setPacienteCerrado(true);
         } catch (e) {
           console.warn('cerrarPacientePorFactura falló (no crítico):', e);
         }
       }
 
-      // 3) Actualizar SIEMPRE el índice de siniestros DESPUÉS de cualquier otra operación
-      //    (para que si algo lo pisó, quede con el estado correcto)
+      // 3) Índice de siniestros (refleja el estado real de la FACTURA)
       await update(ref(db, `Facturacion/siniestros/${siniestroKey}`), {
-        status: estadoDerivado,
+        status: estadoFactura,
         id,
         updatedAt: now,
         dni: paciente?.dni || '',
       });
 
       // 4) Estado local
-      if (estadoDerivado === 'borrador') setDraftId(id);
-      if (estadoDerivado === 'cerrado') setDraftId('');
+      if (estadoFactura === 'borrador') setDraftId(id);
+      if (estadoFactura === 'cerrado') setDraftId('');
 
       setCierre(cierreFinal);
 
@@ -902,9 +930,9 @@ export default function FacturaContainer() {
     setShowGuardarModal(true);
   }, [isClient]);
 
-  // ─── Confirmar guardado (con switch STRO + lock anti doble click) ────
+  // ─── Confirmar guardado (switch controla SOLO al paciente) ───────────
   const confirmarGuardar = useCallback(
-    async ({ nombre, cerrarSTRO }) => {
+    async ({ nombre, cerrarPaciente: marcarPacienteCerrado }) => {
       if (savingGuardarRef.current) return;
       if (!nombre?.trim()) return;
 
@@ -912,27 +940,21 @@ export default function FacturaContainer() {
       setSavingGuardar(true);
 
       try {
-        const now = Date.now();
-        const cierreOverride = cerrarSTRO
-          ? {
-              fkt: cierre.fkt || now,
-              cx: cierre.cx || now,
-              siniestro: cierre.siniestro || now,
-            }
-          : EMPTY_CIERRE;
-
+        // La factura SIEMPRE se guarda como borrador.
+        // El switch solo decide si además cerramos al PACIENTE.
         await guardarEnRTDB({
           nombre,
-          estado: cerrarSTRO ? 'cerrado' : 'borrador',
-          cierreOverride,
+          estado: 'borrador',
+          cierreOverride: EMPTY_CIERRE,
+          cerrarPaciente: !!marcarPacienteCerrado,
         });
 
         setShowGuardarModal(false);
         setModalConfirm({
-          title: cerrarSTRO ? '✅ Guardado y cerrado' : '✅ Borrador guardado',
-          message: cerrarSTRO
-            ? `El siniestro fue guardado y CERRADO.\nNombre: ${nombre}`
-            : `El borrador fue guardado.\nNombre: ${nombre}`,
+          title: marcarPacienteCerrado ? '✅ Guardado y paciente cerrado' : '✅ Borrador guardado',
+          message: marcarPacienteCerrado
+            ? `El borrador fue guardado y el PACIENTE quedó marcado como cerrado.\nNombre: ${nombre}`
+            : `El borrador fue guardado. El paciente sigue activo.\nNombre: ${nombre}`,
           onConfirm: () => setModalConfirm(null),
         });
       } catch (e) {
@@ -947,7 +969,7 @@ export default function FacturaContainer() {
         setSavingGuardar(false);
       }
     },
-    [guardarEnRTDB, cierre, lockMsg]
+    [guardarEnRTDB, lockMsg]
   );
 
   // ─── Guardar como copia nueva ────────────────────────────────────────
@@ -1002,6 +1024,7 @@ export default function FacturaContainer() {
         setActiveTab('datos');
         setDraftId('');
         setCierre(EMPTY_CIERRE);
+        setPacienteCerrado(false);
         localStorage.removeItem('FACTURACION_DRAFT_ID');
         Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
         setModalConfirm(null);
@@ -1041,12 +1064,12 @@ export default function FacturaContainer() {
         confirmText="Aceptar"
       />
 
-      {/* Modal Guardar borrador con switch STRO */}
+      {/* Modal Guardar borrador con switch de PACIENTE */}
       <GuardarBorradorModal
         open={showGuardarModal}
         onClose={() => setShowGuardarModal(false)}
         nombreInicial={paciente?.nombreCompleto || ''}
-        cerradoActualmente={estaCerrado}
+        pacienteCerradoActualmente={pacienteCerrado}
         onConfirm={confirmarGuardar}
         saving={savingGuardar}
       />
@@ -1093,20 +1116,36 @@ export default function FacturaContainer() {
               🗑️ Limpiar
             </button>
 
-            {/* Estado del siniestro */}
+            {/* Estado del siniestro (SIEMPRE borrador desde este flujo) */}
             <span
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
                 fontSize: '0.9em',
                 fontWeight: 600,
-                background: estaCerrado ? '#dcfce7' : '#fef3c7',
-                color: estaCerrado ? '#15803d' : '#92400e',
-                border: `1px solid ${estaCerrado ? '#22c55e' : '#f59e0b'}`,
+                background: '#fef3c7',
+                color: '#92400e',
+                border: '1px solid #f59e0b',
               }}
-              title={estaCerrado ? 'Este siniestro está cerrado' : 'Este siniestro es un borrador'}
+              title="Este flujo guarda siempre la factura como borrador"
             >
-              {estaCerrado ? '✅ Cerrado' : '📝 Borrador'}
+              📝 Borrador
+            </span>
+
+            {/* Estado del PACIENTE (esto sí lo controla el switch) */}
+            <span
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: '0.9em',
+                fontWeight: 600,
+                background: pacienteCerrado ? '#dcfce7' : '#e0f2fe',
+                color: pacienteCerrado ? '#15803d' : '#075985',
+                border: `1px solid ${pacienteCerrado ? '#22c55e' : '#38bdf8'}`,
+              }}
+              title={pacienteCerrado ? 'El paciente está cerrado' : 'El paciente está activo'}
+            >
+              {pacienteCerrado ? '👤 Cerrado' : '👤 Activo'}
             </span>
           </div>
         </div>
