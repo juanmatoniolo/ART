@@ -114,6 +114,7 @@ const FIRMAS_POR_APELLIDO = {
 	"ESPINOLA":     "/firmas/DRA-ESPINOLA.jpeg",
 	"GALLARDO":     "/firmas/DRA-GALLARDO.jpeg",
 	"ZABALLA":      "/firmas/DRA-ZABALLA.jpeg",
+    "CLINICA":      "/firmas/CLINICA.jpeg",
 };
 
 // Casos con apellido repetido: se exige que el nombre contenga `nombreMatch`.

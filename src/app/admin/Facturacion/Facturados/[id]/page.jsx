@@ -11,6 +11,11 @@ import { useReactToPrint } from 'react-to-print';
 import getArtImage from '../lib/artImages';
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Ruta de la firma institucional (Clínica de la Unión)
+// ─────────────────────────────────────────────────────────────────────────────
+const FIRMA_CLINICA_URL = '/firmas/CLINICA.jpeg';
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Función para formatear DNI con puntos o CUIL con guiones
 // ─────────────────────────────────────────────────────────────────────────────
 const formatDNI = (dni) => {
@@ -447,6 +452,7 @@ PrintView.displayName = 'PrintView';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Vista de impresión solo Medicamentos + Descartables + Laboratorio
+//  (con firma escaneada de la Clínica de la Unión)
 // ─────────────────────────────────────────────────────────────────────────────
 const PrintMedDescLabView = React.forwardRef(({
   paciente,
@@ -588,16 +594,33 @@ const PrintMedDescLabView = React.forwardRef(({
         </div>
       </div>
 
-      {/* Firma institucional */}
+      {/* Firma institucional con firma escaneada de la Clínica */}
       <div style={{ marginTop: 40, textAlign: 'center' }}>
         <div
           style={{
-            borderBottom: '1.5px solid #1e293b',
+            position: 'relative',
             width: 240,
-            margin: '0 auto 8px',
             height: 40,
+            margin: '0 auto 8px',
+            borderBottom: '1.5px solid #1e293b',
           }}
-        />
+        >
+          <img
+            src={FIRMA_CLINICA_URL}
+            alt="Firma Clínica de la Unión"
+            style={{
+              position: 'absolute',
+              bottom: 2,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              maxHeight: 80,
+              maxWidth: 480,
+              objectFit: 'contain',
+              pointerEvents: 'none',
+            }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        </div>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>Firma y sello del responsable</div>
         <div style={{ fontWeight: 500 }}>Clínica de la Unión</div>
         <div style={{ fontSize: '0.9em' }}>Clínica de la Unión S.A.</div>
@@ -797,188 +820,183 @@ export default function FacturadoDetallePage() {
     alert('Función CSV no implementada aún.');
   };
 
-  // ── Generar Script ARCA (MEJORADO) ──────────────────────────────────────
-// ── Generar Script ARCA (MEJORADO) ──────────────────────────────────────
-const generarARCA = useCallback(() => {
-  if (!item) return;
+  // ── Generar Script ARCA ─────────────────────────────────────────────────
+  const generarARCA = useCallback(() => {
+    if (!item) return;
 
-  const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
-  const practicas = toArr(item.practicas);
-  const cirugias = toArr(item.cirugias);
-  const laboratorios = toArr(item.laboratorios);
-  const medicamentos = toArr(item.medicamentos);
-  const descartables = toArr(item.descartables);
+    const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const practicas = toArr(item.practicas);
+    const cirugias = toArr(item.cirugias);
+    const laboratorios = toArr(item.laboratorios);
+    const medicamentos = toArr(item.medicamentos);
+    const descartables = toArr(item.descartables);
 
-  if (
-    practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
-    medicamentos.length === 0 && descartables.length === 0
-  ) {
-    alert('No hay datos para generar el script.');
-    return;
-  }
-
-  const art = item.artNombre || item.paciente?.artSeguro || '';
-  const iva = getIvaForArt(art);
-
-  const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
-  const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
-  const pickPrestador = (x) =>
-    x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
-    x?.prestadorNombre || x?.prestador || 'Médico';
-  const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
-  const pickCantidad = (x) => {
-    const c = x?.cantidad ?? x?.unidades ?? 1;
-    const n = safeNum(c);
-    return n > 0 ? n : 1;
-  };
-
-  // ✅ MODIFICACIÓN 1: truncar55 convierte a mayúsculas
-  const truncar55 = (desc) => {
-    const upperDesc = String(desc).toUpperCase();
-    return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
-  };
-
-  // Mapeo de IVA a los valores del select de ARCA
-  const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
-  const ivaValue = ivaMapSelect[iva] || '0'; // valor para las filas normales
-
-  const rowsHonorarios = [];
-  const rowsGastos = [];
-
-  // ── Prácticas: honorario y gasto ──────────────────────────────────────
-  practicas.forEach((x) => {
-    const cantidad = pickCantidad(x);
-    const codigo = pickCode(x);
-    const descripcion = pickDescripcion(x);
-    const honorario = safeNum(x.honorarioMedico);
-    const gasto = safeNum(x.gastoSanatorial);
-    const prestador = pickPrestador(x);
-
-    if (honorario > 0) {
-      rowsHonorarios.push({
-        codigo: '2',
-        descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (honorario / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
+    if (
+      practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
+      medicamentos.length === 0 && descartables.length === 0
+    ) {
+      alert('No hay datos para generar el script.');
+      return;
     }
-    if (gasto > 0) {
-      rowsGastos.push({
-        codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-  });
 
-  // ── Cx y/o Prácticas nomecladas: honorario con rol, gasto ─────────────
-  cirugias.forEach((x) => {
-    const cantidad = pickCantidad(x);
-    const codigo = pickCode(x);
-    const descripcion = pickDescripcion(x);
-    const honorario = safeNum(x.honorarioMedico);
-    const gasto = safeNum(x.gastoSanatorial);
-    const prestador = pickPrestador(x);
-    const rol = pickRol(x);
+    const art = item.artNombre || item.paciente?.artSeguro || '';
+    const iva = getIvaForArt(art);
 
-    if (honorario > 0) {
-      const desc = rol
-        ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
-        : `Dr ${prestador} - ${codigo} ${descripcion}`;
-      rowsHonorarios.push({
-        codigo: '2',
-        descripcion: truncar55(desc),
-        cantidad,
-        precio: (honorario / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-    if (gasto > 0) {
-      rowsGastos.push({
-        codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
-        iva: ivaValue,
-      });
-    }
-  });
+    const pickCode = (x) => x?.codigo || x?.code || x?.cod || x?.codigoPractica || '';
+    const pickDescripcion = (x) => x?.descripcion || x?.nombre || x?.practica || x?.detalle || x?.producto || '';
+    const pickPrestador = (x) =>
+      x?.doctorNombre || x?.doctor || x?.medico || x?.nombreDr || x?.profesional ||
+      x?.prestadorNombre || x?.prestador || 'Médico';
+    const pickRol = (x) => x?.rol || x?.funcion || x?.cargo || '';
+    const pickCantidad = (x) => {
+      const c = x?.cantidad ?? x?.unidades ?? 1;
+      const n = safeNum(c);
+      return n > 0 ? n : 1;
+    };
 
-  // ── Laboratorio: honorarios consolidados en UNA fila por médico ───────
-  const labHonorPorDoctor = new Map();
-  laboratorios.forEach((x) => {
-    const honorario = safeNum(x.honorarioMedico);
-    if (honorario > 0) {
-      const prestador = pickPrestador(x);
-      labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
-    }
-    const gasto = safeNum(x.gastoSanatorial);
-    if (gasto > 0) {
+    const truncar55 = (desc) => {
+      const upperDesc = String(desc).toUpperCase();
+      return upperDesc.length > 55 ? upperDesc.slice(0, 52) + '...' : upperDesc;
+    };
+
+    const ivaMapSelect = { 'Exento': '2', '21%': '5', '10.5%': '4' };
+    const ivaValue = ivaMapSelect[iva] || '0';
+
+    const rowsHonorarios = [];
+    const rowsGastos = [];
+
+    // ── Prácticas: honorario y gasto ──────────────────────────────────────
+    practicas.forEach((x) => {
+      const cantidad = pickCantidad(x);
       const codigo = pickCode(x);
       const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+
+      if (honorario > 0) {
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(`Dr ${prestador} - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    // ── Cx y/o Prácticas nomecladas: honorario con rol, gasto ─────────────
+    cirugias.forEach((x) => {
       const cantidad = pickCantidad(x);
+      const codigo = pickCode(x);
+      const descripcion = pickDescripcion(x);
+      const honorario = safeNum(x.honorarioMedico);
+      const gasto = safeNum(x.gastoSanatorial);
+      const prestador = pickPrestador(x);
+      const rol = pickRol(x);
+
+      if (honorario > 0) {
+        const desc = rol
+          ? `Dr ${prestador} - ${rol} ${codigo} ${descripcion}`
+          : `Dr ${prestador} - ${codigo} ${descripcion}`;
+        rowsHonorarios.push({
+          codigo: '2',
+          descripcion: truncar55(desc),
+          cantidad,
+          precio: (honorario / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+      if (gasto > 0) {
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+
+    // ── Laboratorio: honorarios consolidados en UNA fila por médico ───────
+    const labHonorPorDoctor = new Map();
+    laboratorios.forEach((x) => {
+      const honorario = safeNum(x.honorarioMedico);
+      if (honorario > 0) {
+        const prestador = pickPrestador(x);
+        labHonorPorDoctor.set(prestador, (labHonorPorDoctor.get(prestador) || 0) + honorario);
+      }
+      const gasto = safeNum(x.gastoSanatorial);
+      if (gasto > 0) {
+        const codigo = pickCode(x);
+        const descripcion = pickDescripcion(x);
+        const cantidad = pickCantidad(x);
+        rowsGastos.push({
+          codigo: '7',
+          descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
+          cantidad,
+          precio: (gasto / cantidad).toFixed(2),
+          iva: ivaValue,
+        });
+      }
+    });
+    labHonorPorDoctor.forEach((total, prestador) => {
+      rowsHonorarios.push({
+        codigo: '2',
+        descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
+        cantidad: 1,
+        precio: total.toFixed(2),
+        iva: ivaValue,
+      });
+    });
+
+    // ── Medicación y Descartables: UNA sola fila con el total ─────────────
+    const totalMedDesc = [...medicamentos, ...descartables].reduce(
+      (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
+      0
+    );
+    if (totalMedDesc > 0) {
       rowsGastos.push({
         codigo: '7',
-        descripcion: truncar55(`Gto San. - ${codigo} ${descripcion}`),
-        cantidad,
-        precio: (gasto / cantidad).toFixed(2),
+        descripcion: truncar55('Medicación y Descartables'),
+        cantidad: 1,
+        precio: totalMedDesc.toFixed(2),
         iva: ivaValue,
       });
     }
-  });
-  labHonorPorDoctor.forEach((total, prestador) => {
-    rowsHonorarios.push({
-      codigo: '2',
-      descripcion: truncar55(`Dr ${prestador} - Laboratorio`),
-      cantidad: 1,
-      precio: total.toFixed(2),
-      iva: ivaValue,
-    });
-  });
 
-  // ── Medicación y Descartables: UNA sola fila con el total ─────────────
-  const totalMedDesc = [...medicamentos, ...descartables].reduce(
-    (sum, m) => sum + safeNum(m?.gastoSanatorial ?? m?.total),
-    0
-  );
-  if (totalMedDesc > 0) {
+    // ── FILA ADICIONAL DEL PACIENTE ────────────────────────────────────────
+    const paciente = item.paciente || {};
+    const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
+    const dniPaciente = paciente.dni || '';
+    const pacienteDesc = `Pte ${nombrePaciente} - dni ${dniPaciente} - ${art} -`.toUpperCase();
     rowsGastos.push({
-      codigo: '7',
-      descripcion: truncar55('Medicación y Descartables'),
+      codigo: '',
+      descripcion: pacienteDesc,
       cantidad: 1,
-      precio: totalMedDesc.toFixed(2),
-      iva: ivaValue,
+      precio: '0.00',
+      iva: '2',
     });
-  }
 
-  // ── FILA ADICIONAL DEL PACIENTE ────────────────────────────────────────
-  const paciente = item.paciente || {};
-  const nombrePaciente = paciente.nombreCompleto || paciente.nombre || '';
-  const dniPaciente = paciente.dni || '';
-  // ✅ MODIFICACIÓN 2: la descripción del paciente en mayúsculas
-  const pacienteDesc = `Pte ${nombrePaciente} - dni ${dniPaciente} - ${art} -`.toUpperCase();
-  rowsGastos.push({
-    codigo: '',
-    descripcion: pacienteDesc,
-    cantidad: 1,
-    precio: '0.00',
-    iva: '2', // Exento
-  });
+    const rowsData = [...rowsHonorarios, ...rowsGastos];
 
-  // ── UNIMOS: primero honorarios, después gastos (incluye la fila paciente) ──
-  const rowsData = [...rowsHonorarios, ...rowsGastos];
+    if (rowsData.length === 0) {
+      alert('No se generaron filas.');
+      return;
+    }
 
-  if (rowsData.length === 0) {
-    alert('No se generaron filas.');
-    return;
-  }
+    const rowsDataJson = JSON.stringify(rowsData);
 
-  const rowsDataJson = JSON.stringify(rowsData);
-
-  const script = `
+    const script = `
 (function() {
   const rowsData = ${rowsDataJson};
   const MEDIDA_UNIDADES = '7';
@@ -1082,9 +1100,9 @@ const generarARCA = useCallback(() => {
 })();
 `;
 
-  setArcaScript(script);
-  setShowArcaModal(true);
-}, [item]);
+    setArcaScript(script);
+    setShowArcaModal(true);
+  }, [item]);
 
   const handleCopyArca = useCallback(() => {
     navigator.clipboard.writeText(arcaScript)
