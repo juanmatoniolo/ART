@@ -92,13 +92,7 @@ export function getSubCodigoInfo(codigo) {
 
 // =====================================================================
 //  FIRMAS DE MÉDICOS
-//  Los archivos viven en /public/firmas/ y se sirven como /firmas/xxx.jpeg
-//  El matching es por apellido normalizado (mayúsculas, sin tildes,
-//  sin espacios extra). Para homónimos se exige además una parte del
-//  nombre (FIRMAS_ESPECIALES).
 // =====================================================================
-
-// apellido (normalizado) → ruta pública de la firma
 const FIRMAS_POR_APELLIDO = {
 	"BRARDA":     "/firmas/DR-BRARDA.jpeg",
 	"CANAGLIA":   "/firmas/DR-CANAGLIA.jpeg",
@@ -114,7 +108,6 @@ const FIRMAS_POR_APELLIDO = {
 	"ZABALLA":    "/firmas/DRA-ZABALLA.jpeg",
 };
 
-// Homónimos: apellido + parte del nombre → firma.
 const FIRMAS_ESPECIALES = [
 	{ apellido: "PERCARA", nombreMatch: "JOSE", url: "/firmas/DR-PERCARA-JOSE.jpeg" },
 ];
@@ -124,7 +117,7 @@ const _norm = (s) =>
 		.trim()
 		.toUpperCase()
 		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "") // quita tildes y convierte Ñ → N
+		.replace(/[\u0300-\u036f]/g, "")
 		.replace(/\s+/g, " ");
 
 export function getFirmaForMedico(medico) {
@@ -138,7 +131,6 @@ export function getFirmaForMedico(medico) {
 	return FIRMAS_POR_APELLIDO[ape] || null;
 }
 
-// Convierte URL relativa en absoluta (necesario dentro de Blob URL).
 function _toAbsolute(url, origin) {
 	if (!url) return null;
 	if (/^https?:\/\//i.test(url)) return url;
@@ -147,9 +139,52 @@ function _toAbsolute(url, origin) {
 }
 
 // =====================================================================
+//  NOMBRE DE ARCHIVO PDF
+//  Formato: "APELLIDO NOMBRE - ART - PEDIDO - FECHA.pdf"
+//  - 1 RP  → nombre específico
+//  - varias RPs → "<N> RPs - <fecha>.pdf"
+// =====================================================================
+function buildPdfFileName(rps) {
+	const clean = (s, fallback = "") => {
+		const v = String(s ?? "").trim();
+		if (!v) return fallback;
+		return v
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.replace(/[\\/:*?"<>|]/g, "")
+			.replace(/\s+/g, " ")
+			.trim();
+	};
+
+	const fmtFecha = (iso) => {
+		if (!iso) return "";
+		const [y, m, d] = String(iso).split("-");
+		return d && m && y ? `${d}-${m}-${y}` : "";
+	};
+
+	if (!rps?.length) return "RP";
+
+	if (rps.length === 1) {
+		const r = rps[0];
+		const nombre = clean(r.paciente?.nombreCompleto, "SIN-PACIENTE");
+		const art = clean(r.paciente?.artSeguro, "SIN-ART");
+		const pedido = clean(
+			`${r.tipoDoc || "RP"}${r.esLab ? " LAB" : ""}`,
+			"RP"
+		);
+		const fecha =
+			fmtFecha(r.fecha) ||
+			fmtFecha(new Date().toISOString().slice(0, 10));
+		return `${nombre} - ${art} - ${pedido} - ${fecha}`;
+	}
+
+	const hoy = fmtFecha(new Date().toISOString().slice(0, 10));
+	return `${rps.length} RPs - ${hoy}`;
+}
+
+// =====================================================================
 //  HTML DE IMPRESIÓN
 // =====================================================================
-// Nombre del insumo en texto plano: "_" → " ", truncado a 10 chars + "..."
 function truncarNombreInsumo(nombre) {
 	const limpio = String(nombre ?? "").replace(/_/g, " ");
 	return limpio.length > 10 ? `${limpio.slice(0, 10)}...` : limpio;
@@ -233,11 +268,6 @@ function renderRpHtml(rp, logoSrc, origin) {
 			: `<div class="codes"><div class="code-row"><span class="code-desc italic">Sin prácticas cargadas</span></div></div>`;
 	}
 
-	// -----------------------------------------------------------------
-	//  Firma del médico (resuelta internamente por apellido).
-	//  - Si hay imagen → se dibuja ARRIBA de la línea.
-	//  - Si no → sólo línea + nombre.
-	// -----------------------------------------------------------------
 	const firmaRel = getFirmaForMedico(med);
 	const firmaUrl = _toAbsolute(firmaRel, origin);
 
@@ -294,7 +324,6 @@ function renderRpHtml(rp, logoSrc, origin) {
 }
 
 export function buildPrintHtml(rps, logoSrc, mode = "print") {
-	// Extraemos el origin desde logoSrc para resolver las firmas.
 	let origin = "";
 	try {
 		origin = new URL(logoSrc).origin;
@@ -321,8 +350,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         </div>`
 			: "";
 
-	// Esperamos a que TODAS las imágenes (logo + firmas) terminen de cargar
-	// antes de disparar print() o downloadPdf().
 	const waitForImages = `
 		function waitForImages() {
 			var imgs = Array.prototype.slice.call(document.querySelectorAll('img'));
@@ -359,6 +386,8 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
                     });
                 <\/script>`
 				: "";
+
+	const pdfFileName = buildPdfFileName(rps) + ".pdf";
 
 	return `<!DOCTYPE html>
 <html lang="es">
@@ -491,7 +520,6 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
     }
     .dg-row, .fecha-row { display: flex; align-items: baseline; gap: 1.6mm; font-size: 9pt; }
 
-    /* ------- Firma ------- */
     .firma {
         margin-top: 5mm;
         padding-bottom: 1mm;
@@ -504,7 +532,7 @@ export function buildPrintHtml(rps, logoSrc, mode = "print") {
         max-height: 22mm;
         max-width: 65mm;
         object-fit: contain;
-        margin-bottom: -3mm;   /* apoya la firma sobre la línea */
+        margin-bottom: -3mm;
     }
     .firma-line {
         border-top: 0.7pt solid #111;
@@ -553,8 +581,7 @@ async function downloadPdf() {
             if (i > 0) pdf.addPage();
             pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
         }
-        const stamp = new Date().toISOString().slice(0, 10);
-        pdf.save('recetas-rp-' + stamp + '.pdf');
+        pdf.save(${JSON.stringify(pdfFileName)});
     } catch (err) {
         console.error(err);
         alert('Error al generar PDF: ' + (err && err.message ? err.message : err));

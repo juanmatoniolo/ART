@@ -38,13 +38,11 @@ const parseCantidad = (v) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-// Muestra el nombre del insumo en texto plano, truncado a 15 caracteres
 const truncarNombreInsumo = (nombre) => {
     const limpio = String(nombre ?? '').replace(/_/g, ' ');
     return limpio.length > 15 ? `${limpio.slice(0, 15)}...` : limpio;
 };
 
-// Prácticas que permiten agregar insumos (gasto clínico)
 const INSUMOS_PRACTICAS_CODES = ['430201', '130110'];
 const esPracticaConInsumos = (codigo) => {
     const n = normCodeStr(codigo);
@@ -52,7 +50,7 @@ const esPracticaConInsumos = (codigo) => {
 };
 
 // =====================================================================
-//  PERSISTENCIA (borrador + carrito) — localStorage
+//  PERSISTENCIA — localStorage
 // =====================================================================
 const STORAGE_KEYS = {
     draft: 'rp_draft_v1',
@@ -69,6 +67,7 @@ const newRp = () => ({
     id: makeId(),
     tipoDoc: 'RP',
     esLab: false,
+    impreso: false,
     paciente: initialPaciente(),
     medico: initialMedico(),
     practicas: [],
@@ -78,7 +77,6 @@ const newRp = () => ({
     fecha: todayISO(),
 });
 
-// Sanea y completa un RP venido de localStorage
 const hydrateRp = (raw) => {
     const base = newRp();
     if (!raw || typeof raw !== 'object') return base;
@@ -86,6 +84,7 @@ const hydrateRp = (raw) => {
         ...base,
         ...raw,
         esLab: !!raw.esLab,
+        impreso: !!raw.impreso,
         paciente: { ...initialPaciente(), ...(raw.paciente || {}) },
         medico: { ...initialMedico(), ...(raw.medico || {}) },
         practicas: Array.isArray(raw.practicas) ? raw.practicas : [],
@@ -658,7 +657,11 @@ function LabRow({ item, onRemove }) {
     );
 }
 
-function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selected, onToggleSelect }) {
+function RPCard({
+    rp, onDelete, onEdit, onPrint, onDownload,
+    onToggleImpreso,
+    selectable, selected, onToggleSelect,
+}) {
     const total = (rp.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
     const totalHon = (rp.practicas || []).reduce(
         (a, p) => a + (p.costo?.honorarioMedico || 0), 0
@@ -673,7 +676,9 @@ function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selecte
     );
 
     return (
-        <div className={`${styles.rpCard} ${selected ? styles.rpCardSelected : ''}`}>
+        <div
+            className={`${styles.rpCard} ${selected ? styles.rpCardSelected : ''} ${rp.impreso ? styles.rpCardPrinted : ''}`}
+        >
             <div className={styles.rpCardHeader}>
                 {selectable && (
                     <input
@@ -684,17 +689,30 @@ function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selecte
                         aria-label="Seleccionar RP"
                     />
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong>
-                        {rp.tipoDoc}
-                        {rp.esLab ? ' LAB' : ''}
-                        {' · '}
+
+                <div className={styles.rpCardTitleBlock}>
+                    <strong className={styles.rpCardTitle} title={rp.paciente?.nombreCompleto || ''}>
+                        {rp.tipoDoc}{rp.esLab ? ' LAB' : ''}{' · '}
                         {rp.paciente?.nombreCompleto || 'Sin paciente'}
                     </strong>
                     <div className={styles.meta}>DNI: {rp.paciente?.dni || '—'}</div>
                 </div>
+
+                <button
+                    type="button"
+                    className={`${styles.printIconBtn} ${rp.impreso ? styles.printIconOn : ''}`}
+                    onClick={(e) => { e.stopPropagation(); onToggleImpreso?.(rp.id); }}
+                    title={rp.impreso
+                        ? 'Impresa — click para desmarcar'
+                        : 'Sin imprimir — click para marcar'}
+                    aria-label={rp.impreso ? 'Marcar como no impresa' : 'Marcar como impresa'}
+                >
+                    {rp.impreso ? '✓' : '🖨️'}
+                </button>
+
                 <span className={styles.badge}>{fmtDate(rp.fecha)}</span>
             </div>
+
             <div className={styles.meta}>
                 🩺 {rp.medico?.apellido ? `${rp.medico.apellido}, ${rp.medico.nombre}` : 'Sin médico'}
                 {rp.medico?.matricula ? ` · MP ${rp.medico.matricula}` : ''}
@@ -716,12 +734,8 @@ function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selecte
                     {practicasConInsumos.map((p) => (
                         <div key={p.id} className={styles.practicaMini}>
                             <div className={styles.practicaMiniHeader}>
-                                <span className={styles.practicaMiniCodigo}>
-                                    {p.codigo}
-                                </span>
-                                <span className={styles.practicaMiniDesc}>
-                                    {p.descripcion}
-                                </span>
+                                <span className={styles.practicaMiniCodigo}>{p.codigo}</span>
+                                <span className={styles.practicaMiniDesc}>{p.descripcion}</span>
                             </div>
                             <InsumoChips insumos={p.insumos} />
                         </div>
@@ -731,38 +745,22 @@ function RPCard({ rp, onDelete, onEdit, onPrint, onDownload, selectable, selecte
 
             <div className={styles.rpCardActions}>
                 {onPrint && (
-                    <button
-                        className={styles.btnGhost}
-                        onClick={() => onPrint(rp)}
-                        title="Imprimir"
-                    >
+                    <button className={styles.btnGhost} onClick={() => onPrint(rp)} title="Imprimir">
                         🖨️ Imprimir
                     </button>
                 )}
                 {onDownload && (
-                    <button
-                        className={styles.btnGhost}
-                        onClick={() => onDownload(rp)}
-                        title="Descargar PDF"
-                    >
+                    <button className={styles.btnGhost} onClick={() => onDownload(rp)} title="Descargar PDF">
                         📥 PDF
                     </button>
                 )}
                 {onEdit && (
-                    <button
-                        className={styles.btnGhost}
-                        onClick={() => onEdit(rp)}
-                        title="Editar"
-                    >
+                    <button className={styles.btnGhost} onClick={() => onEdit(rp)} title="Editar">
                         ✏️
                     </button>
                 )}
                 {onDelete && (
-                    <button
-                        className={styles.btnDanger}
-                        onClick={() => onDelete(rp.id)}
-                        title="Eliminar"
-                    >
+                    <button className={styles.btnDanger} onClick={() => onDelete(rp.id)} title="Eliminar">
                         🗑️
                     </button>
                 )}
@@ -811,11 +809,10 @@ export default function RPPage() {
     const [saveAtajoOpen, setSaveAtajoOpen] = useState(false);
     const [atajosOpen, setAtajosOpen] = useState(false);
 
-    // Flag para no pisar localStorage antes de restaurar
     const restoredRef = useRef(false);
 
     // ============================================================
-    //  RESTAURAR borrador y carrito desde localStorage (solo 1 vez)
+    //  RESTAURAR
     // ============================================================
     useEffect(() => {
         if (!isClient || restoredRef.current) return;
@@ -827,9 +824,7 @@ export default function RPPage() {
                 const parsed = JSON.parse(rawDraft);
                 setRp(hydrateRp(parsed));
             }
-        } catch (e) {
-            console.warn('No se pudo restaurar el borrador:', e);
-        }
+        } catch (e) { console.warn('No se pudo restaurar el borrador:', e); }
 
         try {
             const rawCart = localStorage.getItem(STORAGE_KEYS.carrito);
@@ -839,33 +834,22 @@ export default function RPPage() {
                     setCarrito(parsed.map((r) => hydrateRp(r)));
                 }
             }
-        } catch (e) {
-            console.warn('No se pudo restaurar el carrito:', e);
-        }
+        } catch (e) { console.warn('No se pudo restaurar el carrito:', e); }
     }, [isClient]);
 
     // ============================================================
-    //  PERSISTIR borrador en cada cambio
+    //  PERSISTIR
     // ============================================================
     useEffect(() => {
         if (!isClient || !restoredRef.current) return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.draft, JSON.stringify(rp));
-        } catch (e) {
-            console.warn('No se pudo guardar el borrador:', e);
-        }
+        try { localStorage.setItem(STORAGE_KEYS.draft, JSON.stringify(rp)); }
+        catch (e) { console.warn('No se pudo guardar el borrador:', e); }
     }, [rp, isClient]);
 
-    // ============================================================
-    //  PERSISTIR carrito en cada cambio (se limpia solo al guardar)
-    // ============================================================
     useEffect(() => {
         if (!isClient || !restoredRef.current) return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.carrito, JSON.stringify(carrito));
-        } catch (e) {
-            console.warn('No se pudo guardar el carrito:', e);
-        }
+        try { localStorage.setItem(STORAGE_KEYS.carrito, JSON.stringify(carrito)); }
+        catch (e) { console.warn('No se pudo guardar el carrito:', e); }
     }, [carrito, isClient]);
 
     // ============ Cargas ============
@@ -891,14 +875,8 @@ export default function RPPage() {
                         elegir = stored;
                     } else {
                         const sorted = [...keys].sort((a, b) => {
-                            const aT = Number(
-                                conv[a]?.createdAt ?? conv[a]?.creado ??
-                                conv[a]?.fecha ?? conv[a]?.updatedAt ?? 0
-                            );
-                            const bT = Number(
-                                conv[b]?.createdAt ?? conv[b]?.creado ??
-                                conv[b]?.fecha ?? conv[b]?.updatedAt ?? 0
-                            );
+                            const aT = Number(conv[a]?.createdAt ?? conv[a]?.creado ?? conv[a]?.fecha ?? conv[a]?.updatedAt ?? 0);
+                            const bT = Number(conv[b]?.createdAt ?? conv[b]?.creado ?? conv[b]?.fecha ?? conv[b]?.updatedAt ?? 0);
                             return bT - aT;
                         });
                         elegir = sorted[0];
@@ -922,9 +900,7 @@ export default function RPPage() {
                     list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     setAtajos(list);
                 }
-            } catch (e) {
-                console.error('Error cargando:', e);
-            }
+            } catch (e) { console.error('Error cargando:', e); }
         })();
     }, [isClient]);
 
@@ -1071,7 +1047,54 @@ export default function RPPage() {
     const selectAll = useCallback((list) => setSelectedIds(new Set(list.map((r) => r.id))), []);
     const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-    // ============ Cálculo combinado AOTER / NN + insumos ============
+    // ============ IMPRESO / NO IMPRESO ============
+    const toggleImpresoCart = useCallback((id) => {
+        setCarrito((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, impreso: !r.impreso } : r))
+        );
+    }, []);
+
+    const toggleImpresoHistorial = useCallback(async (id) => {
+        const item = historial.find((r) => r.id === id);
+        if (!item) return;
+        const nuevo = !item.impreso;
+
+        setHistorial((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, impreso: nuevo } : r))
+        );
+        try {
+            await set(ref(db, `rp/${id}/impreso`), nuevo);
+        } catch (e) {
+            console.error(e);
+            setHistorial((prev) =>
+                prev.map((r) => (r.id === id ? { ...r, impreso: !nuevo } : r))
+            );
+            alert('❌ No se pudo actualizar el estado de impresión');
+        }
+    }, [historial]);
+
+    const markPrintedCart = useCallback((ids) => {
+        if (!ids?.length) return;
+        const idSet = new Set(ids);
+        setCarrito((prev) =>
+            prev.map((r) => (idSet.has(r.id) ? { ...r, impreso: true } : r))
+        );
+    }, []);
+
+    const markPrintedHistorial = useCallback(async (ids) => {
+        if (!ids?.length) return;
+        const idSet = new Set(ids);
+        setHistorial((prev) =>
+            prev.map((r) => (idSet.has(r.id) ? { ...r, impreso: true } : r))
+        );
+        try {
+            await Promise.all(ids.map((id) => set(ref(db, `rp/${id}/impreso`), true)));
+        } catch (e) {
+            console.error('Error marcando como impresas:', e);
+        }
+    }, []);
+
+    // ============ Cálculo combinado ============
     const calcularCostoConDesglose = useCallback((item, insumos = []) => {
         const codeNorm = normCodeStr(item.codigo);
         const totalInsumos = (insumos || []).reduce(
@@ -1093,15 +1116,11 @@ export default function RPPage() {
                 ? item
                 : nacional.find((p) => normCodeStr(p.codigo) === codeNorm);
 
-        const aoterMatches = aoter.filter(
-            (p) => normCodeStr(p.codigo) === codeNorm
-        );
+        const aoterMatches = aoter.filter((p) => normCodeStr(p.codigo) === codeNorm);
         const aoterItem =
             item.origen === 'aoter'
                 ? item
-                : aoterMatches.sort(
-                      (a, b) => (b.complejidad || 0) - (a.complejidad || 0)
-                  )[0];
+                : aoterMatches.sort((a, b) => (b.complejidad || 0) - (a.complejidad || 0))[0];
 
         let nnCalc = null;
         if (nnItem) nnCalc = calcularPractica(nnItem, valoresConvenio);
@@ -1109,10 +1128,7 @@ export default function RPPage() {
         let aoterHonor = 0;
         let aoterFormula = '';
         if (aoterItem) {
-            const { cirujano } = obtenerHonorariosAoter(
-                aoterItem.complejidad,
-                valoresConvenio
-            );
+            const { cirujano } = obtenerHonorariosAoter(aoterItem.complejidad, valoresConvenio);
             aoterHonor = Number(cirujano) || 0;
             aoterFormula = `AOTER Comp.${aoterItem.complejidad}`;
         }
@@ -1273,7 +1289,6 @@ export default function RPPage() {
         }));
     }, []);
 
-    // ============ Toggle LAB ============
     const toggleEsLab = useCallback((checked) => {
         setRp((prev) => ({
             ...prev,
@@ -1356,7 +1371,7 @@ export default function RPPage() {
 
     const addToList = useCallback(() => {
         if (!canAddToList) return;
-        setCarrito((prev) => [...prev, { ...rp }]);
+        setCarrito((prev) => [...prev, { ...rp, impreso: false }]);
         setRp(newRp());
     }, [rp, canAddToList]);
 
@@ -1380,6 +1395,7 @@ export default function RPPage() {
 
                 const payload = sanitizeForFirebase({
                     ...r,
+                    impreso: !!r.impreso,
                     convenio: convenioSel,
                     convenioNombre: convenios[convenioSel]?.nombre || convenioSel,
                     totalHonorarios,
@@ -1394,7 +1410,6 @@ export default function RPPage() {
             setHistorial((prev) => [...saved, ...prev].sort(
                 (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
             ));
-            // El useEffect de persistencia limpia localStorage al ver carrito=[]
             setCarrito([]);
             clearSelection();
             alert(`✅ ${carrito.length} RP guardadas.`);
@@ -1405,12 +1420,11 @@ export default function RPPage() {
     }, [carrito, convenioSel, convenios, clearSelection]);
 
     // ============ Impresión / Descarga ============
-    // Abre una pestaña normal (sin popup con tamaño) usando Blob URL.
     const openOutputWindow = useCallback((rps, mode) => {
         if (!rps?.length) return;
 
         const logoSrc = `${window.location.origin}/logo.png`;
-        const html = buildPrintHtml(rps, logoSrc, mode);   // ← helpers resuelve las firmas
+        const html = buildPrintHtml(rps, logoSrc, mode);
 
         const blob = new Blob([html], { type: 'text/html' });
         const blobUrl = URL.createObjectURL(blob);
@@ -1426,14 +1440,18 @@ export default function RPPage() {
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     }, []);
 
-    const printList = useCallback((list) => {
+    const printList = useCallback((list, source = 'historial') => {
         if (!list?.length) return;
         const toPrint = selectedIds.size > 0
             ? list.filter((r) => selectedIds.has(r.id))
             : list;
         if (!toPrint.length) return;
         openOutputWindow(toPrint, 'print');
-    }, [selectedIds, openOutputWindow]);
+
+        const ids = toPrint.map((r) => r.id);
+        if (source === 'cart') markPrintedCart(ids);
+        else markPrintedHistorial(ids);
+    }, [selectedIds, openOutputWindow, markPrintedCart, markPrintedHistorial]);
 
     const downloadList = useCallback((list) => {
         if (!list?.length) return;
@@ -1444,7 +1462,12 @@ export default function RPPage() {
         openOutputWindow(toPrint, 'download');
     }, [selectedIds, openOutputWindow]);
 
-    const printOne = useCallback((r) => openOutputWindow([r], 'print'), [openOutputWindow]);
+    const printOne = useCallback((r, source = 'historial') => {
+        openOutputWindow([r], 'print');
+        if (source === 'cart') markPrintedCart([r.id]);
+        else markPrintedHistorial([r.id]);
+    }, [openOutputWindow, markPrintedCart, markPrintedHistorial]);
+
     const downloadOne = useCallback((r) => openOutputWindow([r], 'download'), [openOutputWindow]);
 
     // ============ Historial ============
@@ -1457,7 +1480,6 @@ export default function RPPage() {
         } catch (e) { console.error(e); alert('Error al eliminar'); }
     }, []);
 
-    // Elimina del carrito todas las RP tildadas
     const deleteSelectedFromCart = useCallback(() => {
         if (selectedIds.size === 0) return;
         if (!window.confirm(`¿Eliminar ${selectedIds.size} RP del carrito?`)) return;
@@ -1465,7 +1487,6 @@ export default function RPPage() {
         clearSelection();
     }, [selectedIds, clearSelection]);
 
-    // Elimina del historial (Firebase) todas las RP tildadas
     const deleteSelectedFromHistorial = useCallback(async () => {
         if (selectedIds.size === 0) return;
         if (!window.confirm(`¿Eliminar ${selectedIds.size} RP del historial? Esta acción no se puede deshacer.`)) return;
@@ -1487,6 +1508,7 @@ export default function RPPage() {
             ...base,
             ...clean,
             esLab: !!clean.esLab,
+            impreso: !!clean.impreso,
             practicas: Array.isArray(clean.practicas)
                 ? clean.practicas.map((p) => ({
                       ...p,
@@ -1508,6 +1530,7 @@ export default function RPPage() {
             ...base,
             ...rpToEdit,
             esLab: !!rpToEdit.esLab,
+            impreso: !!rpToEdit.impreso,
             practicas: Array.isArray(rpToEdit.practicas)
                 ? rpToEdit.practicas.map((p) => ({
                       ...p,
@@ -1529,20 +1552,14 @@ export default function RPPage() {
     }
 
     const totalRp = rp.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
-    const totalHonRp = rp.practicas.reduce(
-        (a, p) => a + (p.costo?.honorarioMedico || 0), 0
-    );
-    const totalGtoRp = rp.practicas.reduce(
-        (a, p) => a + (p.costo?.gastoSanatorial || 0), 0
-    );
+    const totalHonRp = rp.practicas.reduce((a, p) => a + (p.costo?.honorarioMedico || 0), 0);
+    const totalGtoRp = rp.practicas.reduce((a, p) => a + (p.costo?.gastoSanatorial || 0), 0);
     const totalCarrito = carrito.reduce(
         (a, r) => a + (r.practicas || []).reduce((b, p) => b + (p.costo?.total || 0), 0),
         0
     );
     const hayAoterRp = rp.practicas.some((p) => p.origen === 'aoter');
-    const hasContent = rp.esLab
-        ? rp.estudiosLab.length > 0
-        : rp.practicas.length > 0;
+    const hasContent = rp.esLab ? rp.estudiosLab.length > 0 : rp.practicas.length > 0;
 
     const solicitaAuto = rp.esLab
         ? rp.estudiosLab.map((l) => l.descripcion).join(' · ')
@@ -1801,21 +1818,18 @@ export default function RPPage() {
                                         onToggleSelect={toggleSelect}
                                         onDelete={removeFromCart}
                                         onEdit={editFromCart}
-                                        onPrint={printOne}
+                                        onPrint={(rp) => printOne(rp, 'cart')}
                                         onDownload={downloadOne}
+                                        onToggleImpreso={toggleImpresoCart}
                                     />
                                 ))}
                             </div>
                             <div className={styles.cartActions}>
-                                <button className={styles.btnGhost} onClick={() => printList(carrito)}>
-                                    🖨️ Imprimir {selectedIds.size > 0
-                                        ? `(${selectedIds.size})`
-                                        : 'todas'}
+                                <button className={styles.btnGhost} onClick={() => printList(carrito, 'cart')}>
+                                    🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
                                 </button>
                                 <button className={styles.btnGhost} onClick={() => downloadList(carrito)}>
-                                    📥 Descargar {selectedIds.size > 0
-                                        ? `(${selectedIds.size})`
-                                        : 'todas'}
+                                    📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
                                 </button>
                                 <button className={styles.btnPrimary} onClick={saveAll} disabled={saving}>
                                     {saving ? 'Guardando…' : '💾 Guardar todas'}
@@ -1848,21 +1862,17 @@ export default function RPPage() {
                                 </span>
                                 <button
                                     className={styles.btnGhost}
-                                    onClick={() => printList(historial)}
+                                    onClick={() => printList(historial, 'historial')}
                                     disabled={historial.length === 0}
                                 >
-                                    🖨️ Imprimir {selectedIds.size > 0
-                                        ? `(${selectedIds.size})`
-                                        : 'todas'}
+                                    🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
                                 </button>
                                 <button
                                     className={styles.btnPrimary}
                                     onClick={() => downloadList(historial)}
                                     disabled={historial.length === 0}
                                 >
-                                    📥 Descargar {selectedIds.size > 0
-                                        ? `(${selectedIds.size})`
-                                        : 'todas'}
+                                    📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
                                 </button>
                                 <button
                                     className={styles.btnDanger}
@@ -1884,8 +1894,9 @@ export default function RPPage() {
                                         onToggleSelect={toggleSelect}
                                         onDelete={deleteHistorial}
                                         onEdit={editFromHistorial}
-                                        onPrint={printOne}
+                                        onPrint={(rp) => printOne(rp, 'historial')}
                                         onDownload={downloadOne}
+                                        onToggleImpreso={toggleImpresoHistorial}
                                     />
                                 ))}
                             </div>
@@ -1906,7 +1917,6 @@ export default function RPPage() {
                 open={atajosOpen}
                 onClose={() => setAtajosOpen(false)}
                 atajos={atajos}
-                onSave={saveAtajo}
                 onApply={applyAtajo}
                 onDelete={deleteAtajo}
             />

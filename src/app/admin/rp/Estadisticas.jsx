@@ -1,7 +1,7 @@
 // app/admin/rp/Estadisticas.jsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './page.module.css';
 import { fmtDate } from './helpers';
 
@@ -33,7 +33,22 @@ const getMontos = (r) => {
     return { hon, gto, total: hon + gto };
 };
 
-// ---------- Selector múltiple con búsqueda ----------
+const toISO = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
+const formatMonthLabel = (key) => {
+    const [y, m] = key.split('-');
+    if (!y || !m) return key;
+    const date = new Date(Number(y), Number(m) - 1, 1);
+    const s = date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+// =================== SELECTOR MÚLTIPLE DE MÉDICOS ===================
 function MedicoMultiSelect({ medicos, selected, onChange }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState('');
@@ -87,18 +102,10 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
                         autoFocus
                     />
                     <div className={styles.multiSelectActions}>
-                        <button
-                            type="button"
-                            className={styles.btnGhost}
-                            onClick={() => onChange(allIds)}
-                        >
+                        <button type="button" className={styles.btnGhost} onClick={() => onChange(allIds)}>
                             Todos
                         </button>
-                        <button
-                            type="button"
-                            className={styles.btnGhost}
-                            onClick={() => onChange([])}
-                        >
+                        <button type="button" className={styles.btnGhost} onClick={() => onChange([])}>
                             Ninguno
                         </button>
                     </div>
@@ -115,9 +122,7 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
                                             checked={checked}
                                             onChange={() => toggle(m.id)}
                                         />
-                                        <span className={styles.multiSelectName}>
-                                            {m.nombre}
-                                        </span>
+                                        <span className={styles.multiSelectName}>{m.nombre}</span>
                                         <span className={styles.multiSelectMeta}>
                                             {m.cantidad} RP · ${money(m.total)}
                                         </span>
@@ -132,13 +137,296 @@ function MedicoMultiSelect({ medicos, selected, onChange }) {
     );
 }
 
-// =====================================================================
-//  ESTADÍSTICAS
-// =====================================================================
+// =================== FILTRO DE FECHAS ===================
+function FechaFilter({ desde, hasta, onChange }) {
+    const hoy = new Date();
+    const aplicar = (rango) => {
+        let d = '';
+        let h = '';
+        switch (rango) {
+            case 'mes-actual':
+                d = toISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+                h = toISO(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+                break;
+            case 'mes-pasado':
+                d = toISO(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+                h = toISO(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+                break;
+            case '30d': {
+                const dd = new Date(hoy);
+                dd.setDate(dd.getDate() - 29);
+                d = toISO(dd);
+                h = toISO(hoy);
+                break;
+            }
+            case 'año':
+                d = `${hoy.getFullYear()}-01-01`;
+                h = `${hoy.getFullYear()}-12-31`;
+                break;
+            case 'todo':
+            default:
+                d = '';
+                h = '';
+        }
+        onChange({ desde: d, hasta: h });
+    };
+
+    return (
+        <div className={styles.dateFilterBlock}>
+            <div className={styles.dateQuickRow}>
+                <button className={styles.btnGhost} onClick={() => aplicar('todo')}>Todo</button>
+                <button className={styles.btnGhost} onClick={() => aplicar('mes-actual')}>Este mes</button>
+                <button className={styles.btnGhost} onClick={() => aplicar('mes-pasado')}>Mes pasado</button>
+                <button className={styles.btnGhost} onClick={() => aplicar('30d')}>Últimos 30 días</button>
+                <button className={styles.btnGhost} onClick={() => aplicar('año')}>Este año</button>
+            </div>
+            <div className={styles.dateInputsRow}>
+                <label className={styles.dateInputLabel}>
+                    Desde
+                    <input
+                        type="date"
+                        className={styles.input}
+                        value={desde}
+                        onChange={(e) => onChange({ desde: e.target.value, hasta })}
+                    />
+                </label>
+                <label className={styles.dateInputLabel}>
+                    Hasta
+                    <input
+                        type="date"
+                        className={styles.input}
+                        value={hasta}
+                        onChange={(e) => onChange({ desde, hasta: e.target.value })}
+                    />
+                </label>
+                {(desde || hasta) && (
+                    <button
+                        className={styles.btnGhost}
+                        onClick={() => onChange({ desde: '', hasta: '' })}
+                        title="Limpiar rango"
+                    >
+                        ✕ Limpiar fechas
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// =================== DETALLE DE UN MES ===================
+function MonthDetail({ rps }) {
+    const ranking = useMemo(() => {
+        const map = new Map();
+        rps.forEach((r) => {
+            const id = r.medico?.id || r.medico?.apellido || 'sin_medico';
+            const nombre = r.medico?.apellido
+                ? `${r.medico.apellido}, ${r.medico.nombre}`
+                : 'Sin médico';
+            if (!map.has(id)) {
+                map.set(id, { id, nombre, cantidad: 0, hon: 0, gto: 0, total: 0 });
+            }
+            const m = map.get(id);
+            const { hon, gto, total } = getMontos(r);
+            m.cantidad += 1;
+            m.hon += hon;
+            m.gto += gto;
+            m.total += total;
+        });
+        return [...map.values()].sort((a, b) => b.total - a.total);
+    }, [rps]);
+
+    const codigos = useMemo(() => {
+        const map = new Map();
+        rps.forEach((r) => {
+            (r.practicas || []).forEach((p) => {
+                const k = p.codigo || '—';
+                const prev = map.get(k) || {
+                    codigo: k, descripcion: p.descripcion, cantidad: 0,
+                };
+                prev.cantidad += 1;
+                map.set(k, prev);
+            });
+            (r.estudiosLab || []).forEach((l) => {
+                const k = l.codigo || '—';
+                const prev = map.get(k) || {
+                    codigo: k, descripcion: l.descripcion, cantidad: 0,
+                };
+                prev.cantidad += 1;
+                map.set(k, prev);
+            });
+        });
+        return [...map.values()].sort((a, b) => b.cantidad - a.cantidad);
+    }, [rps]);
+
+    const totalMes = ranking.reduce((a, m) => a + m.total, 0);
+    const totalCodigos = codigos.reduce((a, c) => a + c.cantidad, 0);
+
+    return (
+        <div className={styles.monthDetailGrid}>
+            <div className={styles.detailSection}>
+                <h4 className={styles.detailTitle}>🩺 Médicos del mes</h4>
+                <div className={styles.tableScroll}>
+                    <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
+                        <colgroup>
+                            <col style={{ width: '32px' }} />
+                            <col />
+                            <col style={{ width: '55px' }} />
+                            <col style={{ width: '100px' }} />
+                            <col style={{ width: '100px' }} />
+                            <col style={{ width: '110px' }} />
+                            <col style={{ width: '70px' }} />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Médico</th>
+                                <th className={styles.numCol}>RPs</th>
+                                <th className={styles.numCol}>Honorarios</th>
+                                <th className={styles.numCol}>Gastos</th>
+                                <th className={styles.numCol}>Total</th>
+                                <th className={styles.numCol}>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {ranking.map((m, i) => (
+                                <tr key={m.id}>
+                                    <td className={styles.rankCell}>{i + 1}</td>
+                                    <td className={styles.ellipsisCell}>{m.nombre}</td>
+                                    <td className={styles.numCol}>{m.cantidad}</td>
+                                    <td className={styles.numCol}>$ {money(m.hon)}</td>
+                                    <td className={styles.numCol}>$ {money(m.gto)}</td>
+                                    <td className={styles.numCol}><b>$ {money(m.total)}</b></td>
+                                    <td className={styles.numCol}>
+                                        <span className={styles.pctBadge}>
+                                            {fmtPct(m.total, totalMes)}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {codigos.length > 0 && (
+                <div className={styles.detailSection}>
+                    <h4 className={styles.detailTitle}>🔝 Códigos del mes</h4>
+                    <div className={styles.tableScroll}>
+                        <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
+                            <colgroup>
+                                <col style={{ width: '32px' }} />
+                                <col style={{ width: '110px' }} />
+                                <col />
+                                <col style={{ width: '70px' }} />
+                                <col style={{ width: '70px' }} />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Código</th>
+                                    <th>Descripción</th>
+                                    <th className={styles.numCol}>Veces</th>
+                                    <th className={styles.numCol}>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {codigos.map((c, i) => (
+                                    <tr key={c.codigo}>
+                                        <td className={styles.rankCell}>{i + 1}</td>
+                                        <td className={styles.codeCell}>{c.codigo}</td>
+                                        <td className={styles.ellipsisCell}>{c.descripcion}</td>
+                                        <td className={styles.numCol}>{c.cantidad}</td>
+                                        <td className={styles.numCol}>
+                                            <span className={styles.pctBadge}>
+                                                {fmtPct(c.cantidad, totalCodigos)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            <div className={styles.detailSection}>
+                <h4 className={styles.detailTitle}>
+                    📋 RPs del mes ({rps.length})
+                </h4>
+                <div className={styles.tableScroll}>
+                    <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
+                        <colgroup>
+                            <col style={{ width: '85px' }} />
+                            <col />
+                            <col style={{ width: '150px' }} />
+                            <col style={{ width: '60px' }} />
+                            <col style={{ width: '55px' }} />
+                            <col style={{ width: '100px' }} />
+                            <col style={{ width: '100px' }} />
+                            <col style={{ width: '110px' }} />
+                            <col style={{ width: '45px' }} />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Paciente</th>
+                                <th>Médico</th>
+                                <th className={styles.numCol}>Práct.</th>
+                                <th className={styles.numCol}>🧪</th>
+                                <th className={styles.numCol}>Honorarios</th>
+                                <th className={styles.numCol}>Gastos</th>
+                                <th className={styles.numCol}>Total</th>
+                                <th className={styles.numCol}>🖨️</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rps
+                                .slice()
+                                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                                .map((r) => {
+                                    const med = r.medico?.apellido
+                                        ? `${r.medico.apellido}, ${r.medico.nombre}`
+                                        : 'Sin médico';
+                                    const { hon, gto, total } = getMontos(r);
+                                    return (
+                                        <tr key={r.id}>
+                                            <td>{fmtDate(r.fecha)}</td>
+                                            <td className={styles.ellipsisCell}>
+                                                {r.paciente?.nombreCompleto || '—'}
+                                            </td>
+                                            <td className={styles.ellipsisCell}>{med}</td>
+                                            <td className={styles.numCol}>
+                                                {r.practicas?.length || 0}
+                                            </td>
+                                            <td className={styles.numCol}>
+                                                {(r.estudiosLab || []).length}
+                                            </td>
+                                            <td className={styles.numCol}>$ {money(hon)}</td>
+                                            <td className={styles.numCol}>$ {money(gto)}</td>
+                                            <td className={styles.numCol}>
+                                                <b>$ {money(total)}</b>
+                                            </td>
+                                            <td className={styles.numCol}>
+                                                {r.impreso ? '✅' : '⬜'}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// =================== ESTADÍSTICAS ===================
 export default function Estadisticas({ historial }) {
     const [selectedMedicos, setSelectedMedicos] = useState([]);
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
+    const [expanded, setExpanded] = useState(null);
 
-    // ---- Ranking por médico (con hon / gto / total separados) ----
     const medicosList = useMemo(() => {
         const map = new Map();
         historial.forEach((r) => {
@@ -159,96 +447,47 @@ export default function Estadisticas({ historial }) {
         return [...map.values()].sort((a, b) => b.total - a.total);
     }, [historial]);
 
-    // ---- Totales generales ----
-    const totales = useMemo(() => {
-        let hon = 0, gto = 0, total = 0;
-        historial.forEach((r) => {
-            const m = getMontos(r);
-            hon += m.hon;
-            gto += m.gto;
-            total += m.total;
-        });
-        return { hon, gto, total, rps: historial.length };
-    }, [historial]);
+    const filtradas = useMemo(() => {
+        let base = historial;
+        if (selectedMedicos.length > 0) {
+            base = base.filter((r) => {
+                const id = r.medico?.id || r.medico?.apellido || 'sin_medico';
+                return selectedMedicos.includes(id);
+            });
+        }
+        if (fechaDesde) base = base.filter((r) => (r.fecha || '') >= fechaDesde);
+        if (fechaHasta) base = base.filter((r) => (r.fecha || '') <= fechaHasta);
+        return base;
+    }, [historial, selectedMedicos, fechaDesde, fechaHasta]);
 
-    // ---- RPs visibles según filtro ----
-    const rpsVisibles = useMemo(() => {
-        if (selectedMedicos.length === 0) return historial;
-        return historial.filter((r) => {
-            const id = r.medico?.id || r.medico?.apellido || 'sin_medico';
-            return selectedMedicos.includes(id);
-        });
-    }, [selectedMedicos, historial]);
-
-    const rankingVisible = useMemo(() => {
-        if (selectedMedicos.length === 0) return medicosList;
-        return medicosList.filter((m) => selectedMedicos.includes(m.id));
-    }, [medicosList, selectedMedicos]);
-
-    // ---- KPIs sobre lo visible ----
-    const visible = useMemo(() => {
-        let hon = 0, gto = 0, total = 0;
-        rpsVisibles.forEach((r) => {
-            const m = getMontos(r);
-            hon += m.hon;
-            gto += m.gto;
-            total += m.total;
-        });
-        const n = rpsVisibles.length;
-        return {
-            hon, gto, total,
-            promedio: n > 0 ? total / n : 0,
-            promedioHon: n > 0 ? hon / n : 0,
-            promedioGto: n > 0 ? gto / n : 0,
-        };
-    }, [rpsVisibles]);
-
-    // ---- Destacados ----
-    const topPorTotal = useMemo(
-        () => (rankingVisible.length ? [...rankingVisible].sort((a, b) => b.total - a.total)[0] : null),
-        [rankingVisible]
-    );
-    const topPorHon = useMemo(
-        () => (rankingVisible.length ? [...rankingVisible].sort((a, b) => b.hon - a.hon)[0] : null),
-        [rankingVisible]
-    );
-    const topPorGto = useMemo(
-        () => (rankingVisible.length ? [...rankingVisible].sort((a, b) => b.gto - a.gto)[0] : null),
-        [rankingVisible]
-    );
-    const topPorCantidad = useMemo(
-        () => (rankingVisible.length ? [...rankingVisible].sort((a, b) => b.cantidad - a.cantidad)[0] : null),
-        [rankingVisible]
-    );
-
-    // ---- Códigos agregados ----
-    const codigosList = useMemo(() => {
+    const monthsData = useMemo(() => {
         const map = new Map();
-        rpsVisibles.forEach((r) => {
-            (r.practicas || []).forEach((p) => {
-                const k = p.codigo || '—';
-                const prev = map.get(k) || {
-                    codigo: k, descripcion: p.descripcion, cantidad: 0,
-                    origen: p.origen || '',
-                };
-                prev.cantidad += 1;
-                map.set(k, prev);
-            });
-            (r.estudiosLab || []).forEach((l) => {
-                const k = l.codigo || '—';
-                const prev = map.get(k) || {
-                    codigo: k, descripcion: l.descripcion, cantidad: 0,
-                    origen: 'bioquimica',
-                };
-                prev.cantidad += 1;
-                map.set(k, prev);
-            });
+        filtradas.forEach((r) => {
+            const key = (r.fecha || '').slice(0, 7);
+            if (!key) return;
+            if (!map.has(key)) {
+                map.set(key, { key, rps: [], hon: 0, gto: 0, total: 0 });
+            }
+            const m = map.get(key);
+            const { hon, gto, total } = getMontos(r);
+            m.rps.push(r);
+            m.hon += hon;
+            m.gto += gto;
+            m.total += total;
         });
-        return [...map.values()].sort((a, b) => b.cantidad - a.cantidad);
-    }, [rpsVisibles]);
+        return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
+    }, [filtradas]);
 
-    const totalCodigos = codigosList.reduce((a, c) => a + c.cantidad, 0);
-    const topCodigo = codigosList[0] || null;
+    const totalGeneral = useMemo(() => {
+        let hon = 0, gto = 0, total = 0;
+        filtradas.forEach((r) => {
+            const m = getMontos(r);
+            hon += m.hon;
+            gto += m.gto;
+            total += m.total;
+        });
+        return { hon, gto, total, rps: filtradas.length };
+    }, [filtradas]);
 
     if (historial.length === 0) {
         return (
@@ -262,7 +501,6 @@ export default function Estadisticas({ historial }) {
 
     return (
         <section className={styles.stats}>
-            {/* Filtro */}
             <div className={styles.statsFilter}>
                 <MedicoMultiSelect
                     medicos={medicosList}
@@ -270,307 +508,132 @@ export default function Estadisticas({ historial }) {
                     onChange={setSelectedMedicos}
                 />
                 {selectedMedicos.length > 0 && (
-                    <button
-                        className={styles.btnGhost}
-                        onClick={() => setSelectedMedicos([])}
-                    >
-                        Limpiar filtro
+                    <button className={styles.btnGhost} onClick={() => setSelectedMedicos([])}>
+                        Limpiar médicos
                     </button>
                 )}
             </div>
 
-            {/* KPIs económicos */}
+            <FechaFilter
+                desde={fechaDesde}
+                hasta={fechaHasta}
+                onChange={({ desde, hasta }) => {
+                    setFechaDesde(desde);
+                    setFechaHasta(hasta);
+                }}
+            />
+
             <div className={styles.kpiGrid}>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>💰 Honorarios médicos</div>
-                    <div className={styles.kpiValue}>$ {money(visible.hon)}</div>
+                    <div className={styles.kpiLabel}>📄 RPs</div>
+                    <div className={styles.kpiValue}>{totalGeneral.rps}</div>
+                    <div className={styles.kpiSub}>En {monthsData.length} mes(es)</div>
+                </div>
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiLabel}>💰 Honorarios</div>
+                    <div className={styles.kpiValue}>$ {money(totalGeneral.hon)}</div>
                     <div className={styles.kpiSub}>
-                        {fmtPct(visible.hon, visible.total)} del total
+                        {fmtPct(totalGeneral.hon, totalGeneral.total)} del total
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>🏥 Gastos clínicos / sanatoriales</div>
-                    <div className={styles.kpiValue}>$ {money(visible.gto)}</div>
+                    <div className={styles.kpiLabel}>🏥 Gastos clínicos</div>
+                    <div className={styles.kpiValue}>$ {money(totalGeneral.gto)}</div>
                     <div className={styles.kpiSub}>
-                        {fmtPct(visible.gto, visible.total)} del total
+                        {fmtPct(totalGeneral.gto, totalGeneral.total)} del total
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
                     <div className={styles.kpiLabel}>🧾 Total facturado</div>
-                    <div className={styles.kpiValue}>$ {money(visible.total)}</div>
+                    <div className={styles.kpiValue}>$ {money(totalGeneral.total)}</div>
                     <div className={styles.kpiSub}>
-                        {selectedMedicos.length > 0
-                            ? `${fmtPct(visible.total, totales.total)} del total general`
-                            : 'Suma de todas las RPs'}
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>📄 RPs generadas</div>
-                    <div className={styles.kpiValue}>{rpsVisibles.length}</div>
-                    <div className={styles.kpiSub}>
-                        {selectedMedicos.length > 0
-                            ? `${fmtPct(rpsVisibles.length, totales.rps)} del total`
-                            : `${totales.rps} en total`}
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>📊 Prom. Hon / RP</div>
-                    <div className={styles.kpiValue}>$ {money(visible.promedioHon)}</div>
-                    <div className={styles.kpiSub}>Sobre {rpsVisibles.length} RP(s)</div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>📊 Prom. Gasto / RP</div>
-                    <div className={styles.kpiValue}>$ {money(visible.promedioGto)}</div>
-                    <div className={styles.kpiSub}>Sobre {rpsVisibles.length} RP(s)</div>
-                </div>
-            </div>
-
-            {/* Destacados */}
-            <div className={styles.kpiGrid}>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>🩺 Médico más recurrente</div>
-                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
-                        {topPorCantidad?.nombre || '—'}
-                    </div>
-                    <div className={styles.kpiSub}>
-                        {topPorCantidad?.cantidad || 0} RP(s)
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>💰 Top honorarios</div>
-                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
-                        {topPorHon?.nombre || '—'}
-                    </div>
-                    <div className={styles.kpiSub}>
-                        $ {money(topPorHon?.hon || 0)} en honorarios
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>🏥 Top gastos clínicos</div>
-                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
-                        {topPorGto?.nombre || '—'}
-                    </div>
-                    <div className={styles.kpiSub}>
-                        $ {money(topPorGto?.gto || 0)} en gastos
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>🔝 Código más pedido</div>
-                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
-                        {topCodigo?.codigo || '—'}
-                    </div>
-                    <div className={styles.kpiSub}>
-                        {topCodigo?.descripcion || '—'}
-                        {topCodigo ? ` · ${topCodigo.cantidad} vez(ces)` : ''}
-                    </div>
-                </div>
-                <div className={styles.kpiCard}>
-                    <div className={styles.kpiLabel}>🏆 Top facturación total</div>
-                    <div className={styles.kpiValue} style={{ fontSize: '1rem' }}>
-                        {topPorTotal?.nombre || '—'}
-                    </div>
-                    <div className={styles.kpiSub}>
-                        $ {money(topPorTotal?.total || 0)} ·{' '}
-                        {topPorTotal?.cantidad || 0} RP(s)
+                        {totalGeneral.rps > 0
+                            ? `Prom. $ ${money(totalGeneral.total / totalGeneral.rps)} / RP`
+                            : 'Sin datos'}
                     </div>
                 </div>
             </div>
 
-            {/* Ranking de médicos */}
-            {rankingVisible.length > 0 && (
+            {monthsData.length === 0 ? (
+                <div className={styles.empty}>
+                    No hay RPs que coincidan con los filtros.
+                </div>
+            ) : (
                 <div className={styles.tableBlock}>
                     <h3 className={styles.tableTitle}>
-                        🩺 Ranking de médicos (Hon / Gasto / Total)
+                        📅 Totales por mes — clickeá una fila para ver el detalle
                     </h3>
                     <div className={styles.tableScroll}>
-                        <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
+                        <table className={`${styles.dataTable} ${styles.dataTableFixed} ${styles.monthsTable}`}>
                             <colgroup>
-                                <col style={{ width: '40px' }} />
-                                <col style={{ width: '220px' }} />
-                                <col />
-                                <col style={{ width: '55px' }} />
-                                <col style={{ width: '105px' }} />
-                                <col style={{ width: '105px' }} />
-                                <col style={{ width: '115px' }} />
+                                <col style={{ width: '180px' }} />
+                                <col style={{ width: '70px' }} />
+                                <col style={{ width: '120px' }} />
+                                <col style={{ width: '120px' }} />
+                                <col style={{ width: '130px' }} />
                                 <col style={{ width: '80px' }} />
+                                <col />
                             </colgroup>
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>Médico</th>
-                                    <th></th>
+                                    <th>Mes</th>
                                     <th className={styles.numCol}>RPs</th>
                                     <th className={styles.numCol}>Honorarios</th>
                                     <th className={styles.numCol}>Gastos</th>
                                     <th className={styles.numCol}>Total</th>
-                                    <th className={styles.numCol}>% del total</th>
+                                    <th className={styles.numCol}>%</th>
+                                    <th className={styles.expandCol}></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {rankingVisible.map((m, i) => (
-                                    <tr key={m.id}>
-                                        <td className={styles.rankCell}>{i + 1}</td>
-                                        <td className={styles.ellipsisCell}>{m.nombre}</td>
-                                        <td></td>
-                                        <td className={styles.numCol}>{m.cantidad}</td>
-                                        <td className={styles.numCol}>$ {money(m.hon)}</td>
-                                        <td className={styles.numCol}>$ {money(m.gto)}</td>
-                                        <td className={styles.numCol}>
-                                            <b>$ {money(m.total)}</b>
-                                        </td>
-                                        <td className={styles.numCol}>
-                                            <span className={styles.pctBadge}>
-                                                {fmtPct(m.total, totales.total)}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colSpan={2}><b>Total</b></td>
-                                    <td></td>
-                                    <td className={styles.numCol}><b>{totales.rps}</b></td>
-                                    <td className={styles.numCol}><b>$ {money(totales.hon)}</b></td>
-                                    <td className={styles.numCol}><b>$ {money(totales.gto)}</b></td>
-                                    <td className={styles.numCol}><b>$ {money(totales.total)}</b></td>
-                                    <td className={styles.numCol}><b>100%</b></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {/* Listado de RPs */}
-            {rpsVisibles.length > 0 && (
-                <div className={styles.tableBlock}>
-                    <h3 className={styles.tableTitle}>
-                        📋 RPs visibles ({rpsVisibles.length})
-                        {selectedMedicos.length > 0
-                            ? ' — filtradas por médico'
-                            : ' — todas'}
-                    </h3>
-                    <div className={styles.tableScroll}>
-                        <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
-                            <colgroup>
-                                <col style={{ width: '90px' }} />
-                                <col style={{ width: '200px' }} />
-                                <col />
-                                <col style={{ width: '70px' }} />
-                                <col style={{ width: '60px' }} />
-                                <col style={{ width: '100px' }} />
-                                <col style={{ width: '100px' }} />
-                                <col style={{ width: '110px' }} />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Paciente</th>
-                                    <th>Médico</th>
-                                    <th className={styles.numCol}>Prácticas</th>
-                                    <th className={styles.numCol}>🧪 Lab</th>
-                                    <th className={styles.numCol}>Honorarios</th>
-                                    <th className={styles.numCol}>Gastos</th>
-                                    <th className={styles.numCol}>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rpsVisibles
-                                    .slice()
-                                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                                    .map((r) => {
-                                        const med = r.medico?.apellido
-                                            ? `${r.medico.apellido}, ${r.medico.nombre}`
-                                            : 'Sin médico';
-                                        const { hon, gto, total } = getMontos(r);
-                                        return (
-                                            <tr key={r.id}>
-                                                <td>{fmtDate(r.fecha)}</td>
-                                                <td className={styles.ellipsisCell}>
-                                                    {r.paciente?.nombreCompleto || '—'}
-                                                </td>
-                                                <td className={styles.ellipsisCell}>{med}</td>
+                                {monthsData.map((m) => {
+                                    const isOpen = expanded === m.key;
+                                    return (
+                                        <Fragment key={m.key}>
+                                            <tr
+                                                className={`${styles.monthRow} ${isOpen ? styles.monthRowOpen : ''}`}
+                                                onClick={() => setExpanded(isOpen ? null : m.key)}
+                                            >
+                                                <td><b>{formatMonthLabel(m.key)}</b></td>
+                                                <td className={styles.numCol}>{m.rps.length}</td>
+                                                <td className={styles.numCol}>$ {money(m.hon)}</td>
+                                                <td className={styles.numCol}>$ {money(m.gto)}</td>
                                                 <td className={styles.numCol}>
-                                                    {r.practicas?.length || 0}
+                                                    <b>$ {money(m.total)}</b>
                                                 </td>
                                                 <td className={styles.numCol}>
-                                                    {(r.estudiosLab || []).length}
+                                                    <span className={styles.pctBadge}>
+                                                        {fmtPct(m.total, totalGeneral.total)}
+                                                    </span>
                                                 </td>
-                                                <td className={styles.numCol}>
-                                                    $ {money(hon)}
-                                                </td>
-                                                <td className={styles.numCol}>
-                                                    $ {money(gto)}
-                                                </td>
-                                                <td className={styles.numCol}>
-                                                    <b>$ {money(total)}</b>
+                                                <td className={styles.expandCol}>
+                                                    <span className={styles.expandBtn}>
+                                                        {isOpen ? '▲ Ocultar' : '▼ Ver detalle'}
+                                                    </span>
                                                 </td>
                                             </tr>
-                                        );
-                                    })}
+                                            {isOpen && (
+                                                <tr className={styles.monthDetailRow}>
+                                                    <td colSpan={7}>
+                                                        <MonthDetail rps={m.rps} />
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
+                                    );
+                                })}
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colSpan={5}><b>Total visible</b></td>
-                                    <td className={styles.numCol}>
-                                        <b>$ {money(visible.hon)}</b>
-                                    </td>
-                                    <td className={styles.numCol}>
-                                        <b>$ {money(visible.gto)}</b>
-                                    </td>
-                                    <td className={styles.numCol}>
-                                        <b>$ {money(visible.total)}</b>
-                                    </td>
+                                    <td><b>Total</b></td>
+                                    <td className={styles.numCol}><b>{totalGeneral.rps}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totalGeneral.hon)}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totalGeneral.gto)}</b></td>
+                                    <td className={styles.numCol}><b>$ {money(totalGeneral.total)}</b></td>
+                                    <td className={styles.numCol}><b>100%</b></td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {/* Códigos más solicitados */}
-            {codigosList.length > 0 && (
-                <div className={styles.tableBlock}>
-                    <h3 className={styles.tableTitle}>🔝 Códigos más solicitados</h3>
-                    <div className={styles.tableScroll}>
-                        <table className={`${styles.dataTable} ${styles.dataTableFixed}`}>
-                            <colgroup>
-                                <col style={{ width: '40px' }} />
-                                <col style={{ width: '120px' }} />
-                                <col style={{ width: '280px' }} />
-                                <col />
-                                <col style={{ width: '80px' }} />
-                                <col style={{ width: '80px' }} />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Código</th>
-                                    <th>Descripción</th>
-                                    <th></th>
-                                    <th className={styles.numCol}>Veces</th>
-                                    <th className={styles.numCol}>%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {codigosList.map((c, i) => (
-                                    <tr key={c.codigo}>
-                                        <td className={styles.rankCell}>{i + 1}</td>
-                                        <td className={styles.codeCell}>{c.codigo}</td>
-                                        <td className={styles.ellipsisCell}>
-                                            {c.descripcion}
-                                        </td>
-                                        <td></td>
-                                        <td className={styles.numCol}>{c.cantidad}</td>
-                                        <td className={styles.numCol}>
-                                            <span className={styles.pctBadge}>
-                                                {fmtPct(c.cantidad, totalCodigos)}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
                         </table>
                     </div>
                 </div>
