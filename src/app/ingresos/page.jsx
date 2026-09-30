@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
-  push, ref, set, get, child, update, runTransaction,
+  push, ref, set, get, child, update, remove, runTransaction,
 } from "firebase/database";
 import { getSession } from "@/utils/session";
 import styles from "./ingresos.module.css";
@@ -34,7 +35,6 @@ import {
   defaultMonth,
   defaultYearShort,
 } from "./helpers";
-import Header from "@/components/Header/Header";
 
 const STORAGE_KEY = "ingreso_paciente_form_v1";
 const THEME_KEY = "siniestro_theme";
@@ -194,6 +194,7 @@ function buildErrorHtml(msg) {
 }
 
 export default function IngresosPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("nuevo");
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -204,6 +205,7 @@ export default function IngresosPage() {
   const [pdfError, setPdfError] = useState(null);
   const [theme, setTheme] = useState("dark");
   const [shouldFocusError, setShouldFocusError] = useState(false);
+  const [showValidationWarn, setShowValidationWarn] = useState(false);
 
   const [pacientes, setPacientes] = useState([]);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
@@ -211,13 +213,17 @@ export default function IngresosPage() {
   const [editingId, setEditingId] = useState(null);
   const [currentEstado, setCurrentEstado] = useState(null);
 
+  /* Estados de acciones por fila */
   const [printingId, setPrintingId] = useState(null);
   const [printingDorsoId, setPrintingDorsoId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
+  /* Documentación */
   const [docs, setDocs] = useState([]);
   const [docsModalPaciente, setDocsModalPaciente] = useState(null);
 
+  /* HC lookup */
   const [hcLookup, setHcLookup] = useState({
     loading: false, searched: false, dni: "", tipo: "PISO",
     match: null, nextNumber: null, loadingNext: false,
@@ -226,6 +232,7 @@ export default function IngresosPage() {
   const [creatingHc, setCreatingHc] = useState(null);
   const submittingRef = useRef(false);
 
+  /* Tema */
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
     setTheme(savedTheme);
@@ -239,6 +246,7 @@ export default function IngresosPage() {
     document.body.classList.toggle("light-mode", newTheme === "light");
   };
 
+  /* Hidratar form */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -255,6 +263,7 @@ export default function IngresosPage() {
     } catch { }
   }, []);
 
+  /* Persistir form */
   useEffect(() => {
     const t = setTimeout(() => {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)); } catch { }
@@ -262,10 +271,12 @@ export default function IngresosPage() {
     return () => clearTimeout(t);
   }, [form]);
 
+  /* Revocar PDF */
   useEffect(() => {
     return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); };
   }, [pdfUrl]);
 
+  /* Edad */
   useEffect(() => {
     setForm((prev) => {
       const edad = calcularEdad(prev.trabajadorNacimiento);
@@ -274,12 +285,14 @@ export default function IngresosPage() {
     });
   }, [form.trabajadorNacimiento]);
 
+  /* UTI sin letra */
   useEffect(() => {
     if (form.tipoIngreso === "UTI" && form.camaLetra) {
       setForm((p) => ({ ...p, camaLetra: "" }));
     }
   }, [form.tipoIngreso]);
 
+  /* Re-buscar DNI al cambiar tipo */
   useEffect(() => {
     const digits = onlyDigits(form.trabajadorDni);
     if (digits.length >= 7 && hcLookup.searched && hcLookup.tipo !== form.tipoIngreso) {
@@ -289,6 +302,7 @@ export default function IngresosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.tipoIngreso]);
 
+  /* Foco en error */
   useEffect(() => {
     if (shouldFocusError && Object.keys(errors).length > 0) {
       const timer = setTimeout(() => {
@@ -303,6 +317,7 @@ export default function IngresosPage() {
     }
   }, [shouldFocusError, errors]);
 
+  /* Cargar pacientes al abrir tab */
   useEffect(() => {
     if (activeTab === "buscar") fetchAllPacientes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -528,6 +543,7 @@ export default function IngresosPage() {
     setHcLookup({ loading: false, searched: false, dni: "", tipo: "PISO", match: null, nextNumber: null, loadingNext: false });
     setCreatingHc(null);
     setDocs([]);
+    setShowValidationWarn(false);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -556,6 +572,8 @@ export default function IngresosPage() {
       trabajadorSexo: t.sexo || "",
       trabajadorCalle: t.calle || "",
       trabajadorNumero: t.numero || "",
+      trabajadorPiso: t.piso || "",
+      trabajadorDepto: t.depto || "",
       trabajadorLocalidad: t.localidad || "",
       trabajadorProvincia: t.provincia || "",
       trabajadorCP: t.cp || "",
@@ -586,9 +604,43 @@ export default function IngresosPage() {
     setPdfError(null);
     setPdfUrl(null);
     setPdfFileName(null);
+    setShowValidationWarn(false);
     lastLookupDniRef.current = "";
     setHcLookup({ loading: false, searched: false, dni: "", tipo: "PISO", match: null, nextNumber: null, loadingNext: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  /* ------------------------------------------------------------------
+     Eliminar: borra el ingreso de la DB tras confirmación
+     ------------------------------------------------------------------ */
+  const handleDeletePaciente = async (paciente) => {
+    const t = paciente.trabajador || {};
+    const nombre = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "este ingreso";
+    const hc = paciente.historiaClinica ? ` (HC ${paciente.historiaClinica})` : "";
+    const docsPaciente = Array.isArray(paciente.documentacion) ? paciente.documentacion : [];
+    const docsMsg = docsPaciente.length
+      ? `\n\n⚠️ También se eliminarán los ${docsPaciente.length} documento(s) asociados a este ingreso.`
+      : "";
+
+    const ok = window.confirm(
+      `¿Eliminar definitivamente el ingreso de "${nombre}"${hc}?\n\nEsta acción no se puede deshacer.${docsMsg}`
+    );
+    if (!ok) return;
+
+    setDeletingId(paciente.id);
+    try {
+      await remove(ref(db, `${DB_NODE}/${paciente.id}`));
+
+      if (editingId === paciente.id) resetForm();
+      if (docsModalPaciente?.id === paciente.id) setDocsModalPaciente(null);
+
+      setPacientes((prev) => prev.filter((x) => x.id !== paciente.id));
+    } catch (err) {
+      console.error("Error eliminando ingreso:", err);
+      alert("No se pudo eliminar el ingreso. Revisá la consola.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   /* ------------------------------------------------------------------
@@ -694,7 +746,6 @@ export default function IngresosPage() {
         }
       }
 
-      /* Si no pudimos abrir pestaña: descarga directa */
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
@@ -780,10 +831,23 @@ export default function IngresosPage() {
 
     const v = validate(form);
     setErrors(v);
-    if (Object.keys(v).length) {
-      setShouldFocusError(true);
-      submittingRef.current = false;
-      return;
+    const hayFaltantes = Object.keys(v).length > 0;
+    setShowValidationWarn(hayFaltantes);
+
+    /* ⚠️ ADVERTENCIA (no bloqueante): si faltan datos, avisamos
+       y pedimos confirmación para seguir igual. */
+    if (hayFaltantes) {
+      const lista = Object.values(v)
+        .map((msg) => `• ${msg}`)
+        .join("\n");
+      const ok = window.confirm(
+        `⚠️ Faltan completar algunos datos:\n\n${lista}\n\n¿Querés guardar igual?`
+      );
+      if (!ok) {
+        setShouldFocusError(true);
+        submittingRef.current = false;
+        return;
+      }
     }
 
     setSaving(true);
@@ -800,7 +864,7 @@ export default function IngresosPage() {
         historiaClinica: (form.historiaClinica || "").trim().toUpperCase(),
         tipoIngreso: form.tipoIngreso,
 
-        /* ⬇️ Lugar de nacimiento en 3 formatos para cubrir cualquier plantilla del PDF */
+        /* Lugar de nacimiento en 3 formatos para cubrir cualquier plantilla */
         "nacimiento-paciente": lugarNac,
         nacimientoPaciente: lugarNac,
         lugarNacimiento: lugarNac,
@@ -815,12 +879,13 @@ export default function IngresosPage() {
           nombre: form.trabajadorNombre.trim().toUpperCase() || "",
           dni: trabajadorDniFormatted || "",
           nacimiento: form.trabajadorNacimiento || "",
-          /* ⬇️ También dentro de trabajador por si la plantilla lo lee anidado */
           lugarNacimiento: lugarNac,
           edad: form.trabajadorEdad,
           sexo: form.trabajadorSexo,
           calle: form.trabajadorCalle.trim().toUpperCase() || "",
           numero: form.trabajadorNumero.trim().toUpperCase() || "",
+          piso: form.trabajadorPiso.trim().toUpperCase() || "",
+          depto: form.trabajadorDepto.trim().toUpperCase() || "",
           localidad: form.trabajadorLocalidad.trim().toUpperCase() || "",
           provincia: form.trabajadorProvincia.trim().toUpperCase() || "",
           cp: onlyDigits(form.trabajadorCP) || "",
@@ -843,14 +908,6 @@ export default function IngresosPage() {
         prestador: PRESTADOR_CONST,
         updatedAt: Date.now(),
       };
-
-      /* Log temporal para verificar en consola qué se está enviando */
-      console.log("PAYLOAD lugar de nacimiento:", {
-        "nacimiento-paciente": payload["nacimiento-paciente"],
-        nacimientoPaciente: payload.nacimientoPaciente,
-        lugarNacimiento: payload.lugarNacimiento,
-        "trabajador.lugarNacimiento": payload.trabajador.lugarNacimiento,
-      });
 
       let savedId;
       if (editingId) {
@@ -948,7 +1005,6 @@ export default function IngresosPage() {
 
   return (
     <>
-      <Header />
       <div className={cx(styles.page, theme === "light" && styles.lightMode)}>
         <div className={styles.shell}>
           <div className={styles.header}>
@@ -983,24 +1039,17 @@ export default function IngresosPage() {
           </div>
 
           <div className={styles.tabsContainer}>
-            <button
-              className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
-              onClick={() => setActiveTab("nuevo")}
-            >
+            <button className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)} onClick={() => setActiveTab("nuevo")}>
               📝 Nuevo / Editar
             </button>
-            <button
-              className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
-              onClick={() => { setActiveTab("buscar"); fetchAllPacientes(); }}
-            >
+            <button className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
+              onClick={() => { setActiveTab("buscar"); fetchAllPacientes(); }}>
               🔍 Buscar Pacientes
             </button>
             <button
               className={styles.tab}
-              onClick={() =>
-                window.open("/historia-clinica", "noopener,noreferrer")
-              }
-              title="Abrir Historias Clínicas en una pestaña nueva"
+              onClick={() => router.push("/admin/historia-clinica")}
+              title="Ir a Historias Clínicas"
             >
               📋 Historias Clínicas
             </button>
@@ -1009,6 +1058,27 @@ export default function IngresosPage() {
           {activeTab === "nuevo" ? (
             <>
               {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
+
+              {showValidationWarn && Object.keys(errors).length > 0 && (
+                <div className={styles.warnBanner}>
+                  <div className={styles.warnBannerTitle}>
+                    ⚠️ Hay datos sin completar — podés guardar igual
+                  </div>
+                  <ul className={styles.warnBannerList}>
+                    {Object.entries(errors).map(([k, msg]) => (
+                      <li key={k}>{msg}</li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    className={styles.warnBannerClose}
+                    onClick={() => setShowValidationWarn(false)}
+                    title="Ocultar advertencia"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <form onSubmit={onSubmit} autoComplete="on">
                 <div className={styles.card}>
@@ -1151,6 +1221,14 @@ export default function IngresosPage() {
                         <input className={styles.input} value={form.trabajadorNumero} onChange={onChange("trabajadorNumero")} inputMode="numeric" placeholder="N°" />
                       </div>
                       <div className={styles.field}>
+                        <label className={styles.label}>Piso</label>
+                        <input className={styles.input} value={form.trabajadorPiso} onChange={onChange("trabajadorPiso")} placeholder="Piso" />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label}>Depto</label>
+                        <input className={styles.input} value={form.trabajadorDepto} onChange={onChange("trabajadorDepto")} placeholder="Depto" />
+                      </div>
+                      <div className={styles.field}>
                         <label className={styles.label}>Localidad</label>
                         <input className={styles.input} value={form.trabajadorLocalidad} onChange={onChange("trabajadorLocalidad")} placeholder="Localidad" />
                       </div>
@@ -1241,6 +1319,8 @@ export default function IngresosPage() {
                     docs={docs}
                     setDocs={setDocs}
                     form={form}
+                    pdfUrl={pdfUrl}
+                    pdfFileName={pdfFileName}
                   />
 
                   <div className={styles.footer}>
@@ -1336,7 +1416,8 @@ export default function IngresosPage() {
                         const estaImprimiendo = printingId === p.id;
                         const estaDescargando = downloadingId === p.id;
                         const estaImprimiendoDorso = printingDorsoId === p.id;
-                        const bloqueado = estaImprimiendo || estaImprimiendoDorso || estaDescargando;
+                        const estaEliminando = deletingId === p.id;
+                        const bloqueado = estaImprimiendo || estaImprimiendoDorso || estaDescargando || estaEliminando;
                         const docsPaciente = Array.isArray(p.documentacion) ? p.documentacion : [];
 
                         return (
@@ -1402,6 +1483,15 @@ export default function IngresosPage() {
                                 }}
                               >
                                 {estaImprimiendoDorso ? "⏳" : "📄"}
+                              </button>
+                              <button
+                                type="button"
+                                className={cx(styles.iconBtn, styles.iconBtnDanger)}
+                                title="Eliminar ingreso"
+                                onClick={() => handleDeletePaciente(p)}
+                                disabled={bloqueado}
+                              >
+                                {estaEliminando ? "⏳" : "🗑️"}
                               </button>
                             </td>
                           </tr>

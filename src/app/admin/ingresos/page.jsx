@@ -205,6 +205,7 @@ export default function IngresosPage() {
   const [pdfError, setPdfError] = useState(null);
   const [theme, setTheme] = useState("dark");
   const [shouldFocusError, setShouldFocusError] = useState(false);
+  const [showValidationWarn, setShowValidationWarn] = useState(false);
 
   const [pacientes, setPacientes] = useState([]);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
@@ -542,6 +543,7 @@ export default function IngresosPage() {
     setHcLookup({ loading: false, searched: false, dni: "", tipo: "PISO", match: null, nextNumber: null, loadingNext: false });
     setCreatingHc(null);
     setDocs([]);
+    setShowValidationWarn(false);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -602,6 +604,7 @@ export default function IngresosPage() {
     setPdfError(null);
     setPdfUrl(null);
     setPdfFileName(null);
+    setShowValidationWarn(false);
     lastLookupDniRef.current = "";
     setHcLookup({ loading: false, searched: false, dni: "", tipo: "PISO", match: null, nextNumber: null, loadingNext: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -828,10 +831,23 @@ export default function IngresosPage() {
 
     const v = validate(form);
     setErrors(v);
-    if (Object.keys(v).length) {
-      setShouldFocusError(true);
-      submittingRef.current = false;
-      return;
+    const hayFaltantes = Object.keys(v).length > 0;
+    setShowValidationWarn(hayFaltantes);
+
+    /* ⚠️ ADVERTENCIA (no bloqueante): si faltan datos, avisamos
+       y pedimos confirmación para seguir igual. */
+    if (hayFaltantes) {
+      const lista = Object.values(v)
+        .map((msg) => `• ${msg}`)
+        .join("\n");
+      const ok = window.confirm(
+        `⚠️ Faltan completar algunos datos:\n\n${lista}\n\n¿Querés guardar igual?`
+      );
+      if (!ok) {
+        setShouldFocusError(true);
+        submittingRef.current = false;
+        return;
+      }
     }
 
     setSaving(true);
@@ -1042,6 +1058,27 @@ export default function IngresosPage() {
           {activeTab === "nuevo" ? (
             <>
               {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
+
+              {showValidationWarn && Object.keys(errors).length > 0 && (
+                <div className={styles.warnBanner}>
+                  <div className={styles.warnBannerTitle}>
+                    ⚠️ Hay datos sin completar — podés guardar igual
+                  </div>
+                  <ul className={styles.warnBannerList}>
+                    {Object.entries(errors).map(([k, msg]) => (
+                      <li key={k}>{msg}</li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    className={styles.warnBannerClose}
+                    onClick={() => setShowValidationWarn(false)}
+                    title="Ocultar advertencia"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <form onSubmit={onSubmit} autoComplete="on">
                 <div className={styles.card}>
