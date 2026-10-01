@@ -4,32 +4,34 @@ import { useRef, useState } from "react";
 import stylesBase from "./ingresos.module.css";
 import stylesOwn from "./DocumentacionSection.module.css";
 import CropPreviewModal from "./CropPreviewModal";
+import { Section, convertToWebP } from "./helpers";
 import {
-    cx,
-    Section,
-    buildFolderName,
-    convertToWebP,
-} from "./helpers";
+    uploadToCloudinary,
+    deleteFromCloudinary,
+} from "@/lib/cloudinary-client";
 
 const styles = { ...stylesBase, ...stylesOwn };
 
-/* Timeouts diferenciados:
-   - Imágenes WebP: livianas, 45s sobra
-   - PDFs: hasta 5 MB, pueden tardar; 3 min de margen */
-const UPLOAD_TIMEOUT_IMG_MS = 45000;
-const UPLOAD_TIMEOUT_PDF_MS = 180000;
+const IMG_TIMEOUT_MS = 45000;
+const PDF_TIMEOUT_MS = 180000;
 const PDF_MAX_MB = 5;
+const PDF_RENDER_WIDTH = 1600;
+const PDF_RENDER_QUALITY = 0.85;
 
-/* Nombre del archivo: APELLIDO_NOMBRE_DNI_OS_AFILIADO.webp */
-function buildDocFileName(form, ext = "webp") {
-    const clean = (s) =>
-        String(s || "")
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, "_")
-            .replace(/[^A-Za-z0-9_-]/g, "")
-            .toUpperCase();
+/* =========================================================
+   Helpers
+   ========================================================= */
+function clean(s) {
+    return String(s || "")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Za-z0-9_-]/g, "")
+        .toUpperCase();
+}
+
+function buildBaseName(form) {
     const parts = [
         clean(form?.trabajadorApellido),
         clean(form?.trabajadorNombre),
@@ -37,625 +39,550 @@ function buildDocFileName(form, ext = "webp") {
         clean(form?.OS),
         clean(form?.afiliadoPaciente),
     ].filter(Boolean);
-    const base = parts.join("_") || "DOCUMENTO";
-    return `${base}.${ext}`;
+    return parts.join("_") || "DOCUMENTO";
 }
 
-/* Sanitiza el nombre original del PDF */
-function sanitizePdfName(originalName) {
-    const base = String(originalName || "documento")
-        .replace(/\.pdf$/i, "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "_")
-        .replace(/[^A-Za-z0-9._-]/g, "")
-        .toUpperCase();
-    return `${base || "DOCUMENTO"}.pdf`;
+function buildFolder(form) {
+    const a = clean(form?.trabajadorApellido) || "SIN_APELLIDO";
+    const n = clean(form?.trabajadorNombre) || "SIN_NOMBRE";
+    const d = clean(form?.trabajadorDni) || "SIN_DNI";
+    const o = clean(form?.OS) || "SIN_OS";
+    const af = clean(form?.afiliadoPaciente) || "SIN_AFILIADO";
+    return `clinica/${a}-${n}-${d}-${o}-${af}`;
 }
 
-/* URL del proxy para mostrar inline (mismo origin, sin CORS) */
-function buildProxyUrl(fileId) {
-    return `/api/documentos/proxy?id=${encodeURIComponent(fileId)}`;
-}
-
-/* URL del proxy con parámetros para iframe (sin toolbar ni panel) */
-function buildProxyEmbedUrl(fileId) {
-    return `${buildProxyUrl(fileId)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
-}
-
-function uploadWithProgress(url, formData, onProgress, signal) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", url);
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
-        };
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    resolve(JSON.parse(xhr.responseText));
-                } catch {
-                    reject(new Error("Respuesta inválida del servidor"));
-                }
-            } else {
-                let msg = `Error ${xhr.status}`;
-                try {
-                    const j = JSON.parse(xhr.responseText);
-                    if (j.error) msg = j.error;
-                } catch { }
-                reject(new Error(msg));
-            }
-        };
-        xhr.onerror = () => reject(new Error("Error de red. Revisá tu conexión."));
-        xhr.ontimeout = () => reject(new Error("Tiempo de espera agotado"));
-        xhr.onabort = () =>
-            reject(
-                new Error(
-                    "La subida tardó más de lo esperado. Verificá tu conexión e intentá de nuevo.",
-                ),
-            );
-        if (signal) signal.addEventListener("abort", () => xhr.abort());
-        xhr.send(formData);
-    });
-}
-
-export default function DocumentacionSection({ docs, setDocs, form }) {
-    const [deletingDocId, setDeletingDocId] = useState(null);
-    const [cropToDni, setCropToDni] = useState(true);
-    const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
-    const [imgErrors, setImgErrors] = useState({});
-    const [cropPreview, setCropPreview] = useState(null);
-    const [pdfUploading, setPdfUploading] = useState(false);
-
-    const cameraInputRef = useRef(null);
-    const galleryInputRef = useRef(null);
-    const pdfInputRef = useRef(null);
-
-    const [uploadState, setUploadState] = useState({
-        active: false,
-        currentFile: 0,
-        totalFiles: 0,
-        percent: 0,
-        stage: "",
-        error: "",
-    });
-
-    const resetUploadState = () =>
-        setUploadState({
-            active: false,
-            currentFile: 0,
-            totalFiles: 0,
-            percent: 0,
-            stage: "",
-            error: "",
-        });
-
-    const validarPaciente = () => {
-        if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) {
-            alert("Completá apellido y nombre antes de subir documentación.");
-            return false;
-        }
-        return true;
-    };
-
-    const openCamera = () => {
-        if (!validarPaciente()) return;
-        cameraInputRef.current?.click();
-    };
-
-    const openGallery = () => {
-        if (!validarPaciente()) return;
-        galleryInputRef.current?.click();
-    };
-
-    const openPdfPicker = () => {
-        if (!validarPaciente()) return;
-        pdfInputRef.current?.click();
-    };
-
-    /* =========================================================
-       IMÁGENES: WebP + crop + subida
-       ========================================================= */
-    const handleFileSelected = async (e) => {
-        const files = Array.from(e.target.files || []);
-        e.target.value = "";
-        if (!files.length) return;
-
-        setUploadSuccessMsg("");
-        const nuevos = [];
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-
-            setUploadState({
-                active: true,
-                currentFile: i + 1,
-                totalFiles: files.length,
-                percent: 0,
-                stage: "convirtiendo",
-                error: "",
-            });
-
-            let webpBlob;
-            try {
-                webpBlob = await convertToWebP(file, 0.75, 1600);
-            } catch (err) {
-                setUploadState((s) => ({
-                    ...s,
-                    active: false,
-                    stage: "",
-                    percent: 0,
-                    error: "No se pudo procesar la imagen: " + err.message,
-                }));
-                return;
-            }
-
-            const finalBlob = await new Promise((resolve) => {
-                setCropPreview({
-                    previewBlob: webpBlob,
-                    initialRatio: cropToDni ? 1.585 : 0,
-                    onConfirm: (croppedBlob) => {
-                        setCropPreview(null);
-                        resolve(croppedBlob);
-                    },
-                    onCancel: () => {
-                        setCropPreview(null);
-                        resolve(null);
-                    },
-                });
-            });
-
-            if (!finalBlob) {
-                resetUploadState();
-                return;
-            }
-
-            setUploadState((s) => ({ ...s, stage: "subiendo", percent: 0 }));
-
-            try {
-                const fd = new FormData();
-                fd.append("file", finalBlob, buildDocFileName(form));
-                fd.append("folderName", buildFolderName(form));
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(
-                    () => controller.abort(),
-                    UPLOAD_TIMEOUT_IMG_MS,
-                );
-
-                let data;
-                try {
-                    data = await uploadWithProgress(
-                        "/api/documentos/upload",
-                        fd,
-                        (pct) => setUploadState((s) => ({ ...s, percent: pct })),
-                        controller.signal,
-                    );
-                } finally {
-                    clearTimeout(timeoutId);
-                }
-
-                nuevos.push({
-                    fileId: data.fileId,
-                    name: data.name,
-                    url: data.url,
-                    fecha: Date.now(),
-                });
-            } catch (err) {
-                if (nuevos.length) setDocs((prev) => [...prev, ...nuevos]);
-                setUploadState((s) => ({
-                    ...s,
-                    active: false,
-                    percent: 0,
-                    stage: "",
-                    error:
-                        files.length > 1
-                            ? `Se subieron ${nuevos.length} de ${files.length}. ${err.message}`
-                            : `${err.message} Volvé a intentar.`,
-                }));
-                return;
-            }
-        }
-
-        setDocs((prev) => [...prev, ...nuevos]);
-        resetUploadState();
-
-        const total = nuevos.length;
-        setUploadSuccessMsg(
-            total === 1
-                ? `✅ "${nuevos[0].name}" subido correctamente`
-                : `✅ ${total} documentos subidos correctamente`,
+async function pdfToImages(file) {
+    const pdfjs = await import("pdfjs-dist");
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data }).promise;
+    const out = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp1 = page.getViewport({ scale: 1 });
+        const scale = PDF_RENDER_WIDTH / vp1.width;
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(vp.width);
+        canvas.height = Math.round(vp.height);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        const blob = await new Promise((r) =>
+            canvas.toBlob(r, "image/webp", PDF_RENDER_QUALITY),
         );
-        setTimeout(() => setUploadSuccessMsg(""), 5000);
-    };
+        if (blob) out.push({ blob, pageNumber: i, totalPages: pdf.numPages });
+    }
+    return out;
+}
 
-    /* =========================================================
-       PDF: subida directa (máx 5 MB)
-       ========================================================= */
-    const handlePdfSelected = async (e) => {
-        const file = e.target.files?.[0];
-        e.target.value = "";
-        if (!file) return;
+function isPdfFile(file) {
+    return (
+        (file?.name && /\.pdf$/i.test(file.name)) ||
+        file?.type === "application/pdf"
+    );
+}
 
-        if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
-            alert("Solo se permiten archivos PDF.");
-            return;
-        }
+/* =========================================================
+   Componente
+   ========================================================= */
+export default function DocumentacionSection({ docs, setDocs, form }) {
+    const [queue, setQueue] = useState({}); // id → { name, percent, stage, error, kind }
+    const [cropToDni, setCropToDni] = useState(false);
+    const [cropPreview, setCropPreview] = useState(null);
 
-        const maxBytes = PDF_MAX_MB * 1024 * 1024;
-        if (file.size > maxBytes) {
-            const mb = (file.size / 1024 / 1024).toFixed(2);
-            alert(
-                `El PDF no puede pesar más de ${PDF_MAX_MB} MB. ` +
-                `Este archivo pesa ${mb} MB.`,
-            );
-            return;
-        }
+    const cameraRef = useRef(null);
+    const galleryRef = useRef(null);
+    const pdfRef = useRef(null);
 
-        setUploadSuccessMsg("");
-        setPdfUploading(true);
-        setUploadState({
-            active: true,
-            currentFile: 1,
-            totalFiles: 1,
-            percent: 0,
-            stage: "subiendo",
-            error: "",
+    const updateQ = (id, patch) =>
+        setQueue((q) => ({ ...q, [id]: { ...q[id], ...patch } }));
+
+    const removeQ = (id) =>
+        setQueue((q) => {
+            const n = { ...q };
+            delete n[id];
+            return n;
         });
+
+    const newId = (suffix = "") =>
+        `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}${suffix}`;
+
+    /* ------------------------------------------------------
+       Subida individual (llamada en background)
+       ------------------------------------------------------ */
+    const uploadOne = async (blob, { tempId, label, kind, formSnapshot }) => {
+        updateQ(tempId, { stage: "subiendo", percent: 0 });
+
+        const folderPath = buildFolder(formSnapshot);
+        const base = buildBaseName(formSnapshot);
+        const pid =
+            kind === "pdf-page"
+                ? `${base}_PDF_${Date.now()}_p${label.pageNumber}`
+                : `${base}_${Date.now()}`;
+
+        const controller = new AbortController();
+        const to = setTimeout(
+            () => controller.abort(),
+            kind === "pdf-page" ? PDF_TIMEOUT_MS : IMG_TIMEOUT_MS,
+        );
 
         try {
-            const fd = new FormData();
-            const finalName = sanitizePdfName(file.name);
-            fd.append("file", file, finalName);
-            fd.append("folderName", buildFolderName(form));
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(
-                () => controller.abort(),
-                UPLOAD_TIMEOUT_PDF_MS,
-            );
-
-            let data;
-            try {
-                data = await uploadWithProgress(
-                    "/api/documentos/upload",
-                    fd,
-                    (pct) => setUploadState((s) => ({ ...s, percent: pct })),
-                    controller.signal,
-                );
-            } finally {
-                clearTimeout(timeoutId);
-            }
+            const data = await uploadToCloudinary(blob, {
+                folder: folderPath,
+                publicId: pid,
+                onProgress: (pct) => updateQ(tempId, { percent: pct }),
+                signal: controller.signal,
+            });
+            clearTimeout(to);
 
             setDocs((prev) => [
                 ...prev,
                 {
-                    fileId: data.fileId,
-                    name: data.name,
+                    publicId: data.publicId,
                     url: data.url,
+                    resourceType: data.resourceType,
+                    name: label.name || `${pid}.${data.format || "webp"}`,
                     fecha: Date.now(),
+                    fromPdf: kind === "pdf-page",
+                    pageNumber: label.pageNumber,
+                    totalPages: label.totalPages,
                 },
             ]);
-            resetUploadState();
-            setUploadSuccessMsg(`✅ PDF "${file.name}" subido correctamente`);
-            setTimeout(() => setUploadSuccessMsg(""), 5000);
+            removeQ(tempId);
         } catch (err) {
-            const esTimeout = /tardó más|tiempo de espera/i.test(err.message);
-            setUploadState((s) => ({
-                ...s,
-                active: false,
-                percent: 0,
-                stage: "",
-                error: esTimeout
-                    ? `${err.message} Tip: si el PDF pesa cerca de ${PDF_MAX_MB} MB, comprimilo antes de subirlo.`
-                    : `${err.message} Volvé a intentar.`,
+            clearTimeout(to);
+            updateQ(tempId, { stage: "error", error: err.message, percent: 0 });
+        }
+    };
+
+    /* ------------------------------------------------------
+       Selección de imágenes (múltiple)
+       ------------------------------------------------------ */
+    const handleImages = (fileList) => {
+        const files = Array.from(fileList || []);
+        if (!files.length) return;
+        const formSnapshot = { ...form };
+
+        files.forEach((file) => {
+            const tempId = newId();
+            setQueue((q) => ({
+                ...q,
+                [tempId]: {
+                    name: file.name,
+                    percent: 0,
+                    stage: "convirtiendo",
+                    error: null,
+                    kind: "image",
+                },
             }));
-        } finally {
-            setPdfUploading(false);
-        }
+
+            (async () => {
+                try {
+                    let blob = await convertToWebP(file, 0.75, 1600);
+
+                    if (cropToDni) {
+                        const cropped = await new Promise((resolve) => {
+                            setCropPreview({
+                                previewBlob: blob,
+                                initialRatio: 1.585,
+                                onConfirm: (b) => {
+                                    setCropPreview(null);
+                                    resolve(b);
+                                },
+                                onCancel: () => {
+                                    setCropPreview(null);
+                                    resolve(null);
+                                },
+                            });
+                        });
+                        if (!cropped) {
+                            removeQ(tempId);
+                            return;
+                        }
+                        blob = cropped;
+                    }
+
+                    await uploadOne(blob, {
+                        tempId,
+                        label: { name: file.name },
+                        kind: "image",
+                        formSnapshot,
+                    });
+                } catch (err) {
+                    updateQ(tempId, { stage: "error", error: err.message });
+                }
+            })();
+        });
     };
 
-    const handleDeleteDoc = async (doc) => {
-        const ok = window.confirm(
-            `¿Eliminar "${doc.name}"?\n\nSe borra de Google Drive y de la ficha del paciente.`,
-        );
-        if (!ok) return;
-        setDeletingDocId(doc.fileId);
+    /* ------------------------------------------------------
+       Selección de PDF → páginas → subida en background
+       ------------------------------------------------------ */
+    const handlePdf = (file) => {
+        if (!file) return;
+        if (file.size > PDF_MAX_MB * 1024 * 1024) {
+            alert(`El PDF no puede pesar más de ${PDF_MAX_MB} MB.`);
+            return;
+        }
+        const tempId = newId("_pdf");
+        const formSnapshot = { ...form };
+
+        setQueue((q) => ({
+            ...q,
+            [tempId]: {
+                name: file.name,
+                percent: 0,
+                stage: "convirtiendo",
+                error: null,
+                kind: "pdf",
+            },
+        }));
+
+        (async () => {
+            try {
+                const pages = await pdfToImages(file);
+                if (!pages.length) throw new Error("PDF sin páginas legibles");
+
+                removeQ(tempId);
+
+                for (const p of pages) {
+                    const pageId = newId(`_p${p.pageNumber}`);
+                    setQueue((q) => ({
+                        ...q,
+                        [pageId]: {
+                            name: `${file.name} — pág ${p.pageNumber}/${p.totalPages}`,
+                            percent: 0,
+                            stage: "subiendo",
+                            error: null,
+                            kind: "pdf",
+                        },
+                    }));
+
+                    uploadOne(p.blob, {
+                        tempId: pageId,
+                        label: {
+                            name: `${file.name} — pág ${p.pageNumber}`,
+                            pageNumber: p.pageNumber,
+                            totalPages: p.totalPages,
+                        },
+                        kind: "pdf-page",
+                        formSnapshot,
+                    });
+                }
+            } catch (err) {
+                updateQ(tempId, { stage: "error", error: err.message });
+            }
+        })();
+    };
+
+    const handleDelete = async (doc) => {
+        if (!confirm(`¿Eliminar "${doc.name}"?`)) return;
         try {
-            const res = await fetch("/api/documentos/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ fileId: doc.fileId }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-            setDocs((prev) => prev.filter((d) => d.fileId !== doc.fileId));
-        } catch (err) {
-            console.error(err);
-            alert("No se pudo eliminar el documento: " + err.message);
-        } finally {
-            setDeletingDocId(null);
+            await deleteFromCloudinary(
+                doc.publicId,
+                doc.resourceType || "image",
+            );
+            setDocs((prev) =>
+                prev.filter((d) => d.publicId !== doc.publicId),
+            );
+        } catch (e) {
+            alert("No se pudo eliminar: " + e.message);
         }
     };
 
-    const stageLabel = () => {
-        if (uploadState.stage === "convirtiendo") return "Procesando imagen…";
-        if (uploadState.stage === "subiendo") return "Subiendo a Drive…";
-        return "Procesando…";
-    };
-
-    const disabled =
-        uploadState.active ||
-        pdfUploading ||
-        !form.trabajadorApellido ||
-        !form.trabajadorNombre;
+    const queueEntries = Object.entries(queue);
+    const uploadingCount = queueEntries.filter(
+        ([, v]) => v.stage !== "error",
+    ).length;
+    const errorCount = queueEntries.filter(
+        ([, v]) => v.stage === "error",
+    ).length;
 
     return (
         <>
             <Section
-                title="6) Documentación"
-                subtitle="Fotos (WebP, recortadas) o PDFs. Se suben a Google Drive."
+                title="Documentación"
+                subtitle="Opcional. Se sube en segundo plano — podés seguir cargando datos mientras tanto."
             >
-                <div className={styles.docAddCard}>
-                    <div className={styles.docAddActions}>
-                        <button
-                            type="button"
-                            className={styles.docAddBtn}
-                            onClick={openCamera}
-                            disabled={disabled}
-                        >
-                            <span className={styles.docAddBtnIcon}>📷</span>
-                            <span className={styles.docAddBtnLabel}>Tomar foto</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={styles.docAddBtn}
-                            onClick={openGallery}
-                            disabled={disabled}
-                        >
-                            <span className={styles.docAddBtnIcon}>🖼️</span>
-                            <span className={styles.docAddBtnLabel}>Galería</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={styles.docAddBtn}
-                            onClick={openPdfPicker}
-                            disabled={disabled}
-                            title={`Subir PDF (máx ${PDF_MAX_MB} MB)`}
-                        >
-                            <span className={styles.docAddBtnIcon}>📄</span>
-                            <span className={styles.docAddBtnLabel}>
-                                {pdfUploading ? "Subiendo…" : "Subir PDF"}
-                            </span>
-                        </button>
-                    </div>
-
-                    <label className={styles.docSwitchRow}>
-                        <input
-                            type="checkbox"
-                            checked={cropToDni}
-                            onChange={(e) => setCropToDni(e.target.checked)}
-                            className={styles.docSwitchInput}
-                        />
-                        <span className={styles.docSwitchTrack}>
-                            <span className={styles.docSwitchThumb} />
-                        </span>
-                        <span className={styles.docSwitchLabel}>
-                            ✂️ Editor con formato DNI
-                        </span>
-                    </label>
-
-                    <div className={styles.docFolderHint}>
-                        📁 Carpeta: <b>{buildFolderName(form) || "—"}</b>
-                    </div>
+                {/* Botones de acción */}
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <button
+                        type="button"
+                        className={styles.docAddBtn}
+                        onClick={() => cameraRef.current?.click()}
+                        style={{ flex: "1 1 140px" }}
+                    >
+                        <span className={styles.docAddBtnIcon}>📷</span>
+                        <span className={styles.docAddBtnLabel}>Cámara</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.docAddBtn}
+                        onClick={() => galleryRef.current?.click()}
+                        style={{ flex: "1 1 140px" }}
+                    >
+                        <span className={styles.docAddBtnIcon}>🖼️</span>
+                        <span className={styles.docAddBtnLabel}>Galería</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.docAddBtn}
+                        onClick={() => pdfRef.current?.click()}
+                        style={{ flex: "1 1 140px" }}
+                    >
+                        <span className={styles.docAddBtnIcon}>📄</span>
+                        <span className={styles.docAddBtnLabel}>PDF</span>
+                    </button>
                 </div>
 
-                <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileSelected}
-                    style={{ display: "none" }}
-                />
-                <input
-                    ref={galleryInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileSelected}
-                    style={{ display: "none" }}
-                />
-                <input
-                    ref={pdfInputRef}
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    onChange={handlePdfSelected}
-                    style={{ display: "none" }}
-                />
+                <label
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginTop: 10,
+                        fontSize: 13,
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        userSelect: "none",
+                    }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={cropToDni}
+                        onChange={(e) => setCropToDni(e.target.checked)}
+                    />
+                    ✂️ Editor formato DNI (recortar cada foto)
+                </label>
 
-                {uploadState.active && (
-                    <div className={styles.uploadBanner}>
-                        <div className={styles.spinner} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div className={styles.uploadLabel}>
-                                {stageLabel()}
-                                {uploadState.totalFiles > 1 && (
-                                    <span className={styles.uploadCounter}>
-                                        {" "}
-                                        ({uploadState.currentFile}/{uploadState.totalFiles})
-                                    </span>
-                                )}
-                                {uploadState.stage === "subiendo" && uploadState.percent > 0 && (
-                                    <span className={styles.uploadPercent}>
-                                        {" "}
-                                        — {Math.round(uploadState.percent)}%
-                                    </span>
-                                )}
-                            </div>
-                            <div className={styles.progressBar}>
-                                <div
-                                    className={styles.progressFill}
+                {/* Lista compacta de items (subiendo + subidos) */}
+                {(queueEntries.length > 0 || docs.length > 0) && (
+                    <div
+                        style={{
+                            marginTop: 12,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                        }}
+                    >
+                        {queueEntries.map(([id, u]) => (
+                            <div
+                                key={id}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    padding: "8px 10px",
+                                    borderRadius: 8,
+                                    background:
+                                        u.stage === "error"
+                                            ? "rgba(239,68,68,0.1)"
+                                            : "var(--bg-section)",
+                                    border: `1px solid ${u.stage === "error"
+                                            ? "rgba(239,68,68,0.3)"
+                                            : "var(--border-color)"
+                                        }`,
+                                    fontSize: 13,
+                                }}
+                            >
+                                <span style={{ fontSize: 14, flexShrink: 0 }}>
+                                    {u.stage === "error"
+                                        ? "❌"
+                                        : u.stage === "convirtiendo"
+                                            ? "⚙️"
+                                            : "⏳"}
+                                </span>
+                                <span
                                     style={{
-                                        width:
-                                            uploadState.stage === "subiendo"
-                                                ? `${uploadState.percent}%`
-                                                : "15%",
+                                        flex: 1,
+                                        minWidth: 0,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
                                     }}
-                                />
+                                >
+                                    {u.name}
+                                </span>
+                                <span
+                                    style={{
+                                        color:
+                                            u.stage === "error"
+                                                ? "#f87171"
+                                                : "var(--text-muted)",
+                                        fontSize: 12,
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {u.stage === "error"
+                                        ? u.error || "Error"
+                                        : u.stage === "convirtiendo"
+                                            ? "Convirtiendo…"
+                                            : `${Math.round(u.percent || 0)}%`}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeQ(id)}
+                                    style={{
+                                        background: "transparent",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        color: "var(--text-muted)",
+                                        fontSize: 14,
+                                        padding: 2,
+                                        flexShrink: 0,
+                                    }}
+                                    title="Quitar de la lista"
+                                >
+                                    ✕
+                                </button>
                             </div>
-                        </div>
+                        ))}
+
+                        {docs.map((d) => (
+                            <div
+                                key={d.publicId}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    padding: "8px 10px",
+                                    borderRadius: 8,
+                                    background: "var(--bg-section)",
+                                    border: "1px solid var(--border-color)",
+                                    fontSize: 13,
+                                }}
+                            >
+                                {d.resourceType === "raw" ? (
+                                    <span style={{ fontSize: 14, flexShrink: 0 }}>
+                                        📄
+                                    </span>
+                                ) : (
+                                    <img
+                                        src={d.url}
+                                        alt=""
+                                        style={{
+                                            width: 32,
+                                            height: 32,
+                                            objectFit: "cover",
+                                            borderRadius: 4,
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                )}
+                                <span
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {d.name}
+                                </span>
+                                <span
+                                    style={{
+                                        color: "#4ade80",
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        flexShrink: 0,
+                                    }}
+                                    title="Subido"
+                                >
+                                    ✓
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleDelete(d)}
+                                    style={{
+                                        background: "transparent",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        color: "var(--text-muted)",
+                                        fontSize: 13,
+                                        padding: 2,
+                                        flexShrink: 0,
+                                    }}
+                                    title="Eliminar"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
-                {uploadState.error && !uploadState.active && (
-                    <div className={styles.uploadError}>
-                        <div style={{ flex: 1 }}>❌ {uploadState.error}</div>
-                        <button
-                            type="button"
-                            className={styles.errorCloseBtn}
-                            onClick={() => setUploadState((s) => ({ ...s, error: "" }))}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                )}
-
-                {uploadSuccessMsg && (
-                    <div className={styles.docAlertSuccess} style={{ marginTop: 12 }}>
-                        <span className={styles.docAlertIcon}>✅</span>
-                        <span className={styles.docAlertText}>{uploadSuccessMsg}</span>
-                    </div>
-                )}
-
-                {docs.length > 0 && (
-                    <div className={styles.docListSection}>
-                        <div className={styles.docListHeader}>
-                            <h3 className={styles.docListTitle}>
-                                Documentos en este ingreso
-                            </h3>
-                            <span className={styles.docListCount}>{docs.length}</span>
-                        </div>
-
-                        <div className={styles.docList}>
-                            {docs.map((d, idx) => {
-                                const isPdf = /\.pdf$/i.test(d.name || "");
-                                const broken = imgErrors[d.fileId] && !isPdf;
-                                const isDeleting = deletingDocId === d.fileId;
-
-                                return (
-                                    <article key={d.fileId} className={styles.docCard}>
-                                        {/* Preview: iframe para PDF, img para imágenes */}
-                                        <button
-                                            type="button"
-                                            className={styles.docCardImageWrap}
-                                            onClick={() =>
-                                                window.open(
-                                                    buildProxyUrl(d.fileId),
-                                                    "_blank",
-                                                    "noopener,noreferrer",
-                                                )
-                                            }
-                                            aria-label={`Ver ${d.name}`}
-                                            title="Abrir en pestaña nueva"
-                                        >
-                                            {isPdf ? (
-                                                <iframe
-                                                    src={buildProxyEmbedUrl(d.fileId)}
-                                                    title={d.name}
-                                                    loading="lazy"
-                                                    className={styles.docCardImage}
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "100%",
-                                                        border: 0,
-                                                        background: "#fff",
-                                                        pointerEvents: "none",
-                                                    }}
-                                                />
-                                            ) : broken ? (
-                                                <div className={styles.docCardImageFallback}>
-                                                    <span>📄</span>
-                                                    <span>Sin vista previa</span>
-                                                </div>
-                                            ) : (
-                                                <img
-                                                    src={buildProxyUrl(d.fileId)}
-                                                    alt={d.name}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    className={styles.docCardImage}
-                                                    onError={() =>
-                                                        setImgErrors((prev) => ({
-                                                            ...prev,
-                                                            [d.fileId]: true,
-                                                        }))
-                                                    }
-                                                />
-                                            )}
-                                            <span className={styles.docCardBadge}>
-                                                #{idx + 1}
-                                            </span>
-                                            {isPdf && (
-                                                <span
-                                                    className={styles.docCardBadge}
-                                                    style={{
-                                                        left: "auto",
-                                                        right: 8,
-                                                        background: "rgba(239,68,68,0.85)",
-                                                        color: "#fff",
-                                                    }}
-                                                >
-                                                    PDF
-                                                </span>
-                                            )}
-                                        </button>
-
-                                        <div className={styles.docCardInfo}>
-                                            <div className={styles.docCardStatus}>
-                                                ✅ Subido
-                                            </div>
-                                            <div
-                                                className={styles.docCardName}
-                                                title={d.name}
-                                            >
-                                                {d.name}
-                                            </div>
-                                        </div>
-
-                                        <div className={styles.docCardActions}>
-                                            <button
-                                                type="button"
-                                                className={styles.docActionSecondary}
-                                                onClick={() =>
-                                                    window.open(
-                                                        buildProxyUrl(d.fileId),
-                                                        "_blank",
-                                                        "noopener,noreferrer",
-                                                    )
-                                                }
-                                                disabled={broken}
-                                                aria-label="Ver documento"
-                                            >
-                                                👁️ <span>Ver</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.docActionDanger}
-                                                onClick={() => handleDeleteDoc(d)}
-                                                disabled={isDeleting}
-                                                aria-label="Eliminar documento"
-                                            >
-                                                {isDeleting ? "⏳" : "🗑️"}
-                                            </button>
-                                        </div>
-                                    </article>
-                                );
-                            })}
-                        </div>
+                {/* Resumen */}
+                {(docs.length > 0 || uploadingCount > 0 || errorCount > 0) && (
+                    <div
+                        style={{
+                            marginTop: 10,
+                            fontSize: 12,
+                            color: "var(--text-muted)",
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        {docs.length > 0 && (
+                            <span>
+                                ✅ {docs.length} subido
+                                {docs.length !== 1 ? "s" : ""}
+                            </span>
+                        )}
+                        {uploadingCount > 0 && (
+                            <span>⏳ {uploadingCount} en curso</span>
+                        )}
+                        {errorCount > 0 && (
+                            <span style={{ color: "#f87171" }}>
+                                ❌ {errorCount} con error
+                            </span>
+                        )}
                     </div>
                 )}
             </Section>
+
+            <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                onChange={(e) => {
+                    handleImages(e.target.files);
+                    e.target.value = "";
+                }}
+                style={{ display: "none" }}
+            />
+            <input
+                ref={galleryRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                    handleImages(e.target.files);
+                    e.target.value = "";
+                }}
+                style={{ display: "none" }}
+            />
+            <input
+                ref={pdfRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => {
+                    handlePdf(e.target.files?.[0]);
+                    e.target.value = "";
+                }}
+                style={{ display: "none" }}
+            />
 
             {cropPreview && (
                 <CropPreviewModal

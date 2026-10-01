@@ -9,8 +9,11 @@ import {
     generarFrentePDFBlob,
     generarDorsoPDFBlob,
     openPDFBlob,
-    uploadWithProgress,
 } from "./documentosHelpers";
+import {
+    uploadToCloudinary,
+    deleteFromCloudinary,
+} from "@/lib/cloudinary-client";
 import {
     convertToWebP,
     buildFolderName,
@@ -24,16 +27,22 @@ const UPLOAD_TIMEOUT_IMG_MS = 45000;
 const UPLOAD_TIMEOUT_PDF_MS = 180000;
 const PDF_MAX_MB = 5;
 
-/* Nombre del archivo: APELLIDO_NOMBRE_DNI_OS_AFILIADO.webp */
-function buildDocFileName(form, ext = "webp") {
-    const clean = (s) =>
-        String(s || "")
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, "_")
-            .replace(/[^A-Za-z0-9_-]/g, "")
-            .toUpperCase();
+/* =========================================================
+   Helpers de nombres
+   ========================================================= */
+
+function clean(s) {
+    return String(s || "")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Za-z0-9_-]/g, "")
+        .toUpperCase();
+}
+
+/* Nombre base: APELLIDO_NOMBRE_DNI_OS_AFILIADO (sin extensión) */
+function buildDocBaseName(form) {
     const parts = [
         clean(form?.trabajadorApellido),
         clean(form?.trabajadorNombre),
@@ -41,8 +50,7 @@ function buildDocFileName(form, ext = "webp") {
         clean(form?.OS),
         clean(form?.afiliadoPaciente),
     ].filter(Boolean);
-    const base = parts.join("_") || "DOCUMENTO";
-    return `${base}.${ext}`;
+    return parts.join("_") || "DOCUMENTO";
 }
 
 function sanitizePdfName(originalName) {
@@ -60,13 +68,19 @@ function isPdfName(name) {
     return /\.pdf$/i.test(name || "");
 }
 
-function buildProxyUrl(fileId) {
-    return `/api/documentos/proxy?id=${encodeURIComponent(fileId)}`;
+function isPdfDoc(doc) {
+    if (!doc) return false;
+    if (doc.resourceType === "raw") return true;
+    return isPdfName(doc.name);
 }
 
-function buildProxyEmbedUrl(fileId) {
-    return `${buildProxyUrl(fileId)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+function buildCloudinaryFolder(form) {
+    return `curiyu/pacientes/${buildFolderName(form)}`;
 }
+
+/* =========================================================
+   Componente
+   ========================================================= */
 
 export default function DocumentosModal({ paciente, onClose, onUpdated }) {
     const [docs, setDocs] = useState(() =>
@@ -152,30 +166,28 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         });
     };
 
+    /* =========================================================
+       Eliminar
+       ========================================================= */
     const handleDelete = async (doc) => {
         if (
             !confirm(
-                `¿Eliminar "${doc.name}"?\n\nSe borra de Google Drive y de la ficha del paciente.`,
+                `¿Eliminar "${doc.name}"?\n\nSe borra de Cloudinary y de la ficha del paciente.`,
             )
         )
             return;
-        setDeletingId(doc.fileId);
+
+        setDeletingId(doc.publicId);
         setError("");
         try {
-            const res = await fetch("/api/documentos/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ fileId: doc.fileId }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-
-            await persistDocs(docs.filter((d) => d.fileId !== doc.fileId));
-            flashMsg(
-                data.alreadyGone
-                    ? "🗑️ Registro eliminado (ya no existía en Drive)"
-                    : "🗑️ Documento eliminado",
+            await deleteFromCloudinary(
+                doc.publicId,
+                doc.resourceType || "image",
             );
+            await persistDocs(
+                docs.filter((d) => d.publicId !== doc.publicId),
+            );
+            flashMsg("🗑️ Documento eliminado");
         } catch (err) {
             console.error(err);
             setError("No se pudo eliminar: " + err.message);
@@ -184,6 +196,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
+    /* =========================================================
+       Reemplazar
+       ========================================================= */
     const handleReplaceClick = (doc) => {
         docToReplaceRef.current = doc;
         replaceInputRef.current?.click();
@@ -196,49 +211,46 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         const oldDoc = docToReplaceRef.current;
         if (!oldDoc) return;
 
-        setReplacingId(oldDoc.fileId);
+        setReplacingId(oldDoc.publicId);
         setError("");
         try {
             const finalBlob = await procesarConPreview(file);
             if (!finalBlob) return;
-
-            const fd = new FormData();
-            fd.append("file", finalBlob, buildDocFileName(formLike));
-            fd.append("folderName", buildFolderName(formLike));
 
             const controller = new AbortController();
             const timeoutId = setTimeout(
                 () => controller.abort(),
                 UPLOAD_TIMEOUT_IMG_MS,
             );
+
             let newData;
             try {
-                newData = await uploadWithProgress(
-                    "/api/documentos/upload",
-                    fd,
-                    () => {},
-                    controller.signal,
-                );
+                newData = await uploadToCloudinary(finalBlob, {
+                    folder: buildCloudinaryFolder(formLike),
+                    publicId: buildDocBaseName(formLike),
+                    signal: controller.signal,
+                });
             } finally {
                 clearTimeout(timeoutId);
             }
 
+            // Borrar el viejo de Cloudinary (best-effort)
             try {
-                await fetch("/api/documentos/delete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ fileId: oldDoc.fileId }),
-                });
+                await deleteFromCloudinary(
+                    oldDoc.publicId,
+                    oldDoc.resourceType || "image",
+                );
             } catch (delErr) {
-                console.warn("No se pudo borrar la vieja:", delErr);
+                console.warn("No se pudo borrar el viejo en Cloudinary:", delErr);
             }
 
             const newDocs = docs.map((d) =>
-                d.fileId === oldDoc.fileId
+                d.publicId === oldDoc.publicId
                     ? {
-                          fileId: newData.fileId,
-                          name: newData.name,
+                          publicId: newData.publicId,
                           url: newData.url,
+                          resourceType: newData.resourceType,
+                          name: `${buildDocBaseName(formLike)}.${newData.format || "webp"}`,
                           fecha: Date.now(),
                       }
                     : d,
@@ -254,6 +266,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
+    /* =========================================================
+       Agregar imágenes (galería / cámara)
+       ========================================================= */
     const handleAddFile = async (e) => {
         const files = Array.from(e.target.files || []);
         e.target.value = "";
@@ -263,38 +278,33 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         setError("");
         try {
             const nuevos = [];
-            const folderName = buildFolderName(formLike);
-            const fileName = buildDocFileName(formLike);
 
             for (const file of files) {
                 const finalBlob = await procesarConPreview(file);
                 if (!finalBlob) continue;
-
-                const fd = new FormData();
-                fd.append("file", finalBlob, fileName);
-                fd.append("folderName", folderName);
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(
                     () => controller.abort(),
                     UPLOAD_TIMEOUT_IMG_MS,
                 );
+
                 let data;
                 try {
-                    data = await uploadWithProgress(
-                        "/api/documentos/upload",
-                        fd,
-                        () => {},
-                        controller.signal,
-                    );
+                    data = await uploadToCloudinary(finalBlob, {
+                        folder: buildCloudinaryFolder(formLike),
+                        publicId: buildDocBaseName(formLike),
+                        signal: controller.signal,
+                    });
                 } finally {
                     clearTimeout(timeoutId);
                 }
 
                 nuevos.push({
-                    fileId: data.fileId,
-                    name: data.name,
+                    publicId: data.publicId,
                     url: data.url,
+                    resourceType: data.resourceType,
+                    name: `${buildDocBaseName(formLike)}.${data.format || "webp"}`,
                     fecha: Date.now(),
                 });
             }
@@ -315,7 +325,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
-    /* 🆕 Subir PDF */
+    /* =========================================================
+       Subir PDF
+       ========================================================= */
     const handlePdfSelected = async (e) => {
         const file = e.target.files?.[0];
         e.target.value = "";
@@ -339,24 +351,20 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         setPdfAdding(true);
         setError("");
         try {
-            const fd = new FormData();
             const finalName = sanitizePdfName(file.name);
-            fd.append("file", file, finalName);
-            fd.append("folderName", buildFolderName(formLike));
-
             const controller = new AbortController();
             const timeoutId = setTimeout(
                 () => controller.abort(),
                 UPLOAD_TIMEOUT_PDF_MS,
             );
+
             let data;
             try {
-                data = await uploadWithProgress(
-                    "/api/documentos/upload",
-                    fd,
-                    () => {},
-                    controller.signal,
-                );
+                data = await uploadToCloudinary(file, {
+                    folder: buildCloudinaryFolder(formLike),
+                    publicId: `${buildDocBaseName(formLike)}.pdf`,
+                    signal: controller.signal,
+                });
             } finally {
                 clearTimeout(timeoutId);
             }
@@ -364,9 +372,10 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
             await persistDocs([
                 ...docs,
                 {
-                    fileId: data.fileId,
-                    name: data.name,
+                    publicId: data.publicId,
                     url: data.url,
+                    resourceType: data.resourceType,
+                    name: finalName,
                     fecha: Date.now(),
                 },
             ]);
@@ -384,6 +393,9 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         }
     };
 
+    /* =========================================================
+       Imprimir documentación (frente)
+       ========================================================= */
     const handlePrintDocumentacion = async () => {
         if (!docs.length) {
             alert("No hay documentos para imprimir.");
@@ -551,7 +563,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                     Agregar documentación
                                 </h3>
                                 <p className={styles.docAddSubtitle}>
-                                    Fotos o PDFs — se suben a Drive
+                                    Fotos o PDFs — se suben a Cloudinary
                                 </p>
                             </div>
 
@@ -644,17 +656,18 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             ) : (
                                 <div className={styles.docList}>
                                     {docs.map((d, idx) => {
-                                        const isPdf = isPdfName(d.name);
+                                        const isPdf = isPdfDoc(d);
                                         const broken =
-                                            imgErrors[d.fileId] && !isPdf;
+                                            imgErrors[d.publicId] && !isPdf;
                                         const isDeleting =
-                                            deletingId === d.fileId;
+                                            deletingId === d.publicId;
                                         const isReplacing =
-                                            replacingId === d.fileId;
+                                            replacingId === d.publicId;
+                                        const embedUrl = `${d.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
 
                                         return (
                                             <article
-                                                key={d.fileId}
+                                                key={d.publicId}
                                                 className={styles.docCard}
                                             >
                                                 <button
@@ -664,9 +677,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                     }
                                                     onClick={() =>
                                                         window.open(
-                                                            buildProxyUrl(
-                                                                d.fileId,
-                                                            ),
+                                                            d.url,
                                                             "_blank",
                                                             "noopener,noreferrer",
                                                         )
@@ -676,9 +687,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                 >
                                                     {isPdf ? (
                                                         <iframe
-                                                            src={buildProxyEmbedUrl(
-                                                                d.fileId,
-                                                            )}
+                                                            src={embedUrl}
                                                             title={d.name}
                                                             loading="lazy"
                                                             className={
@@ -707,9 +716,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         </div>
                                                     ) : (
                                                         <img
-                                                            src={buildProxyUrl(
-                                                                d.fileId,
-                                                            )}
+                                                            src={d.url}
                                                             alt={d.name}
                                                             loading="lazy"
                                                             decoding="async"
@@ -720,7 +727,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                                 setImgErrors(
                                                                     (prev) => ({
                                                                         ...prev,
-                                                                        [d.fileId]:
+                                                                        [d.publicId]:
                                                                             true,
                                                                     }),
                                                                 )
@@ -767,7 +774,6 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                     </div>
                                                 </div>
 
-                                                {/* 🆕 Botones compactos con flex-wrap */}
                                                 <div
                                                     className={
                                                         styles.docCardActions
@@ -784,9 +790,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                         }
                                                         onClick={() =>
                                                             window.open(
-                                                                buildProxyUrl(
-                                                                    d.fileId,
-                                                                ),
+                                                                d.url,
                                                                 "_blank",
                                                                 "noopener,noreferrer",
                                                             )
@@ -821,8 +825,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                                                     >
                                                         {isReplacing
                                                             ? "⏳"
-                                                            : "🔄"}{" "}
-                                                        
+                                                            : "🔄"}
                                                     </button>
                                                     <button
                                                         type="button"
@@ -881,7 +884,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
                             style={{ display: "none" }}
                         />
 
-                        {/* 🆕 Subir PDF */}
+                        {/* Subir PDF */}
                         <input
                             type="file"
                             accept="application/pdf,.pdf"
