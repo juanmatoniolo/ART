@@ -22,7 +22,7 @@ import {
     buildPrintHtml,
 } from './helpers';
 import { SaveAtajoModal, AtajosModal } from './AtajosModal';
-import Estadisticas from './Estadisticas';
+import Estadisticas from './Estadisticas.jsx';
 
 // =====================================================================
 //  HELPERS LOCALES

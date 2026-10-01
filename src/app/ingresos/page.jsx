@@ -35,6 +35,7 @@ import {
   defaultMonth,
   defaultYearShort,
 } from "./helpers";
+import Header from "../../components/Header/Header";
 
 const STORAGE_KEY = "ingreso_paciente_form_v1";
 const THEME_KEY = "siniestro_theme";
@@ -1278,6 +1279,7 @@ export default function IngresosPage() {
 
   return (
     <>
+    <Header />
       <div className={cx(styles.page, theme === "light" && styles.lightMode)}>
         <div className={styles.shell}>
           <div className={styles.header}>
