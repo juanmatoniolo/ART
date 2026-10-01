@@ -150,7 +150,11 @@ export function buildHabitacionCamaTexto(form) {
 }
 
 export function getPdfPages(tipoIngreso) {
-	if (tipoIngreso === "UTI") return [1, 9, 10, 11, 12];
+	// UTI: hoja 1 (formulario), hoja 2 (consentimiento de internación),
+	//      hojas 9–12 (planillas UTI)
+	if (tipoIngreso === "UTI") return [1, 2, 9, 10, 11, 12];
+
+	// PISO: hojas 1–8 (ya incluye la 2 = consentimiento)
 	return [1, 2, 3, 4, 5, 6, 7, 8];
 }
 
