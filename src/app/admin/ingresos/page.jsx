@@ -78,6 +78,25 @@ async function archivePatientFolder(folderPath, reason = "ELIMINADO") {
 }
 
 /* ============================================================
+   ✅ stripUndefined: Firebase RTDB NO acepta valores undefined.
+   Recorre objetos y arrays quitando cualquier propiedad con undefined.
+   ============================================================ */
+function stripUndefined(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(stripUndefined);
+  }
+  if (obj && typeof obj === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+/* ============================================================
    HTML helpers pestaña "Imprimir"
    ============================================================ */
 function buildLoadingHtml(pacienteNombre) {
@@ -181,7 +200,7 @@ function buildErrorHtml(msg) {
 }
 
 /* ============================================================
-   Stepper visual
+   Stepper
    ============================================================ */
 const STEPS = [
   { n: 1, label: "Ingreso", icon: "📅" },
@@ -581,7 +600,7 @@ export default function IngresosPage() {
     lookupDniInHC(digits, form.tipoIngreso);
   };
 
-  /* ⚠️ FIX: solo aplica HC si tiene un número real. */
+  /* Solo sobrescribe HC si tiene número real */
   const aplicarHistoriaClinica = (hc) => {
     if (!hc) return;
     const { apellido, nombre } = splitNombreCompleto(hc.nombre_apellido || "");
@@ -592,7 +611,6 @@ export default function IngresosPage() {
       trabajadorApellido: apellido || p.trabajadorApellido,
       trabajadorNombre: nombre || p.trabajadorNombre,
       trabajadorDni: hc.dni ? formatIdField(hc.dni) : p.trabajadorDni,
-      // Solo sobrescribe HC si hay número real
       historiaClinica: hcNum || p.historiaClinica,
     }));
   };
@@ -797,7 +815,7 @@ export default function IngresosPage() {
   };
 
   /* ------------------------------------------------------------------
-     Eliminar: NO borra las imágenes. Archiva la carpeta y borra de Firebase.
+     Eliminar: archiva la carpeta en Cloudinary y borra de Firebase
      ------------------------------------------------------------------ */
   const handleDeletePaciente = async (paciente) => {
     const t = paciente.trabajador || {};
@@ -858,10 +876,11 @@ export default function IngresosPage() {
      ------------------------------------------------------------------ */
   const buildPacientePdfBlob = async (paciente) => {
     const tipoIngreso = paciente.tipoIngreso || "PISO";
-    const payload = {
+    /* ✅ Sanitizamos por las dudas */
+    const payload = stripUndefined({
       ...paciente,
       prestador: paciente.prestador || PRESTADOR_CONST,
-    };
+    });
     const apellido = payload.trabajador?.apellido || "SIN_APELLIDO";
     const dni = onlyDigits(payload.trabajador?.dni) || "SIN_DNI";
     const os = (payload.OS || "OS").replace(/\s+/g, "_");
@@ -1089,7 +1108,8 @@ export default function IngresosPage() {
         .trim()
         .toUpperCase();
 
-      const payload = {
+      /* ✅ stripUndefined ANTES de guardar en Firebase */
+      const payload = stripUndefined({
         OS: (form.OS || "").trim().toUpperCase(),
         afiliadoPaciente: (form.afiliadoPaciente || "").trim().toUpperCase(),
         historiaClinica: (form.historiaClinica || "").trim().toUpperCase(),
@@ -1142,7 +1162,7 @@ export default function IngresosPage() {
         documentacion: docs,
         prestador: PRESTADOR_CONST,
         updatedAt: Date.now(),
-      };
+      });
 
       let savedId;
       if (editingId) {
@@ -1256,9 +1276,6 @@ export default function IngresosPage() {
     hc?.historia_clinica ? `#${hc.historia_clinica}` : "sin N°";
   const mesPreview = nombreMes(form.trabajadorNacimientoMes);
 
-  /* ============================================================
-     RENDER
-     ============================================================ */
   return (
     <>
       <div className={cx(styles.page, theme === "light" && styles.lightMode)}>

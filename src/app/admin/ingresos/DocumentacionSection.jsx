@@ -88,7 +88,7 @@ function isPdfFile(file) {
    Componente
    ========================================================= */
 export default function DocumentacionSection({ docs, setDocs, form }) {
-    const [queue, setQueue] = useState({}); // id → { name, percent, stage, error, kind }
+    const [queue, setQueue] = useState({});
     const [cropToDni, setCropToDni] = useState(false);
     const [cropPreview, setCropPreview] = useState(null);
 
@@ -137,19 +137,21 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
             });
             clearTimeout(to);
 
-            setDocs((prev) => [
-                ...prev,
-                {
-                    publicId: data.publicId,
-                    url: data.url,
-                    resourceType: data.resourceType,
-                    name: label.name || `${pid}.${data.format || "webp"}`,
-                    fecha: Date.now(),
-                    fromPdf: kind === "pdf-page",
-                    pageNumber: label.pageNumber,
-                    totalPages: label.totalPages,
-                },
-            ]);
+            /* ✅ Construir doc sin campos undefined (Firebase no los acepta) */
+            const newDoc = {
+                publicId: data.publicId,
+                url: data.url,
+                resourceType: data.resourceType,
+                name: label.name || `${pid}.${data.format || "webp"}`,
+                fecha: Date.now(),
+            };
+            if (kind === "pdf-page") {
+                newDoc.fromPdf = true;
+                if (label.pageNumber != null) newDoc.pageNumber = label.pageNumber;
+                if (label.totalPages != null) newDoc.totalPages = label.totalPages;
+            }
+
+            setDocs((prev) => [...prev, newDoc]);
             removeQ(tempId);
         } catch (err) {
             clearTimeout(to);
@@ -306,14 +308,7 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                 title="Documentación"
                 subtitle="Opcional. Se sube en segundo plano — podés seguir cargando datos mientras tanto."
             >
-                {/* Botones de acción */}
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                    }}
-                >
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
                         type="button"
                         className={styles.docAddBtn}
@@ -363,7 +358,6 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                     ✂️ Editor formato DNI (recortar cada foto)
                 </label>
 
-                {/* Lista compacta de items (subiendo + subidos) */}
                 {(queueEntries.length > 0 || docs.length > 0) && (
                     <div
                         style={{
@@ -520,7 +514,6 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                     </div>
                 )}
 
-                {/* Resumen */}
                 {(docs.length > 0 || uploadingCount > 0 || errorCount > 0) && (
                     <div
                         style={{
