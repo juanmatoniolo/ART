@@ -78,7 +78,7 @@ export default function PasoArtes({
         if (Array.isArray(parsed) && parsed.length > 0) {
           setOrden(parsed);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -157,7 +157,7 @@ export default function PasoArtes({
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) setOrden(parsed);
-      } catch (e) {}
+      } catch (e) { }
     } else {
       setOrden([]); // vacío para usar el orden original
     }
@@ -169,13 +169,13 @@ export default function PasoArtes({
       <div className={styles.blockTop}>
         <p className={styles.blockLabel}>🏢 ARTs</p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className={styles.tinyBtn} onClick={onManageArts}>⚙️ Gestionar</button>
+          {/*    <button className={styles.tinyBtn} onClick={onManageArts}>⚙️ Gestionar</button>
           <button
             className={styles.tinyBtn}
             onClick={() => setModoEditarOrden(!modoEditarOrden)}
           >
             {modoEditarOrden ? '🔒 Cancelar' : '✏️ Editar orden'}
-          </button>
+          </button> */}
           {modoEditarOrden && (
             <>
               <button className={styles.tinyBtn} onClick={guardarOrden} style={{ background: '#22c55e', color: 'white' }}>
@@ -263,7 +263,7 @@ export default function PasoArtes({
                   <span className={styles.artName}>{art.nombre}</span>
                   {isSelected && <span className={styles.checkIcon}>✓</span>}
                 </div>
-                
+
               </div>
             );
           })}
