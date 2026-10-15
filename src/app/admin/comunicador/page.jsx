@@ -244,8 +244,8 @@ Completarlo con anticipación nos permitirá agilizar el trámite administrativo
 El día de la cirugía deberá:
 
 🕒 Presentarse en la fecha y horario indicados.
-🥛 Concurrir en ayunas.
-🪪 Traer el DNI físico original.
+🥛 Concurrir en ayunas de 8 hs minimo.
+🪪 Traer fotocopia del DNI, frente y dorso + DNI físico original. (Obligatorio para poder ingresar)
 🚪 Anunciarse en Mesa de Entrada al ingresar.
 
 🏥 Ese mismo día se realizará la cirugía.
@@ -503,9 +503,9 @@ Si no está de acuerdo con el alta o desea realizar un reclamo, deberá comunica
                 value={bioquimico}
                 onChange={(e) => setBioquimico(e.target.value)}
               >
-                <option value="confalonieri">Bioquímica Confalonieri</option>
-                <option value="marmol">Bioquímico Mármol</option>
                 <option value="tabeni">Bioquímica Tabeni</option>
+                <option value="marmol">Bioquímico Mármol</option>
+                <option value="confalonieri">Bioquímica Confalonieri</option>
               </select>
             </div>
           )}
@@ -522,8 +522,8 @@ Si no está de acuerdo con el alta o desea realizar un reclamo, deberá comunica
                 value={cardiologo}
                 onChange={(e) => setCardiologo(e.target.value)}
               >
-                <option value="percara">Dr. Percara</option>
                 <option value="capovilla">Dr. Capovilla</option>
+                <option value="percara">Dr. Percara</option>
               </select>
             </div>
           )}

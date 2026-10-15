@@ -26,10 +26,6 @@ const aplanar = (obj, prefix = "", out = {}) => {
 
 /* ───────────── Pacientes ───────────── */
 
-/**
- * Ingreso PAMI: crea PAMI/pacientes/{dni}. Si ya existe devuelve { exists: true } sin escribir;
- * con { actualizar: true } hace merge por campos de primer nivel.
- */
 export async function guardarPacientePami(
 	paciente,
 	{ usuario = "sistema", actualizar = false } = {},
@@ -39,7 +35,7 @@ export async function guardarPacientePami(
 		if (key.length < 7) return { success: false, error: "DNI inválido" };
 
 		const nodo = ref(db, `${PATH}/${key}`);
-		const snap = await get(ref(db, `${PATH}/${key}/dni`)); // existencia barata
+		const snap = await get(ref(db, `${PATH}/${key}/dni`));
 		if (snap.exists() && !actualizar)
 			return { success: false, exists: true, key };
 
@@ -61,10 +57,6 @@ export async function guardarPacientePami(
 	}
 }
 
-/**
- * Crea el paciente si no existe; si existe, completa/actualiza solo los campos
- * no vacíos (merge por path, no pisa `medicamentos` ni `cirugia`).
- */
 export async function asegurarPacientePami(
 	datos,
 	{ usuario = "sistema" } = {},
@@ -83,13 +75,16 @@ export async function asegurarPacientePami(
 	return { key, creado: !existe };
 }
 
-/** Devuelve el paciente completo (incluye `medicamentos`) o null. */
 export async function obtenerPacientePami(dni) {
 	const snap = await get(ref(db, `${PATH}/${dniKey(dni)}`));
 	return snap.exists() ? snap.val() : null;
 }
 
-/* ───────────── Presupuestos de medicación (PAMI/pacientes/{dni}/medicamentos) ───────────── */
+/** Elimina el paciente completo (incluye todos sus borradores). */
+export const eliminarPacientePami = (dni) =>
+	remove(ref(db, `${PATH}/${dniKey(dni)}`));
+
+/* ───────────── Presupuestos ───────────── */
 
 export async function guardarPresupuestoPami(
 	pacienteKey,

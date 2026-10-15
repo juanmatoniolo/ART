@@ -12,6 +12,7 @@ import {
     asegurarPacientePami,
     guardarPresupuestoPami,
     eliminarPresupuestoPami,
+    eliminarPacientePami,
 } from "@/lib/pami";
 import PresupuestoImprimible from "./PresupuestoImprimible";
 import styles from "./insumosAdmin.module.css";
@@ -41,35 +42,43 @@ const fechaISO = (fecha) => {
 
 const MAX_VISIBLES = 30;
 const MIN_BUSQUEDA = 2;
+const VISIBLES_SIN_BUSQUEDA = 15;
 
 const CAMPOS = [
-    "dni", "afiliado", "apellido", "nombre", "historiaClinica", "sexo",
+    "dni", "afiliado", "historiaClinica", "sexo",
     "fechaNacimiento", "telefono", "domicilio", "localidad", "provincia", "lugarNacimiento",
+    "cirujano", "ayudante1", "ayudante2", "anestesista",
 ];
 
 const PACIENTE_VACIO = {
-    dni: "", afiliado: "", apellido: "", nombre: "", historiaClinica: "", sexo: "",
+    dni: "", afiliado: "", nombreCompleto: "", historiaClinica: "", sexo: "",
     fechaNacimiento: "", telefono: "", domicilio: "",
     localidad: "CHAJARÍ", provincia: "ENTRE RIOS", lugarNacimiento: "",
     famNombre: "", famParentezco: "", famTelefono: "",
+    cirujano: "", ayudante1: "", ayudante2: "", anestesista: "",
 };
 
-// Firebase → formulario
 const desdeDb = (d) => ({
     ...Object.fromEntries(CAMPOS.map((c) => [c, d[c] ?? ""])),
+    nombreCompleto: [d.apellido, d.nombre].filter(Boolean).join(" ").trim(),
     famNombre: d.familiar?.nombre ?? "",
     famParentezco: d.familiar?.parentezco ?? "",
     famTelefono: d.familiar?.telefono ?? "",
 });
 
-// Formulario → Firebase (misma forma que usa el ingreso PAMI)
 const aDb = (f) => {
-    const { famNombre, famParentezco, famTelefono, ...resto } = f;
+    const { famNombre, famParentezco, famTelefono, nombreCompleto, ...resto } = f;
+    const partes = String(nombreCompleto || "").trim().split(/\s+/).filter(Boolean);
+    const apellido = partes[0] || "";
+    const nombre = partes.slice(1).join(" ");
+
     const limpio = Object.fromEntries(
         Object.entries(resto).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]),
     );
     return {
         ...limpio,
+        apellido,
+        nombre,
         familiar: { nombre: famNombre.trim(), parentezco: famParentezco.trim(), telefono: famTelefono.trim() },
     };
 };
@@ -79,16 +88,47 @@ const miles = (v) => {
     return d.length <= 8 ? d.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : d;
 };
 
+/* Afiliado PAMI: dígitos + una sola barra + hasta 2 dígitos después */
+const sanitizeAfiliado = (v) => {
+    const limpio = String(v ?? "").replace(/[^\d/]/g, "");
+    const partes = limpio.split("/");
+    if (partes.length === 1) return partes[0];
+    const izq = partes[0];
+    const der = partes.slice(1).join("").slice(0, 2);
+    return `${izq}/${der}`;
+};
+
+const parseCantidad = (v, fallback = 0) => {
+    if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? v : fallback;
+    const n = parseFloat(String(v ?? "").trim().replace(",", "."));
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+};
+
+const fmtCantidad = (n) => {
+    const num = Number(n);
+    if (!Number.isFinite(num) || num <= 0) return "0";
+    return String(num);
+};
+
+const parseMonto = (v) => {
+    const n = parseFloat(String(v ?? "").trim().replace(",", "."));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 const usuarioActual = () => {
     const s = (typeof getSession === "function" && getSession()) || {};
     return s.user || s.usuario || s.nombre || "sistema";
 };
 
 const itemsDe = (b) => (Array.isArray(b.items) ? b.items : Object.values(b.items || {}));
+const codigosDe = (b) => (Array.isArray(b.codigos) ? b.codigos : Object.values(b.codigos || {}));
 
-function Campo({ label, children }) {
+function Campo({ label, children, wide }) {
     return (
-        <label className={p.field}>
+        <label
+            className={p.field}
+            style={wide ? { gridColumn: "1 / -1" } : undefined}
+        >
             <span>{label}</span>
             {children}
         </label>
@@ -111,22 +151,34 @@ export default function PresupuestoPamiPage() {
     const [items, setItems] = useState([]);
     const [busquedaPaciente, setBusquedaPaciente] = useState("");
     const [busquedaProducto, setBusquedaProducto] = useState("");
+    const [busquedaBorrador, setBusquedaBorrador] = useState("");
     const [periodoActivo, setPeriodoActivo] = useState("todo");
 
     // Paciente / presupuesto
     const [paciente, setPaciente] = useState(PACIENTE_VACIO);
-    const [estadoPaciente, setEstadoPaciente] = useState(null); // null | buscando | nuevo | existente
+    const [estadoPaciente, setEstadoPaciente] = useState(null);
     const [borradores, setBorradores] = useState([]);
     const [carrito, setCarrito] = useState([]);
-    const [edicion, setEdicion] = useState(null); // { pacienteKey, id }
+    const [codigosPami, setCodigosPami] = useState([]);
+    const [formCodigo, setFormCodigo] = useState({ codigo: "", descripcion: "", monto: "" });
+    const [edicion, setEdicion] = useState(null);
     const [saving, setSaving] = useState(false);
     const [mensaje, setMensaje] = useState("");
+
+    const [pendientes, setPendientes] = useState({});
+    const [notifs, setNotifs] = useState([]);
 
     const printRef = useRef(null);
 
     const flash = (m, ms = 3000) => {
         setMensaje(m);
         setTimeout(() => setMensaje(""), ms);
+    };
+
+    const notify = (text, ms = 2200) => {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        setNotifs((n) => [...n, { id, text }]);
+        setTimeout(() => setNotifs((n) => n.filter((x) => x.id !== id)), ms);
     };
 
     // ─── Catálogo desde Firebase ─────────────────────────────────
@@ -162,11 +214,20 @@ export default function PresupuestoPamiPage() {
     }, []);
 
     const consultaActiva = busquedaProducto.trim().length >= MIN_BUSQUEDA;
+
     const filtrados = useMemo(() => {
-        if (!consultaActiva) return [];
-        return items
-            .filter((i) => i.activo && (tipo === "todos" || i.categoria === tipo) && matchesAllTerms(i.nombre, busquedaProducto))
-            .slice(0, MAX_VISIBLES);
+        const activos = items.filter((i) => i.activo);
+        if (consultaActiva) {
+            return activos
+                .filter((i) => (tipo === "todos" || i.categoria === tipo) && matchesAllTerms(i.nombre, busquedaProducto))
+                .slice(0, MAX_VISIBLES);
+        }
+        if (tipo === "todos") {
+            const meds = activos.filter((i) => i.categoria === "medicamentos").slice(0, VISIBLES_SIN_BUSQUEDA);
+            const desc = activos.filter((i) => i.categoria === "descartables").slice(0, VISIBLES_SIN_BUSQUEDA);
+            return [...meds, ...desc];
+        }
+        return activos.filter((i) => i.categoria === tipo).slice(0, MAX_VISIBLES);
     }, [items, tipo, busquedaProducto, consultaActiva]);
 
     const pacientesFiltrados = useMemo(() => {
@@ -178,6 +239,41 @@ export default function PresupuestoPamiPage() {
         ));
     }, [pacientesDb, busquedaPaciente]);
 
+    // ─── Todos los borradores (todos los pacientes) ───────────────
+    const borradoresTodos = useMemo(() => {
+        const lista = [];
+        for (const pac of pacientesDb) {
+            const meds = pac.medicamentos || {};
+            for (const [id, b] of Object.entries(meds)) {
+                const itemsB = itemsDe(b);
+                const codigosB = codigosDe(b);
+                const totalB = itemsB.reduce((s, i) => s + (Number(i.precio) || 0) * (Number(i.cantidad) || 0), 0)
+                    + codigosB.reduce((s, c) => s + (Number(c.monto) || 0), 0);
+                lista.push({
+                    id,
+                    pacienteDni: pac.dni,
+                    pacienteNombre: [pac.apellido, pac.nombre].filter(Boolean).join(" "),
+                    pacienteAfiliado: pac.afiliado || "",
+                    fechaMs: Number(b.createdAt || b.updatedAt || 0),
+                    itemsCount: itemsB.length,
+                    codigosCount: codigosB.length,
+                    total: b.total != null ? Number(b.total) : totalB,
+                    raw: b,
+                });
+            }
+        }
+        return lista.sort((a, b) => b.fechaMs - a.fechaMs);
+    }, [pacientesDb]);
+
+    const borradoresFiltrados = useMemo(() => {
+        const consulta = busquedaBorrador.trim();
+        if (!consulta) return borradoresTodos;
+        return borradoresTodos.filter((b) => matchesAllTerms(
+            `${b.pacienteNombre} ${b.pacienteDni} ${b.pacienteAfiliado}`,
+            consulta
+        ));
+    }, [borradoresTodos, busquedaBorrador]);
+
     const estadisticas = useMemo(() => {
         const hoy = new Date();
         const registros = [];
@@ -187,9 +283,9 @@ export default function PresupuestoPamiPage() {
             for (const [id, b] of Object.entries(paciente.medicamentos || {})) {
                 const fechaMs = Number(b.createdAt || b.updatedAt || 0);
                 const fecha = fechaMs ? new Date(fechaMs) : null;
-                const fechaISO = fecha ? `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}` : "";
-                if (desde && (!fechaISO || fechaISO < desde)) continue;
-                if (hasta && (!fechaISO || fechaISO > hasta)) continue;
+                const fechaISOreg = fecha ? `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}` : "";
+                if (desde && (!fechaISOreg || fechaISOreg < desde)) continue;
+                if (hasta && (!fechaISOreg || fechaISOreg > hasta)) continue;
                 if (edadDesde !== "" && (edad === null || edad < Number(edadDesde))) continue;
                 if (edadHasta !== "" && (edad === null || edad > Number(edadHasta))) continue;
                 const itemsB = itemsDe(b);
@@ -218,20 +314,48 @@ export default function PresupuestoPamiPage() {
     }, [pacientesDb, desde, hasta, edadDesde, edadHasta, filtroCategoria]);
 
     // ─── Carrito ─────────────────────────────────────────────────
-    const cantidades = useMemo(
-        () => Object.fromEntries(carrito.map((c) => [c.id, c.cantidad])),
+    const totalProductos = useMemo(
+        () => carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0),
         [carrito],
     );
-    const total = useMemo(
-        () => carrito.reduce((s, c) => s + c.precio * c.cantidad, 0),
-        [carrito],
+    const totalCodigos = useMemo(
+        () => codigosPami.reduce((s, c) => s + (Number(c.monto) || 0), 0),
+        [codigosPami],
     );
+    const total = totalProductos + totalCodigos;
 
-    const agregar = (item) =>
+    // ─── Cantidades pendientes ───────────────────────────────────
+    const getPendienteRaw = (id) =>
+        pendientes[id] !== undefined ? pendientes[id] : "1";
+
+    const getPendienteNum = (id) => parseCantidad(getPendienteRaw(id), 0);
+
+    const setPendiente = (id, raw) => {
+        setPendientes((prev) => ({ ...prev, [id]: raw }));
+    };
+
+    const sumarPendiente = (id) => {
+        const next = getPendienteNum(id) + 1;
+        setPendientes((prev) => ({ ...prev, [id]: String(next) }));
+    };
+
+    const restarPendiente = (id) => {
+        const next = Math.max(0, getPendienteNum(id) - 1);
+        setPendientes((prev) => ({ ...prev, [id]: String(next) }));
+    };
+
+    const confirmarAgregar = (item) => {
+        const id = `${item.categoria}:${item.key}`;
+        const qty = getPendienteNum(id) || 1;
+
         setCarrito((c) => {
-            const id = `${item.categoria}:${item.key}`;
-            if (c.some((x) => x.id === id))
-                return c.map((x) => (x.id === id ? { ...x, cantidad: x.cantidad + 1 } : x));
+            const idx = c.findIndex((x) => x.id === id);
+            if (idx >= 0) {
+                const copy = c.slice();
+                const nueva = (Number(copy[idx].cantidad) || 0) + qty;
+                copy[idx] = { ...copy[idx], cantidad: nueva, _raw: undefined };
+                return copy;
+            }
             return [
                 ...c,
                 {
@@ -240,20 +364,46 @@ export default function PresupuestoPamiPage() {
                     key: item.key,
                     nombre: item.nombre,
                     presentacion: labelPresentacion(item.categoria, item.presentacion),
-                    precio: Number(item.precioFacturacion) || 0, // snapshot del precio
-                    cantidad: 1,
+                    precio: Number(item.precioFacturacion) || 0,
+                    cantidad: qty,
                 },
             ];
         });
 
-    const cambiarCantidad = (id, v) =>
+        setPendientes((prev) => ({ ...prev, [id]: "1" }));
+        notify(`${item.nombre}  +${fmtCantidad(qty)}`);
+    };
+
+    const cambiarCantidad = (id, raw) => {
         setCarrito((c) =>
-            c.map((x) => (x.id === id ? { ...x, cantidad: Math.max(1, parseInt(v, 10) || 1) } : x)),
+            c.map((x) => {
+                if (x.id !== id) return x;
+                return {
+                    ...x,
+                    _raw: raw,
+                    cantidad: parseCantidad(raw, 0),
+                };
+            })
         );
+    };
 
     const quitar = (id) => setCarrito((c) => c.filter((x) => x.id !== id));
 
-    // ─── Paciente: búsqueda por DNI (la clave del nodo) ──────────
+    const agregarCodigo = () => {
+        const codigo = formCodigo.codigo.trim();
+        const descripcion = formCodigo.descripcion.trim();
+        const monto = parseMonto(formCodigo.monto);
+        if (!codigo && !descripcion) return flash("Ingresá el código o la descripción.");
+        setCodigosPami((c) => [
+            ...c,
+            { id: `cod-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, codigo, descripcion, monto },
+        ]);
+        setFormCodigo({ codigo: "", descripcion: "", monto: "" });
+        notify(`Código ${codigo || descripcion} agregado`);
+    };
+    const quitarCodigo = (id) => setCodigosPami((c) => c.filter((x) => x.id !== id));
+
+    // ─── Paciente ────────────────────────────────────────────────
     async function buscarPaciente(raw = paciente.dni) {
         const key = dniKey(raw);
         if (key.length < 7) return;
@@ -285,9 +435,18 @@ export default function PresupuestoPamiPage() {
         onChange: (e) => setPaciente((f) => ({ ...f, [name]: e.target.value })),
     });
 
-    // ─── Borradores ──────────────────────────────────────────────
+    // ─── Borradores del paciente ─────────────────────────────────
     const abrirBorrador = (b) => {
-        setCarrito(itemsDe(b).map((i) => ({ ...i, id: i.id || `${i.categoria}:${i.key}` })));
+        setCarrito(
+            itemsDe(b).map((i) => ({
+                ...i,
+                id: i.id || `${i.categoria}:${i.key}`,
+                cantidad: parseCantidad(i.cantidad, 1) || 1,
+                _raw: undefined,
+            })),
+        );
+        setCodigosPami(codigosDe(b).map((c) => ({ ...c })));
+        setPendientes({});
         setEdicion({ pacienteKey: dniKey(paciente.dni), id: b.id });
         flash("Borrador cargado. Los precios son los del momento en que se guardó.", 4000);
     };
@@ -305,21 +464,89 @@ export default function PresupuestoPamiPage() {
         }
     }
 
-    // ─── Guardar: asegura paciente + guarda presupuesto bajo su DNI ─
+    // ─── Eliminar paciente (con todos sus borradores) ─────────────
+    async function eliminarPaciente(pac) {
+        const nombre = [pac.apellido, pac.nombre].filter(Boolean).join(" ") || `DNI ${pac.dni}`;
+        if (!confirm(`¿Eliminar el paciente ${nombre}?\nSe borrarán también todos sus borradores.`)) return;
+        try {
+            await eliminarPacientePami(pac.dni);
+            // Si justo es el que está cargado, reiniciamos el formulario.
+            if (dniKey(paciente.dni) === dniKey(pac.dni)) nuevo();
+            flash("Paciente eliminado.");
+        } catch (e) {
+            console.error(e);
+            flash("No se pudo eliminar el paciente.", 4000);
+        }
+    }
+
+    // ─── Abrir / borrar borrador desde la solapa "Borradores" ─────
+    async function abrirBorradorDesdeLista(b) {
+        try {
+            const data = await obtenerPacientePami(b.pacienteDni);
+            if (!data) {
+                flash("No se encontró el paciente.", 3500);
+                return;
+            }
+            const { medicamentos = {}, ...datos } = data;
+            setPaciente(desdeDb(datos));
+            setBorradores(
+                Object.entries(medicamentos)
+                    .map(([id, v]) => ({ id, ...v }))
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
+            );
+            setEstadoPaciente("existente");
+
+            setCarrito(
+                itemsDe(b.raw).map((i) => ({
+                    ...i,
+                    id: i.id || `${i.categoria}:${i.key}`,
+                    cantidad: parseCantidad(i.cantidad, 1) || 1,
+                    _raw: undefined,
+                })),
+            );
+            setCodigosPami(codigosDe(b.raw).map((c) => ({ ...c })));
+            setPendientes({});
+            setEdicion({ pacienteKey: dniKey(b.pacienteDni), id: b.id });
+
+            setSolapa("presupuesto");
+            flash("Borrador cargado. Los precios son los del momento en que se guardó.", 4000);
+        } catch (e) {
+            console.error(e);
+            flash("No se pudo abrir el borrador.", 4000);
+        }
+    }
+
+    async function eliminarBorradorDesdeLista(b) {
+        if (!confirm(`¿Eliminar el borrador de ${b.pacienteNombre || b.pacienteDni}?`)) return;
+        try {
+            await eliminarPresupuestoPami(b.pacienteDni, b.id);
+            if (edicion?.id === b.id) setEdicion(null);
+            flash("Borrador eliminado.");
+        } catch (e) {
+            console.error(e);
+            flash("No se pudo eliminar el borrador.", 4000);
+        }
+    }
+
+    // ─── Guardar ─────────────────────────────────────────────────
     async function guardar() {
         const key = dniKey(paciente.dni);
-        if (!paciente.apellido.trim() || !paciente.nombre.trim())
+        if (!paciente.nombreCompleto.trim())
             return flash("Completá apellido y nombre.");
         if (key.length < 7) return flash("Ingresá un DNI válido (mínimo 7 dígitos).");
         if (!paciente.afiliado.trim()) return flash("Ingresá el N° de afiliado PAMI.");
-        if (!carrito.length) return flash("El carrito está vacío.");
+        if (!carrito.length && !codigosPami.length) return flash("No hay ítems ni códigos cargados.");
 
         setSaving(true);
         try {
             const usuario = usuarioActual();
             const { creado } = await asegurarPacientePami(aDb(paciente), { usuario });
             const id = edicion?.pacienteKey === key ? edicion.id : null;
-            const res = await guardarPresupuestoPami(key, { items: carrito, total }, { usuario, id });
+            const res = await guardarPresupuestoPami(
+                key,
+                { items: carrito, codigos: codigosPami, total },
+                { usuario, id },
+            );
             setEdicion({ pacienteKey: key, id: res.id });
             await buscarPaciente(key);
             flash(
@@ -340,6 +567,9 @@ export default function PresupuestoPamiPage() {
     const nuevo = () => {
         setPaciente(PACIENTE_VACIO);
         setCarrito([]);
+        setCodigosPami([]);
+        setFormCodigo({ codigo: "", descripcion: "", monto: "" });
+        setPendientes({});
         setBorradores([]);
         setEdicion(null);
         setEstadoPaciente(null);
@@ -348,10 +578,9 @@ export default function PresupuestoPamiPage() {
         setPeriodoActivo("todo");
     };
 
-    // ─── Impresión (react-to-print) ──────────────────────────────
     const imprimir = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `Presupuesto-${paciente.apellido || "PAMI"}-${paciente.nombre || ""}`.trim(),
+        documentTitle: `Presupuesto-${paciente.nombreCompleto || "PAMI"}`.trim(),
         pageStyle: "@page { size: A4; margin: 14mm; }",
     });
 
@@ -372,6 +601,12 @@ export default function PresupuestoPamiPage() {
         setHasta(fechaISO(hoy));
     };
 
+    const fmtFechaHora = (ms) => {
+        if (!ms) return "—";
+        const d = new Date(ms);
+        return `${d.toLocaleDateString("es-AR")} ${d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+    };
+
     // ─── Render ──────────────────────────────────────────────────
     return (
         <div className={`${styles.wrapper} ${styles.dark}`}>
@@ -383,6 +618,7 @@ export default function PresupuestoPamiPage() {
                 {[
                     ["presupuesto", "Presupuesto", "Crear y consultar presupuestos"],
                     ["pacientes", "Pacientes", "Buscar pacientes registrados"],
+                    ["borradores", "Borradores", "Todos los borradores"],
                     ["estadisticas", "Estadísticas", "Consultar indicadores"],
                 ].map(([id, label, descripcion]) => (
                     <button key={id} type="button" role="tab" aria-selected={solapa === id}
@@ -395,6 +631,17 @@ export default function PresupuestoPamiPage() {
 
             {mensaje && <div className={styles.toast}>{mensaje}</div>}
 
+            {notifs.length > 0 && (
+                <div className={p.notifStack} aria-live="polite" aria-atomic="true">
+                    {notifs.map((n) => (
+                        <div key={n.id} className={p.notif} role="status">
+                            ✓ {n.text}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Solapa PACIENTES ── */}
             {solapa === "pacientes" && <section className={p.card}>
                 <h3 className={p.cardTitle}>Pacientes registrados</h3>
                 <input
@@ -407,27 +654,104 @@ export default function PresupuestoPamiPage() {
                 />
                 <p className={p.hint}>{pacientesFiltrados.length} pacientes encontrados.</p>
                 <ul className={p.list}>
-                    {pacientesFiltrados.slice(0, 100).map((x) => (
+                    {pacientesFiltrados.slice(0, 200).map((x) => (
                         <li className={p.row} key={x.dni}>
                             <div>
                                 <div className={p.rowName}>{x.apellido || ""}, {x.nombre || ""}</div>
-                                <div className={p.rowMeta}>DNI {miles(x.dni)} · Afiliado {x.afiliado || "—"}</div>
+                                <div className={p.rowMeta}>
+                                    DNI {miles(x.dni)} · Afiliado {x.afiliado || "—"} ·{" "}
+                                    {Object.keys(x.medicamentos || {}).length} borrador(es)
+                                </div>
                             </div>
-                            <button
-                                className={`${p.btn} ${p.btnSm}`}
-                                type="button"
-                                onClick={async () => {
-                                    await buscarPaciente(x.dni);
-                                    setSolapa("presupuesto");
-                                    setBusquedaPaciente("");
-                                }}
-                            >
-                                Cargar
-                            </button>
+                            <div className={p.rowActions}>
+                                <button
+                                    className={`${p.btn} ${p.btnSm}`}
+                                    type="button"
+                                    onClick={async () => {
+                                        await buscarPaciente(x.dni);
+                                        setSolapa("presupuesto");
+                                        setBusquedaPaciente("");
+                                    }}
+                                >
+                                    Cargar
+                                </button>
+                                <button
+                                    className={`${p.btn} ${p.btnSm} ${p.btnDangerSm}`}
+                                    type="button"
+                                    onClick={() => eliminarPaciente(x)}
+                                    aria-label={`Eliminar paciente ${x.apellido || ""} ${x.nombre || ""}`}
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
                         </li>
                     ))}
                 </ul>
             </section>}
+
+            {/* ── Solapa BORRADORES ── */}
+            {solapa === "borradores" && <section className={p.card}>
+                <h3 className={p.cardTitle}>Todos los borradores</h3>
+                <p className={p.hint}>
+                    Un paciente puede tener varios borradores (por ejemplo, distintas cirugías o prácticas).
+                    Acá los ves todos juntos, sin importar el paciente.
+                </p>
+                <input
+                    className={p.input}
+                    type="search"
+                    placeholder="Buscar por paciente, DNI o afiliado..."
+                    value={busquedaBorrador}
+                    onChange={(e) => setBusquedaBorrador(e.target.value)}
+                    aria-label="Buscar borradores"
+                />
+                <p className={p.hint}>{borradoresFiltrados.length} borradores.</p>
+                {borradoresFiltrados.length === 0 ? (
+                    <div className={p.empty}>
+                        {busquedaBorrador.trim() ? "No hay borradores que coincidan." : "Todavía no hay borradores guardados."}
+                    </div>
+                ) : (
+                    <ul className={p.list}>
+                        {borradoresFiltrados.slice(0, 300).map((b) => (
+                            <li key={`${b.pacienteDni}-${b.id}`} className={p.draftItem}>
+                                <div className={p.draftInfo}>
+                                    <div className={p.draftTitle}>
+                                        {b.pacienteNombre || `DNI ${b.pacienteDni}`}
+                                    </div>
+                                    <div className={p.draftMeta}>
+                                        DNI {miles(b.pacienteDni)}
+                                        {b.pacienteAfiliado ? ` · Afiliado ${b.pacienteAfiliado}` : ""}
+                                        {" · "}{fmtFechaHora(b.fechaMs)}
+                                    </div>
+                                    <div className={p.draftMeta}>
+                                        {b.itemsCount} ítem(s)
+                                        {b.codigosCount > 0 ? ` + ${b.codigosCount} código(s)` : ""}
+                                        {" · "}<strong>{formatCurrency(b.total || 0)}</strong>
+                                    </div>
+                                </div>
+                                <div className={p.draftActions}>
+                                    <button
+                                        type="button"
+                                        className={`${p.btn} ${p.btnSm}`}
+                                        onClick={() => abrirBorradorDesdeLista(b)}
+                                    >
+                                        Abrir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${p.btn} ${p.btnSm} ${p.btnDangerSm}`}
+                                        onClick={() => eliminarBorradorDesdeLista(b)}
+                                        aria-label="Eliminar borrador"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>}
+
+            {/* ── Solapa ESTADÍSTICAS ── */}
             {solapa === "estadisticas" && <section className={p.colMain}>
                 <div className={p.card}>
                     <div className={p.statsHeader}>
@@ -477,12 +801,26 @@ export default function PresupuestoPamiPage() {
                 <div className={p.card}><h3 className={p.cardTitle}>Insumos más utilizados</h3>{estadisticas.top.length === 0 ? <p className={p.empty}>No hay datos para los filtros seleccionados.</p> : <div className={p.statsList}>{estadisticas.top.map(i => <div className={p.statRow} key={i.nombre}><div><strong>{i.nombre}</strong><small>{i.cantidad} unidades · {formatCurrency(i.total)}</small></div><div className={p.barTrack}><span style={{ width: `${Math.max(3, (i.cantidad / estadisticas.top[0].cantidad) * 100)}%` }} /></div></div>)}</div>}</div>
                 <div className={p.card}><h3 className={p.cardTitle}>Evolución mensual</h3>{estadisticas.porMes.length === 0 ? <p className={p.empty}>No hay fechas disponibles para graficar.</p> : <div className={p.statsList}>{estadisticas.porMes.map(([mes, monto]) => <div className={p.statRow} key={mes}><strong>{mes}</strong><div className={p.barTrack}><span style={{ width: `${Math.max(2, (monto / Math.max(...estadisticas.porMes.map(x => x[1]))) * 100)}%` }} /></div><strong>{formatCurrency(monto)}</strong></div>)}</div>}</div>
             </section>}
+
+            {/* ── Solapa PRESUPUESTO ── */}
             {solapa === "presupuesto" && <div className={p.layout}>
                 <div className={p.colMain}>
-                    {/* ── Paciente ── */}
                     <section className={p.card}>
                         <h3 className={p.cardTitle}>Paciente</h3>
+
                         <div className={p.grid2}>
+                            <Campo label="Apellido y Nombre" wide>
+                                <input
+                                    className={p.input}
+                                    autoComplete="name"
+                                    placeholder="Ej: PÉREZ JUAN CARLOS"
+                                    value={paciente.nombreCompleto}
+                                    onChange={(e) =>
+                                        setPaciente((f) => ({ ...f, nombreCompleto: e.target.value }))
+                                    }
+                                />
+                            </Campo>
+
                             <Campo label="DNI">
                                 <input
                                     className={p.input}
@@ -500,25 +838,7 @@ export default function PresupuestoPamiPage() {
                                     onBlur={() => buscarPaciente()}
                                 />
                             </Campo>
-                            <Campo label="N° de afiliado PAMI">
-                                <input
-                                    className={p.input}
-                                    inputMode="numeric"
-                                    autoComplete="off"
-                                    maxLength={13}
-                                    placeholder="Solo números"
-                                    value={paciente.afiliado}
-                                    onChange={(e) =>
-                                        setPaciente((f) => ({ ...f, afiliado: e.target.value.replace(/\D/g, "") }))
-                                    }
-                                />
-                            </Campo>
-                            <Campo label="Apellido">
-                                <input {...bind("apellido")} autoComplete="family-name" />
-                            </Campo>
-                            <Campo label="Nombre">
-                                <input {...bind("nombre")} autoComplete="given-name" />
-                            </Campo>
+
                             <Campo label="N° Historia Clínica">
                                 <input
                                     className={p.input}
@@ -530,12 +850,43 @@ export default function PresupuestoPamiPage() {
                                     }
                                 />
                             </Campo>
+
+                            <Campo label="N° de afiliado PAMI">
+                                <input
+                                    className={p.input}
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    maxLength={15}
+                                    placeholder="Ej: 1505000015/00"
+                                    value={paciente.afiliado}
+                                    onChange={(e) =>
+                                        setPaciente((f) => ({ ...f, afiliado: sanitizeAfiliado(e.target.value) }))
+                                    }
+                                />
+                            </Campo>
                         </div>
+
                         {estadoTxt && (
                             <p className={p.status} role="status">
                                 {estadoTxt}
                             </p>
                         )}
+
+                        <h4 className={p.sub}>Equipo médico (cirugía / práctica)</h4>
+                        <div className={p.grid2}>
+                            <Campo label="Cirujano">
+                                <input {...bind("cirujano")} autoComplete="off" placeholder="Apellido y nombre" />
+                            </Campo>
+                            <Campo label="Anestesista">
+                                <input {...bind("anestesista")} autoComplete="off" placeholder="Apellido y nombre" />
+                            </Campo>
+                            <Campo label="Ayudante 1">
+                                <input {...bind("ayudante1")} autoComplete="off" placeholder="Apellido y nombre" />
+                            </Campo>
+                            <Campo label="Ayudante 2">
+                                <input {...bind("ayudante2")} autoComplete="off" placeholder="Apellido y nombre" />
+                            </Campo>
+                        </div>
 
                         <details className={p.more}>
                             <summary>Más datos del paciente</summary>
@@ -566,6 +917,7 @@ export default function PresupuestoPamiPage() {
                                     <input {...bind("lugarNacimiento")} />
                                 </Campo>
                             </div>
+
                             <h4 className={p.sub}>Familiar responsable</h4>
                             <div className={p.grid2}>
                                 <Campo label="Nombre completo">
@@ -583,35 +935,37 @@ export default function PresupuestoPamiPage() {
                         {borradores.length > 0 && (
                             <>
                                 <h4 className={p.sub}>Borradores guardados</h4>
-                                {borradores.map((b) => (
-                                    <div key={b.id} className={p.borrador}>
-                                        <span>
-                                            {new Date(b.createdAt || 0).toLocaleDateString("es-AR")} ·{" "}
-                                            {itemsDe(b).length} ítems · {formatCurrency(b.total || 0)}
-                                            {edicion?.id === b.id ? " · en edición" : ""}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            className={`${p.btn} ${p.btnSm}`}
-                                            onClick={() => abrirBorrador(b)}
-                                        >
-                                            Abrir
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`${p.btn} ${p.btnSm}`}
-                                            onClick={() => eliminarBorrador(b)}
-                                            aria-label="Eliminar borrador"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                ))}
+                                {borradores.map((b) => {
+                                    const cantItems = itemsDe(b).length + codigosDe(b).length;
+                                    return (
+                                        <div key={b.id} className={p.borrador}>
+                                            <span>
+                                                {new Date(b.createdAt || 0).toLocaleDateString("es-AR")} ·{" "}
+                                                {cantItems} ítems · {formatCurrency(b.total || 0)}
+                                                {edicion?.id === b.id ? " · en edición" : ""}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className={`${p.btn} ${p.btnSm}`}
+                                                onClick={() => abrirBorrador(b)}
+                                            >
+                                                Abrir
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`${p.btn} ${p.btnSm}`}
+                                                onClick={() => eliminarBorrador(b)}
+                                                aria-label="Eliminar borrador"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </>
                         )}
                     </section>
 
-                    {/* ── Catálogo ── */}
                     <section className={p.card}>
                         <h3 className={p.cardTitle}>Medicación y descartables</h3>
                         <div className={p.grid2}>
@@ -635,85 +989,214 @@ export default function PresupuestoPamiPage() {
                             />
                         </div>
 
-                        {!consultaActiva ? (
-                            <div className={p.empty}>Escribí al menos {MIN_BUSQUEDA} caracteres para buscar medicamentos o descartables.</div>
-                        ) : filtrados.length === 0 ? (
-                            <div className={p.empty}>No encontramos productos con esa búsqueda.</div>
+                        {filtrados.length === 0 ? (
+                            <div className={p.empty}>
+                                {consultaActiva
+                                    ? "No encontramos productos con esa búsqueda."
+                                    : "No hay productos cargados en el catálogo."}
+                            </div>
                         ) : (
-                            <ul className={p.list}>
-                                {filtrados.slice(0, MAX_VISIBLES).map((item) => {
-                                    const id = `${item.categoria}:${item.key}`;
-                                    return (
-                                        <li key={id} className={p.row}>
-                                            <div>
-                                                <div className={p.rowName}>{item.nombre}</div>
-                                                <div className={p.rowMeta}>
-                                                    <span
-                                                        className={
-                                                            item.tipo === "medicamento"
-                                                                ? p.badgeMed
-                                                                : p.badgeDesc
-                                                        }
-                                                    >
-                                                        {item.tipo === "medicamento" ? "Medicamento" : "Descartable"}
-                                                    </span>{" "}
-                                                    {labelPresentacion(item.categoria, item.presentacion)} ·{" "}
-                                                    {formatCurrency(item.precioFacturacion)}
+                            <>
+                                <ul className={p.list}>
+                                    {filtrados.map((item) => {
+                                        const id = `${item.categoria}:${item.key}`;
+                                        const raw = getPendienteRaw(id);
+                                        return (
+                                            <li key={id} className={p.productRow}>
+                                                <div className={p.productInfo}>
+                                                    <div className={p.rowName}>{item.nombre}</div>
+                                                    <div className={p.rowMeta}>
+                                                        <span
+                                                            className={
+                                                                item.tipo === "medicamento"
+                                                                    ? p.badgeMed
+                                                                    : p.badgeDesc
+                                                            }
+                                                        >
+                                                            {item.tipo === "medicamento" ? "Medicamento" : "Descartable"}
+                                                        </span>{" "}
+                                                        {labelPresentacion(item.categoria, item.presentacion)} ·{" "}
+                                                        {formatCurrency(item.precioFacturacion)}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className={`${p.btn} ${p.btnSm}`}
-                                                onClick={() => agregar(item)}
-                                            >
-                                                {cantidades[id] ? `+1 (${cantidades[id]})` : "Agregar"}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
+
+                                                <div className={p.productActions}>
+                                                    <div className={p.qtyGroup} role="group" aria-label={`Cantidad a agregar de ${item.nombre}`}>
+                                                        <button
+                                                            type="button"
+                                                            className={p.qtyBtn}
+                                                            onClick={() => restarPendiente(id)}
+                                                            aria-label="Restar uno"
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <input
+                                                            className={p.qtyInput}
+                                                            inputMode="decimal"
+                                                            value={raw}
+                                                            onChange={(e) => setPendiente(id, e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter") {
+                                                                    e.preventDefault();
+                                                                    confirmarAgregar(item);
+                                                                }
+                                                            }}
+                                                            aria-label={`Cantidad de ${item.nombre}`}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className={`${p.qtyBtn} ${p.qtyBtnAdd}`}
+                                                            onClick={() => sumarPendiente(id)}
+                                                            aria-label="Sumar uno"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        className={`${p.btn} ${p.btnSm} ${p.btnAdd}`}
+                                                        onClick={() => confirmarAgregar(item)}
+                                                    >
+                                                        Agregar
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                                <p className={p.hint}>
+                                    {consultaActiva
+                                        ? `Mostrando hasta ${MAX_VISIBLES} coincidencias.`
+                                        : "Mostrando algunos productos del catálogo. Escribí al menos " + MIN_BUSQUEDA + " caracteres para filtrar."}
+                                </p>
+                            </>
                         )}
-                        {consultaActiva && <p className={p.hint}>Mostrando hasta {MAX_VISIBLES} coincidencias. Refiná la búsqueda para encontrar un producto específico.</p>}
                     </section>
                 </div>
 
-                {/* ── Carrito ── */}
                 <aside id="carrito" className={`${p.card} ${p.cart}`}>
                     <h3 className={p.cardTitle}>
                         🛒 Presupuesto {edicion?.id ? "(borrador en edición)" : ""}
                     </h3>
 
-                    {carrito.length === 0 ? (
-                        <div className={p.empty}>Agregá productos desde la lista.</div>
+                    {carrito.length === 0 && codigosPami.length === 0 ? (
+                        <div className={p.empty}>Agregá productos o códigos PAMI.</div>
                     ) : (
-                        carrito.map((c) => (
-                            <div key={c.id} className={p.cartRow}>
-                                <div>
-                                    <div className={p.rowName}>{c.nombre}</div>
-                                    <div className={p.rowMeta}>
-                                        {c.presentacion} · {formatCurrency(c.precio)} c/u
+                        <>
+                            {carrito.map((c) => (
+                                <div key={c.id} className={p.cartRow}>
+                                    <div>
+                                        <div className={p.rowName}>{c.nombre}</div>
+                                        <div className={p.rowMeta}>
+                                            {c.presentacion} · {formatCurrency(c.precio)} c/u
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className={`${p.btn} ${p.btnSm}`}
+                                        onClick={() => quitar(c.id)}
+                                        aria-label={`Quitar ${c.nombre}`}
+                                    >
+                                        ✕
+                                    </button>
+                                    <div className={p.cartControls}>
+                                        <input
+                                            className={`${p.input} ${p.qty}`}
+                                            inputMode="decimal"
+                                            aria-label={`Cantidad de ${c.nombre}`}
+                                            placeholder="0"
+                                            value={c._raw !== undefined ? c._raw : String(c.cantidad ?? "")}
+                                            onChange={(e) => cambiarCantidad(c.id, e.target.value)}
+                                            onBlur={() =>
+                                                setCarrito((arr) =>
+                                                    arr.map((x) =>
+                                                        x.id === c.id
+                                                            ? {
+                                                                ...x,
+                                                                _raw: undefined,
+                                                                cantidad:
+                                                                    Number.isFinite(x.cantidad) && x.cantidad > 0
+                                                                        ? x.cantidad
+                                                                        : 1,
+                                                            }
+                                                            : x,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                        <strong>{formatCurrency(c.precio * (Number(c.cantidad) || 0))}</strong>
                                     </div>
                                 </div>
+                            ))}
+
+                            <h4 className={p.sub}>Códigos PAMI / Prácticas</h4>
+                            {codigosPami.length === 0 ? (
+                                <p className={p.hint}>Todavía no cargaste códigos.</p>
+                            ) : (
+                                codigosPami.map((c) => (
+                                    <div key={c.id} className={p.cartRow}>
+                                        <div>
+                                            <div className={p.codigoLabel}>
+                                                {c.codigo ? `Código ${c.codigo}` : "Sin código"}
+                                            </div>
+                                            <div className={p.codigoDesc}>
+                                                {c.descripcion || "Sin descripción"}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`${p.btn} ${p.btnSm}`}
+                                            onClick={() => quitarCodigo(c.id)}
+                                            aria-label="Quitar código"
+                                        >
+                                            ✕
+                                        </button>
+                                        <div className={p.cartControls}>
+                                            <span />
+                                            <strong>{c.monto > 0 ? formatCurrency(c.monto) : "—"}</strong>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+
+                            <div className={p.codigoForm}>
+                                <Campo label="Código PAMI">
+                                    <input
+                                        className={p.input}
+                                        placeholder="Ej: 62.001"
+                                        value={formCodigo.codigo}
+                                        onChange={(e) => setFormCodigo((f) => ({ ...f, codigo: e.target.value }))}
+                                    />
+                                </Campo>
+                                <Campo label="Monto (opcional)">
+                                    <input
+                                        className={p.input}
+                                        placeholder="0,00"
+                                        inputMode="decimal"
+                                        value={formCodigo.monto}
+                                        onChange={(e) => setFormCodigo((f) => ({ ...f, monto: e.target.value }))}
+                                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); agregarCodigo(); } }}
+                                    />
+                                </Campo>
+                                <Campo label="Descripción / Práctica" wide>
+                                    <input
+                                        className={p.input}
+                                        placeholder="Ej: Consulta médica..."
+                                        value={formCodigo.descripcion}
+                                        onChange={(e) => setFormCodigo((f) => ({ ...f, descripcion: e.target.value }))}
+                                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); agregarCodigo(); } }}
+                                    />
+                                </Campo>
                                 <button
                                     type="button"
-                                    className={`${p.btn} ${p.btnSm}`}
-                                    onClick={() => quitar(c.id)}
-                                    aria-label={`Quitar ${c.nombre}`}
+                                    className={`${p.btn} ${p.btnPrimary} ${p.full}`}
+                                    onClick={agregarCodigo}
                                 >
-                                    ✕
+                                    + Agregar código
                                 </button>
-                                <div className={p.cartControls}>
-                                    <input
-                                        className={`${p.input} ${p.qty}`}
-                                        inputMode="numeric"
-                                        aria-label={`Cantidad de ${c.nombre}`}
-                                        value={c.cantidad}
-                                        onChange={(e) => cambiarCantidad(c.id, e.target.value)}
-                                    />
-                                    <strong>{formatCurrency(c.precio * c.cantidad)}</strong>
-                                </div>
                             </div>
-                        ))
+                        </>
                     )}
 
                     <div className={p.total}>
@@ -726,7 +1209,7 @@ export default function PresupuestoPamiPage() {
                             type="button"
                             className={`${p.btn} ${p.btnPrimary} ${p.full}`}
                             onClick={guardar}
-                            disabled={saving || carrito.length === 0}
+                            disabled={saving || (carrito.length === 0 && codigosPami.length === 0)}
                         >
                             {saving ? "Guardando..." : edicion?.id ? "Actualizar borrador" : "Guardar borrador"}
                         </button>
@@ -734,7 +1217,7 @@ export default function PresupuestoPamiPage() {
                             type="button"
                             className={p.btn}
                             onClick={imprimir}
-                            disabled={carrito.length === 0}
+                            disabled={carrito.length === 0 && codigosPami.length === 0}
                         >
                             🖨️ Imprimir
                         </button>
@@ -746,15 +1229,15 @@ export default function PresupuestoPamiPage() {
             </div>}
 
             {solapa === "presupuesto" && <a href="#carrito" className={p.bar}>
-                {carrito.length} ítems · {formatCurrency(total)}
+                {carrito.length + codigosPami.length} ítems · {formatCurrency(total)}
             </a>}
 
-            {/* Documento oculto que se imprime */}
             <div style={{ display: "none" }}>
                 <PresupuestoImprimible
                     ref={printRef}
                     paciente={paciente}
                     items={carrito}
+                    codigos={codigosPami}
                     total={total}
                     nro={edicion?.id ? edicion.id.slice(-6).toUpperCase() : ""}
                 />
