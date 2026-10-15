@@ -8,7 +8,7 @@ import styles from './os.module.css';
 
 const NAV_ITEMS = [
   { href: '/os/inicio', label: 'Inicio', icon: '📊' },
-  { href: '/os/facturacionos', label: 'Facturación', icon: '🧾' },
+  { href: '/os/med-descartables', label: 'Facturación', icon: '🧾' },
   { href: '/os/conveniosos', label: 'Convenios', icon: '🤝' },
 ];
 

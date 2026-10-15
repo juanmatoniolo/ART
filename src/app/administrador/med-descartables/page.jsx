@@ -53,7 +53,7 @@ const CAMPOS = [
 const PACIENTE_VACIO = {
     dni: "", afiliado: "", nombreCompleto: "", historiaClinica: "", sexo: "",
     fechaNacimiento: "", telefono: "", domicilio: "",
-    localidad: "CHAJARÍ", provincia: "ENTRE RIOS", lugarNacimiento: "",
+    localidad: "", provincia: "", lugarNacimiento: "",
     famNombre: "", famParentezco: "", famTelefono: "",
     cirujano: "", ayudante1: "", ayudante2: "", anestesista: "",
 };
