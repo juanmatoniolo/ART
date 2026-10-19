@@ -28,6 +28,7 @@ export default function PresupuestoImprimible({
     codigos = [],
     total = 0,
     nro,
+    oncoplan = false, // *** NUEVO ***
 }) {
     const nombre = paciente.nombreCompleto
         ? paciente.nombreCompleto
@@ -58,7 +59,7 @@ export default function PresupuestoImprimible({
 
     return (
         <div ref={ref} className={styles.documento}>
-            {/* ENCABEZADO sin h1 "PRESUPUESTO" */}
+            {/* ENCABEZADO */}
             <header className={styles.encabezado}>
                 <div className={styles.identidad}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,10 +71,26 @@ export default function PresupuestoImprimible({
                 </div>
 
                 <div className={styles.documentoInfo}>
-                    
+                    {/* *** NUEVO: sello ONCOPLAN *** */}
+                    {oncoplan && (
+                        <span
+                            style={{
+                                display: "inline-block",
+                                padding: "4px 10px",
+                                borderRadius: 4,
+                                background: "#e11d48",
+                                color: "#fff",
+                                fontWeight: 800,
+                                fontSize: 12,
+                                letterSpacing: 1.5,
+                                marginBottom: 6,
+                            }}
+                        >
+                            ONCOPLAN · PAMI ONCOLÓGICO
+                        </span>
+                    )}
                     <div className={styles.fecha}>
                         <span>Fecha: {fechaActual}</span>
-                       
                     </div>
                 </div>
             </header>
@@ -178,7 +195,8 @@ export default function PresupuestoImprimible({
                     <strong>{formatCurrency(total)}</strong>
                 </div>
                 <p className={styles.aclaracion}>
-                    Documento correspondiente al presupuesto de medicación, descartables y prácticas del paciente.
+                    Documento correspondiente al presupuesto de medicación, descartables y prácticas del paciente
+                    {oncoplan ? " bajo la modalidad ONCOPLAN (PAMI oncológico)." : "."}
                 </p>
             </footer>
         </div>

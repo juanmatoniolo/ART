@@ -88,7 +88,6 @@ const miles = (v) => {
     return d.length <= 8 ? d.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : d;
 };
 
-/* Afiliado PAMI: dígitos + una sola barra + hasta 2 dígitos después */
 const sanitizeAfiliado = (v) => {
     const limpio = String(v ?? "").replace(/[^\d/]/g, "");
     const partes = limpio.split("/");
@@ -135,6 +134,28 @@ function Campo({ label, children, wide }) {
     );
 }
 
+/* Badge reutilizable para Oncoplan */
+function OncoplanBadge({ small }) {
+    return (
+        <span
+            style={{
+                display: "inline-block",
+                padding: small ? "1px 6px" : "3px 8px",
+                borderRadius: 4,
+                background: "#e11d48",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: small ? 10 : 11,
+                letterSpacing: 0.6,
+                lineHeight: 1.2,
+                verticalAlign: "middle",
+            }}
+        >
+            ONCOPLAN
+        </span>
+    );
+}
+
 /* ===========================================================
    Página
    =========================================================== */
@@ -146,6 +167,7 @@ export default function PresupuestoPamiPage() {
     const [desde, setDesde] = useState("");
     const [hasta, setHasta] = useState("");
     const [filtroCategoria, setFiltroCategoria] = useState("todos");
+    const [filtroOncoplan, setFiltroOncoplan] = useState("todos"); // "todos" | "oncoplan" | "normal"
     const [edadDesde, setEdadDesde] = useState("");
     const [edadHasta, setEdadHasta] = useState("");
     const [items, setItems] = useState([]);
@@ -164,6 +186,8 @@ export default function PresupuestoPamiPage() {
     const [edicion, setEdicion] = useState(null);
     const [saving, setSaving] = useState(false);
     const [mensaje, setMensaje] = useState("");
+    // *** NUEVO: modalidad del presupuesto ***
+    const [oncoplan, setOncoplan] = useState(false);
 
     const [pendientes, setPendientes] = useState({});
     const [notifs, setNotifs] = useState([]);
@@ -258,6 +282,7 @@ export default function PresupuestoPamiPage() {
                     itemsCount: itemsB.length,
                     codigosCount: codigosB.length,
                     total: b.total != null ? Number(b.total) : totalB,
+                    oncoplan: !!b.oncoplan, // *** NUEVO ***
                     raw: b,
                 });
             }
@@ -288,10 +313,23 @@ export default function PresupuestoPamiPage() {
                 if (hasta && (!fechaISOreg || fechaISOreg > hasta)) continue;
                 if (edadDesde !== "" && (edad === null || edad < Number(edadDesde))) continue;
                 if (edadHasta !== "" && (edad === null || edad > Number(edadHasta))) continue;
+                // *** NUEVO: filtro por modalidad PAMI ***
+                if (filtroOncoplan === "oncoplan" && !b.oncoplan) continue;
+                if (filtroOncoplan === "normal" && b.oncoplan) continue;
+
                 const itemsB = itemsDe(b);
                 const totalFiltrado = itemsB.filter(i => filtroCategoria === "todos" || i.categoria === filtroCategoria || (filtroCategoria === "medicamentos" && i.tipo === "medicamento") || (filtroCategoria === "descartables" && i.tipo === "descartable"));
                 if (!totalFiltrado.length) continue;
-                registros.push({ id, dni: paciente.dni || paciente.dni, paciente, fechaMs, edad, items: totalFiltrado, total: totalFiltrado.reduce((s, i) => s + (Number(i.precio) || 0) * (Number(i.cantidad) || 0), 0) });
+                registros.push({
+                    id,
+                    dni: paciente.dni || paciente.dni,
+                    paciente,
+                    fechaMs,
+                    edad,
+                    items: totalFiltrado,
+                    total: totalFiltrado.reduce((s, i) => s + (Number(i.precio) || 0) * (Number(i.cantidad) || 0), 0),
+                    oncoplan: !!b.oncoplan, // *** NUEVO ***
+                });
             }
         }
         const productos = {};
@@ -310,8 +348,22 @@ export default function PresupuestoPamiPage() {
         const pacientesUnicos = new Set(registros.map(r => r.dni).filter(Boolean)).size;
         const porMes = {};
         for (const r of registros) { const d = r.fechaMs ? new Date(r.fechaMs) : null; if (!d) continue; const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; porMes[k] = (porMes[k] || 0) + r.total; }
-        return { registros, total, medicamentos, descartables, unidades, pacientesUnicos, promedio: pacientesUnicos ? total / pacientesUnicos : 0, top: Object.values(productos).sort((a, b) => b.cantidad - a.cantidad).slice(0, 8), porMes: Object.entries(porMes).sort((a, b) => a[0].localeCompare(b[0])).slice(-8) };
-    }, [pacientesDb, desde, hasta, edadDesde, edadHasta, filtroCategoria]);
+
+        // *** NUEVO: desglose Oncoplan vs PAMI normal ***
+        let oncoplanCount = 0, oncoplanTotal = 0, normalCount = 0, normalTotal = 0;
+        for (const r of registros) {
+            if (r.oncoplan) { oncoplanCount++; oncoplanTotal += r.total; }
+            else { normalCount++; normalTotal += r.total; }
+        }
+
+        return {
+            registros, total, medicamentos, descartables, unidades, pacientesUnicos,
+            promedio: pacientesUnicos ? total / pacientesUnicos : 0,
+            top: Object.values(productos).sort((a, b) => b.cantidad - a.cantidad).slice(0, 8),
+            porMes: Object.entries(porMes).sort((a, b) => a[0].localeCompare(b[0])).slice(-8),
+            oncoplanCount, oncoplanTotal, normalCount, normalTotal,
+        };
+    }, [pacientesDb, desde, hasta, edadDesde, edadHasta, filtroCategoria, filtroOncoplan]);
 
     // ─── Carrito ─────────────────────────────────────────────────
     const totalProductos = useMemo(
@@ -448,6 +500,7 @@ export default function PresupuestoPamiPage() {
         setCodigosPami(codigosDe(b).map((c) => ({ ...c })));
         setPendientes({});
         setEdicion({ pacienteKey: dniKey(paciente.dni), id: b.id });
+        setOncoplan(!!b.oncoplan); // *** NUEVO ***
         flash("Borrador cargado. Los precios son los del momento en que se guardó.", 4000);
     };
 
@@ -464,13 +517,11 @@ export default function PresupuestoPamiPage() {
         }
     }
 
-    // ─── Eliminar paciente (con todos sus borradores) ─────────────
     async function eliminarPaciente(pac) {
         const nombre = [pac.apellido, pac.nombre].filter(Boolean).join(" ") || `DNI ${pac.dni}`;
         if (!confirm(`¿Eliminar el paciente ${nombre}?\nSe borrarán también todos sus borradores.`)) return;
         try {
             await eliminarPacientePami(pac.dni);
-            // Si justo es el que está cargado, reiniciamos el formulario.
             if (dniKey(paciente.dni) === dniKey(pac.dni)) nuevo();
             flash("Paciente eliminado.");
         } catch (e) {
@@ -479,7 +530,6 @@ export default function PresupuestoPamiPage() {
         }
     }
 
-    // ─── Abrir / borrar borrador desde la solapa "Borradores" ─────
     async function abrirBorradorDesdeLista(b) {
         try {
             const data = await obtenerPacientePami(b.pacienteDni);
@@ -507,6 +557,7 @@ export default function PresupuestoPamiPage() {
             setCodigosPami(codigosDe(b.raw).map((c) => ({ ...c })));
             setPendientes({});
             setEdicion({ pacienteKey: dniKey(b.pacienteDni), id: b.id });
+            setOncoplan(!!b.raw.oncoplan); // *** NUEVO ***
 
             setSolapa("presupuesto");
             flash("Borrador cargado. Los precios son los del momento en que se guardó.", 4000);
@@ -544,7 +595,7 @@ export default function PresupuestoPamiPage() {
             const id = edicion?.pacienteKey === key ? edicion.id : null;
             const res = await guardarPresupuestoPami(
                 key,
-                { items: carrito, codigos: codigosPami, total },
+                { items: carrito, codigos: codigosPami, total, oncoplan }, // *** NUEVO ***
                 { usuario, id },
             );
             setEdicion({ pacienteKey: key, id: res.id });
@@ -576,11 +627,12 @@ export default function PresupuestoPamiPage() {
         setBusquedaPaciente("");
         setBusquedaProducto("");
         setPeriodoActivo("todo");
+        setOncoplan(false); // *** NUEVO: por defecto PAMI normal ***
     };
 
     const imprimir = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `Presupuesto-${paciente.nombreCompleto || "PAMI"}`.trim(),
+        documentTitle: `Presupuesto-${paciente.nombreCompleto || "PAMI"}${oncoplan ? "-ONCOPLAN" : ""}`.trim(),
         pageStyle: "@page { size: A4; margin: 14mm; }",
     });
 
@@ -716,6 +768,7 @@ export default function PresupuestoPamiPage() {
                                 <div className={p.draftInfo}>
                                     <div className={p.draftTitle}>
                                         {b.pacienteNombre || `DNI ${b.pacienteDni}`}
+                                        {b.oncoplan && <> <OncoplanBadge small /></>}
                                     </div>
                                     <div className={p.draftMeta}>
                                         DNI {miles(b.pacienteDni)}
@@ -779,14 +832,22 @@ export default function PresupuestoPamiPage() {
                         ))}
                     </div>
                     <details className={p.advancedFilters}>
-                        <summary>Filtros avanzados <span>Fechas exactas, categoría y edad</span></summary>
+                        <summary>Filtros avanzados <span>Fechas exactas, categoría, modalidad y edad</span></summary>
                         <div className={p.filters}>
                             <label className={p.field}><span>Desde</span><input className={p.input} type="date" value={desde} onChange={e => { setDesde(e.target.value); setPeriodoActivo("personalizado"); }} /></label>
                             <label className={p.field}><span>Hasta</span><input className={p.input} type="date" value={hasta} onChange={e => { setHasta(e.target.value); setPeriodoActivo("personalizado"); }} /></label>
                             <label className={p.field}><span>Tipo de insumo</span><select className={p.input} value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}><option value="todos">Todos</option><option value="medicamentos">Medicamentos</option><option value="descartables">Descartables</option></select></label>
+                            {/* *** NUEVO: filtro modalidad PAMI *** */}
+                            <label className={p.field}><span>Modalidad PAMI</span>
+                                <select className={p.input} value={filtroOncoplan} onChange={e => setFiltroOncoplan(e.target.value)}>
+                                    <option value="todos">Todas</option>
+                                    <option value="oncoplan">Oncoplan (cáncer)</option>
+                                    <option value="normal">PAMI normal</option>
+                                </select>
+                            </label>
                             <label className={p.field}><span>Edad mínima</span><input className={p.input} type="number" min="0" max="120" placeholder="Sin mínimo" value={edadDesde} onChange={e => setEdadDesde(e.target.value)} /></label>
                             <label className={p.field}><span>Edad máxima</span><input className={p.input} type="number" min="0" max="120" placeholder="Sin máximo" value={edadHasta} onChange={e => setEdadHasta(e.target.value)} /></label>
-                            <button type="button" className={p.btn} onClick={() => { setDesde(""); setHasta(""); setFiltroCategoria("todos"); setEdadDesde(""); setEdadHasta(""); setPeriodoActivo("todo"); }}>Restablecer filtros</button>
+                            <button type="button" className={p.btn} onClick={() => { setDesde(""); setHasta(""); setFiltroCategoria("todos"); setFiltroOncoplan("todos"); setEdadDesde(""); setEdadHasta(""); setPeriodoActivo("todo"); }}>Restablecer filtros</button>
                         </div>
                     </details>
                     <div className={p.kpiGrid}>
@@ -796,6 +857,15 @@ export default function PresupuestoPamiPage() {
                         <article className={p.kpi}><span>Promedio por paciente</span><strong>{formatCurrency(estadisticas.promedio)}</strong></article>
                         <article className={p.kpi}><span>Pacientes con presupuestos</span><strong>{estadisticas.pacientesUnicos}</strong></article>
                         <article className={p.kpi}><span>Unidades presupuestadas</span><strong>{estadisticas.unidades}</strong></article>
+                        {/* *** NUEVO: KPIs Oncoplan / PAMI normal *** */}
+                        <article className={p.kpi}>
+                            <span>Oncoplan <OncoplanBadge small /></span>
+                            <strong>{estadisticas.oncoplanCount} · {formatCurrency(estadisticas.oncoplanTotal)}</strong>
+                        </article>
+                        <article className={p.kpi}>
+                            <span>PAMI normal</span>
+                            <strong>{estadisticas.normalCount} · {formatCurrency(estadisticas.normalTotal)}</strong>
+                        </article>
                     </div>
                 </div>
                 <div className={p.card}><h3 className={p.cardTitle}>Insumos más utilizados</h3>{estadisticas.top.length === 0 ? <p className={p.empty}>No hay datos para los filtros seleccionados.</p> : <div className={p.statsList}>{estadisticas.top.map(i => <div className={p.statRow} key={i.nombre}><div><strong>{i.nombre}</strong><small>{i.cantidad} unidades · {formatCurrency(i.total)}</small></div><div className={p.barTrack}><span style={{ width: `${Math.max(3, (i.cantidad / estadisticas.top[0].cantidad) * 100)}%` }} /></div></div>)}</div>}</div>
@@ -864,6 +934,40 @@ export default function PresupuestoPamiPage() {
                                     }
                                 />
                             </Campo>
+                        </div>
+
+                        {/* *** NUEVO: toggle Oncoplan *** */}
+                        <div
+                            style={{
+                                marginTop: 14,
+                                padding: "12px 14px",
+                                borderRadius: 10,
+                                border: oncoplan ? "2px solid #e11d48" : "1px solid #334155",
+                                background: oncoplan ? "rgba(225, 29, 72, 0.12)" : "rgba(255,255,255,0.02)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                transition: "all 0.2s ease",
+                            }}
+                        >
+                            <input
+                                id="oncoplan-toggle"
+                                type="checkbox"
+                                checked={oncoplan}
+                                onChange={(e) => setOncoplan(e.target.checked)}
+                                style={{ width: 20, height: 20, cursor: "pointer", accentColor: "#e11d48" }}
+                            />
+                            <label
+                                htmlFor="oncoplan-toggle"
+                                style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
+                            >
+                                <strong style={{ fontSize: 14 }}>
+                                    Oncoplan · PAMI oncológico
+                                </strong>
+                                <small style={{ opacity: 0.75, fontWeight: 400 }}>
+                                    Marcá esta opción si el presupuesto corresponde a PAMI cáncer. Sin marcar, se considera PAMI normal.
+                                </small>
+                            </label>
                         </div>
 
                         {estadoTxt && (
@@ -943,6 +1047,7 @@ export default function PresupuestoPamiPage() {
                                                 {new Date(b.createdAt || 0).toLocaleDateString("es-AR")} ·{" "}
                                                 {cantItems} ítems · {formatCurrency(b.total || 0)}
                                                 {edicion?.id === b.id ? " · en edición" : ""}
+                                                {b.oncoplan ? <> · <OncoplanBadge small /></> : null}
                                             </span>
                                             <button
                                                 type="button"
@@ -1078,6 +1183,7 @@ export default function PresupuestoPamiPage() {
                 <aside id="carrito" className={`${p.card} ${p.cart}`}>
                     <h3 className={p.cardTitle}>
                         🛒 Presupuesto {edicion?.id ? "(borrador en edición)" : ""}
+                        {oncoplan && <> <OncoplanBadge /></>}
                     </h3>
 
                     {carrito.length === 0 && codigosPami.length === 0 ? (
@@ -1230,6 +1336,7 @@ export default function PresupuestoPamiPage() {
 
             {solapa === "presupuesto" && <a href="#carrito" className={p.bar}>
                 {carrito.length + codigosPami.length} ítems · {formatCurrency(total)}
+                {oncoplan && " · ONCOPLAN"}
             </a>}
 
             <div style={{ display: "none" }}>
@@ -1239,6 +1346,7 @@ export default function PresupuestoPamiPage() {
                     items={carrito}
                     codigos={codigosPami}
                     total={total}
+                    oncoplan={oncoplan} /* *** NUEVO *** */
                     nro={edicion?.id ? edicion.id.slice(-6).toUpperCase() : ""}
                 />
             </div>
