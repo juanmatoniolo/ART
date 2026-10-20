@@ -22,17 +22,9 @@ const fmtCantidad = (n) => {
 };
 
 export default function PresupuestoImprimible({
-    ref,
-    paciente = {},
-    items = [],
-    codigos = [],
-    total = 0,
-    nro,
-    oncoplan = false, // *** NUEVO ***
+    ref, paciente = {}, items = [], codigos = [], total = 0, nro, oncoplan = false,
 }) {
-    const nombre = paciente.nombreCompleto
-        ? paciente.nombreCompleto
-        : [paciente.apellido, paciente.nombre].filter(Boolean).join(", ");
+    const nombre = paciente.nombreCompleto || [paciente.apellido, paciente.nombre].filter(Boolean).join(", ");
 
     const datos = [
         { label: "Paciente", value: nombre },
@@ -53,17 +45,19 @@ export default function PresupuestoImprimible({
         { label: "Anestesista", value: paciente.anestesista },
     ].filter(({ value }) => value !== undefined && value !== null && value !== "");
 
-    const fechaActual = new Date().toLocaleDateString("es-AR", {
-        timeZone: "America/Argentina/Buenos_Aires",
-    });
+    const fechaActual = new Date().toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
 
     return (
-        <div ref={ref} className={styles.documento}>
+        <div ref={ref} className={styles.documento} style={{ width: "100%", backgroundColor: "#fff", color: "#202124" }}>
             {/* ENCABEZADO */}
             <header className={styles.encabezado}>
                 <div className={styles.identidad}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={LOGO_SRC} alt={`Logo de ${CLINICA}`} className={styles.logo} />
+                    <img
+                        src={LOGO_SRC}
+                        alt={CLINICA}
+                        className={styles.logo}
+                        style={{ maxWidth: "80px", height: "auto", maxHeight: "60px", objectFit: "contain" }}
+                    />
                     <div className={styles.nombreClinica}>
                         <strong>{CLINICA}</strong>
                         <span>Administración de prestaciones médicas</span>
@@ -71,21 +65,8 @@ export default function PresupuestoImprimible({
                 </div>
 
                 <div className={styles.documentoInfo}>
-                    {/* *** NUEVO: sello ONCOPLAN *** */}
                     {oncoplan && (
-                        <span
-                            style={{
-                                display: "inline-block",
-                                padding: "4px 10px",
-                                borderRadius: 4,
-                                background: "#e11d48",
-                                color: "#fff",
-                                fontWeight: 800,
-                                fontSize: 12,
-                                letterSpacing: 1.5,
-                                marginBottom: 6,
-                            }}
-                        >
+                        <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: 4, background: "#e11d48", color: "#fff", fontWeight: 800, fontSize: 12, letterSpacing: 1.5, marginBottom: 6 }}>
                             ONCOPLAN · PAMI ONCOLÓGICO
                         </span>
                     )}
@@ -129,26 +110,28 @@ export default function PresupuestoImprimible({
             {codigos.length > 0 && (
                 <section className={styles.seccion}>
                     <h2 className={styles.tituloSeccion}>Prácticas / Códigos PAMI</h2>
-                    <table className={styles.tabla}>
+                    <table className={styles.tabla} style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr>
-                                <th className={styles.colCodigo}>Código</th>
+                                <th style={{ width: "10%", textAlign: "center" }}>Cant.</th>
+                                <th style={{ width: "25%" }}>Código</th>
                                 <th>Descripción</th>
-                                <th className={styles.colMonto}>Monto</th>
+                                <th style={{ width: "20%", textAlign: "right" }}>Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {codigos.map((c, i) => (
-                                <tr key={c.id ?? `cod-${i}`}>
-                                    <td className={styles.colCodigo}>
-                                        <span className={styles.codigoTxt}>{c.codigo || "—"}</span>
-                                    </td>
-                                    <td>{c.descripcion || "Sin descripción"}</td>
-                                    <td className={styles.colMonto}>
-                                        {c.monto > 0 ? formatCurrency(c.monto) : "—"}
-                                    </td>
-                                </tr>
-                            ))}
+                            {codigos.map((c, i) => {
+                                const cant = Number(c.cantidad) || 1;
+                                const subtotal = (Number(c.monto) || 0) * cant;
+                                return (
+                                    <tr key={c.id ?? `cod-${i}`}>
+                                        <td style={{ textAlign: "center" }}>{cant}</td>
+                                        <td><span className={styles.codigoTxt}>{c.codigo || "—"}</span></td>
+                                        <td>{c.descripcion || "Sin descripción"}</td>
+                                        <td style={{ textAlign: "right" }}>{subtotal > 0 ? formatCurrency(subtotal) : "—"}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </section>
@@ -158,7 +141,7 @@ export default function PresupuestoImprimible({
             {items.length > 0 && (
                 <section className={styles.seccion}>
                     <h2 className={styles.tituloSeccion}>Medicación y descartables</h2>
-                    <table className={styles.tabla}>
+                    <table className={styles.tabla} style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr>
                                 <th className={styles.cantidad}>Cant.</th>
@@ -173,14 +156,10 @@ export default function PresupuestoImprimible({
                                     <td className={styles.cantidad}>{fmtCantidad(item.cantidad)}</td>
                                     <td>
                                         <span className={styles.nombreProducto}>{item.nombre}</span>
-                                        {item.presentacion && (
-                                            <span className={styles.presentacion}> — {item.presentacion}</span>
-                                        )}
+                                        {item.presentacion && <span className={styles.presentacion}> — {item.presentacion}</span>}
                                     </td>
                                     <td className={styles.precio}>{formatCurrency(item.precio)}</td>
-                                    <td className={styles.subtotal}>
-                                        {formatCurrency(item.precio * item.cantidad)}
-                                    </td>
+                                    <td className={styles.subtotal}>{formatCurrency(item.precio * item.cantidad)}</td>
                                 </tr>
                             ))}
                         </tbody>

@@ -1,3 +1,4 @@
+// src/app/ingresos/helpers.js
 import styles from "./ingresos.module.css";
 
 export const MESES_ES = [
@@ -395,4 +396,60 @@ export function DatePartInput({
 			{error && <div className={styles.errorText}>{error}</div>}
 		</div>
 	);
+}
+
+/* =========================================================
+   🆕 Inicializar form de ingreso desde paciente PAMI
+   Acepta paciente con { apellido, nombre } O { nombreCompleto }
+   (el objeto que devuelve `desdeDb` en el page de PAMI).
+   ========================================================= */
+export function inicializarFormIngreso({
+	paciente = {},
+	tipoIngreso = "PISO",
+	extra = {},
+} = {}) {
+	const hoy = new Date();
+	// Resolver apellido/nombre si viene combinado
+	let apellido = (paciente.apellido || "").trim();
+	let nombre = (paciente.nombre || "").trim();
+	if (!apellido && !nombre && paciente.nombreCompleto) {
+		const partes = paciente.nombreCompleto.trim().split(/\s+/);
+		apellido = partes[0] || "";
+		nombre = partes.slice(1).join(" ");
+	}
+
+	const fechaNac = paciente.fechaNacimiento || "";
+	let nacParts = { dia: "", mes: "", anio: "" };
+	if (fechaNac) {
+		const [y, m, d] = fechaNac.split("-");
+		nacParts = { dia: d || "", mes: m || "", anio: y || "" };
+	}
+
+	return {
+		...initialForm,
+		tipoIngreso,
+		trabajadorApellido: apellido,
+		trabajadorNombre: nombre,
+		trabajadorDni: paciente.dni || "",
+		trabajadorNacimiento: fechaNac,
+		trabajadorNacimientoDia: nacParts.dia,
+		trabajadorNacimientoMes: nacParts.mes,
+		trabajadorNacimientoAnio: nacParts.anio,
+		trabajadorSexo: paciente.sexo || "",
+		trabajadorTelefono: paciente.telefono || "",
+		trabajadorCalle: paciente.domicilio || "",
+		trabajadorLocalidad: paciente.localidad || "",
+		trabajadorProvincia: paciente.provincia || "",
+		trabajadorCP: paciente.cp || "",
+		OS: paciente.obraSocial || "PAMI",
+		afiliadoPaciente: paciente.afiliado || "",
+		historiaClinica: paciente.historiaClinica || "",
+		familiarNombre: paciente.famNombre || "",
+		familiarParentezco: paciente.famParentezco || "",
+		familiarTelefono: paciente.famTelefono || "",
+		diaIngreso: String(hoy.getDate()).padStart(2, "0"),
+		mesIngreso: String(hoy.getMonth() + 1).padStart(2, "0"),
+		anioIngreso: String(hoy.getFullYear()),
+		...extra,
+	};
 }

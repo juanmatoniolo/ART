@@ -1,60 +1,86 @@
 "use client";
+import { useState } from "react";
 import styles from "./wizard.module.css";
 
 export default function Paso2Oncoplan({ estado, actualizar }) {
     const paciente = estado.paciente || {};
     const [oncoplan, setOncoplan] = useState(!!paciente.oncoplan);
-    const [confirmado, setConfirmado] = useState(!!paciente.oncoplanConfirmado);
+    const [confirmado, setConfirmado] = useState(
+        !!paciente.oncoplanConfirmado?.fecha
+    );
 
-    const aplicar = () => {
+    const aplicar = (nuevoOnc, nuevaConf) => {
         actualizar({
-            paciente: { ...paciente, oncoplan, oncoplanConfirmado: confirmado ? { fecha: Date.now(), por: "actual" } : null },
+            paciente: {
+                ...paciente,
+                oncoplan: nuevoOnc,
+                oncoplanConfirmado: nuevaConf
+                    ? { fecha: Date.now(), por: "actual" }
+                    : null,
+            },
         });
+    };
+
+    const toggleOncoplan = (val) => {
+        setOncoplan(val);
+        if (!val) setConfirmado(false);
+        aplicar(val, val ? confirmado : false);
+    };
+
+    const toggleConfirmado = (val) => {
+        setConfirmado(val);
+        aplicar(oncoplan, val);
     };
 
     return (
         <div>
             <h2 className={styles.titulo}>Paso 2 · Modalidad PAMI</h2>
             <p className={styles.hint}>
-                Si el paciente es <strong>oncológico</strong>, todas sus OP y eventos heredan
-                la etiqueta ONCOPLAN.
+                Si el paciente es <strong>oncológico</strong>, todas sus OP y
+                eventos heredan la etiqueta ONCOPLAN.
             </p>
 
             <label className={styles.toggleCard}>
                 <input
                     type="checkbox"
                     checked={oncoplan}
-                    onChange={(e) => {
-                        setOncoplan(e.target.checked);
-                        setConfirmado(false);
-                    }}
+                    onChange={(e) => toggleOncoplan(e.target.checked)}
                 />
                 <div>
                     <strong>Paciente ONCOPLAN</strong>
-                    <small>PAMI oncológico (cáncer)</small>
+                    <small>Marcá esta opción si el paciente tiene diagnóstico oncológico (PAMI cáncer).</small>
                 </div>
             </label>
 
             {oncoplan && (
-                <label className={styles.confirmCard}>
+                <label
+                    className={styles.confirmCard}
+                    style={{ borderColor: confirmado ? 'var(--accent)' : 'var(--warn-border)' }}
+                >
                     <input
                         type="checkbox"
                         checked={confirmado}
-                        onChange={(e) => setConfirmado(e.target.checked)}
+                        onChange={(e) => toggleConfirmado(e.target.checked)}
                     />
                     <div>
-                        <strong>Confirmo que el paciente está cargado y aceptado en ONCOPLAN</strong>
+                        <strong>
+                            Alta en ONCOPLAN confirmada por PAMI
+                        </strong>
                         <small>
-                            Esta confirmación queda registrada con usuario y fecha, y es
-                            obligatoria para generar OP oncológicas.
+                            Tildá esta casilla <strong>solo si PAMI ya te dio el alta formal</strong> en el sistema de oncología.
+                            Si aún estás esperando la autorización, podés dejarlo destildado y completarlo más adelante desde la ficha del paciente.
                         </small>
                     </div>
                 </label>
             )}
 
-            <button type="button" className={styles.btnSecundario} onClick={aplicar}>
-                Guardar cambios
-            </button>
+            {!oncoplan && (
+                <p className={styles.hint}>
+                    El paciente se considerará <strong>PAMI normal</strong>. Si
+                    después necesitás cambiar esto, lo podés hacer desde la
+                    ficha del paciente.
+                </p>
+            )}
         </div>
     );
 }

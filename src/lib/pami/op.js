@@ -1,5 +1,5 @@
 // lib/pami/op.js
-import { db } from "./firebase-stub"; // ajustá al import real
+import { db } from "@/lib/firebase";
 import { ref, get, push, set, update } from "firebase/database";
 
 const PATH = "PAMI/pacientes";
@@ -15,14 +15,9 @@ export const ESTADOS_OP = [
 export const TIPOS_EVENTO = [
 	{ id: "internacion", label: "Internación" },
 	{ id: "cirugia", label: "Cirugía" },
-	{ id: "practica", label: "Práctica" },
-	{ id: "medicacion", label: "Medicación" },
 ];
 
-/**
- * Crea una OP bajo el paciente. Si el paciente es oncoplan,
- * la OP hereda `oncoplan: true`.
- */
+// lib/pami/op.js (fragmento de crearOP)
 export async function crearOP(
 	pacienteKey,
 	{ dni, oncoplanPaciente },
@@ -30,8 +25,10 @@ export async function crearOP(
 	{ usuario = "sistema" } = {},
 ) {
 	const now = Date.now();
+	const nroOP = String(opData.nroOP || "").trim();
+
 	const op = {
-		nroOP: String(opData.nroOP || "").trim(),
+		nroOP: nroOP,
 		nroSolicitudMaterial: String(opData.nroSolicitudMaterial || "").trim(),
 		tipo: opData.tipo || "practica",
 		diagnostico: String(opData.diagnostico || "").trim(),
@@ -41,13 +38,16 @@ export async function crearOP(
 		fechaAutorizacion: opData.fechaAutorizacion || null,
 		medicoSolicitante: opData.medicoSolicitante || null,
 		oncoplan: !!oncoplanPaciente,
-		estado: "cargado",
+		// Si no hay número de OP, queda en estado "solicitado"
+		estado: nroOP ? "cargado" : "solicitado",
 		historial: [
 			{
-				estado: "cargado",
+				estado: nroOP ? "cargado" : "solicitado",
 				fecha: now,
 				usuario,
-				nota: "Pedido cargado",
+				nota: nroOP
+					? "Pedido cargado con número de OP"
+					: "Solicitud creada (esperando N° de PAMI)",
 			},
 		],
 		adjuntos: [],
@@ -56,12 +56,8 @@ export async function crearOP(
 		updatedBy: usuario,
 		updatedAt: now,
 	};
-
-	const node = push(ref(db, `${PATH}/${pacienteKey}/ops`));
-	await set(node, op);
-	return { id: node.key, ...op };
+	// ... resto igual
 }
-
 export async function cambiarEstadoOP(
 	pacienteKey,
 	opId,
@@ -74,7 +70,6 @@ export async function cambiarEstadoOP(
 	const op = snap.val();
 	const historial = Array.isArray(op.historial) ? [...op.historial] : [];
 	historial.push({ estado: nuevoEstado, fecha: Date.now(), usuario, nota });
-
 	const patch = {
 		estado: nuevoEstado,
 		historial,
@@ -94,3 +89,24 @@ export async function listarOPsPaciente(pacienteKey) {
 		.map(([id, v]) => ({ id, ...v }))
 		.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
+/** Aplana todas las OPs de todos los pacientes (para listados globales) */
+export const listarTodasLasOPs = (pacientesDb = []) => {
+	const out = [];
+	for (const pac of pacientesDb) {
+		for (const [id, v] of Object.entries(pac.ops || {})) {
+			out.push({
+				id,
+				pacienteDni: pac.dni,
+				pacienteNombre: [pac.apellido, pac.nombre]
+					.filter(Boolean)
+					.join(" "),
+				pacienteAfiliado: pac.afiliado || "",
+				pacienteOncoplan: !!pac.oncoplan,
+				pacienteEstado: pac.estado || "activo",
+				...v,
+				oncoplan: v.oncoplan ?? !!pac.oncoplan,
+			});
+		}
+	}
+	return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+};

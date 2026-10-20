@@ -66,7 +66,7 @@ export default function AdminLayout({ children }) {
     // 🆕 INGRESOS
     { href: "/administrador/ingresos", label: "Ingresos", icon: ClipboardPlus },
 
-    { href: "/administrador/med-descartables", label: "Farmacia", icon: Pill },
+    { href: "/administrador/pami", label: "PAMI", icon: Pill },
     { href: "/administrador/nomencladores", label: "Nomencladores", icon: BookOpen },
     { href: "/administrador/cx", label: "CX", icon: FolderTree },
 

@@ -239,3 +239,24 @@ export const eliminarInternacionPami = (pacienteDni, pamiId) =>
 			`${PAMI_PATH}/${String(pacienteDni).replace(/\D/g, "")}/internaciones/${pamiId}`,
 		),
 	);
+
+export const listarTodasLasInternaciones = (pacientesDb = []) => {
+	const out = [];
+	for (const pac of pacientesDb) {
+		for (const [id, v] of Object.entries(pac.internaciones || {})) {
+			out.push({
+				id,
+				pacienteDni: pac.dni,
+				pacienteNombre: [pac.apellido, pac.nombre]
+					.filter(Boolean)
+					.join(" "),
+				pacienteAfiliado: pac.afiliado || "",
+				pacienteOncoplan: !!pac.oncoplan,
+				pacienteEstado: pac.estado || "activo",
+				...v,
+				oncoplan: v.oncoplan ?? !!pac.oncoplan,
+			});
+		}
+	}
+	return out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+};

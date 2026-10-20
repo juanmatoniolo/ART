@@ -1,17 +1,10 @@
-/* =========================================
-   DOCUMENTO IMPRIMIBLE — Clínica de la Unión S.A.
-   Vista previa + impresión A4
-   ========================================= */
-
 .documento {
     width: 100%;
     min-width: 0;
     padding: 20px;
     box-sizing: border-box;
-
     background: #fff;
     color: #202124;
-
     font-family: Arial, Helvetica, sans-serif;
     font-size: 12.5px;
     line-height: 1.4;
@@ -23,15 +16,11 @@
     box-sizing: border-box;
 }
 
-/* =========================================
-   ENCABEZADO (sin h1 PRESUPUESTO)
-   ========================================= */
 .encabezado {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-
     padding-bottom: 10px;
     border-bottom: 1px solid #cfd3d8;
 }
@@ -74,15 +63,6 @@
     text-align: right;
 }
 
-/* Antes era el <h1>, ahora es un subtítulo destacado */
-.docTitulo {
-    margin: 0 0 4px;
-    color: #17191c;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: .2px;
-}
-
 .fecha {
     display: flex;
     justify-content: flex-end;
@@ -92,9 +72,6 @@
     font-size: 11px;
 }
 
-/* =========================================
-   SECCIONES
-   ========================================= */
 .seccion {
     margin-top: 12px;
 }
@@ -107,14 +84,10 @@
     letter-spacing: .2px;
 }
 
-/* =========================================
-   CAMPOS EN LÍNEA (paciente / equipo)  ← MÁS GRANDES
-   ========================================= */
 .campos {
     display: flex;
     flex-wrap: wrap;
     gap: 6px 26px;
-
     padding: 9px 11px;
     border-top: 1px solid #d9dde2;
     border-bottom: 1px solid #d9dde2;
@@ -131,7 +104,7 @@
 
 .etiqueta {
     color: #727780;
-    font-size: 11.5px;                /* era 10px */
+    font-size: 11.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .3px;
@@ -140,14 +113,11 @@
 
 .valor {
     color: #202124;
-    font-size: 14.5px;                /* era 13px */
+    font-size: 14.5px;
     font-weight: 700;
     overflow-wrap: anywhere;
 }
 
-/* =========================================
-   TABLAS  ← se mantienen igual
-   ========================================= */
 .tabla {
     width: 100%;
     border-collapse: collapse;
@@ -224,15 +194,6 @@
     font-size: 10.5px;
 }
 
-.sinProductos {
-    padding: 16px !important;
-    color: #777;
-    text-align: center;
-}
-
-/* =========================================
-   TOTAL Y PIE
-   ========================================= */
 .pie {
     margin-top: 12px;
     break-inside: avoid;
@@ -244,7 +205,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-
     padding: 11px 12px;
     border: 1px solid #cfd3d8;
     border-right: 0;
@@ -272,43 +232,11 @@
 }
 
 /* =========================================
-   VISTA MÓVIL (preview)
-   ========================================= */
-@media screen and (max-width: 600px) {
-    .documento { padding: 12px; font-size: 12px; }
-
-    .encabezado { align-items: flex-start; gap: 12px; }
-
-    .identidad { gap: 8px; }
-
-    .logo { max-width: 64px; height: 42px; }
-
-    .nombreClinica strong { font-size: 13px; }
-    .nombreClinica span { font-size: 9.5px; }
-
-    .docTitulo { font-size: 12px; }
-
-    .campos { gap: 5px 16px; }
-    .etiqueta { font-size: 10.5px; }
-    .valor { font-size: 13px; }
-
-    .tituloSeccion { font-size: 12.5px; }
-
-    .tabla { font-size: 10.5px; }
-    .tabla th, .tabla td { padding: 5px 4px; }
-
-    .precio, .subtotal, .colMonto { width: 22%; }
-
-    .total { padding: 10px 4px; }
-    .total strong { font-size: 17px; }
-}
-
-/* =========================================
-   IMPRESIÓN A4
+   IMPRESIÓN A4 (Configuración estricta)
    ========================================= */
 @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 10mm;
 }
 
 @media print {
@@ -316,20 +244,15 @@
         width: 100%;
         max-width: none;
         min-width: 0;
-
         margin: 0;
         padding: 0;
-
         border: 0;
         border-radius: 0;
         box-shadow: none;
-
         background: #fff;
         color: #111;
-
         font-size: 10.5pt;
         line-height: 1.3;
-
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
     }
@@ -339,50 +262,77 @@
         padding-bottom: 8px;
     }
 
-    .logo { max-width: 85px; height: 46px; }
+    .logo {
+        max-width: 85px !important;
+        height: auto !important;
+        max-height: 46px !important;
+    }
 
-    .nombreClinica strong { font-size: 14px; }
+    .nombreClinica strong {
+        font-size: 14px;
+    }
 
     .nombreClinica span,
-    .fecha { font-size: 9.5px; }
+    .fecha {
+        font-size: 9.5px;
+    }
 
-    .docTitulo { font-size: 12.5px; }
-
-    .seccion { margin-top: 9px; }
+    .seccion {
+        margin-top: 9px;
+    }
 
     .tituloSeccion {
         margin-bottom: 4px;
         font-size: 12px;
     }
 
-    /* Datos del paciente / equipo médico — bien legibles */
     .campos {
         gap: 4px 20px;
         padding: 6px 8px;
     }
 
-    .etiqueta { font-size: 10.5px; }
-    .valor { font-size: 13px; }
+    .etiqueta {
+        font-size: 10.5px;
+    }
 
-    /* Tablas — un poco más chicas que los datos del paciente */
-    .tabla { font-size: 10px; }
+    .valor {
+        font-size: 13px;
+    }
+
+    .tabla {
+        font-size: 10px;
+    }
 
     .tabla th {
         padding: 5px 6px;
         font-size: 9.5px;
     }
 
-    .tabla td { padding: 5px 6px; }
+    .tabla td {
+        padding: 5px 6px;
+    }
 
-    .presentacion { font-size: 9px; }
+    .presentacion {
+        font-size: 9px;
+    }
 
-    .pie { margin-top: 8px; }
+    .pie {
+        margin-top: 8px;
+    }
 
-    .total { padding: 8px 10px; }
+    .total {
+        padding: 8px 10px;
+    }
 
-    .total span { font-size: 10.5px; }
+    .total span {
+        font-size: 10.5px;
+    }
 
-    .total strong { font-size: 17px; }
+    .total strong {
+        font-size: 17px;
+    }
 
-    .aclaracion { font-size: 8.5px; }
+    .aclaracion {
+        font-size: 8.5px;
+    }
 }
