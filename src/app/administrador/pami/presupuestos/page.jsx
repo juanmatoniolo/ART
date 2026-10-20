@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation"; // <--- IMPORTAMOS EL ROUTER
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
 import { matchesAllTerms } from "@/app/farmacia/utils/farmacia";
@@ -14,6 +15,8 @@ import styles from "@/components/pami/presupuesto/presupuesto.module.css";
 const p = styles;
 
 export default function PresupuestoPamiPage() {
+    const router = useRouter(); // <--- INICIALIZAMOS EL ROUTER
+
     const [solapa, setSolapa] = useState("presupuesto");
     const [items, setItems] = useState([]);
     const [pacientesDb, setPacientesDb] = useState([]);
@@ -61,7 +64,7 @@ export default function PresupuestoPamiPage() {
             if (!data) return mostrarFlash("No se encontró el paciente.");
             const { medicamentos = {}, ...datos } = data;
 
-            // FIX CRÍTICO: Le inyectamos el ID de la base de datos al borrador
+            // Inyectamos el ID de la base de datos al borrador
             const borradorConId = { ...b.raw, id: b.id };
 
             setPendingOpen({
@@ -80,8 +83,21 @@ export default function PresupuestoPamiPage() {
 
     return (
         <div className={`${p.wrapper} ${p.dark}`}>
+
+            {/* HEADER CON BOTÓN VOLVER */}
             <div className={p.headerBar}>
-                <h2 className={p.title}>Presupuestos PAMI</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+                    <button
+                        type="button"
+                        className={p.btn}
+                        onClick={() => router.push("/administrador/pami")}
+                        title="Volver al Dashboard"
+                    >
+                        ← Volver
+                    </button>
+                    <h2 className={p.title} style={{ margin: 0 }}>Presupuestos PAMI</h2>
+                </div>
+
                 <div className={p.headerActions}>
                     <button type="button" className={`${p.btn} ${p.btnPrimary}`} onClick={iniciarNuevo}>
                         + Nuevo Presupuesto

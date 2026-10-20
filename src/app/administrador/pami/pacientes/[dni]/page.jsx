@@ -3,17 +3,9 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSession } from "@/utils/session";
 import { obtenerPacientePami, eliminarPacientePami, asegurarPacientePami, dniKey } from "@/lib/pami";
-import {
-    cambiarEstadoPaciente,
-    setOncoplanPaciente,
-    puedeGenerarEventos,
-    estadoDef,
-} from "@/lib/pami/pacientes";
+import { cambiarEstadoPaciente, setOncoplanPaciente, puedeGenerarEventos } from "@/lib/pami/pacientes";
 import { listarOPsPaciente, cambiarEstadoOP } from "@/lib/pami/op";
-import {
-    listarInternacionesPaciente,
-    cerrarInternacionPami,
-} from "@/lib/pami/internaciones";
+import { listarInternacionesPaciente, cerrarInternacionPami } from "@/lib/pami/internaciones";
 import { listarCirugiasPaciente, cerrarCirugiaPami } from "@/lib/pami/cirugias";
 import { listarBorradoresPaciente } from "@/lib/pami/presupuestos";
 import PacienteHeader from "@/components/pami/paciente/PacienteHeader";
@@ -78,15 +70,13 @@ export default function PacientePamiPage() {
 
     const canGenerarEventos = useMemo(() => puedeGenerarEventos(paciente), [paciente]);
 
-    /* ── Acciones ── */
     const handleCambiarEstado = async (nuevoEstado) => {
-        if (!confirm(`¿Cambiar el estado del paciente a "${estadoDef(nuevoEstado).label}"?`)) return;
+        if (!confirm(`¿Cambiar el estado del paciente a "${nuevoEstado}"?`)) return;
         try {
             await cambiarEstadoPaciente(pacienteKey, nuevoEstado, { usuario: usuarioActual() });
             await cargarTodo();
-            mostrarFlash(`Estado actualizado a "${estadoDef(nuevoEstado).label}".`);
+            mostrarFlash(`Estado actualizado.`);
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo cambiar el estado.");
         }
     };
@@ -98,40 +88,26 @@ export default function PacientePamiPage() {
             await cargarTodo();
             mostrarFlash(nuevoValor ? "Paciente marcado como ONCOPLAN." : "Oncoplan removido.");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo actualizar Oncoplan.");
         }
     };
 
     const handleEditar = async (form) => {
         try {
-            await asegurarPacientePami(
-                {
-                    ...form,
-                    dni: pacienteKey,
-                    familiar: {
-                        nombre: form.famNombre,
-                        parentezco: form.famParentezco,
-                        telefono: form.famTelefono,
-                    },
-                },
-                { usuario: usuarioActual() }
-            );
+            await asegurarPacientePami({ ...form, dni: pacienteKey }, { usuario: usuarioActual() });
             await cargarTodo();
             mostrarFlash("Datos actualizados.");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudieron guardar los datos.");
         }
     };
 
     const handleEliminar = async () => {
-        if (!confirm(`¿Eliminar el paciente ${paciente?.nombreCompleto || pacienteKey}?\nSe borrarán también todos sus borradores y eventos.`)) return;
+        if (!confirm(`¿Eliminar el paciente ${paciente?.nombreCompleto || pacienteKey}?\nSe borrarán también todos sus datos.`)) return;
         try {
             await eliminarPacientePami(pacienteKey);
-            router.push("/pami");
+            router.push("/administrador/pami");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo eliminar el paciente.");
         }
     };
@@ -142,7 +118,6 @@ export default function PacientePamiPage() {
             await cargarTodo();
             mostrarFlash("Estado de la OP actualizado.");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo cambiar el estado de la OP.");
         }
     };
@@ -154,7 +129,6 @@ export default function PacientePamiPage() {
             await cargarTodo();
             mostrarFlash("Internación cerrada.");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo cerrar la internación.");
         }
     };
@@ -166,32 +140,29 @@ export default function PacientePamiPage() {
             await cargarTodo();
             mostrarFlash("Cirugía marcada como realizada.");
         } catch (e) {
-            console.error(e);
             mostrarFlash("No se pudo actualizar la cirugía.");
         }
     };
 
-    const handleNuevaOP = () => router.push("/administrador/pami/nuevo");
-    const handleNuevaInternacionDesdeOP = (opId) =>
-        router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&opId=${opId}&tipo=internacion`);
-    const handleNuevaCirugiaDesdeOP = (opId) =>
-        router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&opId=${opId}&tipo=cirugia`);
+    const handleNuevaOP = () => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&tipo=op`);
+    const handleNuevaInternacionDesdeOP = (opId) => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&opId=${opId}&tipo=internacion`);
+    const handleNuevaCirugiaDesdeOP = (opId) => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&opId=${opId}&tipo=cirugia`);
     const handleAbrirPresupuesto = () => router.push("/administrador/pami/presupuestos");
     const handleAbrirIngreso = (ingresosId) => router.push(`/ingresos?id=${ingresosId}`);
 
-    /* ── Render ── */
     if (loading) {
         return <div className={styles.ficha}><div className={styles.loading}>Cargando paciente…</div></div>;
     }
+
     if (notFound || !paciente) {
         return (
             <div className={styles.ficha}>
+                <button className={styles.btn} onClick={() => router.push("/administrador/pami")} style={{ alignSelf: "flex-start", marginBottom: "1rem" }}>
+                    ← Volver al Dashboard
+                </button>
                 <div className={styles.notFound}>
                     <h2>Paciente no encontrado</h2>
-                    <p>No hay datos para DNI {pacienteKey}. Puede que nunca haya sido registrado.</p>
-                    <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => router.push("/administrador/pami/nuevo")}>
-                        + Crear nueva OP
-                    </button>
+                    <p>No hay datos para DNI {pacienteKey}.</p>
                 </div>
             </div>
         );
@@ -200,6 +171,16 @@ export default function PacientePamiPage() {
     return (
         <div className={styles.ficha}>
             {flash && <div className={styles.toast}>{flash}</div>}
+
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <button
+                    type="button"
+                    className={styles.btn}
+                    onClick={() => router.push("/administrador/pami")}
+                >
+                    ← Volver al Dashboard
+                </button>
+            </div>
 
             <PacienteHeader
                 paciente={paciente}

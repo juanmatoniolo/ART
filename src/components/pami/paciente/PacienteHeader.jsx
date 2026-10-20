@@ -1,7 +1,5 @@
 "use client";
 import { useState } from "react";
-import { formatCurrency } from "@/app/farmacia/utils/farmacia";
-import OncoplanBadge from "@/components/pami/presupuesto/OncoplanBadge";
 import { ESTADOS_PACIENTE, estadoDef } from "@/lib/pami/pacientes";
 import styles from "./paciente.module.css";
 
@@ -15,46 +13,24 @@ const fmtEdad = (fechaISO) => {
     return `${edad} años`;
 };
 
-const fmtFecha = (iso) => {
-    if (!iso) return "";
-    const [y, m, d] = String(iso).split("-");
-    return y && m && d ? `${d}/${m}/${y}` : iso;
-};
-
 export default function PacienteHeader({
-    paciente,
-    onCambiarEstado,
-    onToggleOncoplan,
-    onEditar,
-    onNuevaOP,
-    onEliminar,
-    canGenerarEventos,
+    paciente, onCambiarEstado, onToggleOncoplan, onEditar, onNuevaOP, onEliminar, canGenerarEventos,
 }) {
-    const [estadoMenuOpen, setEstadoMenuOpen] = useState(false);
     const [editando, setEditando] = useState(false);
+    const [copiedField, setCopiedField] = useState(null);
+
     const [form, setForm] = useState(() => ({
-        apellido: paciente.apellido || "",
-        nombre: paciente.nombre || "",
-        afiliado: paciente.afiliado || "",
-        historiaClinica: paciente.historiaClinica || "",
-        sexo: paciente.sexo || "",
-        fechaNacimiento: paciente.fechaNacimiento || "",
-        telefono: paciente.telefono || "",
-        domicilio: paciente.domicilio || "",
-        localidad: paciente.localidad || "",
-        provincia: paciente.provincia || "",
-        lugarNacimiento: paciente.lugarNacimiento || "",
-        cirujano: paciente.cirujano || "",
-        ayudante1: paciente.ayudante1 || "",
-        ayudante2: paciente.ayudante2 || "",
-        anestesista: paciente.anestesista || "",
-        famNombre: paciente.familiar?.nombre || "",
-        famParentezco: paciente.familiar?.parentezco || "",
-        famTelefono: paciente.familiar?.telefono || "",
+        apellido: paciente.apellido || "", nombre: paciente.nombre || "",
+        afiliado: paciente.afiliado || "", historiaClinica: paciente.historiaClinica || "",
+        sexo: paciente.sexo || "", fechaNacimiento: paciente.fechaNacimiento || "",
+        telefono: paciente.telefono || "", domicilio: paciente.domicilio || "",
+        localidad: paciente.localidad || "", provincia: paciente.provincia || "",
+        cirujano: paciente.cirujano || "", ayudante1: paciente.ayudante1 || "",
+        ayudante2: paciente.ayudante2 || "", anestesista: paciente.anestesista || "",
     }));
 
     const eDef = estadoDef(paciente.estado);
-    const nombreCompleto = paciente.nombreCompleto || [paciente.apellido, paciente.nombre].filter(Boolean).join(" ");
+    const nombreCompleto = [paciente.apellido, paciente.nombre].filter(Boolean).join(" ") || `DNI ${paciente.dni}`;
     const edad = fmtEdad(paciente.fechaNacimiento);
 
     const onField = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
@@ -64,182 +40,110 @@ export default function PacienteHeader({
         setEditando(false);
     };
 
+    const copiar = (text, field) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+    };
+
     return (
         <section className={styles.header}>
             <div className={styles.headerTop}>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                    <h1 className={styles.nombre}>{nombreCompleto || `DNI ${paciente.dni}`}</h1>
+                    <h1 className={styles.nombre}>{nombreCompleto}</h1>
+
                     <div className={styles.subtitulo}>
-                        DNI {paciente.dni}
-                        {paciente.afiliado && ` · Afiliado ${paciente.afiliado}`}
-                        {paciente.historiaClinica && ` · HC ${paciente.historiaClinica}`}
-                        {edad && ` · ${edad}`}
-                        {paciente.sexo && ` · ${paciente.sexo === "M" ? "Masculino" : paciente.sexo === "F" ? "Femenino" : paciente.sexo}`}
+                        {edad && <span>🎂 {edad}</span>}
+                        {paciente.sexo && <span>👤 {paciente.sexo === "M" ? "Masculino" : "Femenino"}</span>}
+                        {paciente.telefono && <span>📞 {paciente.telefono}</span>}
                     </div>
+
                     <div className={styles.badges}>
                         {paciente.oncoplan && <span className={`${styles.badgeBase} ${styles.badgeOncoplan}`}>ONCOPLAN</span>}
-                        <span
-                            className={`${styles.badgeBase} ${styles.badgeEstado}`}
-                            style={{ color: eDef.color, borderColor: eDef.color, background: eDef.bg }}
-                        >
+                        <span className={`${styles.badgeBase} ${styles.badgeEstado}`} style={{ color: eDef.color, borderColor: eDef.color, background: eDef.bg }}>
                             {eDef.icon} {eDef.label}
                         </span>
                     </div>
                 </div>
 
                 <div className={styles.headerActions}>
-                    <button
-                        type="button"
-                        className={`${styles.btn} ${styles.btnPrimary}`}
-                        onClick={onNuevaOP}
-                        disabled={!canGenerarEventos}
-                        title={!canGenerarEventos ? "Paciente fallecido: no se pueden generar nuevas OP" : "Crear nueva OP"}
-                    >
+                    <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={onNuevaOP} disabled={!canGenerarEventos}>
                         + Nueva OP
                     </button>
+                    <button type="button" className={styles.btn} onClick={() => setEditando(!editando)}>
+                        ✏️ {editando ? "Cancelar" : "Editar"}
+                    </button>
 
-                    <details
-                        className={styles.estadoMenu}
-                        open={estadoMenuOpen}
-                        onToggle={(e) => setEstadoMenuOpen(e.currentTarget.open)}
-                    >
-                        <summary className={styles.estadoMenuSummary}>Cambiar estado</summary>
+                    {/* FIX: Details nativo sin control de estado de React */}
+                    <details className={styles.estadoMenu}>
+                        <summary className={styles.estadoMenuSummary}>Estado</summary>
                         <div className={styles.estadoMenuList}>
                             {ESTADOS_PACIENTE.map((e) => (
-                                <button
-                                    key={e.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setEstadoMenuOpen(false);
-                                        if (e.id !== paciente.estado) onCambiarEstado?.(e.id);
-                                    }}
-                                >
+                                <button key={e.id} type="button" onClick={() => { if (e.id !== paciente.estado) onCambiarEstado?.(e.id); }}>
                                     <span className={styles.estadoDot} style={{ background: e.color }} />
                                     {e.label}
-                                    {e.id === paciente.estado && " ✓"}
                                 </button>
                             ))}
                         </div>
                     </details>
 
-                    <button
-                        type="button"
-                        className={styles.btn}
-                        onClick={() => onToggleOncoplan?.(!paciente.oncoplan)}
-                        title={paciente.oncoplan ? "Quitar Oncoplan" : "Marcar como Oncoplan"}
-                    >
-                        {paciente.oncoplan ? "Quitar ONCOPLAN" : "Marcar ONCOPLAN"}
-                    </button>
-
-                    <button type="button" className={styles.btn} onClick={() => setEditando((v) => !v)}>
-                        {editando ? "Cancelar edición" : "✏️ Editar datos"}
-                    </button>
-
-                    {onEliminar && (
-                        <button
-                            type="button"
-                            className={`${styles.btn} ${styles.btnDanger}`}
-                            onClick={onEliminar}
-                        >
-                            🗑️ Eliminar
-                        </button>
+                    {paciente.oncoplan ? (
+                        <button type="button" className={styles.btn} onClick={() => onToggleOncoplan?.(false)}>Quitar ONC</button>
+                    ) : (
+                        <button type="button" className={styles.btn} onClick={() => onToggleOncoplan?.(true)}>+ ONCOPLAN</button>
                     )}
+                    <button type="button" className={`${styles.btn} ${styles.btnDanger}`} onClick={onEliminar}>Eliminar</button>
                 </div>
             </div>
 
-            {paciente.estado === "fallecido" && (
-                <div className={styles.warnBanner}>
-                    <span>⚠️</span>
-                    <div>
-                        Este paciente está marcado como <strong>fallecido</strong> desde{" "}
-                        {paciente.estadoCambiado?.fecha
-                            ? new Date(paciente.estadoCambiado.fecha).toLocaleDateString("es-AR")
-                            : "—"}
-                        . No se pueden generar nuevas OP ni eventos.
+            {!editando && (
+                <div className={styles.headerGrid}>
+                    <div className={styles.datoBox}>
+                        <span className={styles.datoLabel}>DNI</span>
+                        <span className={styles.datoValor}>{paciente.dni}</span>
+                        <button className={styles.btnCopiar} onClick={() => copiar(paciente.dni, 'dni')} title="Copiar DNI">
+                            {copiedField === 'dni' ? "✅" : "📋"}
+                        </button>
+                    </div>
+                    <div className={styles.datoBox}>
+                        <span className={styles.datoLabel}>N° AFILIADO PAMI</span>
+                        <span className={styles.datoValor}>{paciente.afiliado || "—"}</span>
+                        <button className={styles.btnCopiar} onClick={() => copiar(paciente.afiliado?.split('/')[0] || "", 'afil')} title="Copiar solo el número">
+                            {copiedField === 'afil' ? "✅" : "📋"}
+                        </button>
+                    </div>
+                    <div className={styles.datoBox}>
+                        <span className={styles.datoLabel}>HISTORIA CLÍNICA</span>
+                        <span className={styles.datoValor}>{paciente.historiaClinica || "—"}</span>
+                        <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinica, 'hc')} title="Copiar HC">
+                            {copiedField === 'hc' ? "✅" : "📋"}
+                        </button>
+                    </div>
+                    <div className={styles.datoBox}>
+                        <span className={styles.datoLabel}>DOMICILIO</span>
+                        <span className={styles.datoValor}>{paciente.domicilio || "—"}</span>
                     </div>
                 </div>
-            )}
-
-            {!editando && (
-                <dl className={styles.headerGrid}>
-                    <div><dt>Teléfono</dt><dd>{paciente.telefono || "—"}</dd></div>
-                    <div><dt>Domicilio</dt><dd>{paciente.domicilio || "—"}</dd></div>
-                    <div><dt>Localidad</dt><dd>{paciente.localidad || "—"}</dd></div>
-                    <div><dt>Provincia</dt><dd>{paciente.provincia || "—"}</dd></div>
-                    <div><dt>Nacimiento</dt><dd>{fmtFecha(paciente.fechaNacimiento) || "—"}</dd></div>
-                    <div><dt>Lugar nac.</dt><dd>{paciente.lugarNacimiento || "—"}</dd></div>
-                    {(paciente.familiar?.nombre || paciente.familiar?.telefono) && (
-                        <div style={{ gridColumn: "1 / -1" }}>
-                            <dt>Familiar</dt>
-                            <dd>
-                                {paciente.familiar?.nombre || "—"}
-                                {paciente.familiar?.parentezco && ` (${paciente.familiar.parentezco})`}
-                                {paciente.familiar?.telefono && ` · ${paciente.familiar.telefono}`}
-                            </dd>
-                        </div>
-                    )}
-                    {(paciente.cirujano || paciente.anestesista || paciente.ayudante1 || paciente.ayudante2) && (
-                        <div style={{ gridColumn: "1 / -1" }}>
-                            <dt>Equipo médico</dt>
-                            <dd>
-                                {[
-                                    paciente.cirujano && `Cirujano: ${paciente.cirujano}`,
-                                    paciente.ayudante1 && `Ay. 1: ${paciente.ayudante1}`,
-                                    paciente.ayudante2 && `Ay. 2: ${paciente.ayudante2}`,
-                                    paciente.anestesista && `Anestesista: ${paciente.anestesista}`,
-                                ].filter(Boolean).join(" · ") || "—"}
-                            </dd>
-                        </div>
-                    )}
-                </dl>
             )}
 
             {editando && (
                 <div className={styles.editPanel}>
                     <div className={styles.editGrid}>
-                        {[
-                            ["apellido", "Apellido"],
-                            ["nombre", "Nombre"],
-                            ["afiliado", "N° afiliado PAMI"],
-                            ["historiaClinica", "Historia clínica"],
-                            ["fechaNacimiento", "Fecha de nacimiento", "date"],
-                            ["telefono", "Teléfono", "tel"],
-                            ["domicilio", "Domicilio"],
-                            ["localidad", "Localidad"],
-                            ["provincia", "Provincia"],
-                            ["lugarNacimiento", "Lugar de nacimiento"],
-                            ["cirujano", "Cirujano"],
-                            ["anestesista", "Anestesista"],
-                            ["ayudante1", "Ayudante 1"],
-                            ["ayudante2", "Ayudante 2"],
-                            ["famNombre", "Familiar — nombre"],
-                            ["famParentezco", "Familiar — parentesco"],
-                            ["famTelefono", "Familiar — teléfono", "tel"],
-                        ].map(([key, label, type]) => (
-                            <label key={key} className={styles.editField}>
-                                <span>{label}</span>
-                                <input
-                                    className={styles.input}
-                                    type={type || "text"}
-                                    value={form[key] || ""}
-                                    onChange={onField(key)}
-                                />
-                            </label>
-                        ))}
-                        <label className={styles.editField}>
-                            <span>Sexo</span>
-                            <select className={styles.input} value={form.sexo} onChange={onField("sexo")}>
-                                <option value="">—</option>
-                                <option value="M">Masculino</option>
-                                <option value="F">Femenino</option>
-                            </select>
-                        </label>
+                        <label className={styles.editField}><span>Apellido</span><input className={styles.input} value={form.apellido} onChange={onField("apellido")} /></label>
+                        <label className={styles.editField}><span>Nombre</span><input className={styles.input} value={form.nombre} onChange={onField("nombre")} /></label>
+                        <label className={styles.editField}><span>DNI</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
+                        <label className={styles.editField}><span>N° Afiliado</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
+                        <label className={styles.editField}><span>Historia Clínica</span><input className={styles.input} value={form.historiaClinica} onChange={onField("historiaClinica")} /></label>
+                        <label className={styles.editField}><span>Teléfono</span><input className={styles.input} value={form.telefono} onChange={onField("telefono")} /></label>
+                        <label className={styles.editField}><span>Domicilio</span><input className={styles.input} value={form.domicilio} onChange={onField("domicilio")} /></label>
+                        <label className={styles.editField}><span>Localidad</span><input className={styles.input} value={form.localidad} onChange={onField("localidad")} /></label>
+                        <label className={styles.editField}><span>Provincia</span><input className={styles.input} value={form.provincia} onChange={onField("provincia")} /></label>
+                        <label className={styles.editField}><span>Cirujano</span><input className={styles.input} value={form.cirujano} onChange={onField("cirujano")} /></label>
                     </div>
                     <div className={styles.editActions}>
                         <button type="button" className={styles.btn} onClick={() => setEditando(false)}>Cancelar</button>
-                        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={guardarEdicion}>
-                            Guardar cambios
-                        </button>
+                        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={guardarEdicion}>Guardar Cambios</button>
                     </div>
                 </div>
             )}
