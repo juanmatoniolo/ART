@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation"; // <-- IMPORTAMOS EL ROUTER
 import { formatCurrency } from "@/app/farmacia/utils/farmacia";
 import OncoplanBadge from "@/components/pami/presupuesto/OncoplanBadge";
 import { ESTADOS_OP } from "@/lib/pami/op";
@@ -76,6 +77,7 @@ export default function PacienteTimeline({
     onChangeEstadoOP, onCerrarInternacion, onCerrarCirugia, onAbrirPresupuesto, onAbrirIngreso,
     onNuevaInternacionDesdeOP, onNuevaCirugiaDesdeOP, onAsignarNroOP, onEliminarEvento
 }) {
+    const router = useRouter(); // <-- INICIALIZAMOS ROUTER
     const [filtro, setFiltro] = useState("todos");
     const [expandido, setExpandido] = useState({});
 
@@ -83,7 +85,42 @@ export default function PacienteTimeline({
     const filtrados = useMemo(() => (filtro === "todos" ? eventos : eventos.filter((e) => e.kind === filtro)), [eventos, filtro]);
     const toggle = (key) => setExpandido((p) => ({ ...p, [key]: !p[key] }));
 
-    if (eventos.length === 0) return <div className={styles.timelineEmpty}>Todavía no hay registros para este paciente.</div>;
+    // --- VISTA VACÍA CON BOTONES DE ACCIÓN ---
+    if (eventos.length === 0) {
+        return (
+            <div className={styles.timelineEmpty} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "3rem 1rem", border: "1px dashed var(--border)", borderRadius: "12px" }}>
+                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--text)" }}>Todavía no hay registros para este paciente.</div>
+                <p style={{ color: "var(--muted)", textAlign: "center", maxWidth: "480px", margin: 0, lineHeight: 1.5 }}>
+                    Para generar una <b>Internación</b> o una <b>Cirugía</b>, primero necesitás tener una Orden de Prestación (OP) asignada.
+                </p>
+                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center", marginTop: "1rem" }}>
+                    <button
+                        type="button"
+                        className={styles.btn}
+                        onClick={() => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&tipo=op`)}
+                    >
+                        📄 Cargar Nueva OP
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        onClick={() => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&tipo=internacion`)}
+                        style={{ background: "#2f6f4e", borderColor: "#2f6f4e" }}
+                    >
+                        🏥 Generar Internación
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        onClick={() => router.push(`/administrador/pami/nuevo?pacienteKey=${pacienteKey}&tipo=cirugia`)}
+                        style={{ background: "#2563eb", borderColor: "#2563eb" }}
+                    >
+                        🔪 Generar Cirugía
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -132,10 +169,7 @@ export default function PacienteTimeline({
                                 <span className={styles.tlFecha}>{fmtFechaHora(ev.fechaMs)}</span>
                             </div>
 
-                            {/* ACCIONES DE LA TARJETA */}
                             <div className={styles.tlActions} style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-
-                                {/* BOTONES DE LA IZQUIERDA */}
                                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: 1 }}>
                                     {ev.kind === "op" && (
                                         <>
@@ -195,7 +229,6 @@ export default function PacienteTimeline({
                                     )}
                                 </div>
 
-                                {/* BOTÓN DE ELIMINAR A LA DERECHA */}
                                 {onEliminarEvento && (
                                     <button
                                         type="button"

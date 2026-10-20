@@ -43,7 +43,7 @@ function StepIndicator({ current, onGo }) { return (<div style={{ display: "flex
 
 function IngresosPageInner() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // <-- PARA LEER PARÁMETROS DE LA URL
+  const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState("nuevo");
   const [currentStep, setCurrentStep] = useState(1);
@@ -73,10 +73,11 @@ function IngresosPageInner() {
   const [creatingHc, setCreatingHc] = useState(null);
   const submittingRef = useRef(false);
 
-  // --- NUEVO: Precargar datos desde la URL si venimos de PAMI ---
+  // --- PRECARGA DESDE URL (PAMI) ---
   useEffect(() => {
     const preDni = searchParams.get("dni");
     const preOs = searchParams.get("os");
+    const preOpId = searchParams.get("opId");
 
     if (preDni) {
       setForm((prev) => ({
@@ -85,7 +86,19 @@ function IngresosPageInner() {
         OS: preOs === "PAMI" ? "PAMI" : prev.OS,
       }));
 
-      // Disparamos la búsqueda de HC automáticamente
+      // Si hay OP, traemos su diagnóstico para autocompletar
+      if (preOpId) {
+        get(ref(db, `PAMI/pacientes/${preDni}/ops/${preOpId}`)).then((snap) => {
+          if (snap.exists()) {
+            const op = snap.val();
+            setForm((prev) => ({
+              ...prev,
+              diagnostico: op.diagnostico || prev.diagnostico,
+            }));
+          }
+        });
+      }
+
       setTimeout(() => {
         lastLookupDniRef.current = "";
         lookupDniInHC(onlyDigits(preDni), form.tipoIngreso);
@@ -200,8 +213,8 @@ function IngresosPageInner() {
         try {
           const session = (typeof getSession === "function" && getSession()) || {};
           const usuario = session.user || session.usuario || session.nombre || "sistema";
+          const opId = searchParams.get("opId");
 
-          // Guardamos o actualizamos en el nodo de PAMI
           await asegurarPacientePami({
             dni: payload.trabajador.dni,
             apellido: payload.trabajador.apellido,
@@ -215,14 +228,22 @@ function IngresosPageInner() {
             localidad: payload.trabajador.localidad,
             provincia: payload.trabajador.provincia,
             familiar: payload.familiar,
-            // Vinculamos este ingreso a la OP si venimos de PAMI
-            opId: searchParams.get("opId") || null,
+            opId: opId || null,
             ingresosId: savedId
           }, { usuario });
+
+          if (opId) {
+            const opRef = ref(db, `PAMI/pacientes/${payload.trabajador.dni}/ops/${opId}`);
+            await update(opRef, {
+              estado: "pasado",
+              ingresosId: savedId,
+              updatedAt: Date.now()
+            });
+            console.log("✅ OP marcada como pasada y vinculada al ingreso.");
+          }
           console.log("✅ Paciente sincronizado con el módulo PAMI");
         } catch (err) {
           console.error("⚠️ Error al sincronizar con PAMI:", err);
-          // No bloqueamos el guardado principal si falla PAMI
         }
       }
       // --------------------------------------
@@ -412,7 +433,6 @@ function IngresosPageInner() {
                         </div>
                         <div className={styles.field}><label className={styles.label}>Edad (calculada)</label><input className={cx(styles.input, styles.inputReadonly)} value={form.trabajadorEdad ? `${form.trabajadorEdad} años` : ""} readOnly tabIndex={-1} /></div>
 
-                        {/* MODIFICACIÓN: SELECTOR DE OBRA SOCIAL */}
                         <div className={styles.field}>
                           <label className={styles.label}>O.S / Cobertura</label>
                           <select className={styles.input} value={form.OS} onChange={onChange("OS")}>
@@ -550,7 +570,6 @@ function IngresosPageInner() {
   );
 }
 
-// Envolvemos el componente principal en Suspense para evitar errores con useSearchParams en Next.js
 export default function IngresosPage() {
   return (
     <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", padding: "3rem", color: "white" }}>Cargando formulario de ingreso...</div>}>

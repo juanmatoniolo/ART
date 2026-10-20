@@ -13,13 +13,27 @@ const fmtEdad = (fechaISO) => {
     return `${edad} años`;
 };
 
+// Helper para crear el link de WhatsApp Web (Desktop) directamente
+const getWhatsAppLink = (tel, nombre) => {
+    if (!tel) return null;
+    let clean = String(tel).replace(/\D/g, "");
+
+    // Si el número no empieza con 54 (Argentina), se lo agregamos junto al 9
+    if (!clean.startsWith("54")) {
+        clean = `549${clean}`;
+    }
+
+    const texto = encodeURIComponent(`Hola ${nombre || ""}, le escribimos de Clínica de la Unión. 🏥`);
+    return `https://web.whatsapp.com/send?phone=${clean}&text=${texto}`;
+};
+
 export default function PacienteHeader({
     paciente, onCambiarEstado, onToggleOncoplan, onEditar, onNuevaOP, onEliminar, canGenerarEventos,
 }) {
     const [editando, setEditando] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
 
-    // Estado para el form de edición (mapeado desde el objeto paciente)
+    // Estado para el form de edición
     const [form, setForm] = useState(() => ({
         apellido: paciente.apellido || "", nombre: paciente.nombre || "",
         afiliado: paciente.afiliado || "", historiaClinica: paciente.historiaClinica || "",
@@ -47,6 +61,10 @@ export default function PacienteHeader({
         setTimeout(() => setCopiedField(null), 2000);
     };
 
+    // Links de WhatsApp generados con el helper
+    const waPaciente = getWhatsAppLink(paciente.telefono, paciente.nombre);
+    const waFamiliar = getWhatsAppLink(paciente.familiar?.telefono, paciente.familiar?.nombre);
+
     return (
         <section className={styles.header}>
             <div className={styles.headerTop}>
@@ -56,7 +74,6 @@ export default function PacienteHeader({
                     <div className={styles.subtitulo}>
                         {edad && <span>🎂 {edad}</span>}
                         {paciente.sexo && <span>👤 {paciente.sexo === "M" ? "Masculino" : "Femenino"}</span>}
-                        {paciente.telefono && <span>📞 {paciente.telefono}</span>}
                     </div>
 
                     <div className={styles.badges}>
@@ -96,7 +113,7 @@ export default function PacienteHeader({
                 </div>
             </div>
 
-            {/* DATOS GRANDES CON BOTONES DE COPIADO */}
+            {/* DATOS GRANDES CON BOTONES DE COPIADO Y WHATSAPP */}
             {!editando && (
                 <>
                     <div className={styles.headerGrid} style={{ marginTop: "1rem" }}>
@@ -115,9 +132,18 @@ export default function PacienteHeader({
                             <span className={styles.datoValor}>{paciente.historiaClinica || "—"}</span>
                             <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinica, 'hc')}>{copiedField === 'hc' ? "✅" : "📋"}</button>
                         </div>
+
+                        {/* TELÉFONO PACIENTE CON BOTÓN NATIVO DE WHATSAPP */}
                         <div className={styles.datoBox}>
-                            <span className={styles.datoLabel}>TELÉFONO</span>
-                            <span className={styles.datoValor}>{paciente.telefono || "—"}</span>
+                            <span className={styles.datoLabel}>TELÉFONO PACIENTE</span>
+                            <div className={styles.datoValorRow}>
+                                <span className={styles.datoValor}>{paciente.telefono || "—"}</span>
+                                {waPaciente && (
+                                    <a href={waPaciente} target="_blank" rel="noopener noreferrer" className={styles.btnWhatsApp} title="Abrir WhatsApp Web">
+                                        💬 WhatsApp
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -132,16 +158,25 @@ export default function PacienteHeader({
 
                     {/* FAMILIAR RESPONSABLE */}
                     {(paciente.familiar?.nombre || paciente.familiar?.telefono) && (
-                        <div style={{ marginTop: "1rem" }}>
-                            <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem" }}>Familiar Responsable</h4>
+                        <div style={{ marginTop: "1.5rem" }}>
+                            <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Familiar Responsable</h4>
                             <div className={styles.headerGrid}>
                                 <div className={styles.datoBox}>
                                     <span className={styles.datoLabel}>NOMBRE Y PARENTESCO</span>
                                     <span className={styles.datoValor}>{paciente.familiar?.nombre} ({paciente.familiar?.parentezco})</span>
                                 </div>
+
+                                {/* TELÉFONO FAMILIAR CON BOTÓN NATIVO DE WHATSAPP */}
                                 <div className={styles.datoBox}>
-                                    <span className={styles.datoLabel}>TELÉFONO</span>
-                                    <span className={styles.datoValor}>{paciente.familiar?.telefono || "—"}</span>
+                                    <span className={styles.datoLabel}>TELÉFONO FAMILIAR</span>
+                                    <div className={styles.datoValorRow}>
+                                        <span className={styles.datoValor}>{paciente.familiar?.telefono || "—"}</span>
+                                        {waFamiliar && (
+                                            <a href={waFamiliar} target="_blank" rel="noopener noreferrer" className={styles.btnWhatsApp} title="Abrir WhatsApp Web">
+                                                💬 WhatsApp
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -149,8 +184,8 @@ export default function PacienteHeader({
 
                     {/* EQUIPO MÉDICO */}
                     {(paciente.cirujano || paciente.anestesista) && (
-                        <div style={{ marginTop: "1rem" }}>
-                            <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem" }}>Equipo Médico</h4>
+                        <div style={{ marginTop: "1.5rem" }}>
+                            <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Equipo Médico</h4>
                             <div className={styles.headerGrid}>
                                 <div className={styles.datoBox}><span className={styles.datoLabel}>CIRUJANO</span><span className={styles.datoValor}>{paciente.cirujano || "—"}</span></div>
                                 <div className={styles.datoBox}><span className={styles.datoLabel}>ANESTESISTA</span><span className={styles.datoValor}>{paciente.anestesista || "—"}</span></div>
@@ -172,7 +207,7 @@ export default function PacienteHeader({
                         <label className={styles.editField}><span>DNI</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
                         <label className={styles.editField}><span>N° Afiliado</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
                         <label className={styles.editField}><span>Historia Clínica</span><input className={styles.input} value={form.historiaClinica} onChange={onField("historiaClinica")} /></label>
-                        <label className={styles.editField}><span>Teléfono</span><input className={styles.input} value={form.telefono} onChange={onField("telefono")} /></label>
+                        <label className={styles.editField}><span>Teléfono Paciente</span><input className={styles.input} value={form.telefono} onChange={onField("telefono")} /></label>
                         <label className={styles.editField}><span>Domicilio</span><input className={styles.input} value={form.domicilio} onChange={onField("domicilio")} /></label>
                         <label className={styles.editField}><span>Localidad</span><input className={styles.input} value={form.localidad} onChange={onField("localidad")} /></label>
                         <label className={styles.editField}><span>Provincia</span><input className={styles.input} value={form.provincia} onChange={onField("provincia")} /></label>

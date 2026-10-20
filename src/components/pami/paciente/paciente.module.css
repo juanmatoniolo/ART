@@ -48,7 +48,6 @@
 .nombre {
     margin: 0;
     font-size: clamp(1.8rem, 3vw, 2.2rem);
-    /* Letra más grande */
     font-weight: 900;
     color: var(--text);
     line-height: 1.1;
@@ -102,10 +101,10 @@
 /* --- GRILLA DE DATOS --- */
 .headerGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
     margin-top: 1rem;
-    padding-top: 1.5rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border);
 }
 
@@ -121,7 +120,7 @@
 }
 
 .datoLabel {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--muted);
@@ -130,12 +129,25 @@
 
 .datoValor {
     font-size: 1.15rem;
-    /* Letra de datos más grande */
     font-weight: 600;
     color: var(--text);
     overflow-wrap: anywhere;
-    padding-right: 2.5rem;
+    padding-right: 2rem;
     /* Espacio para el botón de copiar */
+}
+
+/* Fila para alinear texto y botón de WhatsApp */
+.datoValorRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.datoValorRow .datoValor {
+    padding-right: 0;
+    /* El input de copiar no está acá, así que quitamos el margen */
 }
 
 .btnCopiar {
@@ -160,7 +172,27 @@
     background: var(--accent-weak);
 }
 
-/* --- BOTONES --- */
+/* --- BOTÓN NATIVO WHATSAPP --- */
+.btnWhatsApp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #25D366;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: filter 0.15s ease;
+    white-space: nowrap;
+}
+
+.btnWhatsApp:hover {
+    filter: brightness(1.1);
+}
+
+/* --- BOTONES GENERALES --- */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -285,7 +317,112 @@
     flex-shrink: 0;
 }
 
-/* --- TABS --- */
+/* --- FORMULARIO DE EDICIÓN --- */
+.editPanel {
+    padding: 1.5rem;
+    border: 1px solid var(--accent-border);
+    border-radius: 12px;
+    background: var(--surface-2);
+}
+
+.editGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 560px) {
+    .editGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.editField {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.input {
+    width: 100%;
+    min-height: 44px;
+    padding: .6rem .8rem;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: .95rem;
+    outline: none;
+    transition: border-color .15s;
+}
+
+.input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.editActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+/* --- TOAST --- */
+.toast {
+    position: fixed;
+    z-index: 1200;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    max-width: min(420px, calc(100vw - 2rem));
+    margin-left: auto;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--accent-border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    font-size: .95rem;
+    font-weight: 600;
+    animation: slideIn .25s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.loading {
+    padding: 3rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 1rem;
+}
+
+.notFound {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+}
+
+/* --- TIMELINE (Se mantiene igual que antes) --- */
 .tabs {
     display: flex;
     gap: .4rem;
@@ -346,7 +483,6 @@
     color: #fff;
 }
 
-/* --- TIMELINE CARDS --- */
 .timeline {
     display: grid;
     gap: 1rem;
@@ -460,111 +596,6 @@
     margin-top: .5rem;
     padding-top: .75rem;
     border-top: 1px dashed var(--border);
-}
-
-/* --- EDIT FORM --- */
-.editPanel {
-    padding: 1.5rem;
-    border: 1px solid var(--accent-border);
-    border-radius: 12px;
-    background: var(--surface-2);
-}
-
-.editGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-}
-
-@media (min-width: 560px) {
-    .editGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-.editField {
-    display: flex;
-    flex-direction: column;
-    gap: .4rem;
-    font-size: .85rem;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.input {
-    width: 100%;
-    min-height: 44px;
-    padding: .6rem .8rem;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    background: var(--bg);
-    color: var(--text);
-    font: inherit;
-    font-size: .95rem;
-    outline: none;
-    transition: border-color .15s;
-}
-
-.input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-weak);
-}
-
-.editActions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: .75rem;
-    margin-top: 1rem;
-}
-
-/* --- TOAST --- */
-.toast {
-    position: fixed;
-    z-index: 1200;
-    right: 1rem;
-    bottom: 1rem;
-    left: 1rem;
-    max-width: min(420px, calc(100vw - 2rem));
-    margin-left: auto;
-    padding: 1rem 1.25rem;
-    border: 1px solid var(--accent-border);
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
-    font-size: .95rem;
-    font-weight: 600;
-    animation: slideIn .25s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateY(10px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.loading {
-    padding: 3rem;
-    text-align: center;
-    color: var(--muted);
-    font-size: 1rem;
-}
-
-.notFound {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    text-align: center;
 }
 
 @media (max-width: 560px) {

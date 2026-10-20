@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { ref, onValue, update } from "firebase/database";
 import { matchesAllTerms } from "@/app/farmacia/utils/farmacia";
 import { eliminarPacientePami } from "@/lib/pami";
-import { listarTodasLasOPs, ESTADOS_OP } from "@/lib/pami/op";
+import { listarTodasLasOPs, ESTADOS_OP, cambiarEstadoOP } from "@/lib/pami/op";
 import { listarTodasLasInternaciones } from "@/lib/pami/internaciones";
 import { listarTodasLasCirugias } from "@/lib/pami/cirugias";
 import { listarBorradoresGlobales, eliminarPresupuestoPami } from "@/lib/pami/presupuestos";
@@ -54,8 +54,14 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
 
     const enviarWhatsApp = (paciente) => {
         if (!paciente.telefono) return alert("El paciente no tiene un teléfono registrado.");
-        const tel = String(paciente.telefono).replace(/\D/g, "");
-        window.open(`https://wa.me/549${tel}`, "_blank");
+
+        let tel = String(paciente.telefono).replace(/\D/g, "");
+        if (!tel.startsWith("54")) tel = `549${tel}`;
+
+        const texto = encodeURIComponent(`Hola ${paciente.apellido}, ${paciente.nombre}, le escribimos de Clínica de la Unión. 🏥`);
+
+        // Abre directamente en WhatsApp Web
+        window.open(`https://web.whatsapp.com/send?phone=${tel}&text=${texto}`, "_blank");
     };
 
     return (
@@ -109,7 +115,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                         {isOncPending && <span style={{ fontSize: 10, padding: "2px 6px", background: "#f59e0b", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN PENDIENTE</span>}
                                         {isOncHab && <span style={{ fontSize: 10, padding: "2px 6px", background: "#e11d48", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN</span>}
 
-                                        {/* BADGE OP PENDIENTE (CLICKABLE) */}
                                         {opPendienteObj && (
                                             <span
                                                 onClick={(e) => { e.stopPropagation(); onAsignarNroOP(x.dni, opPendienteObj.id); }}
@@ -120,7 +125,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                             </span>
                                         )}
 
-                                        {/* BADGE OP LISTA */}
                                         {opListaObj && (
                                             <span style={{ fontSize: 10, padding: "2px 6px", background: "#2f6f4e", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>
                                                 ✅ OP LISTA (N° {opListaObj.nroOP})
@@ -207,7 +211,61 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
     );
 }
 
-// ... TabOPs y el componente principal se mantienen igual, excepto por la función handleAsignarNroOP
+function TabOPs({ ops, onAbrirPaciente, onCambiarEstado }) {
+    const [q, setQ] = useState("");
+    const [filtroEstado, setFiltroEstado] = useState("todos");
+
+    const filtradas = useMemo(() => {
+        let lista = ops;
+        const query = q.trim();
+        if (query) lista = lista.filter((o) => matchesAllTerms(`${o.pacienteNombre} ${o.pacienteDni} ${o.nroOP || ""} ${o.diagnostico || ""}`, query));
+        if (filtroEstado !== "todos") lista = lista.filter((o) => o.estado === filtroEstado);
+        return lista;
+    }, [ops, q, filtroEstado]);
+
+    return (
+        <section className={p.card}>
+            <h3 className={p.cardTitle}>Órdenes de prestación (OPs)</h3>
+            <div className={p.grid2} style={{ marginBottom: "1rem" }}>
+                <input className={p.input} type="search" placeholder="Buscar por paciente, N° OP o diagnóstico…" value={q} onChange={(e) => setQ(e.target.value)} />
+                <select className={p.input} value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+                    <option value="todos">Todos los estados</option>
+                    {ESTADOS_OP.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+                </select>
+            </div>
+            <p className={p.hint}>{filtradas.length} OPs encontradas.</p>
+
+            {filtradas.length === 0 ? (
+                <div className={p.empty}>No hay OPs que coincidan con la búsqueda.</div>
+            ) : (
+                <ul className={p.list}>
+                    {filtradas.map((o) => {
+                        const eDef = ESTADOS_OP.find((e) => e.id === o.estado) || ESTADOS_OP[0];
+                        return (
+                            <li key={`${o.pacienteDni}-${o.id}`} className={p.draftItem}>
+                                <div className={p.draftInfo}>
+                                    <div className={p.draftTitle}>
+                                        OP {o.nroOP || "(Sin N°)"} · {o.pacienteNombre}
+                                        {o.oncoplan && <span style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px", background: "#e11d48", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN</span>}
+                                    </div>
+                                    <div className={p.draftMeta}>
+                                        DNI {o.pacienteDni} · <span style={{ color: eDef.color, fontWeight: "bold" }}>{eDef.label}</span> · {o.diagnostico}
+                                    </div>
+                                </div>
+                                <div className={p.draftActions}>
+                                    <button type="button" className={`${p.btn} ${p.btnSm}`} onClick={() => onAbrirPaciente(o.pacienteDni)}>Abrir ficha</button>
+                                    <select className={p.input} style={{ width: "auto", minHeight: 32, fontSize: ".76rem" }} value={o.estado} onChange={(e) => onCambiarEstado(o.pacienteDni, o.id, e.target.value)}>
+                                        {ESTADOS_OP.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+                                    </select>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </section>
+    );
+}
 
 export default function PamiDashboardPage() {
     const router = useRouter();
@@ -243,7 +301,6 @@ export default function PamiDashboardPage() {
         });
     };
 
-    // --- NUEVA FUNCIÓN PARA CARGAR EL N° DE OP ---
     const handleAsignarNroOP = async (dni, opId) => {
         const nro = prompt("Ingresá el N° de OP asignado por PAMI:");
         if (!nro || !nro.trim()) return;
@@ -255,10 +312,18 @@ export default function PamiDashboardPage() {
                 estado: "cargado",
                 updatedAt: Date.now()
             });
-            alert("Número de OP asignado con éxito. Ya podés generar la Internación o Cirugía.");
+            alert("Número de OP asignado con éxito.");
         } catch (e) {
             console.error(e);
             alert("Error al asignar el número de OP.");
+        }
+    };
+
+    const handleCambiarEstadoOP = async (dni, opId, nuevoEstado) => {
+        try {
+            await cambiarEstadoOP(dni, opId, nuevoEstado, { usuario: "sistema" });
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -306,8 +371,48 @@ export default function PamiDashboardPage() {
                     onEliminarPaciente={handleEliminarPaciente}
                     onAgregarOP={agregarOP}
                     onToggleOncoplan={handleToggleOncoplan}
-                    onAsignarNroOP={handleAsignarNroOP} // <--- PASAMOS LA FUNCIÓN
+                    onAsignarNroOP={handleAsignarNroOP}
                 />
+            )}
+
+            {solapa === "op" && (
+                <TabOPs ops={ops} onAbrirPaciente={abrirPaciente} onCambiarEstado={handleCambiarEstadoOP} />
+            )}
+
+            {solapa === "internaciones" && (
+                <section className={p.card}>
+                    <h3 className={p.cardTitle}>Internaciones</h3>
+                    <p className={p.hint}>{internaciones.length} internaciones registradas.</p>
+                    <ul className={p.list}>
+                        {internaciones.map(i => (
+                            <li key={i.id} className={p.row}>
+                                <div>
+                                    <div className={p.rowName}>{i.pacienteNombre} - {i.tipo}</div>
+                                    <div className={p.rowMeta}>{i.diagnostico} · Ingreso: {i.fechaIngreso}</div>
+                                </div>
+                                <button className={`${p.btn} ${p.btnSm}`} onClick={() => abrirPaciente(i.pacienteDni)}>Ver Ficha</button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {solapa === "cirugias" && (
+                <section className={p.card}>
+                    <h3 className={p.cardTitle}>Cirugías</h3>
+                    <p className={p.hint}>{cirugias.length} cirugías registradas.</p>
+                    <ul className={p.list}>
+                        {cirugias.map(c => (
+                            <li key={c.id} className={p.row}>
+                                <div>
+                                    <div className={p.rowName}>{c.pacienteNombre}</div>
+                                    <div className={p.rowMeta}>{c.diagnostico} · Fecha: {c.fechaCirugia}</div>
+                                </div>
+                                <button className={`${p.btn} ${p.btnSm}`} onClick={() => abrirPaciente(c.pacienteDni)}>Ver Ficha</button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
             )}
 
             {solapa === "borradores" && (

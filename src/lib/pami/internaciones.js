@@ -14,7 +14,6 @@ import {
 const INGRESOS_NODE = "ingresos-pacientes";
 const PAMI_PATH = "PAMI/pacientes";
 
-/** Construye el payload con el MISMO schema que usa /ingresos.jsx */
 function buildIngresoPayload(form, extra = {}) {
 	const habitacionCama = buildHabitacionCama(form);
 	const habitacionCamaTexto = buildHabitacionCamaTexto(form);
@@ -37,19 +36,19 @@ function buildIngresoPayload(form, extra = {}) {
 			anio,
 		},
 		trabajador: {
-			apellido: form.trabajadorApellido.trim().toUpperCase(),
-			nombre: form.trabajadorNombre.trim().toUpperCase(),
+			apellido: (form.trabajadorApellido || "").trim().toUpperCase(),
+			nombre: (form.trabajadorNombre || "").trim().toUpperCase(),
 			dni: formatIdField(form.trabajadorDni) || "",
 			nacimiento: form.trabajadorNacimiento || "",
 			lugarNacimiento: lugarNac,
 			edad: form.trabajadorEdad || "",
 			sexo: form.trabajadorSexo || "",
-			calle: form.trabajadorCalle.trim().toUpperCase() || "",
-			numero: form.trabajadorNumero.trim().toUpperCase() || "",
-			piso: form.trabajadorPiso.trim().toUpperCase() || "",
-			depto: form.trabajadorDepto.trim().toUpperCase() || "",
-			localidad: form.trabajadorLocalidad.trim().toUpperCase() || "",
-			provincia: form.trabajadorProvincia.trim().toUpperCase() || "",
+			calle: (form.trabajadorCalle || "").trim().toUpperCase(),
+			numero: (form.trabajadorNumero || "").trim().toUpperCase(),
+			piso: (form.trabajadorPiso || "").trim().toUpperCase(),
+			depto: (form.trabajadorDepto || "").trim().toUpperCase(),
+			localidad: (form.trabajadorLocalidad || "").trim().toUpperCase(),
+			provincia: (form.trabajadorProvincia || "").trim().toUpperCase(),
 			cp: onlyDigits(form.trabajadorCP) || "",
 			telefono: onlyDigits(form.trabajadorTelefono),
 		},
@@ -75,12 +74,6 @@ function buildIngresoPayload(form, extra = {}) {
 	};
 }
 
-/**
- * Guarda la internación en DOS nodos:
- *   - ingresos-pacientes/{id}                         → para imprimir desde /ingresos
- *   - PAMI/pacientes/{dni}/internaciones/{pamiId}    → para el timeline PAMI
- * Ambos quedan linkeados con pamiId ↔ ingresosId.
- */
 export async function guardarInternacionPami({
 	pacienteDni,
 	pacienteData,
@@ -88,7 +81,7 @@ export async function guardarInternacionPami({
 	opData,
 	grupoMedico = {},
 	medicoTratante = null,
-	form, // mismo shape que ingresos.jsx
+	form,
 	oncoplan = false,
 	usuario = "sistema",
 }) {
@@ -97,7 +90,6 @@ export async function guardarInternacionPami({
 
 	const now = Date.now();
 
-	// 1) Guardar en ingresos-pacientes (mismo schema que /ingresos)
 	const ingresoRef = push(ref(db, INGRESOS_NODE));
 	const ingresoPayload = {
 		...buildIngresoPayload(form, {
@@ -112,7 +104,6 @@ export async function guardarInternacionPami({
 	};
 	await set(ingresoRef, ingresoPayload);
 
-	// 2) Guardar link en PAMI/pacientes/{dni}/internaciones
 	const pamiRef = push(ref(db, `${PAMI_PATH}/${pacienteKey}/internaciones`));
 	const pamiPayload = {
 		ingresosId: ingresoRef.key,
@@ -148,13 +139,11 @@ export async function guardarInternacionPami({
 	};
 	await set(pamiRef, pamiPayload);
 
-	// 3) Back-reference: ingresos-pacientes → pamiInternacionId
 	await update(ref(db, `${INGRESOS_NODE}/${ingresoRef.key}`), {
 		pamiInternacionId: pamiRef.key,
 		updatedAt: now,
 	});
 
-	// 4) Si hay OP vinculada, marcarla como "pasado" y trackear el evento
 	if (opId) {
 		const opRef = ref(db, `${PAMI_PATH}/${pacienteKey}/ops/${opId}`);
 		const opSnap = await get(opRef);
@@ -187,7 +176,6 @@ export async function guardarInternacionPami({
 	};
 }
 
-/** Cierra la internación (marca fechaEgreso y estado). */
 export async function cerrarInternacionPami(
 	pacienteDni,
 	pamiId,

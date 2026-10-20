@@ -29,6 +29,7 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
     const [opsPaciente, setOpsPaciente] = useState([]);
     const [opVinculada, setOpVinculada] = useState(estado.opVinculada?.id || "");
     const [loadingOps, setLoadingOps] = useState(false);
+    const [manualOP, setManualOP] = useState(""); // <-- NUEVO ESTADO PARA CARGA MANUAL
 
     // Estados para Nueva OP
     const [formOP, setFormOP] = useState({ nroOP: "", diagnostico: "" });
@@ -46,11 +47,14 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
         setLoadingOps(true);
         listarOPsPaciente(paciente.dni)
             .then(ops => {
-                // Filtramos las OPs que ya tienen número
-                setOpsPaciente(ops.filter(o => o.estado === "cargado" || o.estado === "aceptado"));
+                setOpsPaciente(ops); // Cargamos TODAS las OPs, no solo las activas
+                if (estado.opVinculada?.id) {
+                    setOpVinculada(estado.opVinculada.id);
+                    actualizar({ op: estado.opVinculada });
+                }
             })
             .finally(() => setLoadingOps(false));
-    }, [paciente.dni, requiereOPExistente]);
+    }, [paciente.dni, requiereOPExistente, estado.opVinculada]);
 
     // Cargar Nomenclador si es OP nueva
     useEffect(() => {
@@ -76,9 +80,55 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
         setBusquedaCodigo("");
     };
 
+    const seleccionarOP = (e) => {
+        const id = e.target.value;
+        setOpVinculada(id);
+        const opObj = opsPaciente.find(o => o.id === id);
+        actualizar({ op: opObj });
+    };
+
+    // --- NUEVA FUNCIÓN PARA VINCULAR OP MANUAL ---
+    const vincularManual = async () => {
+        const nro = manualOP.trim();
+        if (!nro) return alert("Ingresá un número de OP.");
+
+        // 1. Buscar si existe en la lista del paciente
+        const opExistente = opsPaciente.find(o => o.nroOP === nro);
+        if (opExistente) {
+            setOpVinculada(opExistente.id);
+            actualizar({ op: opExistente });
+            alert("✅ OP encontrada y vinculada correctamente.");
+            setManualOP("");
+            return;
+        }
+
+        // 2. Si no existe, ofrecer crearla
+        if (!confirm(`La OP N° ${nro} no está en el sistema. ¿Deseás crearla y vincularla para continuar?`)) return;
+
+        setSaving(true);
+        try {
+            const nuevaOp = await crearOP(
+                paciente.dni,
+                { dni: paciente.dni, oncoplanPaciente: !!paciente.oncoplan },
+                { nroOP: nro, tipo: "internacion", diagnostico: "Diagnóstico a completar" },
+                { usuario: usuarioActual() }
+            );
+            setOpVinculada(nuevaOp.id);
+            actualizar({ op: nuevaOp });
+            alert("✅ OP creada y vinculada.");
+            setManualOP("");
+            // Recargar lista
+            listarOPsPaciente(paciente.dni).then(setOpsPaciente);
+        } catch (e) {
+            alert("Error al crear la OP: " + e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const guardarTodo = async () => {
         if (esNuevaOP && !formOP.diagnostico) return alert("Completá el diagnóstico de la OP.");
-        if (requiereOPExistente && !opVinculada) return alert("Vinculá una OP existente.");
+        if (requiereOPExistente && !opVinculada) return alert("Vinculá una OP existente para continuar.");
 
         setSaving(true);
         try {
@@ -143,23 +193,42 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
 
             {/* SI REQUIERE OP EXISTENTE */}
             {requiereOPExistente && (
-                <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
+                <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px", border: "1px solid var(--border)" }}>
                     <label className={styles.campo}>
-                        <span style={{ color: "var(--accent)" }}>Vincular Orden de Prestación (Obligatorio)</span>
-                        <select className={styles.input} value={opVinculada} onChange={e => setOpVinculada(e.target.value)}>
-                            <option value="">— Elegí una OP autorizada —</option>
+                        <span style={{ color: "var(--accent)", fontWeight: "bold" }}>Vincular Orden de Prestación</span>
+                        <select className={styles.input} value={opVinculada} onChange={seleccionarOP}>
+                            <option value="">— Elegí una OP de la lista —</option>
                             {opsPaciente.map((o) => (
                                 <option key={o.id} value={o.id}>
-                                    OP {o.nroOP} · {o.diagnostico} · {ESTADOS_OP.find(e => e.id === o.estado)?.label}
+                                    OP {o.nroOP || "(Sin N°)"} · {o.diagnostico} · {ESTADOS_OP.find(e => e.id === o.estado)?.label}
                                 </option>
                             ))}
                         </select>
                     </label>
-                    {opsPaciente.length === 0 && !loadingOps && (
-                        <p className={styles.hint} style={{ color: "var(--danger)" }}>
-                            ⚠️ No hay OPs activas. Primero generá una "Solicitud de OP".
-                        </p>
-                    )}
+
+                    {/* NUEVO: OPCIÓN MANUAL */}
+                    <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px dashed var(--border)" }}>
+                        <label className={styles.campo}>
+                            <span>¿Ya tenés una OP de este paciente? Ingresala:</span>
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                                <input
+                                    className={styles.input}
+                                    value={manualOP}
+                                    onChange={e => setManualOP(e.target.value)}
+                                    placeholder="Ej: 12345678"
+                                />
+                                <button
+                                    type="button"
+                                    className={`${styles.btnPrimary}`}
+                                    onClick={vincularManual}
+                                    disabled={saving || !manualOP.trim()}
+                                    style={{ whiteSpace: "nowrap" }}
+                                >
+                                    Vincular
+                                </button>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             )}
 
@@ -209,7 +278,7 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
 
             <div className={styles.navBar} style={{ marginTop: "2rem" }}>
                 <button type="button" className={styles.btnSecundario} onClick={volver}>← Atrás</button>
-                <button type="button" className={styles.btnPrimario} onClick={guardarTodo} disabled={saving || !tipo}>
+                <button type="button" className={styles.btnPrimario} onClick={guardarTodo} disabled={saving || (requiereOPExistente && !opVinculada)}>
                     {saving ? "Guardando…" : "Guardar y Continuar →"}
                 </button>
             </div>

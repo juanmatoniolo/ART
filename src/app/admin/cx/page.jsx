@@ -1241,25 +1241,22 @@ export default function Page() {
 
           <div className={styles.tabsContainer}>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "form" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "form" ? styles.activeTab : ""
+                }`}
               onClick={() => setActiveTab("form")}
             >
               📋 Formulario
             </button>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "solicitudes" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "solicitudes" ? styles.activeTab : ""
+                }`}
               onClick={() => setActiveTab("solicitudes")}
             >
               📝 Solicitudes
             </button>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "programadas" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "programadas" ? styles.activeTab : ""
+                }`}
               onClick={() => setActiveTab("programadas")}
             >
               📅 Programadas
@@ -1364,10 +1361,10 @@ export default function Page() {
                     ]
                       .filter(Boolean)
                       .join(" ") || (
-                      <span className={styles.patientNameEmpty}>
-                        Sin nombre
-                      </span>
-                    )}
+                        <span className={styles.patientNameEmpty}>
+                          Sin nombre
+                        </span>
+                      )}
                   </div>
                   {edadCalculada && (
                     <div className={styles.patientAge}>
@@ -1376,13 +1373,13 @@ export default function Page() {
                   )}
                   {(form.__hcExtra ||
                     (canonHCPaciente && form?.[canonHCPaciente])) && (
-                    <div className={styles.patientHC}>
-                      HC{" "}
-                      {formatNumberWithThousands(
-                        form.__hcExtra || form[canonHCPaciente],
-                      )}
-                    </div>
-                  )}
+                      <div className={styles.patientHC}>
+                        HC{" "}
+                        {formatNumberWithThousands(
+                          form.__hcExtra || form[canonHCPaciente],
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
               {canonCX && form?.[canonCX] && (

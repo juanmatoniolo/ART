@@ -1,7 +1,6 @@
 // lib/pami/cirugias.js
 import { db } from "@/lib/firebase";
 import { ref, push, set, update, get, remove } from "firebase/database";
-import { guardarInternacionPami } from "./internaciones"; // reutiliza el payload builder
 import {
 	PRESTADOR_CONST,
 	onlyDigits,
@@ -14,19 +13,12 @@ import {
 const INGRESOS_NODE = "ingresos-pacientes";
 const PAMI_PATH = "PAMI/pacientes";
 
-// Reutilizamos la misma construcción que internación (mismo schema)
-import { guardarInternacionPami as _internacion } from "./internaciones";
-
-/**
- * Cirugía: mismo flujo que internación pero con fechaCirugia,
- * internacionId opcional y documento distinto.
- */
 export async function guardarCirugiaPami({
 	pacienteDni,
 	pacienteData,
 	opId,
 	grupoMedico = {},
-	internacionId = null, // si la cirugía es durante una internación
+	internacionId = null,
 	form,
 	oncoplan = false,
 	usuario = "sistema",
@@ -36,7 +28,6 @@ export async function guardarCirugiaPami({
 
 	const now = Date.now();
 
-	// 1) Guardar en ingresos-pacientes
 	const ingresoRef = push(ref(db, INGRESOS_NODE));
 	const ingresoPayload = {
 		OS: (form.OS || "").trim().toUpperCase(),
@@ -49,18 +40,18 @@ export async function guardarCirugiaPami({
 			anio: normalizeYear2(form.anioCirugia || ""),
 		},
 		trabajador: {
-			apellido: form.trabajadorApellido.trim().toUpperCase(),
-			nombre: form.trabajadorNombre.trim().toUpperCase(),
+			apellido: (form.trabajadorApellido || "").trim().toUpperCase(),
+			nombre: (form.trabajadorNombre || "").trim().toUpperCase(),
 			dni: formatIdField(form.trabajadorDni) || "",
 			nacimiento: form.trabajadorNacimiento || "",
 			edad: form.trabajadorEdad || "",
 			sexo: form.trabajadorSexo || "",
-			calle: form.trabajadorCalle?.trim().toUpperCase() || "",
-			numero: form.trabajadorNumero?.trim().toUpperCase() || "",
-			piso: form.trabajadorPiso?.trim().toUpperCase() || "",
-			depto: form.trabajadorDepto?.trim().toUpperCase() || "",
-			localidad: form.trabajadorLocalidad?.trim().toUpperCase() || "",
-			provincia: form.trabajadorProvincia?.trim().toUpperCase() || "",
+			calle: (form.trabajadorCalle || "").trim().toUpperCase(),
+			numero: (form.trabajadorNumero || "").trim().toUpperCase(),
+			piso: (form.trabajadorPiso || "").trim().toUpperCase(),
+			depto: (form.trabajadorDepto || "").trim().toUpperCase(),
+			localidad: (form.trabajadorLocalidad || "").trim().toUpperCase(),
+			provincia: (form.trabajadorProvincia || "").trim().toUpperCase(),
 			cp: onlyDigits(form.trabajadorCP) || "",
 			telefono: onlyDigits(form.trabajadorTelefono || ""),
 		},
@@ -80,7 +71,7 @@ export async function guardarCirugiaPami({
 		documentacion: [],
 		prestador: PRESTADOR_CONST,
 		pamiPacienteKey: pacienteKey,
-		pamiCirugiaId: null, // se setea abajo
+		pamiCirugiaId: null,
 		opId: opId || null,
 		internacionId: internacionId || null,
 		oncoplan,
@@ -91,7 +82,6 @@ export async function guardarCirugiaPami({
 	};
 	await set(ingresoRef, ingresoPayload);
 
-	// 2) Guardar link en PAMI/pacientes/{dni}/cirugias
 	const pamiRef = push(ref(db, `${PAMI_PATH}/${pacienteKey}/cirugias`));
 	const fechaISO = `${form.anioCirugia?.length === 4 ? form.anioCirugia : `20${form.anioCirugia}`}-${form.mesCirugia}-${form.diaCirugia}`;
 	const pamiPayload = {
@@ -123,13 +113,11 @@ export async function guardarCirugiaPami({
 	};
 	await set(pamiRef, pamiPayload);
 
-	// 3) Back-reference
 	await update(ref(db, `${INGRESOS_NODE}/${ingresoRef.key}`), {
 		pamiCirugiaId: pamiRef.key,
 		updatedAt: now,
 	});
 
-	// 4) Si hay OP, marcarla como "pasado"
 	if (opId) {
 		const opRef = ref(db, `${PAMI_PATH}/${pacienteKey}/ops/${opId}`);
 		const opSnap = await get(opRef);
