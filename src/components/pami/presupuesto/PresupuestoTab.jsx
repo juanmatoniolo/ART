@@ -34,9 +34,6 @@ const usuarioActual = () => {
     return s.user || s.usuario || s.nombre || "sistema";
 };
 
-// Helper para normalizar textos (quitar tildes y pasar a minúsculas)
-const norm = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
 export default function PresupuestoTab({ items, pacientesDb = [], initialPaciente = null, initialDraft = null, onInitialLoaded }) {
     const [paso, setPaso] = useState(1);
     const [paciente, setPaciente] = useState(PACIENTE_VACIO);
@@ -58,35 +55,36 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const imprimir = useReactToPrint({
         contentRef: printRef,
         documentTitle: `Presupuesto-${paciente.nombreCompleto || "PAMI"}`,
-        pageStyle: "@page { size: A4; margin: 14mm; }",
+        pageStyle: `@page { size: A4 portrait; margin: 10mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`,
     });
 
     const mostrarFlash = (m, ms = 3500) => { setFlash(m); setTimeout(() => setFlash(""), ms); };
 
-    // --- 1. CARGA DEL NOMENCLADOR (Usando el JSON local) ---
+    // Carga de Nomencladores
     useEffect(() => {
-        fetch('/archivos/pami-nomenclador.json')
-            .then((r) => r.json())
-            .then((j) => {
-                if (j && j.items) setNomenclador(j.items);
-            })
-            .catch((err) => console.warn('No se pudo cargar pami-nomenclador.json', err));
+        const URL_NACIONAL = '/archivos/nacional-nomenclador.json';
+        const URL_PAMI = '/archivos/pami-nomenclador.json';
+
+        Promise.all([
+            fetch(URL_PAMI).then(r => r.json()).catch(() => ({ items: [] })),
+            fetch(URL_NACIONAL).then(r => r.json()).catch(() => ([]))
+        ]).then(([dataPami, dataNacional]) => {
+            const itemsPami = (dataPami.items || []).map(i => ({ ...i, origen: 'PAMI' }));
+            const arrayNacional = Array.isArray(dataNacional) ? dataNacional : (dataNacional.items || []);
+            const itemsNacional = arrayNacional.map(i => ({ ...i, origen: 'NACIONAL', monto: null }));
+            setNomenclador([...itemsPami, ...itemsNacional]);
+        });
     }, []);
 
-    // --- 2. CONFIGURACIÓN DE FUSE.JS (Búsqueda difusa) ---
     const fuse = useMemo(() => {
         if (!nomenclador.length) return null;
         return new Fuse(nomenclador, {
-            keys: [
-                { name: 'codigo', weight: 3 },
-                { name: 'descripcion', weight: 1 },
-                { name: 'seccion', weight: 0.4 },
-            ],
-            threshold: 0.3,
-            ignoreLocation: true,
+            keys: [{ name: 'codigo', weight: 3 }, { name: 'descripcion', weight: 1 }, { name: 'origen', weight: 0.5 }],
+            threshold: 0.3, ignoreLocation: true,
         });
     }, [nomenclador]);
 
+    // FIX: Asegurar que el borrador cargado guarde su ID correctamente
     useEffect(() => {
         if (!initialPaciente) return;
         const { medicamentos = {}, ...datos } = initialPaciente;
@@ -94,7 +92,10 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         setOncoplan(!!initialPaciente.oncoplan);
         setBorradores(Object.entries(medicamentos).map(([id, v]) => ({ id, ...v })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
         setEstado("existente");
-        if (initialDraft) cargarBorrador(initialDraft);
+
+        if (initialDraft) {
+            cargarBorrador(initialDraft);
+        }
         onInitialLoaded?.();
     }, [initialPaciente, initialDraft]);
 
@@ -116,13 +117,23 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const cargarBorrador = (b) => {
         setCarrito(itemsDe(b).map((i) => ({ ...i, id: i.id || `${i.categoria}:${i.key}` })));
         setCodigos(codigosDe(b).map((c) => ({ ...c })));
-        setDraftActivo(b);
-        mostrarFlash("Borrador cargado.");
+        setDraftActivo(b); // Guardamos el borrador activo con su ID
+        mostrarFlash(b.id ? "Borrador cargado. Podés editarlo." : "Borrador cargado.");
     };
 
     const iniciarNuevoBorrador = () => {
         setCarrito([]); setCodigos([]); setDraftActivo(null);
-        mostrarFlash("Presupuesto limpio.");
+        mostrarFlash("Presupuesto limpio. Podés empezar de cero.");
+    };
+
+    const limpiarCarrito = () => {
+        if (!confirm("¿Estás seguro de que querés vaciar todo el presupuesto actual?")) return;
+        setCarrito([]);
+        setCodigos([]);
+        setDraftActivo(null);
+        setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1" });
+        setBusquedaCodigo("");
+        mostrarFlash("Carrito vaciado con éxito.");
     };
 
     const guardarPaciente = async () => {
@@ -134,15 +145,19 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         return key;
     };
 
-    const guardarTodo = async () => {
+    const guardarTodo = async (forceNew = false) => {
         try {
             setSaving(true);
             const key = await guardarPaciente();
             const total = carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0) + codigos.reduce((s, c) => s + ((Number(c.monto) || 0) * (Number(c.cantidad) || 1)), 0);
 
-            const res = await guardarPresupuestoPami(key, { items: carrito, codigos, total, oncoplan, opId: draftActivo?.opId || null }, { usuario: usuarioActual(), id: draftActivo?.id });
+            const idAGuardar = forceNew ? null : draftActivo?.id;
+
+            const res = await guardarPresupuestoPami(key, { items: carrito, codigos, total, oncoplan, opId: draftActivo?.opId || null }, { usuario: usuarioActual(), id: idAGuardar });
+
             setDraftActivo({ ...draftActivo, id: res.id, items: carrito, codigos, total, oncoplan });
-            mostrarFlash("¡Presupuesto guardado con éxito!");
+            mostrarFlash(forceNew ? "¡Nuevo presupuesto guardado!" : (idAGuardar ? "¡Borrador actualizado!" : "¡Presupuesto guardado!"));
+
             setPaso(1);
         } catch (e) { alert(e.message); } finally { setSaving(false); }
     };
@@ -154,31 +169,19 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         setBusquedaCodigo("");
     };
 
-    // --- 3. FILTRO DEL NOMENCLADOR (Copia adaptada de tu otro componente) ---
     const sugerenciasCodigos = useMemo(() => {
         const q = busquedaCodigo.trim();
         if (q.length < 2 || !fuse) return [];
-
-        // Si empieza con números, buscamos por código exacto o aproximado
         if (/^[\d.\s]+$/.test(q)) {
             const digits = q.replace(/\D/g, '');
-            return nomenclador.filter(n => n.codigo.replace(/\D/g, '').includes(digits)).slice(0, 10);
+            return nomenclador.filter(n => n.codigo && n.codigo.replace(/\D/g, '').includes(digits)).slice(0, 15);
         }
-
-        // Si es texto, usamos Fuse
         return fuse.search(q, { limit: 15 }).map(r => r.item);
     }, [busquedaCodigo, nomenclador, fuse]);
 
     const seleccionarCodigoNomenclador = (c) => {
-        // Cortamos la descripción a 30 caracteres
-        const descCorta = c.descripcion.length > 30 ? c.descripcion.substring(0, 30) + "..." : c.descripcion;
-
-        setFormCodigo({
-            ...formCodigo,
-            codigo: c.codigo,
-            descripcion: descCorta,
-            monto: c.monto || "" // Si el JSON tiene monto, lo carga, sino queda vacío
-        });
+        const descCorta = c.descripcion && c.descripcion.length > 30 ? c.descripcion.substring(0, 30) + "..." : c.descripcion;
+        setFormCodigo({ ...formCodigo, codigo: c.codigo, descripcion: descCorta, monto: c.origen === 'PAMI' ? (c.monto || "") : "" });
         setBusquedaCodigo("");
     };
 
@@ -203,39 +206,36 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
 
     const renderPaso2 = () => (
         <div className={styles.card}>
-            <h3 className={styles.cardTitle}>Paso 2: Prestaciones (Códigos PAMI)</h3>
-
+            <h3 className={styles.cardTitle}>Paso 2: Prestaciones (Códigos)</h3>
             <div className={styles.codigoForm}>
                 <label className={styles.field} style={{ position: "relative" }}>
-                    <span>Buscar en Nomenclador (Código o Palabra)</span>
-                    <input className={styles.input} value={busquedaCodigo} onChange={e => setBusquedaCodigo(e.target.value)} placeholder="Ej: 65.00.01 o 'Consulta'..." />
-
+                    <span>Buscar en Nomencladores (Código o Palabra)</span>
+                    <input className={styles.input} value={busquedaCodigo} onChange={e => setBusquedaCodigo(e.target.value)} placeholder="Ej: 65.00.01, 'Consulta'..." />
                     {busquedaCodigo.trim().length >= 2 && (
                         <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", listStyle: "none", padding: ".4rem", margin: ".2rem 0 0 0", boxShadow: "var(--shadow)", maxHeight: "250px", overflowY: "auto" }}>
                             {sugerenciasCodigos.length > 0 ? (
-                                sugerenciasCodigos.map((c) => (
-                                    <li key={c.codigo}>
-                                        <div onMouseDown={(e) => { e.preventDefault(); seleccionarCodigoNomenclador(c); }} style={{ padding: ".5rem", cursor: "pointer", borderBottom: "1px solid var(--border)" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                                            <div style={{ fontWeight: 800 }}>{c.codigo} - {c.descripcion}</div>
+                                sugerenciasCodigos.map((c, idx) => (
+                                    <li key={`${c.origen}-${c.codigo}-${idx}`}>
+                                        <div onMouseDown={(e) => { e.preventDefault(); seleccionarCodigoNomenclador(c); }} style={{ padding: ".5rem", cursor: "pointer", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                                            <div>
+                                                <span style={{ fontSize: "0.65rem", padding: "2px 4px", borderRadius: "4px", background: c.origen === "PAMI" ? "#e11d48" : "#2563eb", color: "#fff", marginRight: "8px", fontWeight: "bold" }}>{c.origen}</span>
+                                                <strong>{c.codigo}</strong> - {c.descripcion}
+                                            </div>
                                         </div>
                                     </li>
                                 ))
-                            ) : (
-                                <li style={{ padding: ".5rem", fontSize: ".85rem", color: "var(--muted)" }}>No se encontraron resultados.</li>
-                            )}
+                            ) : (<li style={{ padding: ".5rem", fontSize: ".85rem", color: "var(--muted)" }}>No se encontraron resultados.</li>)}
                         </ul>
                     )}
                 </label>
-
                 <div className={styles.codigoRow}>
                     <label className={styles.field}><span>Código</span><input className={styles.input} value={formCodigo.codigo} onChange={e => setFormCodigo({ ...formCodigo, codigo: e.target.value })} /></label>
                     <label className={styles.field}><span>Cant.</span><input className={styles.input} type="number" value={formCodigo.cantidad} onChange={e => setFormCodigo({ ...formCodigo, cantidad: e.target.value })} /></label>
                 </div>
                 <label className={styles.field}><span>Descripción (Max 30 carac.)</span><input className={styles.input} value={formCodigo.descripcion} onChange={e => setFormCodigo({ ...formCodigo, descripcion: e.target.value })} maxLength={30} /></label>
-                <label className={styles.field}><span>Monto</span><input className={styles.input} value={formCodigo.monto} onChange={e => setFormCodigo({ ...formCodigo, monto: e.target.value })} /></label>
+                <label className={styles.field}><span>Monto (Opcional)</span><input className={styles.input} value={formCodigo.monto} onChange={e => setFormCodigo({ ...formCodigo, monto: e.target.value })} placeholder="0,00" /></label>
                 <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={agregarCodigo}>+ Agregar Código</button>
             </div>
-
             {codigos.map((c, i) => (
                 <div key={i} className={styles.codigoItem}>
                     <div><strong>{c.codigo || "Práctica"}</strong> - {c.descripcion} (x{c.cantidad})</div>
@@ -271,22 +271,58 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             <h3 className={styles.cardTitle}>Paso 4: Total y Resumen</h3>
 
             <div className={styles.cartList}>
+                {/* LISTA DE MEDICAMENTOS */}
                 {carrito.map(c => (
                     <div key={c.id} className={styles.cartItem}>
                         <div><div className={styles.cartItemName}>{c.nombre}</div><div className={styles.cartItemPrice}>{formatCurrency(c.precio)} c/u</div></div>
-                        <div className={styles.cartItemQty}><input className={styles.input} style={{ width: 60, padding: 4, textAlign: "center" }} type="number" value={c.cantidad} onChange={e => setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: Number(e.target.value) } : x))} /></div>
+                        <div className={styles.cartItemQty}>
+                            <input className={styles.input} style={{ width: 60, padding: 4, textAlign: "center" }} type="number" value={c.cantidad} onChange={e => setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: Number(e.target.value) } : x))} />
+                        </div>
                         <div className={styles.cartItemSubtotal}>{formatCurrency(c.precio * c.cantidad)}</div>
                         <button className={styles.btn} style={{ color: "red", borderColor: "transparent" }} onClick={() => setCarrito(carrito.filter(x => x.id !== c.id))}>Eliminar</button>
                     </div>
                 ))}
+
+                {/* LISTA DE CÓDIGOS PAMI CON EDICIÓN DE CANT Y MONTO */}
                 {codigos.map(c => (
-                    <div key={c.id} className={styles.cartItem} style={{ background: "rgba(255,255,255,0.02)" }}>
-                        <div><div className={styles.cartItemName}>Código: {c.codigo}</div><div className={styles.cartItemPrice}>{c.descripcion}</div></div>
-                        <div className={styles.cartItemQty}>x{c.cantidad}</div>
-                        <div className={styles.cartItemSubtotal}>{formatCurrency(c.monto * c.cantidad)}</div>
+                    <div key={c.id} className={styles.cartItem} style={{ background: "rgba(255,255,255,0.02)", flexWrap: "wrap" }}>
+                        <div style={{ flex: "1 1 200px" }}>
+                            <div className={styles.cartItemName}>Código: {c.codigo}</div>
+                            <div className={styles.cartItemPrice}>{c.descripcion}</div>
+                        </div>
+                        <div className={styles.cartItemQty} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <label style={{ fontSize: "0.75rem", color: "var(--muted)" }}>Cant:</label>
+                            <input
+                                className={styles.input}
+                                style={{ width: 60, padding: 4, textAlign: "center", minHeight: "30px" }}
+                                type="number"
+                                value={c.cantidad}
+                                onChange={(e) => {
+                                    const newCant = Number(e.target.value) || 0;
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: newCant } : x));
+                                }}
+                            />
+                            <label style={{ fontSize: "0.75rem", color: "var(--muted)", marginLeft: "8px" }}>Monto:</label>
+                            <input
+                                className={styles.input}
+                                style={{ width: 80, padding: 4, textAlign: "center", minHeight: "30px" }}
+                                type="number"
+                                value={c.monto || ""}
+                                onChange={(e) => {
+                                    const newMonto = Number(e.target.value) || 0;
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, monto: newMonto } : x));
+                                }}
+                                placeholder="$ 0"
+                            />
+                        </div>
+                        <div className={styles.cartItemSubtotal} style={{ minWidth: "80px", textAlign: "right" }}>
+                            {formatCurrency((Number(c.monto) || 0) * (Number(c.cantidad) || 1))}
+                        </div>
                         <button className={styles.btn} style={{ color: "red", borderColor: "transparent" }} onClick={() => setCodigos(codigos.filter(x => x.id !== c.id))}>Eliminar</button>
                     </div>
                 ))}
+
+                {carrito.length === 0 && codigos.length === 0 && <div className={styles.empty}>No hay ítems cargados.</div>}
             </div>
 
             <div className={styles.cartTotalBox}>
@@ -295,12 +331,30 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             </div>
 
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", justifyContent: "space-between", flexWrap: "wrap" }}>
-                <button type="button" className={styles.btn} onClick={() => setPaso(3)}>← Volver a Medicamentos</button>
                 <div style={{ display: "flex", gap: "1rem" }}>
-                    <button type="button" className={styles.btn} onClick={imprimir} disabled={total === 0}>🖨️ Imprimir</button>
-                    <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={guardarTodo} disabled={saving || total === 0}>
-                        {saving ? "Guardando..." : draftActivo?.id ? "Actualizar Borrador" : "Guardar Nuevo Borrador"}
+                    <button type="button" className={styles.btn} onClick={() => setPaso(3)}>← Volver</button>
+                    <button type="button" className={styles.btn} style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={limpiarCarrito} disabled={total === 0}>
+                        🗑️ Limpiar Carrito
                     </button>
+                </div>
+
+                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                    <button type="button" className={styles.btn} onClick={imprimir} disabled={total === 0}>🖨️ Imprimir</button>
+
+                    {draftActivo?.id ? (
+                        <>
+                            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>
+                                {saving ? "Guardando..." : "Actualizar Borrador"}
+                            </button>
+                            <button type="button" className={styles.btn} onClick={() => guardarTodo(true)} disabled={saving || total === 0}>
+                                {saving ? "Guardando..." : "Guardar como Nuevo"}
+                            </button>
+                        </>
+                    ) : (
+                        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>
+                            {saving ? "Guardando..." : "Guardar Nuevo Borrador"}
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
 import { matchesAllTerms } from "@/app/farmacia/utils/farmacia";
-import { obtenerPacientePami, eliminarPacientePami } from "@/lib/pami";
+import { obtenerPacientePami } from "@/lib/pami";
 import { listarBorradoresGlobales, eliminarPresupuestoPami } from "@/lib/pami/presupuestos";
 import PresupuestoTab from "@/components/pami/presupuesto/PresupuestoTab";
 import BorradoresList from "@/components/pami/presupuesto/BorradoresList";
@@ -16,7 +16,7 @@ const p = styles;
 export default function PresupuestoPamiPage() {
     const [solapa, setSolapa] = useState("presupuesto");
     const [items, setItems] = useState([]);
-    const [pacientesDb, setPacientesDb] = useState([]); // <--- LISTA DE PACIENTES
+    const [pacientesDb, setPacientesDb] = useState([]);
     const [busquedaBorrador, setBusquedaBorrador] = useState("");
     const [filtroVinculo, setFiltroVinculo] = useState("todos");
     const [pendingOpen, setPendingOpen] = useState(null);
@@ -26,7 +26,6 @@ export default function PresupuestoPamiPage() {
     const mostrarFlash = (m, ms = 3200) => { setFlash(m); setTimeout(() => setFlash(""), ms); };
 
     useEffect(() => {
-        // Catálogo de medicamentos
         const unsubMed = onValue(ref(db, "medydescartables"), (snap) => {
             if (!snap.exists()) return setItems([]);
             const data = snap.val();
@@ -39,12 +38,9 @@ export default function PresupuestoPamiPage() {
             setItems(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
         });
 
-        // Pacientes PAMI (AQUÍ SE ARREGLA EL PROBLEMA 1)
         const unsubPac = onValue(ref(db, "PAMI/pacientes"), (snap) => {
             const data = snap.val() || {};
-            setPacientesDb(
-                Object.entries(data).map(([dni, paciente]) => ({ dni, ...paciente }))
-            );
+            setPacientesDb(Object.entries(data).map(([dni, paciente]) => ({ dni, ...paciente })));
         });
 
         return () => { unsubMed(); unsubPac(); };
@@ -64,7 +60,14 @@ export default function PresupuestoPamiPage() {
             const data = await obtenerPacientePami(b.pacienteDni);
             if (!data) return mostrarFlash("No se encontró el paciente.");
             const { medicamentos = {}, ...datos } = data;
-            setPendingOpen({ paciente: { dni: b.pacienteDni, ...datos }, borrador: b.raw });
+
+            // FIX CRÍTICO: Le inyectamos el ID de la base de datos al borrador
+            const borradorConId = { ...b.raw, id: b.id };
+
+            setPendingOpen({
+                paciente: { dni: b.pacienteDni, ...datos },
+                borrador: borradorConId
+            });
             setSolapa("presupuesto");
         } catch (e) { mostrarFlash("Error al abrir borrador."); }
     };
@@ -105,7 +108,7 @@ export default function PresupuestoPamiPage() {
                 <PresupuestoTab
                     key={resetKey}
                     items={items}
-                    pacientesDb={pacientesDb} // <--- LE PASAMOS LOS PACIENTES ACÁ
+                    pacientesDb={pacientesDb}
                     initialPaciente={pendingOpen?.paciente}
                     initialDraft={pendingOpen?.borrador}
                     onInitialLoaded={() => setPendingOpen(null)}
