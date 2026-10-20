@@ -1,8 +1,6 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { getSession } from "@/utils/session";
-import { db } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
 import Fuse from "fuse.js";
 import { crearOP } from "@/lib/pami/op";
 import { guardarPresupuestoPami } from "@/lib/pami/presupuestos";
@@ -14,51 +12,24 @@ const usuarioActual = () => {
     return s.user || s.usuario || s.nombre || "sistema";
 };
 
-export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
+export default function PasoDetalle({ estado, actualizar, avanzar, volver, items }) {
     const paciente = estado.paciente || {};
     const tipo = estado.tipoEvento;
     const esNuevaOP = tipo === "op" || tipo === "material";
 
-    // Estados para generar OP nueva (si corresponde)
     const [formOP, setFormOP] = useState({
         nroOP: "", diagnostico: "", fechaSolicitud: new Date().toISOString().slice(0, 10),
     });
     const [nomenclador, setNomenclador] = useState([]);
     const [busquedaCodigo, setBusquedaCodigo] = useState("");
     const [codigosAgregados, setCodigosAgregados] = useState([]);
-
-    // Estados para el borrador de medicamentos
-    const [itemsCatalogo, setItemsCatalogo] = useState([]); // Catálogo de Firebase
     const [carrito, setCarrito] = useState([]);
-
     const [saving, setSaving] = useState(false);
 
-    // Cargar catálogo de medicamentos desde Firebase
-    useEffect(() => {
-        const unsub = onValue(ref(db, "medydescartables"), (snap) => {
-            if (!snap.exists()) return setItemsCatalogo([]);
-            const data = snap.val();
-            const lista = [];
-            for (const categoria of ["medicamentos", "descartables"]) {
-                Object.entries(data[categoria] || {}).forEach(([key, d]) => {
-                    lista.push({
-                        key, categoria, nombre: d.nombre || key.replace(/_/g, " "),
-                        precioFacturacion: d.precioFacturacion ?? 0, presentacion: d.presentacion || "unidad",
-                        tipo: categoria === "medicamentos" ? "medicamento" : "descartable", activo: d.activo !== false,
-                    });
-                });
-            }
-            setItemsCatalogo(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        });
-        return () => unsub();
-    }, []);
-
-    // Cargar nomenclador PAMI
-    useEffect(() => {
+    useMemo(() => {
         fetch('/archivos/pami-nomenclador.json')
             .then(r => r.json())
-            .then(j => { if (j && j.items) setNomenclador(j.items); })
-            .catch(console.warn);
+            .then(j => { if (j && j.items) setNomenclador(j.items); });
     }, []);
 
     const fuse = useMemo(() => {
@@ -83,15 +54,15 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
 
         try {
             const usuario = usuarioActual();
-            let opData = estado.opVinculada; // Si ya venía vinculada (internación/cirugía)
+            let opData = estado.opVinculada;
 
-            // 1. Si es OP nueva, la creamos
             if (esNuevaOP) {
+                // Al no tener número obligatorio, se guarda como "pendiente"
                 opData = await crearOP(
                     paciente.dni,
                     { dni: paciente.dni, oncoplanPaciente: !!paciente.oncoplan },
                     {
-                        nroOP: formOP.nroOP,
+                        nroOP: formOP.nroOP, // Puede ir vacío
                         tipo: tipo,
                         diagnostico: formOP.diagnostico,
                         fechaSolicitud: formOP.fechaSolicitud,
@@ -101,7 +72,6 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
                 );
             }
 
-            // 2. Guardar el borrador de presupuesto vinculado al evento
             if (carrito.length > 0) {
                 const total = carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0);
                 await guardarPresupuestoPami(
@@ -125,17 +95,16 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
         <div>
             <h2 className={styles.titulo}>Paso 3 · Detalle y Medicación</h2>
             <p className={styles.hint}>
-                {esNuevaOP ? "Completá los datos del pedido y los códigos solicitados." : "Cargá la medicación utilizada para esta práctica."}
+                {esNuevaOP ? "Completá los datos del pedido y los códigos solicitados. Podés dejar el N° de OP en blanco." : "Cargá la medicación utilizada."}
             </p>
 
-            {/* SI ES OP NUEVA, PEDIMOS LOS DATOS DE LA OP */}
             {esNuevaOP && (
                 <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
                     <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--accent)" }}>Datos del Pedido (OP)</h3>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                         <label className={styles.campo}>
                             <span>N° de OP (Opcional)</span>
-                            <input className={styles.input} value={formOP.nroOP} onChange={e => setFormOP({ ...formOP, nroOP: e.target.value })} placeholder="Ej: 123456" />
+                            <input className={styles.input} value={formOP.nroOP} onChange={e => setFormOP({ ...formOP, nroOP: e.target.value })} placeholder="Dejar vacío si no lo tenés" />
                         </label>
                         <label className={styles.campo}>
                             <span>Diagnóstico *</span>
@@ -147,10 +116,10 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
                         <span>Buscar código en Nomenclador</span>
                         <input className={styles.input} value={busquedaCodigo} onChange={e => setBusquedaCodigo(e.target.value)} placeholder="Ej: 65.00.01..." />
                         {busquedaCodigo.trim().length >= 2 && sugerenciasCodigos.length > 0 && (
-                            <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", listStyle: "none", padding: ".4rem", margin: ".2rem 0 0 0", boxShadow: "var(--shadow)", maxHeight: "200px", overflowY: "auto" }}>
+                            <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", listStyle: "none", padding: ".4rem", margin: ".2rem 0 0 0", boxShadow: "var(--shadow)" }}>
                                 {sugerenciasCodigos.map((c, i) => (
                                     <li key={i}>
-                                        <div onMouseDown={(e) => { e.preventDefault(); seleccionarCodigo(c); }} style={{ padding: ".5rem", cursor: "pointer", borderBottom: "1px solid var(--border)" }}>
+                                        <div onMouseDown={(e) => { e.preventDefault(); seleccionarCodigo(c); }} style={{ padding: ".5rem", cursor: "pointer" }}>
                                             <strong>{c.codigo}</strong> - {c.descripcion}
                                         </div>
                                     </li>
@@ -172,10 +141,9 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
                 </div>
             )}
 
-            {/* BORRADOR DE MEDICACIÓN */}
             <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--accent)" }}>Borrador de Medicación (Opcional)</h3>
-                <CatalogoProductos items={itemsCatalogo} onAgregar={(item, qty) => {
+                <CatalogoProductos items={items} onAgregar={(item, qty) => {
                     setCarrito(prev => {
                         const existing = prev.find(x => x.id === `${item.categoria}:${item.key}`);
                         if (existing) return prev.map(x => x.id === existing.id ? { ...x, cantidad: x.cantidad + qty } : x);

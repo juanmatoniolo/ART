@@ -17,7 +17,7 @@ import styles from "@/components/pami/presupuesto/presupuesto.module.css";
 
 const p = styles;
 
-function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, onAgregarOP, onToggleOncoplan }) {
+function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, onAgregarOP, onToggleOncoplan, onAsignarNroOP }) {
     const [q, setQ] = useState("");
     const [filtroPendientes, setFiltroPendientes] = useState("todos");
     const [expandidoDni, setExpandidoDni] = useState(null);
@@ -43,7 +43,7 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
         if (filtroPendientes === "op_pendiente") {
             lista = lista.filter((pac) => {
                 const opsPac = ops.filter(o => o.pacienteDni === pac.dni);
-                return opsPac.some(o => o.estado === "cargado" || o.estado === "solicitado");
+                return opsPac.some(o => o.estado === "solicitado");
             });
         } else if (filtroPendientes === "oncoplan_pendiente") {
             lista = lista.filter((pac) => pac.oncoplan && pac.oncoplanEstado !== "habilitado");
@@ -66,7 +66,7 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
                     <select className={p.input} style={{ maxWidth: "200px" }} value={filtroPendientes} onChange={(e) => setFiltroPendientes(e.target.value)}>
                         <option value="todos">Todos los pacientes</option>
-                        <option value="op_pendiente">Con OP Pendiente</option>
+                        <option value="op_pendiente">Con OP Pendiente (Falta N°)</option>
                         <option value="oncoplan_pendiente">ONCOPLAN Pendiente</option>
                     </select>
                     <input
@@ -87,26 +87,48 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                     const eDef = estadoDef(x.estado || "activo");
                     const isOncPending = x.oncoplan && x.oncoplanEstado !== "habilitado";
                     const isOncHab = x.oncoplan && x.oncoplanEstado === "habilitado";
+
+                    const opPendienteObj = ops.find(o => o.pacienteDni === x.dni && o.estado === "solicitado");
+                    const opListaObj = ops.find(o => o.pacienteDni === x.dni && (o.estado === "cargado" || o.estado === "aceptado"));
+
                     const isExpanded = expandidoDni === x.dni;
 
                     return (
                         <li key={x.dni} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+
+                            {/* FILA PRINCIPAL */}
                             <div
                                 className={p.row}
                                 style={{ cursor: "pointer", borderColor: isExpanded ? "var(--accent)" : "var(--border)" }}
                                 onClick={() => setExpandidoDni(isExpanded ? null : x.dni)}
                             >
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className={p.rowName}>
-                                        {x.apellido || ""}, {x.nombre || ""}
-                                        {isOncPending && <span style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px", background: "#f59e0b", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN PENDIENTE</span>}
-                                        {isOncHab && <span style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px", background: "#e11d48", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN</span>}
+                                    <div className={p.rowName} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                                        <span>{x.apellido || ""}, {x.nombre || ""}</span>
+
+                                        {isOncPending && <span style={{ fontSize: 10, padding: "2px 6px", background: "#f59e0b", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN PENDIENTE</span>}
+                                        {isOncHab && <span style={{ fontSize: 10, padding: "2px 6px", background: "#e11d48", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>ONCOPLAN</span>}
+
+                                        {/* BADGE OP PENDIENTE (CLICKABLE) */}
+                                        {opPendienteObj && (
+                                            <span
+                                                onClick={(e) => { e.stopPropagation(); onAsignarNroOP(x.dni, opPendienteObj.id); }}
+                                                style={{ fontSize: 10, padding: "2px 6px", background: "#f59e0b", color: "#000", borderRadius: 4, fontWeight: "bold", cursor: "pointer", border: "1px solid #d97706" }}
+                                                title="Hacé clic para cargar el N° de OP"
+                                            >
+                                                ⚠️ Cargar N° OP
+                                            </span>
+                                        )}
+
+                                        {/* BADGE OP LISTA */}
+                                        {opListaObj && (
+                                            <span style={{ fontSize: 10, padding: "2px 6px", background: "#2f6f4e", color: "#fff", borderRadius: 4, fontWeight: "bold" }}>
+                                                ✅ OP LISTA (N° {opListaObj.nroOP})
+                                            </span>
+                                        )}
                                     </div>
                                     <div className={p.rowMeta}>
                                         DNI {x.dni} · Afiliado {x.afiliado || "—"} · Tel: {x.telefono || "—"}
-                                        <span style={{ marginLeft: ".4rem", padding: "1px 6px", borderRadius: 999, border: `1px solid ${eDef.color}`, color: eDef.color, fontSize: ".68rem", fontWeight: 800 }}>
-                                            {eDef.label}
-                                        </span>
                                     </div>
                                 </div>
                                 <div className={p.rowActions} onClick={e => e.stopPropagation()}>
@@ -119,13 +141,11 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                 </div>
                             </div>
 
+                            {/* PANEL EXPANDIDO */}
                             {isExpanded && (
                                 <div style={{ padding: "1.25rem", background: "var(--surface-2)", border: "1px solid var(--accent-border)", borderRadius: "8px", marginLeft: "1rem", marginRight: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
 
-                                    {/* GRILLA DE COPIADO RÁPIDO */}
                                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-
-                                        {/* Nombre */}
                                         <div style={{ background: "var(--surface)", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <div style={{ minWidth: 0 }}>
                                                 <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>NOMBRE</div>
@@ -135,8 +155,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                                 {copiedField === `nom-${x.dni}` ? "✅" : "📋"}
                                             </button>
                                         </div>
-
-                                        {/* DNI */}
                                         <div style={{ background: "var(--surface)", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <div>
                                                 <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>DNI</div>
@@ -146,8 +164,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                                 {copiedField === `dni-${x.dni}` ? "✅" : "📋"}
                                             </button>
                                         </div>
-
-                                        {/* Afiliado */}
                                         <div style={{ background: "var(--surface)", padding: "0.75rem", borderRadius: "6px", border: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <div>
                                                 <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>AFILIADO</div>
@@ -157,10 +173,8 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                                 {copiedField === `afil-${x.dni}` ? "✅" : "📋"}
                                             </button>
                                         </div>
-
                                     </div>
 
-                                    {/* ACCIONES */}
                                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
                                         <button type="button" className={`${p.btn} ${p.btnSm}`} style={{ background: "#25D366", borderColor: "#25D366", color: "#fff" }} onClick={() => enviarWhatsApp(x)}>
                                             💬 Enviar WhatsApp
@@ -192,6 +206,8 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
         </section>
     );
 }
+
+// ... TabOPs y el componente principal se mantienen igual, excepto por la función handleAsignarNroOP
 
 export default function PamiDashboardPage() {
     const router = useRouter();
@@ -225,6 +241,25 @@ export default function PamiDashboardPage() {
             oncoplanEstado: habilitar ? "habilitado" : "pendiente",
             updatedAt: Date.now()
         });
+    };
+
+    // --- NUEVA FUNCIÓN PARA CARGAR EL N° DE OP ---
+    const handleAsignarNroOP = async (dni, opId) => {
+        const nro = prompt("Ingresá el N° de OP asignado por PAMI:");
+        if (!nro || !nro.trim()) return;
+
+        try {
+            const opRef = ref(db, `PAMI/pacientes/${dni}/ops/${opId}`);
+            await update(opRef, {
+                nroOP: nro.trim(),
+                estado: "cargado",
+                updatedAt: Date.now()
+            });
+            alert("Número de OP asignado con éxito. Ya podés generar la Internación o Cirugía.");
+        } catch (e) {
+            console.error(e);
+            alert("Error al asignar el número de OP.");
+        }
     };
 
     return (
@@ -271,6 +306,7 @@ export default function PamiDashboardPage() {
                     onEliminarPaciente={handleEliminarPaciente}
                     onAgregarOP={agregarOP}
                     onToggleOncoplan={handleToggleOncoplan}
+                    onAsignarNroOP={handleAsignarNroOP} // <--- PASAMOS LA FUNCIÓN
                 />
             )}
 

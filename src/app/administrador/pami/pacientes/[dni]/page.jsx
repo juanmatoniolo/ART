@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { ref, update, remove } from "firebase/database";
 import { getSession } from "@/utils/session";
 import { obtenerPacientePami, eliminarPacientePami, asegurarPacientePami, dniKey } from "@/lib/pami";
 import { cambiarEstadoPaciente, setOncoplanPaciente, puedeGenerarEventos } from "@/lib/pami/pacientes";
@@ -70,6 +72,7 @@ export default function PacientePamiPage() {
 
     const canGenerarEventos = useMemo(() => puedeGenerarEventos(paciente), [paciente]);
 
+    /* ── Acciones ── */
     const handleCambiarEstado = async (nuevoEstado) => {
         if (!confirm(`¿Cambiar el estado del paciente a "${nuevoEstado}"?`)) return;
         try {
@@ -92,17 +95,30 @@ export default function PacientePamiPage() {
         }
     };
 
+    // En handleEditar, asegurate de tener esto:
     const handleEditar = async (form) => {
         try {
-            await asegurarPacientePami({ ...form, dni: pacienteKey }, { usuario: usuarioActual() });
+            // Preparamos el objeto para la base de datos, armando el nodo familiar
+            const { famNombre, famParentezco, famTelefono, ...resto } = form;
+            const dataAGuardar = {
+                ...resto,
+                dni: pacienteKey,
+                familiar: {
+                    nombre: famNombre || "",
+                    parentezco: famParentezco || "",
+                    telefono: famTelefono || ""
+                }
+            };
+
+            await asegurarPacientePami(dataAGuardar, { usuario: usuarioActual() });
             await cargarTodo();
-            mostrarFlash("Datos actualizados.");
+            mostrarFlash("Datos actualizados correctamente.");
         } catch (e) {
+            console.error(e);
             mostrarFlash("No se pudieron guardar los datos.");
         }
     };
-
-    const handleEliminar = async () => {
+    const handleEliminarPaciente = async () => {
         if (!confirm(`¿Eliminar el paciente ${paciente?.nombreCompleto || pacienteKey}?\nSe borrarán también todos sus datos.`)) return;
         try {
             await eliminarPacientePami(pacienteKey);
@@ -119,6 +135,47 @@ export default function PacientePamiPage() {
             mostrarFlash("Estado de la OP actualizado.");
         } catch (e) {
             mostrarFlash("No se pudo cambiar el estado de la OP.");
+        }
+    };
+
+    const handleAsignarNroOP = async (opId) => {
+        const nro = prompt("Ingresá el N° de OP asignado por PAMI:");
+        if (!nro || !nro.trim()) return;
+
+        try {
+            const opRef = ref(db, `PAMI/pacientes/${pacienteKey}/ops/${opId}`);
+            await update(opRef, {
+                nroOP: nro.trim(),
+                estado: "cargado",
+                updatedAt: Date.now()
+            });
+            await cargarTodo();
+            mostrarFlash("Número de OP asignado con éxito.");
+        } catch (e) {
+            console.error(e);
+            mostrarFlash("Error al asignar el número de OP.");
+        }
+    };
+
+    // --- NUEVA FUNCIÓN PARA ELIMINAR UN EVENTO INDIVIDUAL ---
+    const handleEliminarEvento = async (tipo, id) => {
+        if (!confirm(`¿Estás seguro de que querés eliminar este registro?`)) return;
+
+        try {
+            let path = "";
+            if (tipo === "op") path = `PAMI/pacientes/${pacienteKey}/ops/${id}`;
+            else if (tipo === "internacion") path = `PAMI/pacientes/${pacienteKey}/internaciones/${id}`;
+            else if (tipo === "cirugia") path = `PAMI/pacientes/${pacienteKey}/cirugias/${id}`;
+            else if (tipo === "presupuesto") path = `PAMI/pacientes/${pacienteKey}/medicamentos/${id}`;
+
+            if (!path) return;
+
+            await remove(ref(db, path));
+            await cargarTodo();
+            mostrarFlash("Registro eliminado con éxito.");
+        } catch (e) {
+            console.error(e);
+            mostrarFlash("Error al eliminar el registro.");
         }
     };
 
@@ -150,6 +207,7 @@ export default function PacientePamiPage() {
     const handleAbrirPresupuesto = () => router.push("/administrador/pami/presupuestos");
     const handleAbrirIngreso = (ingresosId) => router.push(`/ingresos?id=${ingresosId}`);
 
+    /* ── Render ── */
     if (loading) {
         return <div className={styles.ficha}><div className={styles.loading}>Cargando paciente…</div></div>;
     }
@@ -173,11 +231,7 @@ export default function PacientePamiPage() {
             {flash && <div className={styles.toast}>{flash}</div>}
 
             <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => router.push("/administrador/pami")}
-                >
+                <button type="button" className={styles.btn} onClick={() => router.push("/administrador/pami")}>
                     ← Volver al Dashboard
                 </button>
             </div>
@@ -189,7 +243,7 @@ export default function PacientePamiPage() {
                 onToggleOncoplan={handleToggleOncoplan}
                 onEditar={handleEditar}
                 onNuevaOP={handleNuevaOP}
-                onEliminar={handleEliminar}
+                onEliminar={handleEliminarPaciente}
             />
 
             <PacienteTimeline
@@ -205,6 +259,8 @@ export default function PacientePamiPage() {
                 onAbrirIngreso={handleAbrirIngreso}
                 onNuevaInternacionDesdeOP={canGenerarEventos ? handleNuevaInternacionDesdeOP : null}
                 onNuevaCirugiaDesdeOP={canGenerarEventos ? handleNuevaCirugiaDesdeOP : null}
+                onAsignarNroOP={handleAsignarNroOP}
+                onEliminarEvento={handleEliminarEvento} // <-- NUEVA PROP
             />
         </div>
     );

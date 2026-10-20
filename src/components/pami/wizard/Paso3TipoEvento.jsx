@@ -1,8 +1,8 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getSession } from "@/utils/session";
 import Fuse from "fuse.js";
-import { crearOP } from "@/lib/pami/op";
+import { crearOP, listarOPsPaciente, ESTADOS_OP } from "@/lib/pami/op";
 import { guardarPresupuestoPami } from "@/lib/pami/presupuestos";
 import CatalogoProductos from "../presupuesto/CatalogoProductos";
 import styles from "./wizard.module.css";
@@ -12,31 +12,53 @@ const usuarioActual = () => {
     return s.user || s.usuario || s.nombre || "sistema";
 };
 
-export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
+const OPCIONES = [
+    { id: "op", icon: "📄", label: "Solicitud de OP", desc: "Pedido inicial para que PAMI asigne un número." },
+    { id: "material", icon: "📦", label: "Material de Cirugía", desc: "Pedido de insumos para una práctica." },
+    { id: "internacion", icon: "🏥", label: "Internación", desc: "Requiere vincular una OP autorizada." },
+    { id: "cirugia", icon: "🔪", label: "Cirugía", desc: "Requiere vincular una OP autorizada." },
+];
+
+export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, items = [] }) {
     const paciente = estado.paciente || {};
     const tipo = estado.tipoEvento;
+    const requiereOPExistente = tipo === "internacion" || tipo === "cirugia";
     const esNuevaOP = tipo === "op" || tipo === "material";
 
-    // Estados para generar OP nueva (si corresponde)
-    const [formOP, setFormOP] = useState({
-        nroOP: "", diagnostico: "", fechaSolicitud: new Date().toISOString().slice(0, 10),
-    });
+    // Estados para OP Existente
+    const [opsPaciente, setOpsPaciente] = useState([]);
+    const [opVinculada, setOpVinculada] = useState(estado.opVinculada?.id || "");
+    const [loadingOps, setLoadingOps] = useState(false);
+
+    // Estados para Nueva OP
+    const [formOP, setFormOP] = useState({ nroOP: "", diagnostico: "" });
     const [nomenclador, setNomenclador] = useState([]);
     const [busquedaCodigo, setBusquedaCodigo] = useState("");
     const [codigosAgregados, setCodigosAgregados] = useState([]);
 
-    // Estados para el borrador de medicamentos
-    const [items, setItems] = useState([]); // Catálogo general
+    // Estado para el borrador
     const [carrito, setCarrito] = useState([]);
-
     const [saving, setSaving] = useState(false);
 
-    // Cargar nomenclador al montar
-    useMemo(() => {
+    // Cargar OPs si es internación o cirugía
+    useEffect(() => {
+        if (!requiereOPExistente || !paciente.dni) return;
+        setLoadingOps(true);
+        listarOPsPaciente(paciente.dni)
+            .then(ops => {
+                // Filtramos las OPs que ya tienen número
+                setOpsPaciente(ops.filter(o => o.estado === "cargado" || o.estado === "aceptado"));
+            })
+            .finally(() => setLoadingOps(false));
+    }, [paciente.dni, requiereOPExistente]);
+
+    // Cargar Nomenclador si es OP nueva
+    useEffect(() => {
+        if (!esNuevaOP) return;
         fetch('/archivos/pami-nomenclador.json')
             .then(r => r.json())
             .then(j => { if (j && j.items) setNomenclador(j.items); });
-    }, []);
+    }, [esNuevaOP]);
 
     const fuse = useMemo(() => {
         if (!nomenclador.length) return null;
@@ -55,42 +77,41 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
     };
 
     const guardarTodo = async () => {
-        if (esNuevaOP && !formOP.diagnostico) return alert("Completá el diagnóstico.");
-        setSaving(true);
+        if (esNuevaOP && !formOP.diagnostico) return alert("Completá el diagnóstico de la OP.");
+        if (requiereOPExistente && !opVinculada) return alert("Vinculá una OP existente.");
 
+        setSaving(true);
         try {
             const usuario = usuarioActual();
-            let opData = estado.opVinculada; // Si ya venía vinculada (internación/cirugía)
+            let opFinal = null;
 
-            // 1. Si es OP nueva, la creamos
             if (esNuevaOP) {
-                opData = await crearOP(
+                opFinal = await crearOP(
                     paciente.dni,
                     { dni: paciente.dni, oncoplanPaciente: !!paciente.oncoplan },
                     {
                         nroOP: formOP.nroOP,
                         tipo: tipo,
                         diagnostico: formOP.diagnostico,
-                        fechaSolicitud: formOP.fechaSolicitud,
-                        // Adjuntamos los códigos en la OP
                         codigosSolicitados: codigosAgregados,
                     },
                     { usuario }
                 );
+            } else {
+                opFinal = opsPaciente.find(o => o.id === opVinculada);
             }
 
-            // 2. Guardar el borrador de presupuesto vinculado al evento
             if (carrito.length > 0) {
                 const total = carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0);
                 await guardarPresupuestoPami(
                     paciente.dni,
-                    { items: carrito, codigos: [], total, oncoplan: !!paciente.oncoplan, opId: opData?.id || null },
+                    { items: carrito, codigos: [], total, oncoplan: !!paciente.oncoplan, opId: opFinal?.id || null },
                     { usuario }
                 );
             }
 
-            actualizar({ op: opData, borradorCreado: carrito.length > 0 });
-            avanzar();
+            actualizar({ op: opFinal, borradorCreado: carrito.length > 0 });
+            avanzar(); // Pasa al paso de Confirmar
         } catch (e) {
             console.error(e);
             alert("Error al guardar: " + e.message);
@@ -101,19 +122,55 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
 
     return (
         <div>
-            <h2 className={styles.titulo}>Paso 3 · Detalle y Medicación</h2>
-            <p className={styles.hint}>
-                {esNuevaOP ? "Completá los datos del pedido y los códigos solicitados." : "Cargá la medicación utilizada para esta práctica."}
-            </p>
+            <h2 className={styles.titulo}>Paso 2 · Registrar Evento</h2>
+            <p className={styles.hint}>Elegí el tipo de registro y completá los datos necesarios.</p>
 
-            {/* SI ES OP NUEVA, PEDIMOS LOS DATOS DE LA OP */}
+            {/* SELECCIÓN DE TIPO */}
+            <div className={styles.opcionesGrid} style={{ gridTemplateColumns: "1fr 1fr", marginBottom: "2rem" }}>
+                {OPCIONES.map((op) => (
+                    <button
+                        key={op.id}
+                        type="button"
+                        className={`${styles.opcionCard} ${tipo === op.id ? styles.opcionCardActive : ""}`}
+                        onClick={() => actualizar({ tipoEvento: op.id })}
+                    >
+                        <span className={styles.opcionIcon}>{op.icon}</span>
+                        <span className={styles.opcionLabel}>{op.label}</span>
+                        <span className={styles.opcionDesc}>{op.desc}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* SI REQUIERE OP EXISTENTE */}
+            {requiereOPExistente && (
+                <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
+                    <label className={styles.campo}>
+                        <span style={{ color: "var(--accent)" }}>Vincular Orden de Prestación (Obligatorio)</span>
+                        <select className={styles.input} value={opVinculada} onChange={e => setOpVinculada(e.target.value)}>
+                            <option value="">— Elegí una OP autorizada —</option>
+                            {opsPaciente.map((o) => (
+                                <option key={o.id} value={o.id}>
+                                    OP {o.nroOP} · {o.diagnostico} · {ESTADOS_OP.find(e => e.id === o.estado)?.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    {opsPaciente.length === 0 && !loadingOps && (
+                        <p className={styles.hint} style={{ color: "var(--danger)" }}>
+                            ⚠️ No hay OPs activas. Primero generá una "Solicitud de OP".
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {/* SI ES NUEVA OP (FORMULARIO) */}
             {esNuevaOP && (
                 <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
                     <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--accent)" }}>Datos del Pedido (OP)</h3>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
                         <label className={styles.campo}>
                             <span>N° de OP (Opcional)</span>
-                            <input className={styles.input} value={formOP.nroOP} onChange={e => setFormOP({ ...formOP, nroOP: e.target.value })} placeholder="Ej: 123456" />
+                            <input className={styles.input} value={formOP.nroOP} onChange={e => setFormOP({ ...formOP, nroOP: e.target.value })} placeholder="Dejar vacío si no lo tenés" />
                         </label>
                         <label className={styles.campo}>
                             <span>Diagnóstico *</span>
@@ -150,39 +207,14 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver }) {
                 </div>
             )}
 
-            {/* BORRADOR DE MEDICACIÓN */}
-            <div style={{ marginBottom: "2rem", padding: "1rem", background: "var(--surface-2)", borderRadius: "10px" }}>
-                <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--accent)" }}>Borrador de Medicación (Opcional)</h3>
-                <CatalogoProductos items={items} onAgregar={(item, qty) => {
-                    setCarrito(prev => {
-                        const existing = prev.find(x => x.id === `${item.categoria}:${item.key}`);
-                        if (existing) return prev.map(x => x.id === existing.id ? { ...x, cantidad: x.cantidad + qty } : x);
-                        return [...prev, { id: `${item.categoria}:${item.key}`, nombre: item.nombre, precio: item.precioFacturacion, cantidad: qty }];
-                    });
-                }} />
-
-                {carrito.length > 0 && (
-                    <div style={{ marginTop: "1rem" }}>
-                        <p className={styles.hint}>Medicamentos agregados: {carrito.length}</p>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                            {carrito.map(c => (
-                                <span key={c.id} style={{ fontSize: "0.8rem", background: "var(--surface)", padding: "4px 8px", borderRadius: "4px", border: "1px solid var(--border)" }}>
-                                    {c.cantidad}x {c.nombre}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
             <div className={styles.navBar} style={{ marginTop: "2rem" }}>
                 <button type="button" className={styles.btnSecundario} onClick={volver}>← Atrás</button>
-                <button type="button" className={styles.btnPrimario} onClick={guardarTodo} disabled={saving}>
-                    {saving ? "Guardando…" : "Guardar y Finalizar →"}
+                <button type="button" className={styles.btnPrimario} onClick={guardarTodo} disabled={saving || !tipo}>
+                    {saving ? "Guardando…" : "Guardar y Continuar →"}
                 </button>
             </div>
         </div>
     );
 }
 
-PasoDetalle.hideShellNav = true;
+Paso3TipoEvento.hideShellNav = true;

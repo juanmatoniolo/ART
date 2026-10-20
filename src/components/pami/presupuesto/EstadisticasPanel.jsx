@@ -26,6 +26,19 @@ export default function EstadisticasPanel({ pacientesDb }) {
         [pacientesDb, desde, hasta, edadDesde, edadHasta, filtroCategoria, filtroOncoplan]
     );
 
+    // --- NUEVO: Calcular pacientes con más OPs ---
+    const topPacientesOPs = useMemo(() => {
+        return pacientesDb
+            .map(pac => ({
+                nombre: [pac.apellido, pac.nombre].filter(Boolean).join(", ") || `DNI ${pac.dni}`,
+                totalOps: Object.keys(pac.ops || {}).length,
+                oncoplan: !!pac.oncoplan
+            }))
+            .filter(x => x.totalOps > 0)
+            .sort((a, b) => b.totalOps - a.totalOps)
+            .slice(0, 8); // Top 8
+    }, [pacientesDb]);
+
     const aplicarPeriodo = (periodo) => {
         const hoy = new Date();
         const inicio = new Date(hoy);
@@ -141,6 +154,28 @@ export default function EstadisticasPanel({ pacientesDb }) {
                 </div>
             </div>
 
+            {/* NUEVO PANEL: TOP PACIENTES CON OPs */}
+            <div className={styles.card}>
+                <h3 className={styles.cardTitle}>Pacientes con más OPs generadas</h3>
+                {topPacientesOPs.length === 0 ? (
+                    <p className={styles.empty}>No hay órdenes de prestación generadas aún.</p>
+                ) : (
+                    <div className={styles.statsList}>
+                        {topPacientesOPs.map((p, index) => (
+                            <div className={styles.statRow} key={p.nombre}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <span style={{ fontWeight: 800, color: "var(--muted)", width: "20px" }}>#{index + 1}</span>
+                                    <strong>{p.nombre} {p.oncoplan && <OncoplanBadge small />}</strong>
+                                </div>
+                                <div style={{ textAlign: "right", fontWeight: 800, color: "var(--accent)" }}>
+                                    {p.totalOps} OPs
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <div className={styles.card}>
                 <h3 className={styles.cardTitle}>Insumos más utilizados</h3>
                 {estadisticas.top.length === 0 ? (
@@ -163,7 +198,7 @@ export default function EstadisticasPanel({ pacientesDb }) {
             </div>
 
             <div className={styles.card}>
-                <h3 className={styles.cardTitle}>Evolución mensual</h3>
+                <h3 className={styles.cardTitle}>Evolución mensual (Presupuestos)</h3>
                 {estadisticas.porMes.length === 0 ? (
                     <p className={styles.empty}>No hay fechas disponibles para graficar.</p>
                 ) : (

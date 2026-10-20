@@ -11,33 +11,67 @@ function Row({ label, children }) {
     );
 }
 
+const TIPO_LABELS = {
+    op: "Solicitud de OP",
+    material: "Material de Cirugía",
+    internacion: "Internación",
+    cirugia: "Cirugía",
+};
+
 export default function Paso6Confirmar({ estado, onFinish }) {
     const router = useRouter();
     const paciente = estado.paciente || {};
     const op = estado.op || {};
+    const tipoEvento = estado.tipoEvento || "op";
 
-    const irAlDashboard = () => router.push("/administrador/pami");
     const irAlPaciente = () => router.push(`/administrador/pami/pacientes/${paciente.dni}`);
+    const irAlDashboard = () => router.push("/administrador/pami");
 
     return (
         <div>
-            <h2 className={styles.titulo}>✓ Trámite guardado</h2>
-            <p className={styles.hint}>El registro se generó con éxito.</p>
+            <h2 className={styles.titulo}>✓ Todo listo</h2>
+            <p className={styles.hint}>
+                El registro se guardó correctamente. Podés ir al perfil del paciente para continuar.
+            </p>
+
+            {!op.nroOP && (
+                <div style={{ padding: "1rem", marginBottom: "1rem", borderRadius: "10px", background: "rgba(245, 158, 11, 0.14)", border: "1px solid rgba(245, 158, 11, 0.35)", color: "#f0c073", fontSize: ".85rem" }}>
+                    ⚠️ <strong>Número de OP pendiente:</strong> Una vez que PAMI te asigne el número, entrá a la ficha del paciente para completarlo.
+                </div>
+            )}
 
             <dl className={styles.resumen}>
                 <Row label="Paciente">
-                    {paciente.nombreCompleto || `${paciente.apellido || ""} ${paciente.nombre || ""}`.trim()}
+                    {paciente.nombreCompleto}
+                    {paciente.oncoplan && (
+                        <span style={{ marginLeft: ".5rem", padding: "1px 6px", borderRadius: 4, background: "#e11d48", color: "#fff", fontWeight: 700, fontSize: 10 }}>
+                            ONCOPLAN
+                        </span>
+                    )}
                 </Row>
                 <Row label="DNI">{paciente.dni}</Row>
-                <Row label="Tipo de trámite">
-                    {estado.tipoEvento === "op" ? "Solicitud de OP" :
-                        estado.tipoEvento === "material" ? "Material de Cirugía" :
-                            estado.tipoEvento === "internacion" ? "Internación" : "Cirugía"}
+                <Row label="Afiliado">{paciente.afiliado}</Row>
+
+                <Row label="Tipo de registro">
+                    {TIPO_LABELS[tipoEvento] || tipoEvento}
                 </Row>
 
-                {op?.nroOP && <Row label="N° de OP">{op.nroOP}</Row>}
-                {op?.diagnostico && <Row label="Diagnóstico">{op.diagnostico}</Row>}
-                {estado.borradorCreado && <Row label="Presupuesto">Se guardó un borrador de medicación.</Row>}
+                {tipoEvento === "op" || tipoEvento === "material" ? (
+                    <>
+                        <Row label="N° de OP">
+                            {op.nroOP ? <strong>{op.nroOP}</strong> : <span style={{ color: "#f0c073", fontWeight: 600 }}>Pendiente (PAMI)</span>}
+                        </Row>
+                        <Row label="Diagnóstico">{op.diagnostico}</Row>
+                    </>
+                ) : (
+                    <Row label="OP Vinculada">
+                        {op.nroOP ? `OP ${op.nroOP} · ${op.diagnostico}` : "Vinculada"}
+                    </Row>
+                )}
+
+                {estado.borradorCreado && (
+                    <Row label="Medicación">Se generó un borrador de medicación asociado.</Row>
+                )}
             </dl>
 
             <div className={styles.resumenAcciones}>
@@ -45,7 +79,7 @@ export default function Paso6Confirmar({ estado, onFinish }) {
                     Ir al Dashboard
                 </button>
                 <button type="button" className={styles.btnPrimario} onClick={irAlPaciente}>
-                    Ver Ficha del Paciente →
+                    Ver ficha del paciente →
                 </button>
             </div>
         </div>

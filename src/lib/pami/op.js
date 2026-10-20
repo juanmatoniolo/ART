@@ -5,6 +5,7 @@ import { ref, get, push, set, update } from "firebase/database";
 const PATH = "PAMI/pacientes";
 
 export const ESTADOS_OP = [
+	{ id: "solicitado", label: "Falta N° PAMI", color: "#f59e0b" }, // <-- NUEVO ESTADO
 	{ id: "cargado", label: "Pedido cargado", color: "#6b7280" },
 	{ id: "aceptado", label: "Aceptado", color: "#2f6f4e" },
 	{ id: "rechazado", label: "Rechazado", color: "#c0392b" },
@@ -17,7 +18,6 @@ export const TIPOS_EVENTO = [
 	{ id: "cirugia", label: "Cirugía" },
 ];
 
-// lib/pami/op.js (fragmento de crearOP)
 export async function crearOP(
 	pacienteKey,
 	{ dni, oncoplanPaciente },
@@ -38,6 +38,7 @@ export async function crearOP(
 		fechaAutorizacion: opData.fechaAutorizacion || null,
 		medicoSolicitante: opData.medicoSolicitante || null,
 		oncoplan: !!oncoplanPaciente,
+		codigosSolicitados: opData.codigosSolicitados || [], // Guardamos los códigos
 		// Si no hay número de OP, queda en estado "solicitado"
 		estado: nroOP ? "cargado" : "solicitado",
 		historial: [
@@ -56,8 +57,12 @@ export async function crearOP(
 		updatedBy: usuario,
 		updatedAt: now,
 	};
-	// ... resto igual
+
+	const node = push(ref(db, `${PATH}/${pacienteKey}/ops`));
+	await set(node, op);
+	return { id: node.key, ...op };
 }
+
 export async function cambiarEstadoOP(
 	pacienteKey,
 	opId,
@@ -89,6 +94,7 @@ export async function listarOPsPaciente(pacienteKey) {
 		.map(([id, v]) => ({ id, ...v }))
 		.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
+
 /** Aplana todas las OPs de todos los pacientes (para listados globales) */
 export const listarTodasLasOPs = (pacientesDb = []) => {
 	const out = [];
