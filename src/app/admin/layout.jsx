@@ -18,7 +18,8 @@ import {
   FolderTree,
   Stethoscope,
   HardHat,
-  ClipboardList,   // <-- NUEVO (para RP)
+  ClipboardList,
+  HeartPulse,
   Settings,
   LogOut,
   Menu,
@@ -59,25 +60,29 @@ export default function AdminLayout({ children }) {
     return <div className={styles.loading}>Cargando...</div>;
   }
 
-  // Dentro del componente, en la definición de navItems
   const navItems = [
     { href: "/admin", label: "", icon: Home, showLabel: false },
     { href: "/admin/comunicador", label: "Comunicador", icon: Users },
     { href: "/admin/Facturacion", label: "Facturación", icon: FileText },
     { href: "/admin/med-descartables", label: "Farmacia", icon: Pill },
+    { href: "/admin/pami", label: "PAMI", icon: HeartPulse },
     { href: "/admin/nomencladores", label: "Nomencladores", icon: BookOpen },
     { href: "/admin/cx", label: "CX", icon: FolderTree },
-    { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },  // <-- NUEVA LÍNEA
-    { href: "/admin/art", label: "ART", icon: HardHat },  // <-- NUEVA LÍNEA
-    { href: "/admin/rp", label: "RP", icon: ClipboardList },   // <-- NUEVA LÍNEA
+    { href: "/admin/medicos", label: "Médicos", icon: Stethoscope },
+    { href: "/admin/art", label: "ART", icon: HardHat },
+    { href: "/admin/rp", label: "RP", icon: ClipboardList },
   ];
 
   return (
     <div className={styles.layout}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <Image src="/logo.png" alt="Logo" width={40} height={40} priority />
-          <span className={styles.brand}>Clínica Unión</span>
+          <Image src="/logo.png" alt="Logo" width={38} height={38} priority />
+          {/* Texto apilado para ahorrar espacio */}
+          <div className={styles.brandText}>
+            <span>Clínica</span>
+            <span>Unión</span>
+          </div>
         </div>
 
         {/* Desktop navigation */}
