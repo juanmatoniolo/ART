@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { ref, onValue, update } from "firebase/database";
+import { ref, onValue, update, push, set, remove } from "firebase/database";
 import { matchesAllTerms } from "@/app/farmacia/utils/farmacia";
 import { eliminarPacientePami } from "@/lib/pami";
 import { listarTodasLasOPs, ESTADOS_OP, cambiarEstadoOP } from "@/lib/pami/op";
@@ -17,6 +17,370 @@ import styles from "@/components/pami/presupuesto/presupuesto.module.css";
 
 const p = styles;
 
+// ============================================================
+// Helper para URLs (agrega https:// si falta el protocolo)
+// ============================================================
+function normalizeUrl(url) {
+    if (!url) return "";
+    const u = url.trim();
+    if (!u) return "";
+    if (/^https?:\/\//i.test(u)) return u;
+    return `https://${u}`;
+}
+
+// ============================================================
+// TAB: Mis claves (usuarios y contraseñas de páginas)
+// ============================================================
+function TabClaves({ claves, onSave, onDelete }) {
+    const [q, setQ] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [form, setForm] = useState({ nombre: "", usuario: "", password: "", link: "", notas: "" });
+    const [showPass, setShowPass] = useState({});
+    const [showFormPass, setShowFormPass] = useState(false);
+    const [copied, setCopied] = useState(null);
+
+    const handleCopy = async (text, field) => {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(field);
+            setTimeout(() => setCopied(null), 2000);
+        } catch (e) {
+            console.error("No se pudo copiar:", e);
+        }
+    };
+
+    const resetForm = () => {
+        setForm({ nombre: "", usuario: "", password: "", link: "", notas: "" });
+        setEditingId(null);
+        setShowForm(false);
+        setShowFormPass(false);
+    };
+
+    const handleEdit = (c) => {
+        setForm({
+            nombre: c.nombre || "",
+            usuario: c.usuario || "",
+            password: c.password || "",
+            link: c.link || "",
+            notas: c.notas || "",
+        });
+        setEditingId(c.id);
+        setShowForm(true);
+        setShowFormPass(false);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.nombre.trim()) {
+            alert("El nombre es obligatorio (ej: PAMI GUERRICO).");
+            return;
+        }
+        await onSave({ ...form, id: editingId });
+        resetForm();
+    };
+
+    const filtradas = useMemo(() => {
+        let lista = claves;
+        const query = q.trim();
+        if (query) {
+            lista = lista.filter((c) =>
+                matchesAllTerms(`${c.nombre || ""} ${c.usuario || ""} ${c.link || ""} ${c.notas || ""}`, query)
+            );
+        }
+        return [...lista].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }, [claves, q]);
+
+    return (
+        <section className={p.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
+                <h3 className={p.cardTitle} style={{ margin: 0 }}>🔐 Mis claves</h3>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
+                    <input
+                        className={p.input}
+                        style={{ maxWidth: "250px" }}
+                        type="search"
+                        placeholder="Buscar nombre, usuario o link…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                    />
+                    <button
+                        type="button"
+                        className={`${p.btn} ${p.btnPrimary}`}
+                        onClick={() => { resetForm(); setShowForm(true); }}
+                    >
+                        + Nueva clave
+                    </button>
+                </div>
+            </div>
+
+            {showForm && (
+                <form
+                    onSubmit={handleSubmit}
+                    style={{
+                        padding: "1rem",
+                        background: "var(--surface-2)",
+                        border: "1px solid var(--accent-border)",
+                        borderRadius: "8px",
+                        marginBottom: "1rem",
+                        display: "grid",
+                        gap: "0.5rem",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    }}
+                >
+                    <input
+                        className={p.input}
+                        placeholder="Nombre (ej: PAMI GUERRICO)"
+                        value={form.nombre}
+                        onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                        autoFocus
+                    />
+                    <input
+                        className={p.input}
+                        placeholder="Usuario"
+                        value={form.usuario}
+                        onChange={(e) => setForm({ ...form, usuario: e.target.value })}
+                        autoComplete="off"
+                    />
+                    <div style={{ position: "relative", display: "flex" }}>
+                        <input
+                            className={p.input}
+                            style={{ flex: 1, paddingRight: "2.2rem" }}
+                            type={showFormPass ? "text" : "password"}
+                            placeholder="Contraseña"
+                            value={form.password}
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
+                            autoComplete="new-password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowFormPass((v) => !v)}
+                            style={{
+                                position: "absolute",
+                                right: 4,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "1rem",
+                                padding: "4px 8px",
+                            }}
+                            title={showFormPass ? "Ocultar" : "Mostrar"}
+                        >
+                            {showFormPass ? "🙈" : "👁️"}
+                        </button>
+                    </div>
+                    <input
+                        className={p.input}
+                        placeholder="Link (https://...)"
+                        value={form.link}
+                        onChange={(e) => setForm({ ...form, link: e.target.value })}
+                        autoComplete="off"
+                    />
+                    <input
+                        className={p.input}
+                        placeholder="Notas (opcional)"
+                        value={form.notas}
+                        onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                        style={{ gridColumn: "1 / -1" }}
+                    />
+                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <button type="submit" className={`${p.btn} ${p.btnPrimary}`}>
+                            {editingId ? "Guardar cambios" : "Agregar"}
+                        </button>
+                        <button type="button" className={p.btn} onClick={resetForm}>
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            <p className={p.hint}>
+                {filtradas.length} {filtradas.length === 1 ? "clave guardada" : "claves guardadas"}.
+            </p>
+
+            {filtradas.length === 0 ? (
+                <div className={p.empty}>No hay claves guardadas todavía.</div>
+            ) : (
+                <ul className={p.list}>
+                    {filtradas.map((c) => {
+                        const linkUrl = normalizeUrl(c.link);
+                        return (
+                            <li
+                                key={c.id}
+                                className={p.row}
+                                style={{ alignItems: "flex-start", flexDirection: "column", gap: "0.75rem" }}
+                            >
+                                {/* Encabezado: nombre + acciones */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "0.5rem", flexWrap: "wrap" }}>
+                                    <div className={p.rowName} style={{ wordBreak: "break-word" }}>
+                                        {c.nombre}
+                                    </div>
+                                    <div className={p.rowActions}>
+                                        <button type="button" className={`${p.btn} ${p.btnSm}`} onClick={() => handleEdit(c)}>
+                                            ✏️ Editar
+                                        </button>
+                                        <button type="button" className={`${p.btn} ${p.btnSm} ${p.btnDangerSm}`} onClick={() => onDelete(c)}>
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Tarjetas de campos */}
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                        gap: "0.5rem",
+                                        width: "100%",
+                                    }}
+                                >
+                                    {/* Usuario */}
+                                    <div
+                                        style={{
+                                            background: "var(--surface-2)",
+                                            padding: "0.5rem 0.75rem",
+                                            borderRadius: "6px",
+                                            border: "1px solid var(--border)",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            minWidth: 0,
+                                        }}
+                                    >
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>USUARIO</div>
+                                            <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                {c.usuario || "—"}
+                                            </div>
+                                        </div>
+                                        {c.usuario && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopy(c.usuario, `u-${c.id}`)}
+                                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: "4px" }}
+                                                title="Copiar usuario"
+                                            >
+                                                {copied === `u-${c.id}` ? "✅" : "📋"}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Contraseña */}
+                                    <div
+                                        style={{
+                                            background: "var(--surface-2)",
+                                            padding: "0.5rem 0.75rem",
+                                            borderRadius: "6px",
+                                            border: "1px solid var(--border)",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            minWidth: 0,
+                                        }}
+                                    >
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>CONTRASEÑA</div>
+                                            <div style={{ fontWeight: 700, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                {showPass[c.id]
+                                                    ? (c.password || "—")
+                                                    : "•".repeat(Math.min(Math.max((c.password || "").length, 8), 14))}
+                                            </div>
+                                        </div>
+                                        {c.password && (
+                                            <div style={{ display: "flex", gap: "4px" }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPass((prev) => ({ ...prev, [c.id]: !prev[c.id] }))}
+                                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: "4px" }}
+                                                    title={showPass[c.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                                >
+                                                    {showPass[c.id] ? "🙈" : "👁️"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopy(c.password, `pw-${c.id}`)}
+                                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: "4px" }}
+                                                    title="Copiar contraseña"
+                                                >
+                                                    {copied === `pw-${c.id}` ? "✅" : "📋"}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Link */}
+                                    <div
+                                        style={{
+                                            background: "var(--surface-2)",
+                                            padding: "0.5rem 0.75rem",
+                                            borderRadius: "6px",
+                                            border: "1px solid var(--border)",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            gridColumn: "1 / -1",
+                                            minWidth: 0,
+                                        }}
+                                    >
+                                        <div style={{ minWidth: 0, overflow: "hidden" }}>
+                                            <div style={{ fontSize: "0.7rem", color: "var(--muted)", fontWeight: 700 }}>LINK</div>
+                                            {linkUrl ? (
+                                                <a
+                                                    href={linkUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: "var(--accent)", fontWeight: 700, wordBreak: "break-all" }}
+                                                >
+                                                    {c.link}
+                                                </a>
+                                            ) : (
+                                                <div style={{ fontWeight: 700 }}>—</div>
+                                            )}
+                                        </div>
+                                        {linkUrl && (
+                                            <div style={{ display: "flex", gap: "4px" }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopy(c.link, `l-${c.id}`)}
+                                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: "4px" }}
+                                                    title="Copiar link"
+                                                >
+                                                    {copied === `l-${c.id}` ? "✅" : "📋"}
+                                                </button>
+                                                <a
+                                                    href={linkUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ textDecoration: "none", fontSize: "1.1rem", padding: "4px" }}
+                                                    title="Abrir link"
+                                                >
+                                                    🔗
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {c.notas && (
+                                    <div style={{ fontSize: "0.85rem", color: "var(--muted)", width: "100%" }}>
+                                        📝 {c.notas}
+                                    </div>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </section>
+    );
+}
+
+// ============================================================
+// TAB: Pacientes (sin cambios)
+// ============================================================
 function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, onAgregarOP, onToggleOncoplan, onAsignarNroOP }) {
     const [q, setQ] = useState("");
     const [filtroPendientes, setFiltroPendientes] = useState("todos");
@@ -60,7 +424,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
 
         const texto = encodeURIComponent(`Hola ${paciente.apellido}, ${paciente.nombre}, le escribimos de Clínica de la Unión. 🏥`);
 
-        // Abre directamente en WhatsApp Web
         window.open(`https://web.whatsapp.com/send?phone=${tel}&text=${texto}`, "_blank");
     };
 
@@ -102,7 +465,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                     return (
                         <li key={x.dni} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
 
-                            {/* FILA PRINCIPAL */}
                             <div
                                 className={p.row}
                                 style={{ cursor: "pointer", borderColor: isExpanded ? "var(--accent)" : "var(--border)" }}
@@ -145,7 +507,6 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
                                 </div>
                             </div>
 
-                            {/* PANEL EXPANDIDO */}
                             {isExpanded && (
                                 <div style={{ padding: "1.25rem", background: "var(--surface-2)", border: "1px solid var(--accent-border)", borderRadius: "8px", marginLeft: "1rem", marginRight: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
 
@@ -211,6 +572,9 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
     );
 }
 
+// ============================================================
+// TAB: OPs (sin cambios)
+// ============================================================
 function TabOPs({ ops, onAbrirPaciente, onCambiarEstado }) {
     const [q, setQ] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("todos");
@@ -267,15 +631,29 @@ function TabOPs({ ops, onAbrirPaciente, onCambiarEstado }) {
     );
 }
 
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
 export default function PamiDashboardPage() {
     const router = useRouter();
     const [solapa, setSolapa] = useState("pacientes");
     const [pacientesDb, setPacientesDb] = useState([]);
+    const [clavesDb, setClavesDb] = useState([]);
 
+    // ---- Pacientes ----
     useEffect(() => {
         const unsub = onValue(ref(db, "PAMI/pacientes"), (snap) => {
             const data = snap.val() || {};
             setPacientesDb(Object.entries(data).map(([dni, paciente]) => ({ dni, ...paciente })));
+        });
+        return () => unsub();
+    }, []);
+
+    // ---- Mis claves ----
+    useEffect(() => {
+        const unsub = onValue(ref(db, "PAMI/claves"), (snap) => {
+            const data = snap.val() || {};
+            setClavesDb(Object.entries(data).map(([id, c]) => ({ id, ...c })));
         });
         return () => unsub();
     }, []);
@@ -327,6 +705,41 @@ export default function PamiDashboardPage() {
         }
     };
 
+    // ---- Handlers: Mis claves ----
+    const handleSaveClave = async (data) => {
+        try {
+            const { id, ...rest } = data;
+            const payload = {
+                nombre: (rest.nombre || "").trim(),
+                usuario: (rest.usuario || "").trim(),
+                password: rest.password || "",
+                link: (rest.link || "").trim(),
+                notas: (rest.notas || "").trim(),
+                updatedAt: Date.now(),
+            };
+
+            if (id) {
+                await update(ref(db, `PAMI/claves/${id}`), payload);
+            } else {
+                const newRef = push(ref(db, "PAMI/claves"));
+                await set(newRef, { ...payload, createdAt: Date.now() });
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar la clave.");
+        }
+    };
+
+    const handleDeleteClave = async (c) => {
+        if (!confirm(`¿Eliminar la clave "${c.nombre}"?\nEsta acción no se puede deshacer.`)) return;
+        try {
+            await remove(ref(db, `PAMI/claves/${c.id}`));
+        } catch (e) {
+            console.error(e);
+            alert("Error al eliminar la clave.");
+        }
+    };
+
     return (
         <div className={`${p.wrapper} ${p.dark}`}>
             <div className={p.headerBar}>
@@ -354,6 +767,7 @@ export default function PamiDashboardPage() {
                     ["internaciones", "Internaciones", `${internaciones.length}`],
                     ["cirugias", "Cirugías", `${cirugias.length}`],
                     ["borradores", "Presupuestos", `${borradores.length}`],
+                    ["claves", "Mis claves", `${clavesDb.length}`],
                     ["estadisticas", "Estadísticas", "Métricas"],
                 ].map(([id, label, desc]) => (
                     <button key={id} type="button" role="tab" aria-selected={solapa === id} className={`${p.tab} ${solapa === id ? p.tabActive : ""}`} onClick={() => setSolapa(id)}>
@@ -421,6 +835,15 @@ export default function PamiDashboardPage() {
                     <BorradoresList borradores={borradores} onAbrir={() => router.push("/administrador/pami/presupuestos")} onEliminar={async (b) => { await eliminarPresupuestoPami(b.pacienteDni, b.id); }} showPaciente />
                 </section>
             )}
+
+            {solapa === "claves" && (
+                <TabClaves
+                    claves={clavesDb}
+                    onSave={handleSaveClave}
+                    onDelete={handleDeleteClave}
+                />
+            )}
+
             {solapa === "estadisticas" && <EstadisticasPanel pacientesDb={pacientesDb} />}
         </div>
     );

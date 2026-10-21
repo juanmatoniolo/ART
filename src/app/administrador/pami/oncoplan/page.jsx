@@ -1,10 +1,12 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { ref, update } from "firebase/database";
+import { ref, update, onValue } from "firebase/database";
 import { dniKey } from "@/lib/pami";
 import styles from "@/components/pami/presupuesto/presupuesto.module.css";
+
+const ONCOPLAN_EMAIL_DESTINO = "dcc@pami.org.ar";
 
 export default function SolicitudOncoplánPage() {
     const router = useRouter();
@@ -20,14 +22,12 @@ export default function SolicitudOncoplánPage() {
 
     const mostrarFlash = (m) => { setFlash(m); setTimeout(() => setFlash(""), 3000); };
 
-    // Listener temporal para buscar pacientes
-    useMemo(() => {
-        import("firebase/database").then(({ onValue }) => {
-            onValue(ref(db, "PAMI/pacientes"), (snap) => {
-                const data = snap.val() || {};
-                setPacientesDb(Object.entries(data).map(([dni, p]) => ({ dni, ...p })));
-            });
+    useEffect(() => {
+        const unsub = onValue(ref(db, "PAMI/pacientes"), (snap) => {
+            const data = snap.val() || {};
+            setPacientesDb(Object.entries(data).map(([dni, p]) => ({ dni, ...p })));
         });
+        return () => unsub();
     }, []);
 
     const sugerencias = useMemo(() => {
@@ -56,23 +56,44 @@ export default function SolicitudOncoplánPage() {
                 updatedAt: Date.now()
             });
 
-            // 2. Generar el correo
+            // 2. Armar asunto y cuerpo
             const nombreCompleto = `${pacienteSeleccionado.apellido}, ${pacienteSeleccionado.nombre}`;
             const asunto = `Solicitud de Alta ONCOPLAN - ${nombreCompleto} - DNI ${pacienteSeleccionado.dni} - Afil ${pacienteSeleccionado.afiliado}`;
 
-            const cuerpo = `Estimados,\n\nPor medio del presente solicitamos el ALTA en el plan ONCOPLAN para el paciente:\n\nNombre: ${nombreCompleto}\nDNI: ${pacienteSeleccionado.dni}\nN° Afiliado: ${pacienteSeleccionado.afiliado}\n\nDiagnóstico: ${diagnostico}\nTipo de Cáncer: ${tipoCancer}\n\nAdjuntamos la documentación respaldatoria correspondiente.\n\nQuedamos a la espera de su confirmación.\n\nAtentamente,\nClínica de la Unión\nChajarí, Entre Ríos`;
+            const cuerpo =
+`Estimados,
 
-            // En la función generarSolicitud, busca estas líneas y cambialas:
+Por medio del presente solicitamos el ALTA en el plan ONCOPLAN para el paciente:
 
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+Nombre: ${nombreCompleto}
+DNI: ${pacienteSeleccionado.dni}
+N° Afiliado: ${pacienteSeleccionado.afiliado}
 
-            // Abrir en nueva pestaña
-            window.open(mailtoLink, "_blank");
+Diagnóstico: ${diagnostico}
+Tipo de Cáncer: ${tipoCancer}
 
+Adjuntamos la documentación respaldatoria correspondiente.
 
+Quedamos a la espera de su confirmación.
 
-            mostrarFlash("Mail generado. Una vez que PAMI responda, marcá el paciente como HABILITADO en el Dashboard.");
-            setTimeout(() => router.push("/administrador/pami"), 3000);
+Atentamente,
+Clínica de la Unión
+Chajarí, Entre Ríos`;
+
+            // 3. Abrir Gmail web con todo precargado
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1` +
+                `&to=${encodeURIComponent(ONCOPLAN_EMAIL_DESTINO)}` +
+                `&su=${encodeURIComponent(asunto)}` +
+                `&body=${encodeURIComponent(cuerpo)}`;
+
+            const nuevaVentana = window.open(gmailUrl, "_blank");
+            // Fallback si el navegador bloquea el popup
+            if (!nuevaVentana || nuevaVentana.closed || typeof nuevaVentana.closed === "undefined") {
+                window.location.href = gmailUrl;
+            }
+
+            mostrarFlash("Gmail abierto. No olvides ADJUNTAR la documentación antes de enviar. Una vez que PAMI responda, marcá el paciente como HABILITADO en el Dashboard.");
+            setTimeout(() => router.push("/administrador/pami"), 4000);
         } catch (e) {
             alert("Error al guardar: " + e.message);
         } finally {
@@ -159,7 +180,8 @@ export default function SolicitudOncoplánPage() {
                     </div>
 
                     <p className={styles.hint} style={{ marginTop: "1rem", textAlign: "right" }}>
-                        Al hacer clic, se abrirá tu gestor de correo con el mensaje redactado.
+                        Al hacer clic se abrirá <strong>Gmail</strong> con el correo redactado para <strong>{ONCOPLAN_EMAIL_DESTINO}</strong>.
+                        Acordate de <strong>adjuntar la documentación</strong> antes de enviar.
                     </p>
                 </div>
             </div>
