@@ -37,38 +37,48 @@ const ART_OPTIONS = [
   "Reconquista ART",
 ];
 
-const today = new Date();
-const defaultDay = String(today.getDate()).padStart(2, "0");
-const defaultMonth = String(today.getMonth() + 1).padStart(2, "0");
-const defaultYear = String(today.getFullYear());
+// --- Helpers de fecha ---
+// Antes eran constantes a nivel módulo (se calculaban una sola vez al abrir la página).
+// Ahora son funciones para que la fecha se recalcule cada vez que se necesita.
+function getTodayParts() {
+  const t = new Date();
+  return {
+    dia: String(t.getDate()).padStart(2, "0"),
+    mes: String(t.getMonth() + 1).padStart(2, "0"),
+    anio: String(t.getFullYear()),
+  };
+}
 
-const initialForm = {
-  ART: "",
-  nroSiniestro: "",
-  empleadorNombre: "",
-  empleadorCuitDni: "",
-  trabajadorApellido: "",
-  trabajadorNombre: "",
-  trabajadorDni: "",
-  trabajadorNacimiento: "",
-  trabajadorSexo: "",
-  trabajadorCalle: "",
-  trabajadorNumero: "",
-  trabajadorPiso: "",
-  trabajadorDepto: "",
-  trabajadorLocalidad: "",
-  trabajadorProvincia: "",
-  trabajadorCP: "",
-  trabajadorTelefono: "",
-  consultaTipo: "AT",   // ← valor por defecto
-  diaIngreso: defaultDay,
-  mesIngreso: defaultMonth,
-  anioIngreso: defaultYear,
-  diaDenuncia: defaultDay,
-  mesDenuncia: defaultMonth,
-  anioDenuncia: defaultYear,
-  trabajadorEdad: "",
-};
+function getInitialForm() {
+  const { dia, mes, anio } = getTodayParts();
+  return {
+    ART: "",
+    nroSiniestro: "",
+    empleadorNombre: "",
+    empleadorCuitDni: "",
+    trabajadorApellido: "",
+    trabajadorNombre: "",
+    trabajadorDni: "",
+    trabajadorNacimiento: "",
+    trabajadorSexo: "",
+    trabajadorCalle: "",
+    trabajadorNumero: "",
+    trabajadorPiso: "",
+    trabajadorDepto: "",
+    trabajadorLocalidad: "",
+    trabajadorProvincia: "",
+    trabajadorCP: "",
+    trabajadorTelefono: "",
+    consultaTipo: "AT",
+    diaIngreso: dia,
+    mesIngreso: mes,
+    anioIngreso: anio,
+    diaDenuncia: dia,
+    mesDenuncia: mes,
+    anioDenuncia: anio,
+    trabajadorEdad: "",
+  };
+}
 
 // --- helpers ---
 function onlyDigits(s) {
@@ -186,7 +196,8 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error, 
 // --- Componente principal ---
 export default function SiniestroPage() {
   const [activeTab, setActiveTab] = useState("nuevo");
-  const [form, setForm] = useState(initialForm);
+  // useState con función perezosa: se recalcula con la fecha actual cada vez que se inicializa
+  const [form, setForm] = useState(() => getInitialForm());
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [createdId, setCreatedId] = useState(null);
@@ -219,10 +230,25 @@ export default function SiniestroPage() {
   };
 
   // --- Persistencia local del formulario ---
+  // Restauramos los campos guardados, pero SIEMPRE forzamos las fechas a las de hoy
+  // para cumplir con "la fecha se tome la actual".
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setForm({ ...initialForm, ...JSON.parse(raw) });
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const fresh = getInitialForm();
+        const {
+          diaIngreso,
+          mesIngreso,
+          anioIngreso,
+          diaDenuncia,
+          mesDenuncia,
+          anioDenuncia,
+          ...rest
+        } = saved;
+        setForm({ ...fresh, ...rest });
+      }
     } catch {}
   }, []);
 
@@ -308,6 +334,8 @@ export default function SiniestroPage() {
     const fd = paciente.fechaDenuncia || {};
     const consulta = paciente.consulta?.tipo || "";
 
+    const { dia: tDia, mes: tMes, anio: tAnio } = getTodayParts();
+
     setForm({
       ART: art.nombre || "",
       nroSiniestro: art.nroSiniestro || "",
@@ -327,12 +355,12 @@ export default function SiniestroPage() {
       trabajadorCP: t.cp || "",
       trabajadorTelefono: t.telefono || "",
       consultaTipo: consulta,
-      diaIngreso: fi.dia || defaultDay,
-      mesIngreso: fi.mes || defaultMonth,
-      anioIngreso: fi.anio || defaultYear,
-      diaDenuncia: fd.dia || defaultDay,
-      mesDenuncia: fd.mes || defaultMonth,
-      anioDenuncia: fd.anio || defaultYear,
+      diaIngreso: fi.dia || tDia,
+      mesIngreso: fi.mes || tMes,
+      anioIngreso: fi.anio || tAnio,
+      diaDenuncia: fd.dia || tDia,
+      mesDenuncia: fd.mes || tMes,
+      anioDenuncia: fd.anio || tAnio,
       trabajadorEdad: t.edad || "",
     });
     setEditingId(paciente.id);
@@ -419,47 +447,47 @@ export default function SiniestroPage() {
       const empleadorCuitFormatted = formatIdField(form.empleadorCuitDni);
       const trabajadorDniFormatted = formatIdField(form.trabajadorDni);
 
-const payload = {
-  ART: {
-    nombre: form.ART.trim().toUpperCase() || "",
-    nroSiniestro: form.nroSiniestro.trim().toUpperCase() || "",
-  },
-  empleador: {
-    nombre: form.empleadorNombre.trim().toUpperCase() || "",
-    cuit: empleadorCuitFormatted || "",
-  },
-  trabajador: {
-    apellido: form.trabajadorApellido.trim().toUpperCase() || "",
-    nombre: form.trabajadorNombre.trim().toUpperCase() || "",
-    dni: trabajadorDniFormatted || "",
-    nacimiento: form.trabajadorNacimiento || "",
-    edad: form.trabajadorEdad,
-    sexo: form.trabajadorSexo,
-    calle: form.trabajadorCalle.trim().toUpperCase() || "",
-    numero: form.trabajadorNumero.trim().toUpperCase() || "",
-    piso: form.trabajadorPiso.trim().toUpperCase() || "",
-    depto: form.trabajadorDepto.trim().toUpperCase() || "",
-    localidad: form.trabajadorLocalidad.trim().toUpperCase() || "",
-    provincia: form.trabajadorProvincia.trim().toUpperCase() || "",
-    cp: onlyDigits(form.trabajadorCP) || "",
-    telefono: onlyDigits(form.trabajadorTelefono),
-  },
-  consulta: { tipo: form.consultaTipo || "" },
-  fechaIngreso: {
-    dia: form.diaIngreso,
-    mes: form.mesIngreso,
-    anio: form.anioIngreso,
-    iso: `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`,
-  },
-  fechaDenuncia: {
-    dia: form.diaDenuncia,
-    mes: form.mesDenuncia,
-    anio: form.anioDenuncia,
-    iso: `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`,
-  },
-  prestador: PRESTADOR_CONST,
-  updatedAt: Date.now(),
-};
+      const payload = {
+        ART: {
+          nombre: form.ART.trim().toUpperCase() || "",
+          nroSiniestro: form.nroSiniestro.trim().toUpperCase() || "",
+        },
+        empleador: {
+          nombre: form.empleadorNombre.trim().toUpperCase() || "",
+          cuit: empleadorCuitFormatted || "",
+        },
+        trabajador: {
+          apellido: form.trabajadorApellido.trim().toUpperCase() || "",
+          nombre: form.trabajadorNombre.trim().toUpperCase() || "",
+          dni: trabajadorDniFormatted || "",
+          nacimiento: form.trabajadorNacimiento || "",
+          edad: form.trabajadorEdad,
+          sexo: form.trabajadorSexo,
+          calle: form.trabajadorCalle.trim().toUpperCase() || "",
+          numero: form.trabajadorNumero.trim().toUpperCase() || "",
+          piso: form.trabajadorPiso.trim().toUpperCase() || "",
+          depto: form.trabajadorDepto.trim().toUpperCase() || "",
+          localidad: form.trabajadorLocalidad.trim().toUpperCase() || "",
+          provincia: form.trabajadorProvincia.trim().toUpperCase() || "",
+          cp: onlyDigits(form.trabajadorCP) || "",
+          telefono: onlyDigits(form.trabajadorTelefono),
+        },
+        consulta: { tipo: form.consultaTipo || "" },
+        fechaIngreso: {
+          dia: form.diaIngreso,
+          mes: form.mesIngreso,
+          anio: form.anioIngreso,
+          iso: `${form.anioIngreso}-${form.mesIngreso.padStart(2, "0")}-${form.diaIngreso.padStart(2, "0")}`,
+        },
+        fechaDenuncia: {
+          dia: form.diaDenuncia,
+          mes: form.mesDenuncia,
+          anio: form.anioDenuncia,
+          iso: `${form.anioDenuncia}-${form.mesDenuncia.padStart(2, "0")}-${form.diaDenuncia.padStart(2, "0")}`,
+        },
+        prestador: PRESTADOR_CONST,
+        updatedAt: Date.now(),
+      };
 
       let savedId;
       if (editingId) {
@@ -497,6 +525,14 @@ const payload = {
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setPdfFileName(fileName);
+
+      // --- LIMPIEZA AUTOMÁTICA POST-GUARDADO EXITOSO ---
+      // Resetemos el formulario con la fecha actual para evitar reenvíos o duplicados.
+      setForm(getInitialForm());
+      setErrors({});
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {}
 
       setEditingId(null);
       setCurrentEstado(null);
@@ -565,7 +601,7 @@ const payload = {
                   className={styles.ghostBtn}
                   disabled={saving}
                   onClick={() => {
-                    setForm(initialForm);
+                    setForm(getInitialForm());
                     setErrors({});
                     setCreatedId(null);
                     setPdfError(null);
