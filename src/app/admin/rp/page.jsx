@@ -22,6 +22,7 @@ import {
     buildPrintHtml,
 } from './helpers';
 import { SaveAtajoModal, AtajosModal } from './AtajosModal';
+import { CartSection } from './CartSection';
 import Estadisticas from './Estadisticas.jsx';
 
 // =====================================================================
@@ -96,7 +97,7 @@ const hydrateRp = (raw) => {
 };
 
 // =====================================================================
-//  SUBCOMPONENTES
+//  SUBCOMPONENTES (pickers, búsqueda, filas)
 // =====================================================================
 function PacientePicker({ paciente, setPaciente, pacientes, loading, onFocusLoad }) {
     const [q, setQ] = useState('');
@@ -657,118 +658,6 @@ function LabRow({ item, onRemove }) {
     );
 }
 
-function RPCard({
-    rp, onDelete, onEdit, onPrint, onDownload,
-    onToggleImpreso,
-    selectable, selected, onToggleSelect,
-}) {
-    const total = (rp.practicas || []).reduce((a, p) => a + (p.costo?.total || 0), 0);
-    const totalHon = (rp.practicas || []).reduce(
-        (a, p) => a + (p.costo?.honorarioMedico || 0), 0
-    );
-    const totalGto = (rp.practicas || []).reduce(
-        (a, p) => a + (p.costo?.gastoSanatorial || 0), 0
-    );
-    const cantLabs = (rp.estudiosLab || []).length;
-
-    const practicasConInsumos = (rp.practicas || []).filter(
-        (p) => Array.isArray(p.insumos) && p.insumos.length > 0
-    );
-
-    return (
-        <div
-            className={`${styles.rpCard} ${selected ? styles.rpCardSelected : ''} ${rp.impreso ? styles.rpCardPrinted : ''}`}
-        >
-            <div className={styles.rpCardHeader}>
-                {selectable && (
-                    <input
-                        type="checkbox"
-                        className={styles.rpCardCheckbox}
-                        checked={!!selected}
-                        onChange={() => onToggleSelect(rp.id)}
-                        aria-label="Seleccionar RP"
-                    />
-                )}
-
-                <div className={styles.rpCardTitleBlock}>
-                    <strong className={styles.rpCardTitle} title={rp.paciente?.nombreCompleto || ''}>
-                        {rp.tipoDoc}{rp.esLab ? ' LAB' : ''}{' · '}
-                        {rp.paciente?.nombreCompleto || 'Sin paciente'}
-                    </strong>
-                    <div className={styles.meta}>DNI: {rp.paciente?.dni || '—'}</div>
-                </div>
-
-                <button
-                    type="button"
-                    className={`${styles.printIconBtn} ${rp.impreso ? styles.printIconOn : ''}`}
-                    onClick={(e) => { e.stopPropagation(); onToggleImpreso?.(rp.id); }}
-                    title={rp.impreso
-                        ? 'Impresa — click para desmarcar'
-                        : 'Sin imprimir — click para marcar'}
-                    aria-label={rp.impreso ? 'Marcar como no impresa' : 'Marcar como impresa'}
-                >
-                    {rp.impreso ? '✓' : '🖨️'}
-                </button>
-
-                <span className={styles.badge}>{fmtDate(rp.fecha)}</span>
-            </div>
-
-            <div className={styles.meta}>
-                🩺 {rp.medico?.apellido ? `${rp.medico.apellido}, ${rp.medico.nombre}` : 'Sin médico'}
-                {rp.medico?.matricula ? ` · MP ${rp.medico.matricula}` : ''}
-            </div>
-            <div className={styles.meta}>
-                {rp.esLab
-                    ? `${cantLabs} estudio(s) de laboratorio`
-                    : `${rp.practicas?.length || 0} práctica(s)`}
-            </div>
-            {!rp.esLab && (
-                <div className={styles.meta}>
-                    Hon: {money(totalHon)} · Gto: {money(totalGto)} ·{' '}
-                    <strong>{money(total)}</strong>
-                </div>
-            )}
-
-            {practicasConInsumos.length > 0 && (
-                <div className={styles.practicaMiniBlock}>
-                    {practicasConInsumos.map((p) => (
-                        <div key={p.id} className={styles.practicaMini}>
-                            <div className={styles.practicaMiniHeader}>
-                                <span className={styles.practicaMiniCodigo}>{p.codigo}</span>
-                                <span className={styles.practicaMiniDesc}>{p.descripcion}</span>
-                            </div>
-                            <InsumoChips insumos={p.insumos} />
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            <div className={styles.rpCardActions}>
-                {onPrint && (
-                    <button className={styles.btnGhost} onClick={() => onPrint(rp)} title="Imprimir">
-                        🖨️ Imprimir
-                    </button>
-                )}
-                {onDownload && (
-                    <button className={styles.btnGhost} onClick={() => onDownload(rp)} title="Descargar PDF">
-                        📥 PDF
-                    </button>
-                )}
-                {onEdit && (
-                    <button className={styles.btnGhost} onClick={() => onEdit(rp)} title="Editar">
-                        ✏️
-                    </button>
-                )}
-                {onDelete && (
-                    <button className={styles.btnDanger} onClick={() => onDelete(rp.id)} title="Eliminar">
-                        🗑️
-                    </button>
-                )}
-            </div>
-        </div>
-    );
-}
-
 // =====================================================================
 //  MAIN
 // =====================================================================
@@ -1044,7 +933,23 @@ export default function RPPage() {
             return next;
         });
     }, []);
-    const selectAll = useCallback((list) => setSelectedIds(new Set(list.map((r) => r.id))), []);
+
+    const selectMany = useCallback((ids) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.add(id));
+            return next;
+        });
+    }, []);
+
+    const deselectMany = useCallback((ids) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.delete(id));
+            return next;
+        });
+    }, []);
+
     const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
     // ============ IMPRESO / NO IMPRESO ============
@@ -1554,10 +1459,6 @@ export default function RPPage() {
     const totalRp = rp.practicas.reduce((a, p) => a + (p.costo?.total || 0), 0);
     const totalHonRp = rp.practicas.reduce((a, p) => a + (p.costo?.honorarioMedico || 0), 0);
     const totalGtoRp = rp.practicas.reduce((a, p) => a + (p.costo?.gastoSanatorial || 0), 0);
-    const totalCarrito = carrito.reduce(
-        (a, r) => a + (r.practicas || []).reduce((b, p) => b + (p.costo?.total || 0), 0),
-        0
-    );
     const hayAoterRp = rp.practicas.some((p) => p.origen === 'aoter');
     const hasContent = rp.esLab ? rp.estudiosLab.length > 0 : rp.practicas.length > 0;
 
@@ -1779,130 +1680,76 @@ export default function RPPage() {
                     </section>
 
                     {carrito.length > 0 && (
-                        <section className={styles.cart}>
-                            <h2 className={styles.sectionTitle}>
-                                🧺 Por guardar ({carrito.length}) — Total: {money(totalCarrito)}
-                            </h2>
-
-                            <div className={styles.listToolbar}>
-                                <label className={styles.toolbarLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={carrito.length > 0 && selectedIds.size === carrito.length}
-                                        onChange={(e) =>
-                                            e.target.checked ? selectAll(carrito) : clearSelection()
-                                        }
-                                    />
-                                    Seleccionar todo
-                                </label>
-                                <span className={styles.toolbarCount}>
-                                    {selectedIds.size} seleccionada(s)
-                                </span>
-                                <button
-                                    className={styles.btnDanger}
-                                    onClick={deleteSelectedFromCart}
-                                    disabled={selectedIds.size === 0}
-                                    title={selectedIds.size === 0 ? 'Tildá al menos una RP' : 'Eliminar seleccionadas'}
-                                >
-                                    🗑️ Eliminar seleccionadas ({selectedIds.size})
-                                </button>
-                            </div>
-
-                            <div className={styles.cartGrid}>
-                                {carrito.map((r) => (
-                                    <RPCard
-                                        key={r.id}
-                                        rp={r}
-                                        selectable
-                                        selected={selectedIds.has(r.id)}
-                                        onToggleSelect={toggleSelect}
-                                        onDelete={removeFromCart}
-                                        onEdit={editFromCart}
-                                        onPrint={(rp) => printOne(rp, 'cart')}
-                                        onDownload={downloadOne}
-                                        onToggleImpreso={toggleImpresoCart}
-                                    />
-                                ))}
-                            </div>
-                            <div className={styles.cartActions}>
-                                <button className={styles.btnGhost} onClick={() => printList(carrito, 'cart')}>
-                                    🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
-                                </button>
-                                <button className={styles.btnGhost} onClick={() => downloadList(carrito)}>
-                                    📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
-                                </button>
-                                <button className={styles.btnPrimary} onClick={saveAll} disabled={saving}>
-                                    {saving ? 'Guardando…' : '💾 Guardar todas'}
-                                </button>
-                            </div>
-                        </section>
+                        <CartSection
+                            rps={carrito}
+                            selectedIds={selectedIds}
+                            onToggleSelected={toggleSelect}
+                            onSelectAll={selectMany}
+                            onDeselectAll={deselectMany}
+                            onEdit={editFromCart}
+                            onDelete={removeFromCart}
+                            onPrint={(r) => printOne(r, 'cart')}
+                            onDownload={downloadOne}
+                            onTogglePrinted={toggleImpresoCart}
+                            title="🧺 Por guardar"
+                            emptyMessage="No hay RPs en el carrito."
+                        >
+                            <button
+                                className={styles.btnDanger}
+                                onClick={deleteSelectedFromCart}
+                                disabled={selectedIds.size === 0}
+                            >
+                                🗑️ Eliminar seleccionadas ({selectedIds.size})
+                            </button>
+                            <button className={styles.btnGhost} onClick={() => printList(carrito, 'cart')}>
+                                🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
+                            </button>
+                            <button className={styles.btnGhost} onClick={() => downloadList(carrito)}>
+                                📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
+                            </button>
+                            <button className={styles.btnPrimary} onClick={saveAll} disabled={saving}>
+                                {saving ? 'Guardando…' : '💾 Guardar todas'}
+                            </button>
+                        </CartSection>
                     )}
                 </>
             )}
 
             {activeTab === 'historial' && (
-                <section className={styles.history}>
-                    {historial.length === 0 ? (
+                historial.length === 0 ? (
+                    <section className={styles.history}>
                         <div className={styles.empty}>Todavía no hay RPs guardadas.</div>
-                    ) : (
-                        <>
-                            <div className={styles.listToolbar}>
-                                <label className={styles.toolbarLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={historial.length > 0 && selectedIds.size === historial.length}
-                                        onChange={(e) =>
-                                            e.target.checked ? selectAll(historial) : clearSelection()
-                                        }
-                                    />
-                                    Seleccionar todo
-                                </label>
-                                <span className={styles.toolbarCount}>
-                                    {selectedIds.size} seleccionada(s)
-                                </span>
-                                <button
-                                    className={styles.btnGhost}
-                                    onClick={() => printList(historial, 'historial')}
-                                    disabled={historial.length === 0}
-                                >
-                                    🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
-                                </button>
-                                <button
-                                    className={styles.btnPrimary}
-                                    onClick={() => downloadList(historial)}
-                                    disabled={historial.length === 0}
-                                >
-                                    📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
-                                </button>
-                                <button
-                                    className={styles.btnDanger}
-                                    onClick={deleteSelectedFromHistorial}
-                                    disabled={selectedIds.size === 0}
-                                    title={selectedIds.size === 0 ? 'Tildá al menos una RP' : 'Eliminar seleccionadas'}
-                                >
-                                    🗑️ Eliminar seleccionadas ({selectedIds.size})
-                                </button>
-                            </div>
-
-                            <div className={styles.cartGrid}>
-                                {historial.map((h) => (
-                                    <RPCard
-                                        key={h.id}
-                                        rp={h}
-                                        selectable
-                                        selected={selectedIds.has(h.id)}
-                                        onToggleSelect={toggleSelect}
-                                        onDelete={deleteHistorial}
-                                        onEdit={editFromHistorial}
-                                        onPrint={(rp) => printOne(rp, 'historial')}
-                                        onDownload={downloadOne}
-                                        onToggleImpreso={toggleImpresoHistorial}
-                                    />
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </section>
+                    </section>
+                ) : (
+                    <CartSection
+                        rps={historial}
+                        selectedIds={selectedIds}
+                        onToggleSelected={toggleSelect}
+                        onSelectAll={selectMany}
+                        onDeselectAll={deselectMany}
+                        onEdit={editFromHistorial}
+                        onDelete={deleteHistorial}
+                        onPrint={(r) => printOne(r, 'historial')}
+                        onDownload={downloadOne}
+                        onTogglePrinted={toggleImpresoHistorial}
+                        title="📚 Historial"
+                        emptyMessage="Todavía no hay RPs guardadas."
+                    >
+                        <button
+                            className={styles.btnDanger}
+                            onClick={deleteSelectedFromHistorial}
+                            disabled={selectedIds.size === 0}
+                        >
+                            🗑️ Eliminar seleccionadas ({selectedIds.size})
+                        </button>
+                        <button className={styles.btnGhost} onClick={() => printList(historial, 'historial')}>
+                            🖨️ Imprimir {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
+                        </button>
+                        <button className={styles.btnPrimary} onClick={() => downloadList(historial)}>
+                            📥 Descargar {selectedIds.size > 0 ? `(${selectedIds.size})` : 'todas'}
+                        </button>
+                    </CartSection>
+                )
             )}
 
             {activeTab === 'stats' && <Estadisticas historial={historial} />}

@@ -878,3 +878,199 @@
     letter-spacing: 0.4px;
 }
 
+/* =====================================================================
+   Carrito compacto + filtros + grupos
+===================================================================== */
+.rpCard {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 11px 13px;
+    background: rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    height: 100%;
+    min-height: 0;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.rpCard:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+/* Barra de filtros */
+.cartFilters {
+    display: flex; flex-wrap: wrap; gap: 12px 18px;
+    padding: 14px 16px; margin-bottom: 14px;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    align-items: center;
+}
+.cartSearchBlock { flex: 1 1 280px; min-width: 220px; }
+
+.filterGroup {
+    display: flex; align-items: center; gap: 8px;
+}
+.filterGroupLabel {
+    font-size: 11px; font-weight: 700;
+    color: #6b7280; text-transform: uppercase;
+    letter-spacing: 0.6px; white-space: nowrap;
+}
+
+.segmented {
+    display: inline-flex; gap: 2px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px; padding: 3px;
+}
+.segmentedBtn {
+    padding: 6px 12px; font-size: 13px; font-weight: 600;
+    color: #9ca3af; background: transparent; border: none;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    transition: all 0.15s; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.segmentedBtn:hover { color: #e5e7eb; }
+.segmentedBtnActive {
+    background: rgba(111, 161, 123, 0.25);
+    color: #d1fae5;
+    box-shadow: inset 0 0 0 1px rgba(111, 161, 123, 0.4);
+}
+.segCount {
+    padding: 1px 7px; font-size: 10.5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Header compacto de la card */
+.rpCardCompactHeader {
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.rpCardCompactMain {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+}
+.rpCardMeta {
+    display: flex; flex-wrap: wrap; gap: 2px 12px;
+    font-size: 12px; color: #9ca3af;
+}
+.rpCardMeta strong { color: #d1d5db; font-weight: 600; }
+
+.rpCardSummary {
+    display: flex; flex-wrap: wrap; gap: 5px 6px;
+    align-items: center;
+    font-size: 12px;
+}
+.summaryChip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11.5px; color: #d1d5db;
+    white-space: nowrap; line-height: 1.5;
+}
+.summaryChip strong { color: #a7f3d0; }
+
+.rpCardExpandRow {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+.expandToggle {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #9ca3af;
+    width: 26px; height: 26px;
+    border-radius: 6px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 11px;
+    transition: all 0.15s; font-family: inherit;
+}
+.expandToggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Contenido expandido */
+.rpCardExpanded {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    display: flex; flex-direction: column; gap: 10px;
+    animation: expandDown 0.18s ease-out;
+}
+@keyframes expandDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.detailSection {
+    display: flex; flex-direction: column; gap: 4px;
+}
+.detailSectionTitle {
+    font-size: 11px; font-weight: 700;
+    color: #6b7280; text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+.detailPracticeRow {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    font-size: 13px;
+}
+.detailPracticeRow:last-child { border-bottom: none; }
+.detailPracticeCode {
+    font-family: 'Courier New', monospace;
+    font-weight: 700; font-size: 12px;
+    color: #93c5fd; flex-shrink: 0;
+}
+.detailPracticeDesc { flex: 1; min-width: 0; word-break: break-word; }
+.detailPracticeType {
+    font-size: 11px; font-style: italic;
+    color: #9ca3af; white-space: nowrap;
+}
+
+/* Agrupaciones */
+.groupSection { margin-bottom: 18px; }
+.groupHeader {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    background: rgba(111, 161, 123, 0.08);
+    border: 1px solid rgba(111, 161, 123, 0.22);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.groupHeader:hover {
+    background: rgba(111, 161, 123, 0.13);
+    border-color: rgba(111, 161, 123, 0.35);
+}
+.groupHeaderToggle {
+    font-size: 10px; color: #a7f3d0;
+    display: inline-block;
+    transition: transform 0.18s ease;
+}
+.groupHeaderToggleOpen { transform: rotate(90deg); }
+.groupTitle {
+    flex: 1; font-weight: 700; font-size: 14px;
+    color: #d1fae5; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.groupMeta {
+    font-size: 12px; color: #9ca3af;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.groupTotal {
+    font-weight: 700; font-size: 13px;
+    color: #6fa17b;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap; min-width: 80px;
+    text-align: right;
+}
