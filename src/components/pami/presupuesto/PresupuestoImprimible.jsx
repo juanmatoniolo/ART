@@ -91,7 +91,7 @@ export default function PresupuestoImprimible({
                 </section>
             )}
 
-            {/* EQUIPO MÉDICO */}
+            {/* EQUIPO MÉDICO GENERAL */}
             {equipo.length > 0 && (
                 <section className={styles.seccion}>
                     <h2 className={styles.tituloSeccion}>Equipo médico</h2>
@@ -115,7 +115,7 @@ export default function PresupuestoImprimible({
                             <tr>
                                 <th style={{ width: "10%", textAlign: "center" }}>Cant.</th>
                                 <th style={{ width: "25%" }}>Código</th>
-                                <th>Descripción</th>
+                                <th>Descripción / Médico</th>
                                 <th style={{ width: "20%", textAlign: "right" }}>Subtotal</th>
                             </tr>
                         </thead>
@@ -127,7 +127,14 @@ export default function PresupuestoImprimible({
                                     <tr key={c.id ?? `cod-${i}`}>
                                         <td style={{ textAlign: "center" }}>{cant}</td>
                                         <td><span className={styles.codigoTxt}>{c.codigo || "—"}</span></td>
-                                        <td>{c.descripcion || "Sin descripción"}</td>
+                                        <td>
+                                            {/* FORMATEO CON MEDICO SI EXISTE */}
+                                            {c.medico ? (
+                                                <span><strong>Dr. {c.medico}</strong> - {c.descripcion}</span>
+                                            ) : (
+                                                <span>{c.descripcion || "Sin descripción"}</span>
+                                            )}
+                                        </td>
                                         <td style={{ textAlign: "right" }}>{subtotal > 0 ? formatCurrency(subtotal) : "—"}</td>
                                     </tr>
                                 );

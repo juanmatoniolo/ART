@@ -26,7 +26,16 @@ const desdeDb = (d) => ({
 const aDb = (f) => {
     const { famNombre, famParentezco, famTelefono, nombreCompleto, ...resto } = f;
     const partes = String(nombreCompleto || "").trim().split(/\s+/).filter(Boolean);
-    return { ...resto, apellido: partes[0] || "", nombre: partes.slice(1).join(" "), familiar: { nombre: (famNombre || "").trim(), parentezco: (famParentezco || "").trim(), telefono: (famTelefono || "").trim() } };
+    return {
+        ...resto,
+        apellido: (partes[0] || "").toUpperCase(),
+        nombre: partes.slice(1).join(" ").toUpperCase(),
+        familiar: {
+            nombre: (famNombre || "").trim().toUpperCase(),
+            parentezco: (famParentezco || "").trim().toUpperCase(),
+            telefono: (famTelefono || "").trim()
+        }
+    };
 };
 
 const usuarioActual = () => {
@@ -34,7 +43,17 @@ const usuarioActual = () => {
     return s.user || s.usuario || s.nombre || "sistema";
 };
 
+const LOCAL_STORAGE_KEY = "pami:presupuesto:wizard";
+
+const parseNum = (val) => {
+    if (val === undefined || val === null || val === "") return 0;
+    const num = parseFloat(String(val).replace(",", "."));
+    return isNaN(num) ? 0 : num;
+};
+
 export default function PresupuestoTab({ items, pacientesDb = [], initialPaciente = null, initialDraft = null, onInitialLoaded }) {
+    const [hasMounted, setHasMounted] = useState(false);
+
     const [paso, setPaso] = useState(1);
     const [paciente, setPaciente] = useState(PACIENTE_VACIO);
     const [oncoplan, setOncoplan] = useState(false);
@@ -47,7 +66,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const [flash, setFlash] = useState("");
     const [saving, setSaving] = useState(false);
 
-    const [formCodigo, setFormCodigo] = useState({ codigo: "", descripcion: "", monto: "", cantidad: "1" });
+    const [formCodigo, setFormCodigo] = useState({ codigo: "", descripcion: "", monto: "", cantidad: "1", medico: "" });
     const [nomenclador, setNomenclador] = useState([]);
     const [busquedaCodigo, setBusquedaCodigo] = useState("");
 
@@ -60,7 +79,34 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
 
     const mostrarFlash = (m, ms = 3500) => { setFlash(m); setTimeout(() => setFlash(""), ms); };
 
-    // Carga de Nomencladores
+    useEffect(() => {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (data.paciente) setPaciente(data.paciente);
+                setOncoplan(data.oncoplan || false);
+                setCarrito(data.carrito || []);
+                setCodigos(data.codigos || []);
+                setDraftActivo(data.draftActivo || null);
+                setPaso(data.paso || 1);
+            } catch (e) {
+                console.error("Error al recuperar de memoria", e);
+            }
+        }
+        setHasMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!hasMounted) return;
+        const timer = setTimeout(() => {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+                paciente, oncoplan, carrito, codigos, draftActivo, paso
+            }));
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [paciente, oncoplan, carrito, codigos, draftActivo, paso, hasMounted]);
+
     useEffect(() => {
         const URL_NACIONAL = '/archivos/nacional-nomenclador.json';
         const URL_PAMI = '/archivos/pami-nomenclador.json';
@@ -84,7 +130,6 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         });
     }, [nomenclador]);
 
-    // FIX: Asegurar que el borrador cargado guarde su ID correctamente
     useEffect(() => {
         if (!initialPaciente) return;
         const { medicamentos = {}, ...datos } = initialPaciente;
@@ -117,7 +162,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const cargarBorrador = (b) => {
         setCarrito(itemsDe(b).map((i) => ({ ...i, id: i.id || `${i.categoria}:${i.key}` })));
         setCodigos(codigosDe(b).map((c) => ({ ...c })));
-        setDraftActivo(b); // Guardamos el borrador activo con su ID
+        setDraftActivo(b);
         mostrarFlash(b.id ? "Borrador cargado. Podés editarlo." : "Borrador cargado.");
     };
 
@@ -131,9 +176,14 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         setCarrito([]);
         setCodigos([]);
         setDraftActivo(null);
-        setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1" });
+        setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1", medico: "" });
         setBusquedaCodigo("");
         mostrarFlash("Carrito vaciado con éxito.");
+    };
+
+    const limpiarCodigos = () => {
+        if (!confirm("¿Vaciar la lista de prestaciones/códigos?")) return;
+        setCodigos([]);
     };
 
     const guardarPaciente = async () => {
@@ -141,7 +191,16 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         const key = dniKey(paciente.dni);
         if (key.length < 7) throw new Error("DNI inválido.");
         if (!paciente.afiliado.trim()) throw new Error("Ingresá el N° de afiliado PAMI.");
-        await asegurarPacientePami(aDb(paciente), { usuario: usuarioActual() });
+
+        // Guardamos los datos del paciente forzando mayúsculas
+        const pacienteAGuardar = { ...paciente };
+        Object.keys(pacienteAGuardar).forEach(k => {
+            if (typeof pacienteAGuardar[k] === 'string') {
+                pacienteAGuardar[k] = pacienteAGuardar[k].toUpperCase();
+            }
+        });
+
+        await asegurarPacientePami(aDb(pacienteAGuardar), { usuario: usuarioActual() });
         return key;
     };
 
@@ -149,23 +208,42 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         try {
             setSaving(true);
             const key = await guardarPaciente();
-            const total = carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0) + codigos.reduce((s, c) => s + ((Number(c.monto) || 0) * (Number(c.cantidad) || 1)), 0);
+
+            const carritoAGuardar = carrito.map(c => ({ ...c, cantidad: parseNum(c.cantidad), nombre: c.nombre.toUpperCase() }));
+            const codigosAGuardar = codigos.map(c => ({
+                ...c,
+                cantidad: parseNum(c.cantidad),
+                codigo: (c.codigo || "").toUpperCase(),
+                descripcion: (c.descripcion || "").toUpperCase(),
+                medico: (c.medico || "").toUpperCase()
+            }));
+
+            const total = carritoAGuardar.reduce((s, c) => s + c.precio * c.cantidad, 0) + codigosAGuardar.reduce((s, c) => s + ((Number(c.monto) || 0) * c.cantidad), 0);
 
             const idAGuardar = forceNew ? null : draftActivo?.id;
 
-            const res = await guardarPresupuestoPami(key, { items: carrito, codigos, total, oncoplan, opId: draftActivo?.opId || null }, { usuario: usuarioActual(), id: idAGuardar });
+            const res = await guardarPresupuestoPami(key, { items: carritoAGuardar, codigos: codigosAGuardar, total, oncoplan, opId: draftActivo?.opId || null }, { usuario: usuarioActual(), id: idAGuardar });
 
-            setDraftActivo({ ...draftActivo, id: res.id, items: carrito, codigos, total, oncoplan });
+            setDraftActivo({ ...draftActivo, id: res.id, items: carritoAGuardar, codigos: codigosAGuardar, total, oncoplan });
             mostrarFlash(forceNew ? "¡Nuevo presupuesto guardado!" : (idAGuardar ? "¡Borrador actualizado!" : "¡Presupuesto guardado!"));
 
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
             setPaso(1);
         } catch (e) { alert(e.message); } finally { setSaving(false); }
     };
 
     const agregarCodigo = () => {
         if (!formCodigo.codigo && !formCodigo.descripcion) return;
-        setCodigos([...codigos, { id: `cod-${Date.now()}`, ...formCodigo, monto: Number(formCodigo.monto) || 0, cantidad: Number(formCodigo.cantidad) || 1 }]);
-        setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1" });
+        setCodigos([...codigos, {
+            id: `cod-${Date.now()}`,
+            ...formCodigo,
+            codigo: formCodigo.codigo.toUpperCase(),
+            descripcion: formCodigo.descripcion.toUpperCase(),
+            medico: formCodigo.medico.toUpperCase(),
+            monto: parseNum(formCodigo.monto),
+            cantidad: String(formCodigo.cantidad).replace(".", ",")
+        }]);
+        setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1", medico: "" });
         setBusquedaCodigo("");
     };
 
@@ -180,12 +258,12 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     }, [busquedaCodigo, nomenclador, fuse]);
 
     const seleccionarCodigoNomenclador = (c) => {
-        const descCorta = c.descripcion && c.descripcion.length > 30 ? c.descripcion.substring(0, 30) + "..." : c.descripcion;
-        setFormCodigo({ ...formCodigo, codigo: c.codigo, descripcion: descCorta, monto: c.origen === 'PAMI' ? (c.monto || "") : "" });
+        const descCorta = c.descripcion && c.descripcion.length > 30 ? c.descripcion.substring(0, 30).toUpperCase() + "..." : c.descripcion.toUpperCase();
+        setFormCodigo({ ...formCodigo, codigo: c.codigo.toUpperCase(), descripcion: descCorta, monto: c.origen === 'PAMI' ? (c.monto || "") : "" });
         setBusquedaCodigo("");
     };
 
-    const total = carrito.reduce((s, c) => s + c.precio * (Number(c.cantidad) || 0), 0) + codigos.reduce((s, c) => s + ((Number(c.monto) || 0) * (Number(c.cantidad) || 1)), 0);
+    const total = carrito.reduce((s, c) => s + c.precio * parseNum(c.cantidad), 0) + codigos.reduce((s, c) => s + ((Number(c.monto) || 0) * parseNum(c.cantidad)), 0);
 
     const renderPaso1 = () => (
         <div className={styles.card}>
@@ -207,8 +285,10 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const renderPaso2 = () => (
         <div className={styles.card}>
             <h3 className={styles.cardTitle}>Paso 2: Prestaciones (Códigos)</h3>
-            <div className={styles.codigoForm}>
-                <label className={styles.field} style={{ position: "relative" }}>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.5rem", alignItems: "end", marginBottom: "1.5rem" }}>
+
+                <label className={styles.field} style={{ position: "relative", gridColumn: "1 / -1", marginBottom: "0.5rem" }}>
                     <span>Buscar en Nomencladores (Código o Palabra)</span>
                     <input className={styles.input} value={busquedaCodigo} onChange={e => setBusquedaCodigo(e.target.value)} placeholder="Ej: 65.00.01, 'Consulta'..." />
                     {busquedaCodigo.trim().length >= 2 && (
@@ -228,20 +308,75 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
                         </ul>
                     )}
                 </label>
-                <div className={styles.codigoRow}>
-                    <label className={styles.field}><span>Código</span><input className={styles.input} value={formCodigo.codigo} onChange={e => setFormCodigo({ ...formCodigo, codigo: e.target.value })} /></label>
-                    <label className={styles.field}><span>Cant.</span><input className={styles.input} type="number" value={formCodigo.cantidad} onChange={e => setFormCodigo({ ...formCodigo, cantidad: e.target.value })} /></label>
-                </div>
-                <label className={styles.field}><span>Descripción (Max 30 carac.)</span><input className={styles.input} value={formCodigo.descripcion} onChange={e => setFormCodigo({ ...formCodigo, descripcion: e.target.value })} maxLength={30} /></label>
-                <label className={styles.field}><span>Monto (Opcional)</span><input className={styles.input} value={formCodigo.monto} onChange={e => setFormCodigo({ ...formCodigo, monto: e.target.value })} placeholder="0,00" /></label>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={agregarCodigo}>+ Agregar Código</button>
+
+                <label className={styles.field}><span>Código</span><input className={styles.input} value={formCodigo.codigo} onChange={e => setFormCodigo({ ...formCodigo, codigo: e.target.value.toUpperCase() })} /></label>
+                <label className={styles.field} style={{ gridColumn: "span 2" }}><span>Descripción</span><input className={styles.input} value={formCodigo.descripcion} onChange={e => setFormCodigo({ ...formCodigo, descripcion: e.target.value.toUpperCase() })} maxLength={40} /></label>
+                <label className={styles.field}><span>Médico (Opcional)</span><input className={styles.input} value={formCodigo.medico} onChange={e => setFormCodigo({ ...formCodigo, medico: e.target.value.toUpperCase() })} placeholder="DR. APELLIDO" /></label>
+                <label className={styles.field}><span>Monto</span><input className={styles.input} type="number" value={formCodigo.monto} onChange={e => setFormCodigo({ ...formCodigo, monto: e.target.value })} placeholder="0.00" /></label>
+                <label className={styles.field}><span>Cant.</span><input className={styles.input} type="text" inputMode="decimal" value={formCodigo.cantidad} onChange={e => setFormCodigo({ ...formCodigo, cantidad: e.target.value })} /></label>
+                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={agregarCodigo} style={{ height: "42px" }}>+ Agregar</button>
             </div>
-            {codigos.map((c, i) => (
-                <div key={i} className={styles.codigoItem}>
-                    <div><strong>{c.codigo || "Práctica"}</strong> - {c.descripcion} (x{c.cantidad})</div>
-                    <div>{formatCurrency((c.monto) * c.cantidad)} <button className={styles.btn} style={{ marginLeft: 10, padding: "2px 8px", minHeight: "auto" }} onClick={() => setCodigos(codigos.filter((_, idx) => idx !== i))}>✕</button></div>
-                </div>
-            ))}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <h4 style={{ margin: 0, fontSize: "0.9rem", color: "var(--muted)" }}>Códigos Agregados</h4>
+                {codigos.length > 0 && (
+                    <button type="button" className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: "auto", fontSize: "0.8rem" }} onClick={limpiarCodigos}>
+                        🗑️ Limpiar todos
+                    </button>
+                )}
+            </div>
+
+            <div className={styles.cartList}>
+                {codigos.map((c) => (
+                    <div key={c.id} className={styles.cartItem} style={{ padding: "0.75rem" }}>
+                        <div>
+                            <div className={styles.cartItemName}>{c.codigo || "PRÁCTICA"} - {c.descripcion}</div>
+                            <div className={styles.cartItemQty} style={{ marginTop: "0.25rem" }}>
+                                <input
+                                    className={styles.input}
+                                    style={{ width: 120, minHeight: 28, padding: "2px 6px", fontSize: "0.75rem" }}
+                                    placeholder="MÉDICO..."
+                                    value={c.medico || ""}
+                                    onChange={(e) => {
+                                        setCodigos(codigos.map(x => x.id === c.id ? { ...x, medico: e.target.value.toUpperCase() } : x));
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            <label style={{ fontSize: "0.75rem", color: "var(--muted)" }}>CANT:</label>
+                            <input
+                                className={styles.input}
+                                style={{ width: 60, minHeight: 32, padding: "4px", textAlign: "center" }}
+                                type="text"
+                                inputMode="decimal"
+                                value={c.cantidad}
+                                onChange={(e) => {
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: e.target.value } : x));
+                                }}
+                            />
+                            <label style={{ fontSize: "0.75rem", color: "var(--muted)", marginLeft: "0.5rem" }}>MONTO:</label>
+                            <input
+                                className={styles.input}
+                                style={{ width: 90, minHeight: 32, padding: "4px", textAlign: "center" }}
+                                type="number"
+                                value={c.monto || ""}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value) || 0;
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, monto: val } : x));
+                                }}
+                                placeholder="$ 0"
+                            />
+                            <strong style={{ minWidth: 80, textAlign: "right", marginLeft: "0.5rem" }}>
+                                {formatCurrency((c.monto || 0) * parseNum(c.cantidad))}
+                            </strong>
+                            <button className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: 32 }} onClick={() => setCodigos(codigos.filter(x => x.id !== c.id))}>🗑️</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", justifyContent: "flex-end" }}>
                 <button type="button" className={styles.btn} onClick={() => setPaso(1)}>← Volver</button>
                 <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setPaso(3)}>Ir a Medicamentos →</button>
@@ -252,13 +387,18 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const renderPaso3 = () => (
         <div className={styles.card}>
             <h3 className={styles.cardTitle}>Paso 3: Medicación y Descartables</h3>
-            <CatalogoProductos items={items} onAgregar={(item, qty) => {
-                setCarrito(prev => {
-                    const existing = prev.find(x => x.id === `${item.categoria}:${item.key}`);
-                    if (existing) return prev.map(x => x.id === existing.id ? { ...x, cantidad: x.cantidad + qty } : x);
-                    return [...prev, { id: `${item.categoria}:${item.key}`, nombre: item.nombre, precio: item.precioFacturacion, cantidad: qty }];
-                });
-            }} />
+            <div style={{ paddingBottom: "1rem" }}>
+                <CatalogoProductos items={items} onAgregar={(item, qty) => {
+                    setCarrito(prev => {
+                        const existing = prev.find(x => x.id === `${item.categoria}:${item.key}`);
+                        if (existing) {
+                            const currentQty = parseNum(existing.cantidad);
+                            return prev.map(x => x.id === existing.id ? { ...x, cantidad: String(currentQty + qty).replace(".", ",") } : x);
+                        }
+                        return [...prev, { id: `${item.categoria}:${item.key}`, nombre: item.nombre.toUpperCase(), precio: item.precioFacturacion, cantidad: String(qty).replace(".", ",") }];
+                    });
+                }} />
+            </div>
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", justifyContent: "flex-end" }}>
                 <button type="button" className={styles.btn} onClick={() => setPaso(2)}>← Volver</button>
                 <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setPaso(4)}>Ver Total →</button>
@@ -271,54 +411,72 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             <h3 className={styles.cardTitle}>Paso 4: Total y Resumen</h3>
 
             <div className={styles.cartList}>
-                {/* LISTA DE MEDICAMENTOS */}
                 {carrito.map(c => (
                     <div key={c.id} className={styles.cartItem}>
-                        <div><div className={styles.cartItemName}>{c.nombre}</div><div className={styles.cartItemPrice}>{formatCurrency(c.precio)} c/u</div></div>
+                        <div><div className={styles.cartItemName}>{c.nombre}</div></div>
+
                         <div className={styles.cartItemQty}>
-                            <input className={styles.input} style={{ width: 60, padding: 4, textAlign: "center" }} type="number" value={c.cantidad} onChange={e => setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: Number(e.target.value) } : x))} />
+                            <div className={styles.qtyGroup}>
+                                <button className={styles.qtyBtn} onClick={() => {
+                                    const current = parseNum(c.cantidad);
+                                    setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: String(Math.max(0, current - 1)).replace(".", ",") } : x));
+                                }}>−</button>
+                                <input
+                                    className={styles.qtyInput}
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={c.cantidad}
+                                    onChange={e => setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: e.target.value } : x))}
+                                />
+                                <button className={styles.qtyBtn} onClick={() => {
+                                    const current = parseNum(c.cantidad);
+                                    setCarrito(carrito.map(x => x.id === c.id ? { ...x, cantidad: String(current + 1).replace(".", ",") } : x));
+                                }}>+</button>
+                            </div>
                         </div>
-                        <div className={styles.cartItemSubtotal}>{formatCurrency(c.precio * c.cantidad)}</div>
-                        <button className={styles.btn} style={{ color: "red", borderColor: "transparent" }} onClick={() => setCarrito(carrito.filter(x => x.id !== c.id))}>Eliminar</button>
+
+                        <div className={styles.cartItemSubtotal} style={{ textAlign: "right" }}>
+                            {formatCurrency(c.precio * parseNum(c.cantidad))}
+                        </div>
+
+                        <button className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: "32px" }} onClick={() => setCarrito(carrito.filter(x => x.id !== c.id))}>🗑️</button>
                     </div>
                 ))}
 
-                {/* LISTA DE CÓDIGOS PAMI CON EDICIÓN DE CANT Y MONTO */}
                 {codigos.map(c => (
-                    <div key={c.id} className={styles.cartItem} style={{ background: "rgba(255,255,255,0.02)", flexWrap: "wrap" }}>
-                        <div style={{ flex: "1 1 200px" }}>
-                            <div className={styles.cartItemName}>Código: {c.codigo}</div>
-                            <div className={styles.cartItemPrice}>{c.descripcion}</div>
+                    <div key={c.id} className={styles.cartItem}>
+                        <div>
+                            <div className={styles.cartItemName}>CÓDIGO: {c.codigo}</div>
+                            <div className={styles.cartItemPrice}>
+                                {c.medico ? `DR. ${c.medico} - ` : ""}{c.descripcion}
+                            </div>
                         </div>
-                        <div className={styles.cartItemQty} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                            <label style={{ fontSize: "0.75rem", color: "var(--muted)" }}>Cant:</label>
-                            <input
-                                className={styles.input}
-                                style={{ width: 60, padding: 4, textAlign: "center", minHeight: "30px" }}
-                                type="number"
-                                value={c.cantidad}
-                                onChange={(e) => {
-                                    const newCant = Number(e.target.value) || 0;
-                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: newCant } : x));
-                                }}
-                            />
-                            <label style={{ fontSize: "0.75rem", color: "var(--muted)", marginLeft: "8px" }}>Monto:</label>
-                            <input
-                                className={styles.input}
-                                style={{ width: 80, padding: 4, textAlign: "center", minHeight: "30px" }}
-                                type="number"
-                                value={c.monto || ""}
-                                onChange={(e) => {
-                                    const newMonto = Number(e.target.value) || 0;
-                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, monto: newMonto } : x));
-                                }}
-                                placeholder="$ 0"
-                            />
+
+                        <div className={styles.cartItemQty}>
+                            <div className={styles.qtyGroup}>
+                                <button className={styles.qtyBtn} onClick={() => {
+                                    const current = parseNum(c.cantidad);
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: String(Math.max(0, current - 1)).replace(".", ",") } : x));
+                                }}>−</button>
+                                <input
+                                    className={styles.qtyInput}
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={c.cantidad}
+                                    onChange={e => setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: e.target.value } : x))}
+                                />
+                                <button className={styles.qtyBtn} onClick={() => {
+                                    const current = parseNum(c.cantidad);
+                                    setCodigos(codigos.map(x => x.id === c.id ? { ...x, cantidad: String(current + 1).replace(".", ",") } : x));
+                                }}>+</button>
+                            </div>
                         </div>
-                        <div className={styles.cartItemSubtotal} style={{ minWidth: "80px", textAlign: "right" }}>
-                            {formatCurrency((Number(c.monto) || 0) * (Number(c.cantidad) || 1))}
+
+                        <div className={styles.cartItemSubtotal} style={{ textAlign: "right" }}>
+                            {formatCurrency((c.monto || 0) * parseNum(c.cantidad))}
                         </div>
-                        <button className={styles.btn} style={{ color: "red", borderColor: "transparent" }} onClick={() => setCodigos(codigos.filter(x => x.id !== c.id))}>Eliminar</button>
+
+                        <button className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: "32px" }} onClick={() => setCodigos(codigos.filter(x => x.id !== c.id))}>🗑️</button>
                     </div>
                 ))}
 
@@ -363,6 +521,8 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             </div>
         </div>
     );
+
+    if (!hasMounted) return null;
 
     return (
         <>

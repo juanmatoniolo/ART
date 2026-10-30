@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation"; // <--- IMPORTAMOS EL ROUTER
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
 import { matchesAllTerms } from "@/app/farmacia/utils/farmacia";
@@ -15,7 +15,7 @@ import styles from "@/components/pami/presupuesto/presupuesto.module.css";
 const p = styles;
 
 export default function PresupuestoPamiPage() {
-    const router = useRouter(); // <--- INICIALIZAMOS EL ROUTER
+    const router = useRouter();
 
     const [solapa, setSolapa] = useState("presupuesto");
     const [items, setItems] = useState([]);
@@ -35,7 +35,15 @@ export default function PresupuestoPamiPage() {
             const lista = [];
             for (const categoria of ["medicamentos", "descartables"]) {
                 Object.entries(data[categoria] || {}).forEach(([key, d]) => {
-                    lista.push({ key, categoria, nombre: d.nombre || key.replace(/_/g, " "), precioFacturacion: d.precioFacturacion ?? 0, presentacion: d.presentacion || "unidad", tipo: categoria === "medicamentos" ? "medicamento" : "descartable", activo: d.activo !== false });
+                    lista.push({
+                        key,
+                        categoria,
+                        nombre: d.nombre || key.replace(/_/g, " "),
+                        precioFacturacion: d.precioFacturacion ?? 0,
+                        presentacion: d.presentacion || "unidad",
+                        tipo: categoria === "medicamentos" ? "medicamento" : "descartable",
+                        activo: d.activo !== false,
+                    });
                 });
             }
             setItems(lista.sort((a, b) => a.nombre.localeCompare(b.nombre)));
@@ -64,12 +72,11 @@ export default function PresupuestoPamiPage() {
             if (!data) return mostrarFlash("No se encontró el paciente.");
             const { medicamentos = {}, ...datos } = data;
 
-            // Inyectamos el ID de la base de datos al borrador
             const borradorConId = { ...b.raw, id: b.id };
 
             setPendingOpen({
                 paciente: { dni: b.pacienteDni, ...datos },
-                borrador: borradorConId
+                borrador: borradorConId,
             });
             setSolapa("presupuesto");
         } catch (e) { mostrarFlash("Error al abrir borrador."); }
@@ -77,14 +84,13 @@ export default function PresupuestoPamiPage() {
 
     const iniciarNuevo = () => {
         setPendingOpen(null);
-        setResetKey(prev => prev + 1);
+        setResetKey((prev) => prev + 1);
         setSolapa("presupuesto");
     };
 
     return (
         <div className={`${p.wrapper} ${p.dark}`}>
 
-            {/* HEADER CON BOTÓN VOLVER */}
             <div className={p.headerBar}>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                     <button
@@ -111,7 +117,14 @@ export default function PresupuestoPamiPage() {
                     ["borradores", "Borradores", "Todos los guardados"],
                     ["estadisticas", "Estadísticas", "Indicadores"],
                 ].map(([id, label, descripcion]) => (
-                    <button key={id} type="button" role="tab" aria-selected={solapa === id} className={`${p.tab} ${solapa === id ? p.tabActive : ""}`} onClick={() => setSolapa(id)}>
+                    <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={solapa === id}
+                        className={`${p.tab} ${solapa === id ? p.tabActive : ""}`}
+                        onClick={() => setSolapa(id)}
+                    >
                         <span>{label}</span>
                         <small>{descripcion}</small>
                     </button>
@@ -120,7 +133,12 @@ export default function PresupuestoPamiPage() {
 
             {flash && <div className={p.toast}>{flash}</div>}
 
-            {solapa === "presupuesto" && (
+            {/*
+              CLAVE: PresupuestoTab SIEMPRE montado.
+              Solo se oculta con display:none cuando no es la solapa activa.
+              Cambiar de pestaña NO desmonta ni pierde estado.
+            */}
+            <div style={{ display: solapa === "presupuesto" ? "block" : "none" }}>
                 <PresupuestoTab
                     key={resetKey}
                     items={items}
@@ -129,20 +147,36 @@ export default function PresupuestoPamiPage() {
                     initialDraft={pendingOpen?.borrador}
                     onInitialLoaded={() => setPendingOpen(null)}
                 />
-            )}
+            </div>
 
             {solapa === "borradores" && (
                 <section className={p.card}>
                     <h3 className={p.cardTitle}>Todos los borradores</h3>
                     <div className={p.grid2}>
-                        <input className={p.input} type="search" placeholder="Buscar por paciente, DNI o afiliado…" value={busquedaBorrador} onChange={(e) => setBusquedaBorrador(e.target.value)} />
+                        <input
+                            className={p.input}
+                            type="search"
+                            placeholder="Buscar por paciente, DNI o afiliado…"
+                            value={busquedaBorrador}
+                            onChange={(e) => setBusquedaBorrador(e.target.value)}
+                        />
                         <select className={p.input} value={filtroVinculo} onChange={(e) => setFiltroVinculo(e.target.value)}>
                             <option value="todos">Todos</option>
                             <option value="huerfanos">Sin vínculo (huérfanos)</option>
                         </select>
                     </div>
                     <p className={p.hint}>{borradoresFiltrados.length} borradores.</p>
-                    <BorradoresList borradores={borradoresFiltrados} onAbrir={abrirBorradorGlobal} onEliminar={async (b) => { if (confirm("¿Eliminar?")) { await eliminarPresupuestoPami(b.pacienteDni, b.id); mostrarFlash("Eliminado"); } }} showPaciente />
+                    <BorradoresList
+                        borradores={borradoresFiltrados}
+                        onAbrir={abrirBorradorGlobal}
+                        onEliminar={async (b) => {
+                            if (confirm("¿Eliminar?")) {
+                                await eliminarPresupuestoPami(b.pacienteDni, b.id);
+                                mostrarFlash("Eliminado");
+                            }
+                        }}
+                        showPaciente
+                    />
                 </section>
             )}
 

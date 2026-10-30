@@ -336,3 +336,7 @@
         font-size: 8.5px;
     }
 }
+
+.documento {
+    text-transform: uppercase;
+}
