@@ -9,7 +9,7 @@ import styles from "./cx-common.module.css";
 
 // ── Componentes ──
 import FormularioCX from "./_components/FormularioCX";
-import SolicitudesTab from "./_components/SolicitudesTab";
+import PacienteSelector from "./_components/PacienteSelector"; // <-- IMPORTAMOS EL BUSCADOR AQUÍ
 import {
   ModalEstudio, ModalRealizacion, ModalEdicion, ModalFicha,
 } from "./_components/Modales";
@@ -31,7 +31,6 @@ import {
 // ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
 const CIRUGIAS_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
-const SOLICITUDES_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia";
 
 const HC_PATH = "historias-clinicas";
 const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
@@ -45,7 +44,6 @@ export default function Page() {
   const [error, setError] = useState("");
   const [form, setForm] = useState({});
   const [suggestions, setSuggestions] = useState({});
-  const [mode, setMode] = useState("manual");
 
   const [selectedPaciente, setSelectedPaciente] = useState(null);
 
@@ -62,9 +60,6 @@ export default function Page() {
 
   // ── Estados generales ──
   const [activeTab, setActiveTab] = useState("form");
-  const [solicitudes, setSolicitudes] = useState([]);
-  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-  const [pendingSolicitudId, setPendingSolicitudId] = useState(null);
 
   // ── Estados programadas ──
   const [cirugias, setCirugias] = useState([]);
@@ -74,7 +69,6 @@ export default function Page() {
   const [modalEditar, setModalEditar] = useState(null);
   const [modalFicha, setModalFicha] = useState(null);
   const [modalEstudio, setModalEstudio] = useState(null);
-  const [modalSolicitudData, setModalSolicitudData] = useState(null);
 
   // ── Carga de mapping ──
   useEffect(() => {
@@ -140,15 +134,6 @@ export default function Page() {
   const canonART = useMemo(() => canonKeys.find(isCanonART), [canonKeys]);
   const canonTelefono = useMemo(() => canonKeys.find(isCanonTelefono), [canonKeys]);
 
-  const canonDiaInt = useMemo(() => canonKeys.find(isCanonDiaInt), [canonKeys]);
-  const canonMesInt = useMemo(() => canonKeys.find(isCanonMesInt), [canonKeys]);
-  const canonAnioInt = useMemo(() => canonKeys.find(isCanonAnioInt), [canonKeys]);
-  const canonFamiliarNombre = useMemo(() => canonKeys.find(isCanonFamiliarNombre), [canonKeys]);
-  const canonFamiliarParentezco = useMemo(() => canonKeys.find(isCanonFamiliarParentezco), [canonKeys]);
-  const canonFamiliarTelefono = useMemo(() => canonKeys.find(isCanonFamiliarTelefono), [canonKeys]);
-  const canonDocumento = useMemo(() => canonKeys.find(isCanonDocumento), [canonKeys]);
-  const canonHabitacionCama = useMemo(() => canonKeys.find(isCanonHabitacionCama), [canonKeys]);
-
   // Inicializar formulario
   useEffect(() => {
     if (!canonical || !mapping) return;
@@ -157,7 +142,7 @@ export default function Page() {
     if (Object.keys(mapping).some(k => k.includes("masculino-paciente") || k.includes("femenino-paciente"))) initial["sexo"] = "";
     if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio)) initial["servicio"] = "PISO";
 
-    // 👇 FORZAMOS PAMI POR DEFECTO 👇
+    // FORZAMOS PAMI POR DEFECTO
     if (canonART) initial[canonART] = "PAMI";
 
     initial.__familiarNombre = "";
@@ -203,9 +188,9 @@ export default function Page() {
     saveSuggestions(seeded);
   }, [canonDoctor]);
 
-  // Precargar datos del paciente seleccionado (Adaptado para PAMI)
+  // Precargar datos del paciente seleccionado
   useEffect(() => {
-    if (mode === "paciente" && selectedPaciente) {
+    if (selectedPaciente) {
       const newForm = { ...form };
       if (canonApellido) newForm[canonApellido] = selectedPaciente.apellido || "";
       if (canonNombre) newForm[canonNombre] = selectedPaciente.nombre || "";
@@ -223,18 +208,15 @@ export default function Page() {
         if (canonAnio) newForm[canonAnio] = y || "";
       }
 
-      // 👇 CARGAMOS EL AFILIADO Y FORZAMOS PAMI 👇
       if (selectedPaciente.afiliado) newForm.__afiliadoPaciente = selectedPaciente.afiliado;
       if (canonART) newForm[canonART] = "PAMI";
 
-      // 👇 CARGAMOS EL FAMILIAR (Estructura de PAMI) 👇
       if (selectedPaciente.familiar) {
         newForm.__familiarNombre = selectedPaciente.familiar.nombre || "";
         newForm.__familiarParentezco = selectedPaciente.familiar.parentezco || "";
         newForm.__familiarTelefono = selectedPaciente.familiar.telefono || "";
       }
 
-      // HC
       if (selectedPaciente.historiaClinica) newForm.__hcExtra = selectedPaciente.historiaClinica;
 
       setForm(newForm);
@@ -243,7 +225,7 @@ export default function Page() {
         lookupDniInHC(onlyDigits(selectedPaciente.dni));
       }
     }
-  }, [selectedPaciente, mode, canonical]);
+  }, [selectedPaciente, canonical]);
 
   function setValue(name, value) { setForm((prev) => ({ ...prev, [name]: value })); }
   function commitSuggestion(canonName, value) {
@@ -270,18 +252,6 @@ export default function Page() {
       return changed ? out : prev;
     });
   }, [edadCalculada, canonEdad, canonEdadPaciente]);
-
-  const orderedResto = useMemo(() => {
-    if (!canonical) return [];
-    const all = Object.keys(canonical.canonicalToInternal);
-    const knownSet = new Set([
-      "masculino-paciente", "femenino-paciente", "sexo", canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor,
-      canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente,
-      canonHCPaciente, canonTelefono, canonDiaInt, canonMesInt, canonAnioInt, canonFamiliarNombre, canonFamiliarParentezco, canonFamiliarTelefono, canonDocumento, canonHabitacionCama,
-    ].filter(Boolean));
-    for (const k of all) { if (isCanonEdadPacienteUI(k)) knownSet.add(k); }
-    return all.filter((k) => !knownSet.has(k)).sort((a, b) => a.localeCompare(b, "es"));
-  }, [canonical, canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente, canonHCPaciente, canonTelefono, canonDiaInt, canonMesInt, canonAnioInt, canonFamiliarNombre, canonFamiliarParentezco, canonFamiliarTelefono, canonDocumento, canonHabitacionCama]);
 
   function generateFilename(type) {
     const apellido = canonApellido ? (form?.[canonApellido] ?? "").toString().trim() : "";
@@ -516,7 +486,7 @@ export default function Page() {
   async function guardarCX(optionalData = null) {
     let fecha = fechaEstimada;
     let formData = form;
-    let pacienteId = mode === "paciente" ? selectedPaciente?.id : null;
+    let pacienteId = selectedPaciente?.id || null;
 
     if (optionalData) {
       fecha = optionalData.fechaEstimada || fecha;
@@ -587,7 +557,7 @@ export default function Page() {
       setForm((prev) => {
         const reset = {};
         Object.keys(prev).forEach((k) => (reset[k] = ""));
-        if (canonART) reset[canonART] = "PAMI"; // Mantiene PAMI al guardar
+        if (canonART) reset[canonART] = "PAMI";
         return reset;
       });
       setSelectedPaciente(null);
@@ -608,229 +578,17 @@ export default function Page() {
     setForm((prev) => {
       const reset = {};
       Object.keys(prev).forEach((k) => (reset[k] = ""));
-      if (canonART) reset[canonART] = "PAMI"; // Mantiene PAMI al limpiar
+      if (canonART) reset[canonART] = "PAMI";
       return reset;
     });
     setFechaEstimada("");
     setSelectedPaciente(null);
-    setPendingSolicitudId(null);
-    setMode("manual");
     lastLookupDniRef.current = "";
     setHcLookup({ loading: false, searched: false, dni: "", match: null, nextNumber: null, loadingNext: false });
     setMensajeExito("Formulario limpiado.");
     setTimeout(() => setMensajeExito(""), 2000);
   };
 
-  // ── Solicitudes ──
-  const cargarSolicitudes = async () => {
-    setLoadingSolicitudes(true);
-    try {
-      const res = await fetch(`${SOLICITUDES_DB_URL}.json`);
-      const data = await res.json();
-      if (data) {
-        let lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
-        lista.sort((a, b) => (b.fechaSolicitud || 0) - (a.fechaSolicitud || 0));
-        setSolicitudes(lista);
-      } else {
-        setSolicitudes([]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingSolicitudes(false);
-    }
-  };
-
-  useEffect(() => { if (activeTab === "solicitudes") cargarSolicitudes(); }, [activeTab]);
-
-  const buildFormFromSolicitud = (solicitud) => {
-    const nuevoForm = {};
-    if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || "";
-    if (canonNombre) nuevoForm[canonNombre] = solicitud.nombre || "";
-    if (canonDNI) nuevoForm[canonDNI] = solicitud.dni || "";
-    if (canonTelefono) nuevoForm[canonTelefono] = solicitud.telefono || "";
-    if (canonLocalidad) nuevoForm[canonLocalidad] = solicitud.localidad || "";
-    if (canonProvincia) nuevoForm[canonProvincia] = solicitud.provincia || "";
-    if (canonDomicilioPaciente) nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || "";
-    if (canonNacimientoPaciente) nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento || "";
-    if (solicitud.sexo) nuevoForm.sexo = solicitud.sexo === "M" ? "M" : "F";
-    if (solicitud.nacimiento) {
-      const [y, m, d] = solicitud.nacimiento.split("-");
-      if (canonDia) nuevoForm[canonDia] = d || "";
-      if (canonMes) nuevoForm[canonMes] = m || "";
-      if (canonAnio) nuevoForm[canonAnio] = y || "";
-    }
-    if (solicitud.afiliadoPaciente) nuevoForm.__afiliadoPaciente = solicitud.afiliadoPaciente;
-    if (solicitud.familiarNombre) nuevoForm.__familiarNombre = solicitud.familiarNombre;
-    if (solicitud.familiarParentezco) nuevoForm.__familiarParentezco = solicitud.familiarParentezco;
-    if (solicitud.familiarTelefono) nuevoForm.__familiarTelefono = solicitud.familiarTelefono;
-    return nuevoForm;
-  };
-
-  const descargarPdfSolicitud = async (solicitud, type) => {
-    try {
-      const nuevoForm = buildFormFromSolicitud(solicitud);
-      const lugarNacimientoValue = solicitud.lugarNacimiento || "";
-
-      const payload = {
-        pacienteDatos: {
-          apellido: solicitud.apellido || "",
-          nombre: solicitud.nombre || "",
-          dni: solicitud.dni || "",
-          afiliadoPaciente: solicitud.afiliadoPaciente || "",
-          edad: solicitud.edad ? String(solicitud.edad) : "",
-          sexo: solicitud.sexo || "",
-          fechaNacimiento: solicitud.nacimiento || "",
-          localidad: solicitud.localidad || "",
-          provincia: solicitud.provincia || "",
-          domicilio: solicitud.domicilio || "",
-          telefono: solicitud.telefono || "",
-          historiaClinica: solicitud.historiaClinica || "",
-          lugarNacimiento: lugarNacimientoValue,
-        },
-        familiar: {
-          nombre: solicitud.familiarNombre || "",
-          parentezco: solicitud.familiarParentezco || "",
-          telefono: solicitud.familiarTelefono || "",
-        },
-        formulario: nuevoForm,
-        fechaEstimada: "",
-        servicio: "PISO",
-        lugarNacimiento: lugarNacimientoValue,
-      };
-
-      const baseName = `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
-      const fileName = `${generateSafeFilename(baseName)}-${type}.pdf`;
-
-      const res = await fetch("/api/cx", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload, type, fileName }),
-      });
-
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1200);
-    } catch (e) {
-      setError(e?.message || "Error al generar PDF");
-      console.error(e);
-    }
-  };
-
-  const descargarFrenteSolicitud = (s) => descargarPdfSolicitud(s, "Frente");
-  const descargarDorsoSolicitud = (s) => descargarPdfSolicitud(s, "Dorso");
-
-  const eliminarSolicitud = async (id) => {
-    if (!confirm("¿Eliminar permanentemente esta solicitud?")) return;
-    try {
-      await fetch(`${SOLICITUDES_DB_URL}/${id}.json`, { method: "DELETE" });
-      cargarSolicitudes();
-      setMensajeExito("Solicitud eliminada.");
-      setTimeout(() => setMensajeExito(""), 3000);
-    } catch (e) {
-      setError("Error al eliminar solicitud");
-    }
-  };
-
-  const verDatosSolicitud = (solicitud) => { setModalSolicitudData(solicitud); };
-
-  const cargarSolicitudEnFormulario = (solicitud) => {
-    const nuevoForm = buildFormFromSolicitud(solicitud);
-    setForm((prev) => {
-      const merged = { ...prev, ...nuevoForm };
-      if (canonART && !merged[canonART]) merged[canonART] = "PAMI"; // Fuerza PAMI si la solicitud no traía ART
-      return merged;
-    });
-    setActiveTab("form");
-    setMode("manual");
-    setSelectedPaciente(null);
-    setPendingSolicitudId(solicitud.id);
-    setMensajeExito("Solicitud cargada al formulario. Complete los datos de cirugía y guarde.");
-    setTimeout(() => setMensajeExito(""), 4000);
-    if (solicitud.dni) { lastLookupDniRef.current = ""; lookupDniInHC(onlyDigits(solicitud.dni)); }
-  };
-
-  const guardarCXYEliminarSolicitud = async () => {
-    const success = await guardarCX();
-    if (success && pendingSolicitudId) {
-      try {
-        await fetch(`${SOLICITUDES_DB_URL}/${pendingSolicitudId}.json`, { method: "DELETE" });
-        setPendingSolicitudId(null);
-        cargarSolicitudes();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
-
-  // ── Programadas ──
-  const fetchCirugias = async () => {
-    try {
-      setLoadingCirugias(true);
-      const res = await fetch(`${CIRUGIAS_DB_URL}.json`);
-      if (!res.ok) throw new Error("Error al cargar cirugías");
-      const data = await res.json();
-      setCirugias(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
-    } catch (err) {
-      setError("No se pudieron cargar las cirugías.");
-    } finally {
-      setLoadingCirugias(false);
-    }
-  };
-
-  const marcarRealizada = async (cx, fechaRealizacion) => {
-    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ realizada: true, fechaRealizacion }),
-    });
-    setModalRealizar(null); fetchCirugias();
-  };
-
-  const eliminarCirugia = async (id) => {
-    if (!confirm("¿Eliminar permanentemente esta cirugía?")) return;
-    await fetch(`${CIRUGIAS_DB_URL}/${id}.json`, { method: "DELETE" });
-    fetchCirugias();
-  };
-
-  const guardarEdicion = async (cx, formEdit) => {
-    const nuevoFormulario = { ...(cx.formulario || {}) };
-    if (formEdit.tipoCirugia) nuevoFormulario.cx = formEdit.tipoCirugia;
-    else delete nuevoFormulario.cx;
-    let doctorKey = Object.keys(nuevoFormulario).find(k => k.toLowerCase().includes("doctor") || k.toLowerCase().includes("dr") || k === "nombre-dr") || "nombre-dr";
-    nuevoFormulario[doctorKey] = formEdit.doctor;
-
-    const updates = {
-      fechaEstimada: formEdit.fechaEstimada,
-      doctor: formEdit.doctor,
-      ecgProfesional: formEdit.ecgProfesional,
-      ecgFecha: formEdit.ecgFecha,
-      labProfesional: formEdit.labProfesional,
-      labFecha: formEdit.labFecha,
-      formulario: nuevoFormulario,
-      updatedAt: Date.now(),
-    };
-    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    setModalEditar(null); fetchCirugias();
-  };
-
-  const guardarEstudio = async (cx, tipo, profesional, fecha) => {
-    const updates = { [`${tipo}Profesional`]: profesional, [`${tipo}Fecha`]: fecha, updatedAt: Date.now() };
-    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    setModalEstudio(null); fetchCirugias();
-  };
-
-  // 👇 RUTAS CAMBIADAS A /administrador/ 👇
-  const goToNuevaFoja = () => router.push("/administrador/cx/foja");
-  const goToVerFojas = () => router.push("/administrador/cx/foja/medicos");
   const goToIngresos = () => router.push("/administrador/ingresos");
 
   if (loading) {
@@ -862,7 +620,8 @@ export default function Page() {
           {error && <div className={styles.bannerError}>{error}</div>}
           {mensajeExito && <div className={styles.bannerSuccess}>{mensajeExito}</div>}
 
-          <div className={styles.tabsContainer}>
+          {/* TABS */}
+          <div className={styles.tabsContainer} style={{ marginBottom: "1rem" }}>
             <button className={`${styles.tabButton} ${activeTab === "form" ? styles.activeTab : ""}`} onClick={() => setActiveTab("form")}>
               📋 Formulario
             </button>
@@ -871,10 +630,36 @@ export default function Page() {
             </button>
           </div>
 
+          {/* 🔍 BUSCADOR DE PACIENTE PAMI */}
+          {/* 🔍 BUSCADOR DE PACIENTE PAMI */}
+          <section className={styles.section} style={{ borderColor: "#6fa17b", marginBottom: "1.5rem", overflow: "visible" }}>
+            <div className={styles.sectionHeader} style={{ background: "rgba(111, 161, 123, 0.1)" }}>
+              <span className={styles.sectionIcon}>🔍</span>
+              <h2 className={styles.sectionTitle} style={{ color: "#6fa17b" }}>Importar Paciente PAMI</h2>
+            </div>
+            <div className={styles.sectionBody} style={{ padding: "1.5rem" }}>
+              {selectedPaciente ? (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1a2335", padding: "1rem", borderRadius: "8px", border: "1px solid #6fa17b" }}>
+                  <div>
+                    <strong style={{ fontSize: "1.1rem", color: "#f1f5f9" }}>{selectedPaciente.nombreCompleto}</strong>
+                    <div style={{ fontSize: "0.9rem", color: "#94a3b8", marginTop: "4px" }}>
+                      DNI: {selectedPaciente.dni} · Afiliado: {selectedPaciente.afiliado || "—"}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => { setSelectedPaciente(null); resetForm(); }} className={styles.secondaryBtn} style={{ padding: "8px 16px", fontSize: "13px", display: "flex", gap: "6px", alignItems: "center" }}>
+                    ✕ Quitar y limpiar formulario
+                  </button>
+                </div>
+              ) : (
+                <PacienteSelector onSelect={setSelectedPaciente} selectedPacienteId={null} />
+              )}
+            </div>
+          </section>
+
           {activeTab === "form" && (
             <FormularioCX
               form={form} setValue={setValue} suggestions={suggestions} commitSuggestion={commitSuggestion}
-              canonicalObj={canonical} mapping={mapping} mode={mode} setMode={setMode}
+              canonicalObj={canonical} mapping={mapping}
               selectedPaciente={selectedPaciente} setSelectedPaciente={setSelectedPaciente}
               canonCX={canonCX} canonDoctor={canonDoctor} canonApellido={canonApellido} canonNombre={canonNombre}
               canonDNI={canonDNI} canonEdad={canonEdad} canonEdadPaciente={canonEdadPaciente}
@@ -882,21 +667,13 @@ export default function Page() {
               canonProvincia={canonProvincia} canonDomicilioPaciente={canonDomicilioPaciente}
               canonNacimientoPaciente={canonNacimientoPaciente} canonHCPaciente={canonHCPaciente}
               canonART={canonART} canonTelefono={canonTelefono} canonNombres={canonNombres} canonServicio={canonServicio}
-              hasSexo={hasSexo} hasLocation={hasLocation} orderedResto={orderedResto}
+              hasSexo={hasSexo} hasLocation={hasLocation}
               fechaEstimada={fechaEstimada} setFechaEstimada={setFechaEstimada}
-              guardarCXYEliminarSolicitud={guardarCXYEliminarSolicitud} saving={saving} edadCalculada={edadCalculada}
+              guardarCX={guardarCX} saving={saving} edadCalculada={edadCalculada}
               hcLookup={hcLookup} onDNIBlur={handleDNIBlur} onForceLookupDni={forceLookupDni}
               onAplicarHC={aplicarHistoriaClinica} onCrearHC={crearHistoriaClinica} creatingHc={creatingHc}
               downloadPdf={downloadPdf}
               resetForm={resetForm}
-            />
-          )}
-          {activeTab === "solicitudes" && (
-            <SolicitudesTab
-              solicitudes={solicitudes} loadingSolicitudes={loadingSolicitudes}
-              cargarSolicitudEnFormulario={cargarSolicitudEnFormulario} onEliminar={eliminarSolicitud}
-              onDescargarFrente={descargarFrenteSolicitud} onDescargarDorso={descargarDorsoSolicitud}
-              onVerDatos={verDatosSolicitud} onRecargar={cargarSolicitudes}
             />
           )}
         </div>
@@ -906,43 +683,6 @@ export default function Page() {
       {modalEditar && <ModalEdicion cx={modalEditar} onSave={(form) => guardarEdicion(modalEditar, form)} onCancel={() => setModalEditar(null)} />}
       {modalFicha && <ModalFicha cx={modalFicha} mapping={mapping} canonical={canonical} onClose={() => setModalFicha(null)} />}
       {modalEstudio && <ModalEstudio cx={modalEstudio.cx} estudio={modalEstudio.tipo} onSave={(prof, fecha) => guardarEstudio(modalEstudio.cx, modalEstudio.tipo, prof, fecha)} onCancel={() => setModalEstudio(null)} />}
-      {modalSolicitudData && <ModalSolicitud solicitud={modalSolicitudData} onClose={() => setModalSolicitudData(null)} />}
     </main>
-  );
-}
-
-// ── ModalSolicitud ──
-function ModalSolicitud({ solicitud, onClose }) {
-  return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2>Detalles de la solicitud</h2>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
-        </div>
-        <div className={styles.modalBody}>
-          <div className={styles.detailRow}><strong>Apellido:</strong> {solicitud.apellido || "-"}</div>
-          <div className={styles.detailRow}><strong>Nombre:</strong> {solicitud.nombre || "-"}</div>
-          <div className={styles.detailRow}><strong>DNI:</strong> {solicitud.dni || "-"}</div>
-          <div className={styles.detailRow}><strong>N° Afiliado:</strong> {solicitud.afiliadoPaciente || "-"}</div>
-          <div className={styles.detailRow}><strong>Teléfono:</strong> {solicitud.telefono || "-"}</div>
-          <div className={styles.detailRow}><strong>Sexo:</strong> {solicitud.sexo === "M" ? "Masculino" : solicitud.sexo === "F" ? "Femenino" : "-"}</div>
-          <div className={styles.detailRow}><strong>Fecha nacimiento:</strong> {solicitud.nacimiento || "-"}</div>
-          <div className={styles.detailRow}><strong>Localidad:</strong> {solicitud.localidad || "-"}</div>
-          <div className={styles.detailRow}><strong>Provincia:</strong> {solicitud.provincia || "-"}</div>
-          <div className={styles.detailRow}><strong>Domicilio:</strong> {solicitud.domicilio || "-"}</div>
-          <div className={styles.detailRow}><strong>Lugar de nacimiento:</strong> {solicitud.lugarNacimiento || "-"}</div>
-
-          <div className={styles.detailRow} style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 12 }}>
-            <strong style={{ color: "#6fa17b" }}>👨‍👩‍👧 Familiar responsable</strong>
-          </div>
-          <div className={styles.detailRow}><strong>Nombre:</strong> {solicitud.familiarNombre || "-"}</div>
-          <div className={styles.detailRow}><strong>Parentezco:</strong> {solicitud.familiarParentezco || "-"}</div>
-          <div className={styles.detailRow}><strong>Teléfono:</strong> {solicitud.familiarTelefono || "-"}</div>
-
-          <div className={styles.detailRow} style={{ marginTop: 12 }}><strong>Fecha de solicitud:</strong> {solicitud.fechaSolicitud ? new Date(solicitud.fechaSolicitud).toLocaleString() : "-"}</div>
-        </div>
-      </div>
-    </div>
   );
 }
