@@ -1,289 +1,301 @@
 "use client";
-// Mismo directorio que el page.jsx actual (imports relativos intactos).
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { push, ref, set, get, child, runTransaction } from "firebase/database";
 import { getSession } from "@/utils/session";
-import { guardarPacientePami } from "@/lib/pami";
 import styles from "./cx-common.module.css";
+
+// ── Componentes ──
 import FormularioCX from "./_components/FormularioCX";
+import SolicitudesTab from "./_components/SolicitudesTab";
 import {
-  DOCTORES,
-  isCanonCX,
-  isCanonDoctor,
-  isCanonApellido,
-  isCanonNombre,
-  isCanonDNI,
-  isCanonEdad,
-  isCanonEdadPaciente,
-  isCanonDia,
-  isCanonMes,
-  isCanonAnio,
-  isCanonLocalidad,
-  isCanonProvincia,
-  isCanonDomicilioPaciente,
-  isCanonNacimientoPaciente,
-  isCanonHCPaciente,
-  isCanonART,
-  isCanonTelefono,
-  isCanonNombresPaciente,
-  isCanonServicio,
-  isCanonEdadPacienteUI,
-  isCanonDiaInt,
-  isCanonMesInt,
-  isCanonAnioInt,
-  isCanonFamiliarNombre,
-  isCanonFamiliarParentezco,
-  isCanonFamiliarTelefono,
-  isCanonDocumento,
-  isCanonHabitacionCama,
-  loadSuggestions,
-  saveSuggestions,
-  addSuggestion,
-  computeAgeYears,
-  formatNumberWithThousands,
-  generateSafeFilename,
-  normalizeName,
-  onlyDigits,
-  parseHCNumber,
+  ModalEstudio, ModalRealizacion, ModalEdicion, ModalFicha,
+} from "./_components/Modales";
+
+// ── Helpers ──
+import {
+  isCanonCX, isCanonDoctor, isCanonApellido, isCanonNombre, isCanonDNI,
+  isCanonEdad, isCanonEdadPaciente, isCanonDia, isCanonMes, isCanonAnio,
+  isCanonLocalidad, isCanonProvincia, isCanonDomicilioPaciente,
+  isCanonNacimientoPaciente, isCanonHCPaciente, isCanonART, isCanonTelefono,
+  isCanonNombresPaciente, isCanonServicio, isCanonEdadPacienteUI,
+  isCanonDiaInt, isCanonMesInt, isCanonAnioInt, isCanonFamiliarNombre,
+  isCanonFamiliarParentezco, isCanonFamiliarTelefono, isCanonDocumento,
+  isCanonHabitacionCama, loadSuggestions, saveSuggestions, addSuggestion,
+  computeAgeYears, formatNumberWithThousands, generateSafeFilename,
+  onlyDigits, parseHCNumber,
 } from "./_utils/helpers";
 
+// ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
+const CIRUGIAS_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
+const SOLICITUDES_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/solicitudes-cirugia";
+
 const HC_PATH = "historias-clinicas";
 const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
 
-// Nombre de prop → detector (se resuelve contra las claves canónicas del mapping)
-const DETECTORS = {
-  canonCX: isCanonCX,
-  canonDoctor: isCanonDoctor,
-  canonApellido: isCanonApellido,
-  canonNombre: isCanonNombre,
-  canonDNI: isCanonDNI,
-  canonEdad: isCanonEdad,
-  canonEdadPaciente: isCanonEdadPaciente,
-  canonDia: isCanonDia,
-  canonMes: isCanonMes,
-  canonAnio: isCanonAnio,
-  canonLocalidad: isCanonLocalidad,
-  canonProvincia: isCanonProvincia,
-  canonDomicilioPaciente: isCanonDomicilioPaciente,
-  canonNacimientoPaciente: isCanonNacimientoPaciente,
-  canonHCPaciente: isCanonHCPaciente,
-  canonART: isCanonART,
-  canonTelefono: isCanonTelefono,
-  canonNombres: isCanonNombresPaciente,
-  canonServicio: isCanonServicio,
-  canonDiaInt: isCanonDiaInt,
-  canonMesInt: isCanonMesInt,
-  canonAnioInt: isCanonAnioInt,
-  canonFamiliarNombre: isCanonFamiliarNombre,
-  canonFamiliarParentezco: isCanonFamiliarParentezco,
-  canonFamiliarTelefono: isCanonFamiliarTelefono,
-  canonDocumento: isCanonDocumento,
-  canonHabitacionCama: isCanonHabitacionCama,
-};
+export default function Page() {
+  const router = useRouter();
 
-const EMPTY_HC = {
-  loading: false,
-  searched: false,
-  dni: "",
-  match: null,
-  nextNumber: null,
-  loadingNext: false,
-};
-const pad2 = (v) => String(v).padStart(2, "0");
-const noop = () => { };
-
-export default function IngresoPamiPage() {
+  // ── Estados formulario ──
   const [loading, setLoading] = useState(true);
   const [mapping, setMapping] = useState(null);
   const [error, setError] = useState("");
   const [form, setForm] = useState({});
   const [suggestions, setSuggestions] = useState({});
+  const [mode, setMode] = useState("manual");
+
+  const [selectedPaciente, setSelectedPaciente] = useState(null);
+
   const [fechaEstimada, setFechaEstimada] = useState("");
   const [saving, setSaving] = useState(false);
   const [mensajeExito, setMensajeExito] = useState("");
-  const [hcLookup, setHcLookup] = useState(EMPTY_HC);
-  const [creatingHc, setCreatingHc] = useState(false);
-  const lastLookupDniRef = useRef("");
 
-  // ── Mapping ──
+  // ── HC lookup ──
+  const [hcLookup, setHcLookup] = useState({
+    loading: false, searched: false, dni: "", match: null, nextNumber: null, loadingNext: false,
+  });
+  const lastLookupDniRef = useRef("");
+  const [creatingHc, setCreatingHc] = useState(false);
+
+  // ── Estados generales ──
+  const [activeTab, setActiveTab] = useState("form");
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
+  const [pendingSolicitudId, setPendingSolicitudId] = useState(null);
+
+  // ── Estados programadas ──
+  const [cirugias, setCirugias] = useState([]);
+  const [loadingCirugias, setLoadingCirugias] = useState(true);
+
+  const [modalRealizar, setModalRealizar] = useState(null);
+  const [modalEditar, setModalEditar] = useState(null);
+  const [modalFicha, setModalFicha] = useState(null);
+  const [modalEstudio, setModalEstudio] = useState(null);
+  const [modalSolicitudData, setModalSolicitudData] = useState(null);
+
+  // ── Carga de mapping ──
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const res = await fetch(MAPPING_URL, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        if (alive) setMapping(json);
+        if (!alive) return;
+        setMapping(json);
+
       } catch (e) {
-        if (alive) setError(e?.message || "Error cargando mapping");
+        if (alive) setError(e?.message || "Error cargando datos");
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
+  // Construir canonical
   const canonical = useMemo(() => {
     if (!mapping) return null;
     const canonicalToInternal = {};
     const internalToCanonical = {};
-    for (const internal of Object.keys(mapping)) {
-      const canon = normalizeName(internal);
-      internalToCanonical[internal] = canon;
-      (canonicalToInternal[canon] ||= []).push(internal);
+    for (const internalName of Object.keys(mapping)) {
+      const canon = (internalName || "")
+        .toLowerCase().trim().replace(/\s+/g, "-").replace(/[()]/g, "")
+        .replace(/__\d+$/g, "").replace(/-\d+$/g, "");
+      internalToCanonical[internalName] = canon;
+      if (!canonicalToInternal[canon]) canonicalToInternal[canon] = [];
+      canonicalToInternal[canon].push(internalName);
     }
-    for (const k of Object.keys(canonicalToInternal))
-      canonicalToInternal[k] = [...new Set(canonicalToInternal[k])].sort();
+    for (const k of Object.keys(canonicalToInternal)) {
+      canonicalToInternal[k] = Array.from(new Set(canonicalToInternal[k])).sort();
+    }
     return { canonicalToInternal, internalToCanonical };
   }, [mapping]);
 
-  const canonKeys = useMemo(
-    () => (canonical ? Object.keys(canonical.canonicalToInternal) : []),
-    [canonical],
-  );
+  const canonKeys = useMemo(() => (canonical ? Object.keys(canonical.canonicalToInternal) : []), [canonical]);
 
-  const canon = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(DETECTORS).map(([prop, fn]) => [
-          prop,
-          canonKeys.find(fn),
-        ]),
-      ),
-    [canonKeys],
-  );
+  const canonCX = useMemo(() => canonKeys.find(isCanonCX), [canonKeys]);
+  const canonDoctor = useMemo(() => canonKeys.find(isCanonDoctor), [canonKeys]);
+  const canonApellido = useMemo(() => canonKeys.find(isCanonApellido), [canonKeys]);
+  const canonNombre = useMemo(() => canonKeys.find(isCanonNombre), [canonKeys]);
+  const canonDNI = useMemo(() => canonKeys.find(isCanonDNI), [canonKeys]);
+  const canonEdad = useMemo(() => canonKeys.find(isCanonEdad), [canonKeys]);
+  const canonEdadPaciente = useMemo(() => canonKeys.find(isCanonEdadPaciente), [canonKeys]);
+  const canonDia = useMemo(() => canonKeys.find(isCanonDia), [canonKeys]);
+  const canonMes = useMemo(() => canonKeys.find(isCanonMes), [canonKeys]);
+  const canonAnio = useMemo(() => canonKeys.find(isCanonAnio), [canonKeys]);
+  const canonLocalidad = useMemo(() => canonKeys.find(isCanonLocalidad), [canonKeys]);
+  const canonProvincia = useMemo(() => canonKeys.find(isCanonProvincia), [canonKeys]);
+  const canonDomicilioPaciente = useMemo(() => canonKeys.find(isCanonDomicilioPaciente), [canonKeys]);
+  const canonNacimientoPaciente = useMemo(() => canonKeys.find(isCanonNacimientoPaciente), [canonKeys]);
+  const canonHCPaciente = useMemo(() => canonKeys.find(isCanonHCPaciente), [canonKeys]);
+  const canonNombres = useMemo(() => canonKeys.find(isCanonNombresPaciente), [canonKeys]);
+  const canonServicio = useMemo(() => canonKeys.find(isCanonServicio), [canonKeys]);
+  const canonART = useMemo(() => canonKeys.find(isCanonART), [canonKeys]);
+  const canonTelefono = useMemo(() => canonKeys.find(isCanonTelefono), [canonKeys]);
 
-  const {
-    canonCX,
-    canonDoctor,
-    canonApellido,
-    canonNombre,
-    canonDNI,
-    canonEdad,
-    canonEdadPaciente,
-    canonDia,
-    canonMes,
-    canonAnio,
-    canonLocalidad,
-    canonProvincia,
-    canonDomicilioPaciente,
-    canonNacimientoPaciente,
-    canonHCPaciente,
-    canonART,
-    canonTelefono,
-    canonServicio,
-  } = canon;
+  const canonDiaInt = useMemo(() => canonKeys.find(isCanonDiaInt), [canonKeys]);
+  const canonMesInt = useMemo(() => canonKeys.find(isCanonMesInt), [canonKeys]);
+  const canonAnioInt = useMemo(() => canonKeys.find(isCanonAnioInt), [canonKeys]);
+  const canonFamiliarNombre = useMemo(() => canonKeys.find(isCanonFamiliarNombre), [canonKeys]);
+  const canonFamiliarParentezco = useMemo(() => canonKeys.find(isCanonFamiliarParentezco), [canonKeys]);
+  const canonFamiliarTelefono = useMemo(() => canonKeys.find(isCanonFamiliarTelefono), [canonKeys]);
+  const canonDocumento = useMemo(() => canonKeys.find(isCanonDocumento), [canonKeys]);
+  const canonHabitacionCama = useMemo(() => canonKeys.find(isCanonHabitacionCama), [canonKeys]);
 
-  // ── Formulario inicial (con defaults) ──
-  const initialForm = useMemo(() => {
-    if (!canonical || !mapping) return null;
-    const f = {};
-    canonKeys.forEach((k) => (f[k] = ""));
-    if (
-      Object.keys(mapping).some(
-        (k) =>
-          k.includes("masculino-paciente") ||
-          k.includes("femenino-paciente"),
-      )
-    )
-      f.sexo = "";
-    if (canonServicio) f[canonServicio] = "PISO";
-    if (canonLocalidad) f[canonLocalidad] = "CHAJARÍ";
-    if (canonProvincia) f[canonProvincia] = "ENTRE RIOS";
-    return {
-      ...f,
-      __afiliado: "", // ← N° de afiliado PAMI, separado del DNI
-      __familiarNombre: "",
-      __familiarParentezco: "",
-      __familiarTelefono: "",
-      __hcExtra: "",
-      __artOtra: "",
-      __habitacionCama: "",
-    };
-  }, [canonical, mapping, canonKeys, canonServicio, canonLocalidad, canonProvincia]);
-
+  // Inicializar formulario
   useEffect(() => {
-    if (initialForm) setForm(initialForm);
-  }, [initialForm]);
+    if (!canonical || !mapping) return;
+    const initial = {};
+    for (const k of Object.keys(canonical.canonicalToInternal).sort((a, b) => a.localeCompare(b, "es"))) initial[k] = "";
+    if (Object.keys(mapping).some(k => k.includes("masculino-paciente") || k.includes("femenino-paciente"))) initial["sexo"] = "";
+    if (Object.keys(canonical.canonicalToInternal).some(isCanonServicio)) initial["servicio"] = "PISO";
 
-  // ── Sugerencias ──
+    // 👇 FORZAMOS PAMI POR DEFECTO 👇
+    if (canonART) initial[canonART] = "PAMI";
+
+    initial.__familiarNombre = "";
+    initial.__familiarParentezco = "";
+    initial.__familiarTelefono = "";
+    initial.__hcExtra = "";
+    initial.__artOtra = "";
+    initial.__habitacionCama = "";
+    initial.__afiliadoPaciente = "";
+
+    setForm(initial);
+  }, [canonical, mapping]);
+
+  // Sugerencias iniciales
   useEffect(() => {
     if (!canonical) return;
-    let s = loadSuggestions();
-    if (canonLocalidad) s = addSuggestion(s, canonLocalidad, "CHAJARÍ");
-    if (canonProvincia) s = addSuggestion(s, canonProvincia, "ENTRE RIOS");
-    if (canonNacimientoPaciente)
-      ["CHAJARÍ, ENTRE RIOS", "CONCORDIA, ENTRE RIOS", "PARANÁ, ENTRE RIOS"].forEach(
-        (l) => (s = addSuggestion(s, canonNacimientoPaciente, l)),
-      );
-    if (canonDoctor)
-      DOCTORES.forEach((d) => (s = addSuggestion(s, canonDoctor, d)));
-    setSuggestions(s);
-    saveSuggestions(s);
-  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDoctor]);
-
-  function setValue(name, value) {
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  function commitSuggestion(canonName, value) {
-    const next = addSuggestion(suggestions, canonName, value);
-    if (next === suggestions) return;
-    setSuggestions(next);
-    saveSuggestions(next);
-  }
-
-  // ── Edad ──
-  const edadCalculada = useMemo(
-    () =>
-      computeAgeYears(
-        canonDia ? form?.[canonDia] : "",
-        canonMes ? form?.[canonMes] : "",
-        canonAnio ? form?.[canonAnio] : "",
-      ),
-    [form, canonDia, canonMes, canonAnio],
-  );
-
-  useEffect(() => {
-    if (!canonEdad && !canonEdadPaciente) return;
-    const next = edadCalculada ? `${edadCalculada} años` : "";
+    let seeded = loadSuggestions();
+    if (canonLocalidad) seeded = addSuggestion(seeded, canonLocalidad, "CHAJARÍ");
+    if (canonProvincia) seeded = addSuggestion(seeded, canonProvincia, "ENTRE RIOS");
+    if (canonNacimientoPaciente) {
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, "CHAJARÍ, ENTRE RIOS");
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, "CONCORDIA, ENTRE RIOS");
+      seeded = addSuggestion(seeded, canonNacimientoPaciente, "PARANÁ, ENTRE RIOS");
+    }
+    setSuggestions(seeded);
+    saveSuggestions(seeded);
     setForm((prev) => {
       const out = { ...prev };
       let changed = false;
-      for (const c of [canonEdad, canonEdadPaciente]) {
-        if (c && (out[c] ?? "") !== next) {
-          out[c] = next;
-          changed = true;
-        }
+      if (canonLocalidad && !(out?.[canonLocalidad] ?? "").toString().trim()) { out[canonLocalidad] = "CHAJARÍ"; changed = true; }
+      if (canonProvincia && !(out?.[canonProvincia] ?? "").toString().trim()) { out[canonProvincia] = "ENTRE RIOS"; changed = true; }
+      return changed ? out : prev;
+    });
+  }, [canonical, canonLocalidad, canonProvincia, canonNacimientoPaciente]);
+
+  // Sugerencias de médicos
+  useEffect(() => {
+    if (!canonDoctor) return;
+    let seeded = loadSuggestions();
+    const doctoresLista = ["BRARDA AGUSTIN", "CANAGLIA GUSTAVO", "CIANCIOSI SEBASTIAN", "DEL PUERTO RODRIGO", "GIMENEZ MARTIN", "PERTUS DIEGO"];
+    doctoresLista.forEach((dr) => { seeded = addSuggestion(seeded, canonDoctor, dr); });
+    setSuggestions(seeded);
+    saveSuggestions(seeded);
+  }, [canonDoctor]);
+
+  // Precargar datos del paciente seleccionado (Adaptado para PAMI)
+  useEffect(() => {
+    if (mode === "paciente" && selectedPaciente) {
+      const newForm = { ...form };
+      if (canonApellido) newForm[canonApellido] = selectedPaciente.apellido || "";
+      if (canonNombre) newForm[canonNombre] = selectedPaciente.nombre || "";
+      if (canonDNI) newForm[canonDNI] = selectedPaciente.dni || "";
+      if (canonTelefono && selectedPaciente.telefono) newForm[canonTelefono] = selectedPaciente.telefono;
+      if (canonDomicilioPaciente && selectedPaciente.domicilio) newForm[canonDomicilioPaciente] = selectedPaciente.domicilio;
+      if (canonLocalidad && selectedPaciente.localidad) newForm[canonLocalidad] = selectedPaciente.localidad;
+      if (canonProvincia && selectedPaciente.provincia) newForm[canonProvincia] = selectedPaciente.provincia;
+      if (selectedPaciente.sexo) newForm.sexo = selectedPaciente.sexo;
+
+      if (selectedPaciente.fechaNacimiento) {
+        const [y, m, d] = selectedPaciente.fechaNacimiento.split("-");
+        if (canonDia) newForm[canonDia] = d || "";
+        if (canonMes) newForm[canonMes] = m || "";
+        if (canonAnio) newForm[canonAnio] = y || "";
       }
+
+      // 👇 CARGAMOS EL AFILIADO Y FORZAMOS PAMI 👇
+      if (selectedPaciente.afiliado) newForm.__afiliadoPaciente = selectedPaciente.afiliado;
+      if (canonART) newForm[canonART] = "PAMI";
+
+      // 👇 CARGAMOS EL FAMILIAR (Estructura de PAMI) 👇
+      if (selectedPaciente.familiar) {
+        newForm.__familiarNombre = selectedPaciente.familiar.nombre || "";
+        newForm.__familiarParentezco = selectedPaciente.familiar.parentezco || "";
+        newForm.__familiarTelefono = selectedPaciente.familiar.telefono || "";
+      }
+
+      // HC
+      if (selectedPaciente.historiaClinica) newForm.__hcExtra = selectedPaciente.historiaClinica;
+
+      setForm(newForm);
+      if (selectedPaciente.dni) {
+        lastLookupDniRef.current = "";
+        lookupDniInHC(onlyDigits(selectedPaciente.dni));
+      }
+    }
+  }, [selectedPaciente, mode, canonical]);
+
+  function setValue(name, value) { setForm((prev) => ({ ...prev, [name]: value })); }
+  function commitSuggestion(canonName, value) {
+    const nextSug = addSuggestion(suggestions, canonName, value);
+    if (nextSug === suggestions) return;
+    setSuggestions(nextSug); saveSuggestions(nextSug);
+  }
+
+  const edadCalculada = useMemo(() => {
+    const d = canonDia ? form?.[canonDia] : "";
+    const m = canonMes ? form?.[canonMes] : "";
+    const y = canonAnio ? form?.[canonAnio] : "";
+    return computeAgeYears(d, m, y);
+  }, [form, canonDia, canonMes, canonAnio]);
+
+  useEffect(() => {
+    const next = edadCalculada ? `${edadCalculada} años` : "";
+    if (!canonEdad && !canonEdadPaciente) return;
+    setForm((prev) => {
+      let changed = false;
+      const out = { ...prev };
+      if (canonEdad && (out?.[canonEdad] ?? "") !== next) { out[canonEdad] = next; changed = true; }
+      if (canonEdadPaciente && (out?.[canonEdadPaciente] ?? "") !== next) { out[canonEdadPaciente] = next; changed = true; }
       return changed ? out : prev;
     });
   }, [edadCalculada, canonEdad, canonEdadPaciente]);
 
-  // ── Campos "resto" (DNI ya no se repite aquí) ──
   const orderedResto = useMemo(() => {
     if (!canonical) return [];
-    const known = new Set(
-      ["masculino-paciente", "femenino-paciente", "sexo", ...Object.values(canon)].filter(Boolean),
-    );
-    return canonKeys
-      .filter((k) => !known.has(k) && !isCanonEdadPacienteUI(k))
-      .sort((a, b) => a.localeCompare(b, "es"));
-  }, [canonical, canonKeys, canon]);
+    const all = Object.keys(canonical.canonicalToInternal);
+    const knownSet = new Set([
+      "masculino-paciente", "femenino-paciente", "sexo", canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor,
+      canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente,
+      canonHCPaciente, canonTelefono, canonDiaInt, canonMesInt, canonAnioInt, canonFamiliarNombre, canonFamiliarParentezco, canonFamiliarTelefono, canonDocumento, canonHabitacionCama,
+    ].filter(Boolean));
+    for (const k of all) { if (isCanonEdadPacienteUI(k)) knownSet.add(k); }
+    return all.filter((k) => !knownSet.has(k)).sort((a, b) => a.localeCompare(b, "es"));
+  }, [canonical, canonNombres, canonServicio, canonEdad, canonEdadPaciente, canonART, canonCX, canonDoctor, canonApellido, canonNombre, canonDia, canonMes, canonAnio, canonLocalidad, canonProvincia, canonNacimientoPaciente, canonDomicilioPaciente, canonHCPaciente, canonTelefono, canonDiaInt, canonMesInt, canonAnioInt, canonFamiliarNombre, canonFamiliarParentezco, canonFamiliarTelefono, canonDocumento, canonHabitacionCama]);
 
-  // ══════════════════════════════════════════════════════════
-  // HC LOOKUP (sin cambios funcionales)
-  // ══════════════════════════════════════════════════════════
+  function generateFilename(type) {
+    const apellido = canonApellido ? (form?.[canonApellido] ?? "").toString().trim() : "";
+    const nombre = canonNombre ? (form?.[canonNombre] ?? "").toString().trim() : "";
+    const baseName = apellido && nombre ? `${apellido} ${nombre}` : apellido || nombre || "Paciente";
+    const safeName = generateSafeFilename(baseName);
+    return !safeName || safeName.trim() === "" ? `Paciente-${type}-${Date.now()}` : `${safeName}-${type}`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // HC LOOKUP
+  // ══════════════════════════════════════════════════════════════
   const calcularProximoNumeroHC = async () => {
-    const [snapHC, snapCounter] = await Promise.all([
-      get(child(ref(db), HC_PATH)),
-      get(child(ref(db), COUNTER_GENERAL_PATH)),
-    ]);
+    const [snapHC, snapCounter] = await Promise.all([get(child(ref(db), HC_PATH)), get(child(ref(db), COUNTER_GENERAL_PATH))]);
     let maxReal = 0;
     if (snapHC.exists()) {
       for (const item of Object.values(snapHC.val())) {
@@ -300,16 +312,16 @@ export default function IngresoPamiPage() {
     if (lastLookupDniRef.current === dniDigits) return;
     lastLookupDniRef.current = dniDigits;
 
-    setHcLookup({ ...EMPTY_HC, loading: true, dni: dniDigits });
+    setHcLookup({ loading: true, searched: false, dni: dniDigits, match: null, nextNumber: null, loadingNext: false });
 
     try {
       const snap = await get(child(ref(db), HC_PATH));
-      const matchesDni = (raw) => {
-        const d = onlyDigits(raw);
-        if (!d) return false;
-        if (d === dniDigits) return true;
-        if (dniDigits.length === 11 && d === dniDigits.slice(2, 10)) return true;
-        if (d.length === 11 && dniDigits === d.slice(2, 10)) return true;
+      const matchesDni = (itemDniRaw) => {
+        const itemDni = onlyDigits(itemDniRaw);
+        if (!itemDni) return false;
+        if (itemDni === dniDigits) return true;
+        if (dniDigits.length === 11 && itemDni === dniDigits.slice(2, 10)) return true;
+        if (itemDni.length === 11 && dniDigits === itemDni.slice(2, 10)) return true;
         return false;
       };
 
@@ -317,55 +329,37 @@ export default function IngresoPamiPage() {
       if (snap.exists()) {
         for (const [id, v] of Object.entries(snap.val())) {
           if (matchesDni(v.dni || v.documento)) {
-            match = {
-              id,
-              nombre_apellido: v.nombre_apellido || v.nombre || "",
-              dni: v.dni || v.documento || "",
-              historia_clinica: v.historia_clinica || v.historia_clinica_1 || "",
-            };
+            match = { id, nombre_apellido: v.nombre_apellido || v.nombre || "", dni: v.dni || v.documento || "", historia_clinica: v.historia_clinica || v.historia_clinica_1 || "" };
             break;
           }
         }
       }
 
-      setHcLookup({
-        ...EMPTY_HC,
-        searched: true,
-        dni: dniDigits,
-        match,
-        loadingNext: !match,
-      });
+      setHcLookup({ loading: false, searched: true, dni: dniDigits, match, nextNumber: null, loadingNext: !match });
 
       if (!match) {
         try {
           const next = await calcularProximoNumeroHC();
-          setHcLookup((p) => ({ ...p, nextNumber: next, loadingNext: false }));
+          setHcLookup((prev) => ({ ...prev, nextNumber: next, loadingNext: false }));
         } catch (err) {
-          console.error("Error calculando próximo HC:", err);
-          setHcLookup((p) => ({ ...p, loadingNext: false }));
+          setHcLookup((prev) => ({ ...prev, loadingNext: false }));
         }
       }
     } catch (err) {
-      console.error("Error buscando DNI en HC:", err);
-      setHcLookup({ ...EMPTY_HC, searched: true, dni: dniDigits });
+      setHcLookup({ loading: false, searched: true, dni: dniDigits, match: null, nextNumber: null, loadingNext: false });
     }
   };
 
-  const handleDNIBlur = (raw) => {
-    const digits = onlyDigits(raw);
+  const handleDNIBlur = (rawDni) => {
+    const digits = onlyDigits(rawDni);
     if (digits.length >= 7) lookupDniInHC(digits);
   };
 
   const forceLookupDni = () => {
     const digits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
-    if (digits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI");
+    if (digits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI/CUIL");
     lastLookupDniRef.current = "";
     lookupDniInHC(digits);
-  };
-
-  const flash = (msg, ms = 3000) => {
-    setMensajeExito(msg);
-    setTimeout(() => setMensajeExito(""), ms);
   };
 
   const aplicarHistoriaClinica = (hc) => {
@@ -373,31 +367,25 @@ export default function IngresoPamiPage() {
     const numero = String(hc.historia_clinica || "");
     if (canonHCPaciente) setValue(canonHCPaciente, numero);
     setValue("__hcExtra", numero);
-    const [ape, nom] = (hc.nombre_apellido || "").split(",").map((s) => s.trim());
-    if (ape && canonApellido && !(form[canonApellido] || "").trim())
-      setValue(canonApellido, ape);
-    if (nom && canonNombre && !(form[canonNombre] || "").trim())
-      setValue(canonNombre, nom);
-    flash(`HC #${numero} aplicada al formulario.`);
+
+    const partes = (hc.nombre_apellido || "").split(",").map((s) => s.trim());
+    if (partes[0] && canonApellido && !(form[canonApellido] || "").trim()) setValue(canonApellido, partes[0]);
+    if (partes[1] && canonNombre && !(form[canonNombre] || "").trim()) setValue(canonNombre, partes[1]);
+
+    setMensajeExito(`HC #${numero} aplicada al formulario.`);
+    setTimeout(() => setMensajeExito(""), 3000);
   };
 
   const crearHistoriaClinica = async () => {
     const dniDigits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
-    if (dniDigits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI");
+    if (dniDigits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI/CUIL");
     const apellido = canonApellido ? form?.[canonApellido] : "";
     const nombre = canonNombre ? form?.[canonNombre] : "";
-    if (!apellido || !nombre)
-      return alert("Completá apellido y nombre antes de crear la HC");
+    if (!apellido || !nombre) return alert("Completá apellido y nombre antes de crear la HC");
 
-    const preview = hcLookup.nextNumber
-      ? ` (se asignará el N° ${hcLookup.nextNumber})`
-      : "";
-    if (
-      !window.confirm(
-        `¿Crear una nueva historia clínica PISO para "${apellido} ${nombre}" (DNI ${dniDigits})${preview}?`,
-      )
-    )
-      return;
+    const numeroPreview = hcLookup.nextNumber ? ` (se asignará el N° ${hcLookup.nextNumber})` : "";
+    const ok = window.confirm(`¿Crear una nueva historia clínica PISO para "${apellido} ${nombre}" (DNI ${dniDigits})${numeroPreview}?`);
+    if (!ok) return;
 
     setCreatingHc(true);
     try {
@@ -411,36 +399,36 @@ export default function IngresoPamiPage() {
       }
 
       const counterRef = ref(db, COUNTER_GENERAL_PATH);
-      const tx = await runTransaction(counterRef, (v) => Number(v || 0) + 1);
+      const tx = await runTransaction(counterRef, (currentValue) => Number(currentValue || 0) + 1);
       if (!tx.committed) throw new Error("No se pudo reservar el número");
-      const reserved = Number(tx.snapshot.val() || 0);
-      const finalNumber = reserved > maxReal ? reserved : maxReal + 1;
-      if (finalNumber !== reserved) await set(counterRef, finalNumber);
+      const reservedNumber = Number(tx.snapshot.val() || 0);
+
+      let finalNumber = reservedNumber > maxReal ? reservedNumber : maxReal + 1;
+      if (finalNumber !== reservedNumber) await set(counterRef, finalNumber);
 
       const newNumber = String(finalNumber);
       const session = (typeof getSession === "function" && getSession()) || {};
       const userName = session.user || session.usuario || session.nombre || "sistema";
       const userKey = session.id || session.key || "";
       const now = Date.now();
+      const newRefCorrect = push(ref(db, HC_PATH));
+      const nombreCompleto = `${apellido} ${nombre}`.trim().toUpperCase();
 
-      await set(push(ref(db, HC_PATH)), {
-        nombre_apellido: `${apellido} ${nombre}`.trim().toUpperCase(),
+      await set(newRefCorrect, {
+        nombre_apellido: nombreCompleto,
         dni: dniDigits,
         historia_clinica: newNumber,
         alertas: [],
-        createdBy: userName,
-        createdByUserKey: userKey,
-        createdAt: now,
-        modifiedBy: userName,
-        modifiedByUserKey: userKey,
-        modifiedAt: now,
+        createdBy: userName, createdByUserKey: userKey, createdAt: now,
+        modifiedBy: userName, modifiedByUserKey: userKey, modifiedAt: now,
       });
 
       if (canonHCPaciente) setValue(canonHCPaciente, newNumber);
       setValue("__hcExtra", newNumber);
       lastLookupDniRef.current = "";
       await lookupDniInHC(dniDigits);
-      flash(`✅ HC PISO #${newNumber} creada correctamente`, 4000);
+      setMensajeExito(`✅ HC PISO #${newNumber} creada correctamente`);
+      setTimeout(() => setMensajeExito(""), 4000);
     } catch (err) {
       console.error("Error creando HC:", err);
       alert("No se pudo crear la historia clínica.");
@@ -449,65 +437,57 @@ export default function IngresoPamiPage() {
     }
   };
 
-  // ══════════════════════════════════════════════════════════
-  // Datos del paciente (única fuente para PDF y Firebase)
-  // ══════════════════════════════════════════════════════════
-  const v = (c) => (c ? form?.[c] || "" : "");
+  // ══════════════════════════════════════════════════════════════
+  // PDF vía API
+  // ══════════════════════════════════════════════════════════════
 
-  const buildDatos = () => ({
-    apellido: v(canonApellido),
-    nombre: v(canonNombre),
-    dni: v(canonDNI), // formateado; pami.js lo normaliza a dígitos
-    afiliado: onlyDigits(form.__afiliado),
-    sexo: form?.sexo || "",
-    fechaNacimiento:
-      form?.[canonAnio] && form?.[canonMes] && form?.[canonDia]
-        ? `${form[canonAnio]}-${pad2(form[canonMes])}-${pad2(form[canonDia])}`
-        : "",
-    telefono: v(canonTelefono),
-    domicilio: v(canonDomicilioPaciente),
-    localidad: v(canonLocalidad),
-    provincia: v(canonProvincia),
-    lugarNacimiento: v(canonNacimientoPaciente),
-    historiaClinica: form.__hcExtra || v(canonHCPaciente),
-    habitacionCama: form.__habitacionCama || "",
-    familiar: {
-      nombre: form.__familiarNombre || "",
-      parentezco: form.__familiarParentezco || "",
-      telefono: form.__familiarTelefono || "",
-    },
-  });
+  function buildPdfPayloadFromForm() {
+    const formularioLimpio = {};
+    Object.keys(form).forEach((k) => { if (!k.startsWith("__")) formularioLimpio[k] = form[k]; });
 
-  const formularioSinInternos = () =>
-    Object.fromEntries(Object.entries(form).filter(([k]) => !k.startsWith("__")));
+    const hcFromForm = form?.__hcExtra || (canonHCPaciente ? form?.[canonHCPaciente] || "" : "");
+    const dniValue = canonDNI ? form?.[canonDNI] || "" : "";
+    const lugarNacimientoValue = canonNacimientoPaciente ? form?.[canonNacimientoPaciente] || "" : "";
 
-  const fechaCirugiaObj = () => {
-    if (!fechaEstimada) return null;
-    const [y, m, d] = fechaEstimada.split("-");
-    return { dia: d || "", mes: m || "", anio: y || "" };
-  };
-
-  function generateFilename(type) {
-    const base =
-      `${v(canonApellido)} ${v(canonNombre)}`.trim() || "Paciente";
-    return `${generateSafeFilename(base) || "PACIENTE"}-${type}`;
+    return {
+      pacienteDatos: {
+        apellido: canonApellido ? form?.[canonApellido] || "" : "",
+        nombre: canonNombre ? form?.[canonNombre] || "" : "",
+        dni: dniValue,
+        afiliadoPaciente: form?.__afiliadoPaciente || "",
+        edad: edadCalculada || "",
+        sexo: form?.sexo || "",
+        fechaNacimiento: form?.[canonAnio] && form?.[canonMes] && form?.[canonDia] ? `${form[canonAnio]}-${String(form[canonMes]).padStart(2, "0")}-${String(form[canonDia]).padStart(2, "0")}` : "",
+        localidad: canonLocalidad ? form?.[canonLocalidad] || "" : "",
+        provincia: canonProvincia ? form?.[canonProvincia] || "" : "",
+        domicilio: canonDomicilioPaciente ? form?.[canonDomicilioPaciente] || "" : "",
+        telefono: canonTelefono ? form?.[canonTelefono] || "" : "",
+        historiaClinica: hcFromForm,
+        habitacionCama: form?.__habitacionCama || "",
+        lugarNacimiento: lugarNacimientoValue,
+      },
+      familiar: {
+        nombre: form?.__familiarNombre || "",
+        parentezco: form?.__familiarParentezco || "",
+        telefono: form?.__familiarTelefono || "",
+      },
+      formulario: formularioLimpio,
+      fechaEstimada: fechaEstimada || "",
+      fechaCirugia: (() => {
+        if (!fechaEstimada) return null;
+        const [y, m, d] = fechaEstimada.split("-");
+        return { dia: d || "", mes: m || "", anio: y || "" };
+      })(),
+      servicio: "PISO",
+      habitacionCama: form?.__habitacionCama || "",
+      lugarNacimiento: lugarNacimientoValue,
+    };
   }
 
-  // ── PDF vía API ──
   async function downloadPdf(type) {
     try {
       setError("");
-      const { familiar, ...pd } = buildDatos();
-      const payload = {
-        pacienteDatos: { ...pd, edad: edadCalculada || "" },
-        familiar,
-        formulario: formularioSinInternos(),
-        fechaEstimada: fechaEstimada || "",
-        fechaCirugia: fechaCirugiaObj(),
-        servicio: "PISO",
-        habitacionCama: pd.habitacionCama,
-        lugarNacimiento: pd.lugarNacimiento,
-      };
+      const payload = buildPdfPayloadFromForm();
       const fileName = `${generateFilename(type)}.pdf`;
 
       const res = await fetch("/api/cx", {
@@ -515,18 +495,16 @@ export default function IngresoPamiPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payload, type, fileName }),
       });
+
       if (!res.ok) {
         const detail = await res.text().catch(() => "");
         throw new Error(`Error ${res.status}: ${detail}`);
       }
 
-      const url = URL.createObjectURL(await res.blob());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1200);
     } catch (e) {
       setError(e?.message || "Error al generar descarga");
@@ -534,178 +512,437 @@ export default function IngresoPamiPage() {
     }
   }
 
-  // ── Guardar en PAMI/pacientes/{dni} ──
-  async function guardarPaciente() {
-    const datos = buildDatos();
-    if (!datos.apellido || !datos.nombre)
-      return alert("Completá apellido y nombre del paciente");
-    if (onlyDigits(datos.dni).length < 7)
-      return alert("Ingresá un DNI válido (mínimo 7 dígitos)");
-    if (!datos.afiliado) return alert("Ingresá el N° de afiliado PAMI");
+  // ── Guardar cirugía ──
+  async function guardarCX(optionalData = null) {
+    let fecha = fechaEstimada;
+    let formData = form;
+    let pacienteId = mode === "paciente" ? selectedPaciente?.id : null;
 
-    const session = (typeof getSession === "function" && getSession()) || {};
-    const usuario = session.user || session.usuario || session.nombre || "sistema";
+    if (optionalData) {
+      fecha = optionalData.fechaEstimada || fecha;
+      formData = optionalData.formulario || formData;
+      pacienteId = optionalData.pacienteId || pacienteId;
+    }
 
-    const paciente = {
-      ...datos,
-      cirugia: {
-        procedimiento: v(canonCX),
-        doctor: v(canonDoctor),
-        art: v(canonART),
-        fechaEstimada: fechaEstimada || "",
-        formulario: Object.fromEntries(
-          Object.entries(formularioSinInternos()).filter(
-            ([, val]) => val !== "" && val != null,
-          ),
-        ),
-      },
-    };
+    const apellido = canonApellido ? formData[canonApellido] : "";
+    const nombre = canonNombre ? formData[canonNombre] : "";
+    if (!apellido || !nombre) return alert("Por favor complete al menos apellido y nombre del paciente");
 
     setSaving(true);
     try {
-      let r = await guardarPacientePami(paciente, { usuario });
-      if (r.exists) {
-        const ok = window.confirm(
-          `Ya existe un paciente PAMI con DNI ${r.key}. ¿Actualizar sus datos?`,
-        );
-        if (!ok) return;
-        r = await guardarPacientePami(paciente, { usuario, actualizar: true });
-      }
-      if (!r.success) throw new Error(r.error || "No se pudo guardar");
+      const formularioLimpio = {};
+      Object.keys(formData).forEach((k) => { if (!k.startsWith("__")) formularioLimpio[k] = formData[k]; });
 
-      flash(r.updated ? "Paciente PAMI actualizado." : "Paciente PAMI guardado.");
-      setForm(initialForm);
+      const hcValue = formData.__hcExtra || (canonHCPaciente ? formData[canonHCPaciente] || "" : "");
+      const dniValue = formData[canonDNI] || "";
+      const lugarNacimientoValue = canonNacimientoPaciente ? formData[canonNacimientoPaciente] || "" : "";
+
+      const fechaCirugia = (() => {
+        if (!fecha) return { dia: "", mes: "", anio: "" };
+        const [y, m, d] = fecha.split("-");
+        return { dia: d || "", mes: m || "", anio: y || "" };
+      })();
+
+      const data = {
+        pacienteId,
+        pacienteDatos: {
+          apellido, nombre,
+          dni: dniValue,
+          afiliado: dniValue,
+          afiliadoPaciente: formData.__afiliadoPaciente || "",
+          fechaNacimiento: formData[canonAnio] && formData[canonMes] && formData[canonDia] ? `${formData[canonAnio]}-${formData[canonMes]}-${formData[canonDia]}` : "",
+          edad: edadCalculada,
+          sexo: formData.sexo,
+          localidad: formData[canonLocalidad] || "",
+          provincia: formData[canonProvincia] || "",
+          domicilio: formData[canonDomicilioPaciente] || "",
+          telefono: formData[canonTelefono] || "",
+          historiaClinica: hcValue,
+          habitacionCama: formData.__habitacionCama || "",
+          lugarNacimiento: lugarNacimientoValue,
+          familiar: {
+            nombre: formData.__familiarNombre || "",
+            parentezco: formData.__familiarParentezco || "",
+            telefono: formData.__familiarTelefono || "",
+          },
+        },
+        fechaEstimada: fecha || "",
+        fechaCirugia,
+        formulario: formularioLimpio,
+        realizada: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const res = await fetch(`${CIRUGIAS_DB_URL}.json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+
+      setMensajeExito("Cirugía guardada correctamente.");
+      setTimeout(() => setMensajeExito(""), 3000);
       setFechaEstimada("");
+      setForm((prev) => {
+        const reset = {};
+        Object.keys(prev).forEach((k) => (reset[k] = ""));
+        if (canonART) reset[canonART] = "PAMI"; // Mantiene PAMI al guardar
+        return reset;
+      });
+      setSelectedPaciente(null);
       lastLookupDniRef.current = "";
-      setHcLookup(EMPTY_HC);
+      setHcLookup({ loading: false, searched: false, dni: "", match: null, nextNumber: null, loadingNext: false });
+      return true;
     } catch (err) {
-      console.error(err);
-      alert("Error al guardar el paciente PAMI: " + err.message);
+      console.error(err); alert("Error al guardar la cirugía");
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
-  // ── Render ──
-  if (loading)
+  // ── Limpiar Formulario ──
+  const resetForm = () => {
+    if (!confirm("¿Limpiar todo el formulario? Se perderán los datos no guardados.")) return;
+    setForm((prev) => {
+      const reset = {};
+      Object.keys(prev).forEach((k) => (reset[k] = ""));
+      if (canonART) reset[canonART] = "PAMI"; // Mantiene PAMI al limpiar
+      return reset;
+    });
+    setFechaEstimada("");
+    setSelectedPaciente(null);
+    setPendingSolicitudId(null);
+    setMode("manual");
+    lastLookupDniRef.current = "";
+    setHcLookup({ loading: false, searched: false, dni: "", match: null, nextNumber: null, loadingNext: false });
+    setMensajeExito("Formulario limpiado.");
+    setTimeout(() => setMensajeExito(""), 2000);
+  };
+
+  // ── Solicitudes ──
+  const cargarSolicitudes = async () => {
+    setLoadingSolicitudes(true);
+    try {
+      const res = await fetch(`${SOLICITUDES_DB_URL}.json`);
+      const data = await res.json();
+      if (data) {
+        let lista = Object.entries(data).map(([id, value]) => ({ id, ...value }));
+        lista.sort((a, b) => (b.fechaSolicitud || 0) - (a.fechaSolicitud || 0));
+        setSolicitudes(lista);
+      } else {
+        setSolicitudes([]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  };
+
+  useEffect(() => { if (activeTab === "solicitudes") cargarSolicitudes(); }, [activeTab]);
+
+  const buildFormFromSolicitud = (solicitud) => {
+    const nuevoForm = {};
+    if (canonApellido) nuevoForm[canonApellido] = solicitud.apellido || "";
+    if (canonNombre) nuevoForm[canonNombre] = solicitud.nombre || "";
+    if (canonDNI) nuevoForm[canonDNI] = solicitud.dni || "";
+    if (canonTelefono) nuevoForm[canonTelefono] = solicitud.telefono || "";
+    if (canonLocalidad) nuevoForm[canonLocalidad] = solicitud.localidad || "";
+    if (canonProvincia) nuevoForm[canonProvincia] = solicitud.provincia || "";
+    if (canonDomicilioPaciente) nuevoForm[canonDomicilioPaciente] = solicitud.domicilio || "";
+    if (canonNacimientoPaciente) nuevoForm[canonNacimientoPaciente] = solicitud.lugarNacimiento || "";
+    if (solicitud.sexo) nuevoForm.sexo = solicitud.sexo === "M" ? "M" : "F";
+    if (solicitud.nacimiento) {
+      const [y, m, d] = solicitud.nacimiento.split("-");
+      if (canonDia) nuevoForm[canonDia] = d || "";
+      if (canonMes) nuevoForm[canonMes] = m || "";
+      if (canonAnio) nuevoForm[canonAnio] = y || "";
+    }
+    if (solicitud.afiliadoPaciente) nuevoForm.__afiliadoPaciente = solicitud.afiliadoPaciente;
+    if (solicitud.familiarNombre) nuevoForm.__familiarNombre = solicitud.familiarNombre;
+    if (solicitud.familiarParentezco) nuevoForm.__familiarParentezco = solicitud.familiarParentezco;
+    if (solicitud.familiarTelefono) nuevoForm.__familiarTelefono = solicitud.familiarTelefono;
+    return nuevoForm;
+  };
+
+  const descargarPdfSolicitud = async (solicitud, type) => {
+    try {
+      const nuevoForm = buildFormFromSolicitud(solicitud);
+      const lugarNacimientoValue = solicitud.lugarNacimiento || "";
+
+      const payload = {
+        pacienteDatos: {
+          apellido: solicitud.apellido || "",
+          nombre: solicitud.nombre || "",
+          dni: solicitud.dni || "",
+          afiliadoPaciente: solicitud.afiliadoPaciente || "",
+          edad: solicitud.edad ? String(solicitud.edad) : "",
+          sexo: solicitud.sexo || "",
+          fechaNacimiento: solicitud.nacimiento || "",
+          localidad: solicitud.localidad || "",
+          provincia: solicitud.provincia || "",
+          domicilio: solicitud.domicilio || "",
+          telefono: solicitud.telefono || "",
+          historiaClinica: solicitud.historiaClinica || "",
+          lugarNacimiento: lugarNacimientoValue,
+        },
+        familiar: {
+          nombre: solicitud.familiarNombre || "",
+          parentezco: solicitud.familiarParentezco || "",
+          telefono: solicitud.familiarTelefono || "",
+        },
+        formulario: nuevoForm,
+        fechaEstimada: "",
+        servicio: "PISO",
+        lugarNacimiento: lugarNacimientoValue,
+      };
+
+      const baseName = `${solicitud.apellido || ""} ${solicitud.nombre || ""}`.trim() || "Paciente";
+      const fileName = `${generateSafeFilename(baseName)}-${type}.pdf`;
+
+      const res = await fetch("/api/cx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload, type, fileName }),
+      });
+
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    } catch (e) {
+      setError(e?.message || "Error al generar PDF");
+      console.error(e);
+    }
+  };
+
+  const descargarFrenteSolicitud = (s) => descargarPdfSolicitud(s, "Frente");
+  const descargarDorsoSolicitud = (s) => descargarPdfSolicitud(s, "Dorso");
+
+  const eliminarSolicitud = async (id) => {
+    if (!confirm("¿Eliminar permanentemente esta solicitud?")) return;
+    try {
+      await fetch(`${SOLICITUDES_DB_URL}/${id}.json`, { method: "DELETE" });
+      cargarSolicitudes();
+      setMensajeExito("Solicitud eliminada.");
+      setTimeout(() => setMensajeExito(""), 3000);
+    } catch (e) {
+      setError("Error al eliminar solicitud");
+    }
+  };
+
+  const verDatosSolicitud = (solicitud) => { setModalSolicitudData(solicitud); };
+
+  const cargarSolicitudEnFormulario = (solicitud) => {
+    const nuevoForm = buildFormFromSolicitud(solicitud);
+    setForm((prev) => {
+      const merged = { ...prev, ...nuevoForm };
+      if (canonART && !merged[canonART]) merged[canonART] = "PAMI"; // Fuerza PAMI si la solicitud no traía ART
+      return merged;
+    });
+    setActiveTab("form");
+    setMode("manual");
+    setSelectedPaciente(null);
+    setPendingSolicitudId(solicitud.id);
+    setMensajeExito("Solicitud cargada al formulario. Complete los datos de cirugía y guarde.");
+    setTimeout(() => setMensajeExito(""), 4000);
+    if (solicitud.dni) { lastLookupDniRef.current = ""; lookupDniInHC(onlyDigits(solicitud.dni)); }
+  };
+
+  const guardarCXYEliminarSolicitud = async () => {
+    const success = await guardarCX();
+    if (success && pendingSolicitudId) {
+      try {
+        await fetch(`${SOLICITUDES_DB_URL}/${pendingSolicitudId}.json`, { method: "DELETE" });
+        setPendingSolicitudId(null);
+        cargarSolicitudes();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  // ── Programadas ──
+  const fetchCirugias = async () => {
+    try {
+      setLoadingCirugias(true);
+      const res = await fetch(`${CIRUGIAS_DB_URL}.json`);
+      if (!res.ok) throw new Error("Error al cargar cirugías");
+      const data = await res.json();
+      setCirugias(data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : []);
+    } catch (err) {
+      setError("No se pudieron cargar las cirugías.");
+    } finally {
+      setLoadingCirugias(false);
+    }
+  };
+
+  const marcarRealizada = async (cx, fechaRealizacion) => {
+    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ realizada: true, fechaRealizacion }),
+    });
+    setModalRealizar(null); fetchCirugias();
+  };
+
+  const eliminarCirugia = async (id) => {
+    if (!confirm("¿Eliminar permanentemente esta cirugía?")) return;
+    await fetch(`${CIRUGIAS_DB_URL}/${id}.json`, { method: "DELETE" });
+    fetchCirugias();
+  };
+
+  const guardarEdicion = async (cx, formEdit) => {
+    const nuevoFormulario = { ...(cx.formulario || {}) };
+    if (formEdit.tipoCirugia) nuevoFormulario.cx = formEdit.tipoCirugia;
+    else delete nuevoFormulario.cx;
+    let doctorKey = Object.keys(nuevoFormulario).find(k => k.toLowerCase().includes("doctor") || k.toLowerCase().includes("dr") || k === "nombre-dr") || "nombre-dr";
+    nuevoFormulario[doctorKey] = formEdit.doctor;
+
+    const updates = {
+      fechaEstimada: formEdit.fechaEstimada,
+      doctor: formEdit.doctor,
+      ecgProfesional: formEdit.ecgProfesional,
+      ecgFecha: formEdit.ecgFecha,
+      labProfesional: formEdit.labProfesional,
+      labFecha: formEdit.labFecha,
+      formulario: nuevoFormulario,
+      updatedAt: Date.now(),
+    };
+    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setModalEditar(null); fetchCirugias();
+  };
+
+  const guardarEstudio = async (cx, tipo, profesional, fecha) => {
+    const updates = { [`${tipo}Profesional`]: profesional, [`${tipo}Fecha`]: fecha, updatedAt: Date.now() };
+    await fetch(`${CIRUGIAS_DB_URL}/${cx.id}.json`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setModalEstudio(null); fetchCirugias();
+  };
+
+  // 👇 RUTAS CAMBIADAS A /administrador/ 👇
+  const goToNuevaFoja = () => router.push("/administrador/cx/foja");
+  const goToVerFojas = () => router.push("/administrador/cx/foja/medicos");
+  const goToIngresos = () => router.push("/administrador/ingresos");
+
+  if (loading) {
     return (
       <main className={styles.page}>
         <div className={styles.loadingState}>
           <div className={styles.loadingSpinner} />
-          <p>Cargando campos del formulario…</p>
+          <p>Cargando datos…</p>
         </div>
       </main>
     );
+  }
 
-  if (!mapping || !canonical)
+  if (!mapping || !canonical) {
     return (
       <main className={styles.page}>
-        <div className={styles.bannerError}>
-          <strong>Error:</strong> {error || "No se pudo cargar el mapping."}
-        </div>
+        <div className={styles.bannerError}><strong>Error:</strong> {error || "No se pudo cargar el mapping."}</div>
       </main>
     );
+  }
 
   const hasSexo = form?.sexo !== undefined;
-  const hasLocation =
-    canonDomicilioPaciente || canonNacimientoPaciente || canonLocalidad || canonProvincia;
-  const hcPreview = form.__hcExtra || (canonHCPaciente && form?.[canonHCPaciente]);
+  const hasLocation = canonDomicilioPaciente || canonNacimientoPaciente || canonLocalidad || canonProvincia;
 
   return (
     <main className={styles.page}>
-      <div className={styles.layout}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 24px 60px" }}>
         <div className={styles.formColumn}>
           {error && <div className={styles.bannerError}>{error}</div>}
           {mensajeExito && <div className={styles.bannerSuccess}>{mensajeExito}</div>}
 
-          <h1 className={styles.sectionTitle} style={{ marginBottom: "1rem" }}>
-            Ingreso PAMI
-          </h1>
-
-          <FormularioCX
-            {...canon}
-            form={form}
-            setValue={setValue}
-            suggestions={suggestions}
-            commitSuggestion={commitSuggestion}
-            canonicalObj={canonical}
-            mapping={mapping}
-            mode="manual"
-            setMode={noop}
-            selectedPaciente={null}
-            setSelectedPaciente={noop}
-            hasSexo={hasSexo}
-            hasLocation={hasLocation}
-            orderedResto={orderedResto}
-            fechaEstimada={fechaEstimada}
-            setFechaEstimada={setFechaEstimada}
-            guardarCXYEliminarSolicitud={guardarPaciente}
-            saving={saving}
-            edadCalculada={edadCalculada}
-            hcLookup={hcLookup}
-            onDNIBlur={handleDNIBlur}
-            onForceLookupDni={forceLookupDni}
-            onAplicarHC={aplicarHistoriaClinica}
-            onCrearHC={crearHistoriaClinica}
-            creatingHc={creatingHc}
-          />
-        </div>
-
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarCard}>
-            <div className={styles.patientPreview}>
-              <div className={styles.patientAvatar}>
-                {form.sexo === "F" ? "👩" : form.sexo === "M" ? "👨" : "🧑"}
-              </div>
-              <div className={styles.patientInfo}>
-                <div className={styles.patientName}>
-                  {[v(canonApellido), v(canonNombre)].filter(Boolean).join(" ") || (
-                    <span className={styles.patientNameEmpty}>Sin nombre</span>
-                  )}
-                </div>
-                {edadCalculada && (
-                  <div className={styles.patientAge}>{edadCalculada} años</div>
-                )}
-                {form.__afiliado && (
-                  <div className={styles.patientHC}>Afiliado {form.__afiliado}</div>
-                )}
-                {hcPreview && (
-                  <div className={styles.patientHC}>
-                    HC {formatNumberWithThousands(hcPreview)}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {canonCX && form?.[canonCX] && (
-              <div className={styles.cxPreview}>
-                <span className={styles.cxLabel}>CX</span>
-                <span className={styles.cxValue}>{form[canonCX]}</span>
-              </div>
-            )}
-
-            <div className={styles.sidebarDivider} />
-            <p className={styles.downloadTitle}>Descargar PDF</p>
-            {["Frente", "Dorso"].map((t) => (
-              <button
-                key={t}
-                className={styles.downloadBtn}
-                onClick={() => downloadPdf(t)}
-              >
-                <span className={styles.downloadIcon}>↓</span>
-                <span className={styles.downloadBtnText}>
-                  <strong>{t}</strong>
-                  <small>{generateFilename(t)}.pdf</small>
-                </span>
-              </button>
-            ))}
-            <p className={styles.sidebarNote}>
-              Los PDFs se generan con los datos del formulario y se descargan
-              listos para imprimir.
-            </p>
+          <div className={styles.tabsContainer}>
+            <button className={`${styles.tabButton} ${activeTab === "form" ? styles.activeTab : ""}`} onClick={() => setActiveTab("form")}>
+              📋 Formulario
+            </button>
+            <button className={styles.tabButton} onClick={goToIngresos}>
+              🏥 Ir a Ingresos
+            </button>
           </div>
-        </aside>
+
+          {activeTab === "form" && (
+            <FormularioCX
+              form={form} setValue={setValue} suggestions={suggestions} commitSuggestion={commitSuggestion}
+              canonicalObj={canonical} mapping={mapping} mode={mode} setMode={setMode}
+              selectedPaciente={selectedPaciente} setSelectedPaciente={setSelectedPaciente}
+              canonCX={canonCX} canonDoctor={canonDoctor} canonApellido={canonApellido} canonNombre={canonNombre}
+              canonDNI={canonDNI} canonEdad={canonEdad} canonEdadPaciente={canonEdadPaciente}
+              canonDia={canonDia} canonMes={canonMes} canonAnio={canonAnio} canonLocalidad={canonLocalidad}
+              canonProvincia={canonProvincia} canonDomicilioPaciente={canonDomicilioPaciente}
+              canonNacimientoPaciente={canonNacimientoPaciente} canonHCPaciente={canonHCPaciente}
+              canonART={canonART} canonTelefono={canonTelefono} canonNombres={canonNombres} canonServicio={canonServicio}
+              hasSexo={hasSexo} hasLocation={hasLocation} orderedResto={orderedResto}
+              fechaEstimada={fechaEstimada} setFechaEstimada={setFechaEstimada}
+              guardarCXYEliminarSolicitud={guardarCXYEliminarSolicitud} saving={saving} edadCalculada={edadCalculada}
+              hcLookup={hcLookup} onDNIBlur={handleDNIBlur} onForceLookupDni={forceLookupDni}
+              onAplicarHC={aplicarHistoriaClinica} onCrearHC={crearHistoriaClinica} creatingHc={creatingHc}
+              downloadPdf={downloadPdf}
+              resetForm={resetForm}
+            />
+          )}
+          {activeTab === "solicitudes" && (
+            <SolicitudesTab
+              solicitudes={solicitudes} loadingSolicitudes={loadingSolicitudes}
+              cargarSolicitudEnFormulario={cargarSolicitudEnFormulario} onEliminar={eliminarSolicitud}
+              onDescargarFrente={descargarFrenteSolicitud} onDescargarDorso={descargarDorsoSolicitud}
+              onVerDatos={verDatosSolicitud} onRecargar={cargarSolicitudes}
+            />
+          )}
+        </div>
       </div>
+
+      {modalRealizar && <ModalRealizacion cx={modalRealizar} onConfirm={(fecha) => marcarRealizada(modalRealizar, fecha)} onCancel={() => setModalRealizar(null)} />}
+      {modalEditar && <ModalEdicion cx={modalEditar} onSave={(form) => guardarEdicion(modalEditar, form)} onCancel={() => setModalEditar(null)} />}
+      {modalFicha && <ModalFicha cx={modalFicha} mapping={mapping} canonical={canonical} onClose={() => setModalFicha(null)} />}
+      {modalEstudio && <ModalEstudio cx={modalEstudio.cx} estudio={modalEstudio.tipo} onSave={(prof, fecha) => guardarEstudio(modalEstudio.cx, modalEstudio.tipo, prof, fecha)} onCancel={() => setModalEstudio(null)} />}
+      {modalSolicitudData && <ModalSolicitud solicitud={modalSolicitudData} onClose={() => setModalSolicitudData(null)} />}
     </main>
+  );
+}
+
+// ── ModalSolicitud ──
+function ModalSolicitud({ solicitud, onClose }) {
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2>Detalles de la solicitud</h2>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <div className={styles.modalBody}>
+          <div className={styles.detailRow}><strong>Apellido:</strong> {solicitud.apellido || "-"}</div>
+          <div className={styles.detailRow}><strong>Nombre:</strong> {solicitud.nombre || "-"}</div>
+          <div className={styles.detailRow}><strong>DNI:</strong> {solicitud.dni || "-"}</div>
+          <div className={styles.detailRow}><strong>N° Afiliado:</strong> {solicitud.afiliadoPaciente || "-"}</div>
+          <div className={styles.detailRow}><strong>Teléfono:</strong> {solicitud.telefono || "-"}</div>
+          <div className={styles.detailRow}><strong>Sexo:</strong> {solicitud.sexo === "M" ? "Masculino" : solicitud.sexo === "F" ? "Femenino" : "-"}</div>
+          <div className={styles.detailRow}><strong>Fecha nacimiento:</strong> {solicitud.nacimiento || "-"}</div>
+          <div className={styles.detailRow}><strong>Localidad:</strong> {solicitud.localidad || "-"}</div>
+          <div className={styles.detailRow}><strong>Provincia:</strong> {solicitud.provincia || "-"}</div>
+          <div className={styles.detailRow}><strong>Domicilio:</strong> {solicitud.domicilio || "-"}</div>
+          <div className={styles.detailRow}><strong>Lugar de nacimiento:</strong> {solicitud.lugarNacimiento || "-"}</div>
+
+          <div className={styles.detailRow} style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 12 }}>
+            <strong style={{ color: "#6fa17b" }}>👨‍👩‍👧 Familiar responsable</strong>
+          </div>
+          <div className={styles.detailRow}><strong>Nombre:</strong> {solicitud.familiarNombre || "-"}</div>
+          <div className={styles.detailRow}><strong>Parentezco:</strong> {solicitud.familiarParentezco || "-"}</div>
+          <div className={styles.detailRow}><strong>Teléfono:</strong> {solicitud.familiarTelefono || "-"}</div>
+
+          <div className={styles.detailRow} style={{ marginTop: 12 }}><strong>Fecha de solicitud:</strong> {solicitud.fechaSolicitud ? new Date(solicitud.fechaSolicitud).toLocaleString() : "-"}</div>
+        </div>
+      </div>
+    </div>
   );
 }

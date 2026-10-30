@@ -774,7 +774,7 @@ export default function FojaAdminPage() {
 
   return (
     <div className={styles.page}>
-      <button onClick={() => router.push("/admin/cx")} className={styles.volverBtn}>← Volver a CX</button>
+      <button onClick={() => router.push("/administrador/cx")} className={styles.volverBtn}>← Volver a CX</button>
 
       <div className={styles.viewTabs}>
         <button className={`${styles.tab} ${view === "nueva" ? styles.tabActive : ""}`} onClick={() => setView("nueva")}>📝 Nueva Foja</button>

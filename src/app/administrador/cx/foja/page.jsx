@@ -400,7 +400,7 @@ export default function FojaAdminPage() {
 
   return (
     <div className={styles.page}>
-      <button onClick={() => router.push("/admin/cx")} className={styles.volverBtn}>
+      <button onClick={() => router.push("/administrador/cx")} className={styles.volverBtn}>
         ← Volver a CX
       </button>
 

@@ -3,9 +3,7 @@
    Wizard PAMI — Tema oscuro forzado
    ========================================================= */
 
-/* Contenedor principal con tokens oscuros forzados */
 .wizard {
-    /* Tokens oscuros obligatorios para el wizard */
     --bg: #0d1117;
     --surface: #161b22;
     --surface-2: #1c232c;
@@ -29,7 +27,6 @@
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     color-scheme: dark;
-    /* Fuerza a los inputs nativos (fecha, etc.) a modo oscuro */
 }
 
 /* ─── Stepper ──────────────────────────────────────────── */
@@ -63,7 +60,7 @@
     cursor: pointer;
     white-space: nowrap;
     scroll-snap-align: start;
-    transition: border-color .15s, background .15s, color .15s;
+    transition: all .2s ease;
 }
 
 .step:disabled {
@@ -75,6 +72,7 @@
     border-color: var(--accent);
     background: var(--accent-weak);
     color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .stepDone {
@@ -99,11 +97,7 @@
     flex-shrink: 0;
 }
 
-.stepActive .stepNum {
-    background: var(--accent);
-    color: #fff;
-}
-
+.stepActive .stepNum,
 .stepDone .stepNum {
     background: var(--accent);
     color: #fff;
@@ -116,10 +110,11 @@
 /* ─── Contenido del paso ──────────────────────────────── */
 .pasoContenido {
     flex: 1;
-    padding: clamp(1rem, 2.5vw, 1.5rem);
+    padding: clamp(1rem, 3vw, 2rem);
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 /* ─── Nav inferior ────────────────────────────────────── */
@@ -144,14 +139,14 @@
     justify-content: center;
     gap: .35rem;
     min-height: 44px;
-    padding: .6rem 1.1rem;
+    padding: .6rem 1.2rem;
     border-radius: 10px;
     font: inherit;
     font-size: .88rem;
     font-weight: 750;
     cursor: pointer;
     text-decoration: none;
-    transition: filter .15s, border-color .15s, background .15s;
+    transition: all .15s ease;
 }
 
 .btnPrimario {
@@ -162,7 +157,8 @@
 }
 
 .btnPrimario:hover:not(:disabled) {
-    filter: brightness(1.08);
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
 .btnPrimario:disabled {
@@ -184,15 +180,15 @@
 /* ─── Tipografía ──────────────────────────────────────── */
 .titulo {
     margin: 0 0 .35rem;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--text);
 }
 
 .hint {
-    margin: 0 0 .9rem;
+    margin: 0 0 1.25rem;
     color: var(--muted);
-    font-size: .85rem;
+    font-size: .88rem;
     line-height: 1.5;
 }
 
@@ -208,7 +204,7 @@
     font: inherit;
     font-size: .92rem;
     outline: none;
-    transition: border-color .15s, box-shadow .15s;
+    transition: all .15s;
 }
 
 .input:focus {
@@ -216,32 +212,13 @@
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-.seleccionado {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .5rem 1rem;
-    margin-top: .75rem;
-    padding: .85rem 1rem;
-    border: 1px solid var(--accent-border);
-    border-radius: 10px;
-    background: var(--accent-weak);
-    color: var(--text);
-    font-size: .88rem;
-}
-
-.seleccionado strong {
-    color: var(--accent);
-}
-
+/* Eliminamos el scroll interno de aquí */
 .listaResultados {
     display: grid;
-    gap: .4rem;
-    margin: .75rem 0 0;
+    gap: .5rem;
+    margin: 1rem 0 0;
     padding: 0;
     list-style: none;
-    max-height: 60vh;
-    overflow-y: auto;
 }
 
 .item {
@@ -250,7 +227,7 @@
     align-items: flex-start;
     gap: .2rem;
     width: 100%;
-    padding: .7rem .85rem;
+    padding: .85rem 1rem;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-2);
@@ -258,50 +235,36 @@
     text-align: left;
     font: inherit;
     cursor: pointer;
-    transition: border-color .15s, background .15s;
+    transition: all .2s ease;
 }
 
 .item:hover {
     border-color: var(--accent-border);
-    background: var(--accent-weak);
+    background: var(--surface);
+    transform: translateX(4px);
 }
 
 .item strong {
-    font-size: .9rem;
+    font-size: .95rem;
     color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .meta {
     color: var(--muted);
-    font-size: .76rem;
+    font-size: .8rem;
     line-height: 1.4;
 }
 
 .vacio {
-    padding: 1rem;
+    padding: 1.5rem;
     border: 1px dashed var(--border);
     border-radius: 10px;
     color: var(--muted);
-    font-size: .85rem;
+    font-size: .9rem;
     text-align: center;
-}
-
-.badgeFallecido {
-    color: var(--danger);
-    font-weight: 800;
-    font-size: .7rem;
-    letter-spacing: .5px;
-}
-
-.linkBtn {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--accent);
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: underline;
 }
 
 /* ─── Paso 2: oncoplan ───────────────────────────────── */
@@ -310,26 +273,27 @@
     display: flex;
     gap: .75rem;
     align-items: flex-start;
-    padding: 1rem;
-    margin-bottom: .75rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--surface-2);
     cursor: pointer;
-    transition: border-color .15s;
+    transition: all .2s ease;
 }
 
 .toggleCard:hover,
 .confirmCard:hover {
     border-color: var(--accent-border);
+    background: var(--surface);
 }
 
 .toggleCard input[type="checkbox"],
 .confirmCard input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     accent-color: #e11d48;
-    margin-top: .15rem;
+    margin-top: .1rem;
     flex-shrink: 0;
     cursor: pointer;
 }
@@ -338,16 +302,16 @@
 .confirmCard strong {
     display: block;
     color: var(--text);
-    font-size: .92rem;
+    font-size: 1rem;
     font-weight: 800;
-    margin-bottom: .15rem;
+    margin-bottom: .25rem;
 }
 
 .toggleCard small,
 .confirmCard small {
     display: block;
     color: var(--muted);
-    font-size: .78rem;
+    font-size: .82rem;
     line-height: 1.45;
 }
 
@@ -368,42 +332,43 @@
     display: flex;
     flex-direction: column;
     gap: .35rem;
-    padding: 1.1rem 1.2rem;
-    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border: 2px solid var(--border);
     border-radius: 14px;
     background: var(--surface-2);
     color: var(--text);
     text-align: left;
     font: inherit;
     cursor: pointer;
-    transition: border-color .15s, background .15s, transform .1s;
+    transition: all .2s ease;
 }
 
 .opcionCard:hover {
     border-color: var(--accent-border);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    background: var(--surface);
 }
 
 .opcionCardActive {
     border-color: var(--accent);
     background: var(--accent-weak);
-    box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .opcionIcon {
     font-size: 1.8rem;
     line-height: 1;
+    margin-bottom: .5rem;
 }
 
 .opcionLabel {
-    font-size: .98rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: var(--text);
 }
 
 .opcionDesc {
     color: var(--muted);
-    font-size: .8rem;
+    font-size: .82rem;
     line-height: 1.4;
 }
 
@@ -411,7 +376,7 @@
 .tabsOP {
     display: inline-flex;
     gap: .35rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     padding: .3rem;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -419,53 +384,50 @@
 }
 
 .tabOP {
-    padding: .5rem .9rem;
+    padding: .6rem 1rem;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: var(--muted);
     font: inherit;
-    font-size: .82rem;
+    font-size: .85rem;
     font-weight: 750;
     cursor: pointer;
-    transition: background .15s, color .15s;
+    transition: all .15s;
 }
 
 .tabOPActive {
-    background: var(--accent-weak);
+    background: var(--surface);
     color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .campo {
     display: flex;
     flex-direction: column;
     gap: .35rem;
-    margin-bottom: .75rem;
-    font-size: .78rem;
+    margin-bottom: 1rem;
+    font-size: .82rem;
     font-weight: 700;
     color: var(--text);
-}
-
-.campo>span {
-    display: block;
 }
 
 .campo>span small {
     color: var(--muted);
     font-weight: 500;
-    font-size: .72rem;
+    font-size: .75rem;
     margin-left: .25rem;
 }
 
 .row2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: .65rem;
+    gap: 1rem;
 }
 
 .errorText {
     color: var(--danger);
-    font-size: .72rem;
+    font-size: .75rem;
     font-weight: 600;
 }
 
@@ -473,28 +435,11 @@
     border-color: var(--danger) !important;
 }
 
-.resumenOP {
-    display: grid;
-    gap: .5rem;
-    padding: .85rem 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid var(--accent-border);
-    border-radius: 10px;
-    background: var(--accent-weak);
-    color: var(--text);
-    font-size: .85rem;
-    line-height: 1.5;
-}
-
-.resumenOP strong {
-    color: var(--accent);
-}
-
 /* ─── Paso 6: confirmar ──────────────────────────────── */
 .resumen {
     display: grid;
     gap: .75rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .resumenRow {
@@ -502,17 +447,17 @@
     grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
     align-items: start;
     gap: .6rem;
-    padding: .75rem 1rem;
+    padding: .85rem 1rem;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-2);
-    font-size: .85rem;
+    font-size: .9rem;
 }
 
 .resumenRow dt {
     color: var(--muted);
     font-weight: 700;
-    font-size: .78rem;
+    font-size: .8rem;
 }
 
 .resumenRow dd {
@@ -527,11 +472,6 @@
     flex-wrap: wrap;
     gap: .5rem;
     justify-content: flex-end;
-}
-
-.resumenAcciones>button,
-.resumenAcciones>a {
-    width: 100%;
 }
 
 @media (min-width: 560px) {
@@ -549,29 +489,7 @@
     }
 
     .pasoContenido {
-        padding: .9rem;
-        border-radius: 12px;
-    }
-
-    .navBar {
-        border-radius: 10px;
-        padding: .5rem;
-    }
-
-    .btnPrimario,
-    .btnSecundario {
-        min-height: 42px;
-        font-size: .84rem;
-    }
-
-    .step {
-        min-height: 40px;
-        padding: .45rem .7rem;
-        font-size: .78rem;
-    }
-
-    .stepLabel {
-        font-size: .74rem;
+        padding: 1rem;
     }
 
     .row2 {
@@ -580,6 +498,6 @@
 
     .resumenRow {
         grid-template-columns: 1fr;
-        gap: .2rem;
+        gap: .25rem;
     }
 }
