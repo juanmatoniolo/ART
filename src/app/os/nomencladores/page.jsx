@@ -6,6 +6,7 @@ import NomencladorNacional from '@/components/nacional/page';
 import ConveniosArt from '@/components/convenios/page';
 import NomencladorBioq from '@/components/bioquimica/page';
 import NomencladorAoter from '@/components/aoter/page';
+import NomencladorUnimedical from '@/components/unimedical/page'; // 👈 NUEVO IMPORT
 import styles from './page.module.css';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ export default function NomencladorGlobal() {
       { key: 'convenios', label: 'Convenios ART' },
       { key: 'bioq', label: 'Bioquímica' },
       { key: 'aoter', label: 'AOTER' },
+      { key: 'unimedical', label: 'Unimedical' }, // 👈 NUEVA SOLAPA
     ],
     []
   );
@@ -124,6 +126,20 @@ export default function NomencladorGlobal() {
                 transition={{ duration: 0.22, ease: 'easeOut' }}
               >
                 <NomencladorAoter />
+              </motion.div>
+            )}
+
+            {/* 👇 NUEVO BLOQUE DE UNIMEDICAL 👇 */}
+            {activeTab === 'unimedical' && (
+              <motion.div
+                key="unimedical"
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                <NomencladorUnimedical />
               </motion.div>
             )}
           </AnimatePresence>

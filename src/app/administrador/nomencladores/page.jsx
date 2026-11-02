@@ -11,12 +11,17 @@ const NomencladorBioq = dynamic(() => import('@/components/bioquimica/page'));
 const NomencladorAoter = dynamic(() => import('@/components/aoter/page'));
 const NomencladorPami = dynamic(() => import('@/components/pami/page'));
 
+// 👇 NUEVO IMPORT DE UNIMEDICAL 👇
+const NomencladorUnimedical = dynamic(() => import('@/components/unimedical/page'));
+
 const TABS = [
   { key: 'nacional', label: 'Nomenclador Nacional', Component: NomencladorNacional },
   { key: 'convenios', label: 'Convenios ART', Component: ConveniosArt },
   { key: 'bioq', label: 'Bioquímica', Component: NomencladorBioq },
   { key: 'aoter', label: 'AOTER', Component: NomencladorAoter },
   { key: 'pami', label: 'PAMI', Component: NomencladorPami },
+  // 👇 NUEVO TAB DE UNIMEDICAL 👇
+  { key: 'unimedical', label: 'Unimedical', Component: NomencladorUnimedical },
 ];
 
 const variants = {

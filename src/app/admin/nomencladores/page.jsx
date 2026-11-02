@@ -22,6 +22,11 @@ const NomencladorPami = dynamic(
   () => import('@/components/pami/page')
 );
 
+// 👇 NUEVO IMPORT 👇
+const NomencladorUnimedical = dynamic(
+  () => import('@/components/unimedical/page')
+);
+
 const TABS = [
   {
     key: 'nacional',
@@ -47,6 +52,12 @@ const TABS = [
     key: 'pami',
     label: 'PAMI',
     Component: NomencladorPami,
+  },
+  // 👇 NUEVO TAB 👇
+  {
+    key: 'unimedical',
+    label: 'Unimedical',
+    Component: NomencladorUnimedical,
   },
 ];
 
