@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, useRef, useMemo } from "react";
 import Fuse from 'fuse.js';
+import { db } from "@/lib/firebase"; // Asegúrate de tener la importación de db
+import { ref, update } from "firebase/database"; // Importamos update y ref
 import { dniKey, obtenerPacientePami, asegurarPacientePami } from "@/lib/pami";
 import { guardarPresupuestoPami, itemsDe, codigosDe } from "@/lib/pami/presupuestos";
 import { getSession } from "@/utils/session";
@@ -12,11 +14,10 @@ import PresupuestoImprimible from "./PresupuestoImprimible";
 import { useReactToPrint } from "react-to-print";
 import styles from "./presupuesto.module.css";
 
-// Agregamos hcPiso y hcUti
 const PACIENTE_VACIO = { dni: "", afiliado: "", nombreCompleto: "", hcPiso: "", hcUti: "", sexo: "", fechaNacimiento: "", telefono: "", domicilio: "", localidad: "", provincia: "", famNombre: "", famParentezco: "", famTelefono: "", cirujano: "", ayudante1: "", ayudante2: "", anestesista: "" };
 
 const desdeDb = (d) => ({
-    dni: d.dni || "", afiliado: d.afiliado || "", hcPiso: d.historiaClinicaPiso || "", hcUti: d.historiaClinicaUti || "", sexo: d.sexo || "",
+    dni: d.dni || "", afiliado: d.afiliado || "", hcPiso: d.historiaClinicaPiso || d.historiaClinica || "", hcUti: d.historiaClinicaUti || "", sexo: d.sexo || "",
     fechaNacimiento: d.fechaNacimiento || "", telefono: d.telefono || "", domicilio: d.domicilio || "",
     localidad: d.localidad || "", provincia: d.provincia || "", cirujano: d.cirujano || "",
     ayudante1: d.ayudante1 || "", ayudante2: d.ayudante2 || "", anestesista: d.anestesista || "",
@@ -82,7 +83,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const [estado, setEstado] = useState(null);
     const [borradores, setBorradores] = useState([]);
     const [draftActivo, setDraftActivo] = useState(null);
-
+    const [formKey, setFormKey] = useState(0);
     const [carrito, setCarrito] = useState([]);
     const [codigos, setCodigos] = useState([]);
     const [flash, setFlash] = useState("");
@@ -190,6 +191,30 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         } catch (e) { setEstado(null); mostrarFlash("Error al buscar paciente."); }
     };
 
+    // 👇 NUEVA FUNCIÓN: ACTUALIZA ONCOPLAN EN FIREBASE AL INSTANTE 👇
+    const handleToggleOncoplanDB = async (nuevoValor) => {
+        if (!paciente.dni) {
+            // Si es un paciente nuevo que aún no se guardó, solo actualizamos el estado local
+            setOncoplan(nuevoValor);
+            return;
+        }
+
+        try {
+            const pacienteRef = ref(db, `PAMI/pacientes/${dniKey(paciente.dni)}`);
+            await update(pacienteRef, {
+                oncoplan: nuevoValor,
+                oncoplanEstado: nuevoValor ? "pendiente" : null,
+                updatedAt: Date.now()
+            });
+            setOncoplan(nuevoValor);
+            setPaciente(prev => ({ ...prev, oncoplan: nuevoValor, oncoplanEstado: nuevoValor ? "pendiente" : null }));
+            mostrarFlash(nuevoValor ? "✅ Paciente guardado como ONCOPLAN." : "ONCOPLAN removido del paciente.");
+        } catch (error) {
+            console.error("Error al actualizar oncoplan en Firebase:", error);
+            mostrarFlash("❌ Error al actualizar ONCOPLAN.");
+        }
+    };
+
     const cargarBorrador = (b) => {
         setCarrito(itemsDe(b).map((i) => ({ ...i, id: i.id || `${i.categoria}:${i.key}` })));
         setCodigos(codigosDe(b).map((c) => ({ ...c })));
@@ -199,11 +224,23 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
 
     const iniciarNuevoBorrador = () => { setCarrito([]); setCodigos([]); setDraftActivo(null); mostrarFlash("Presupuesto limpio. Podés empezar de cero."); };
 
-    const limpiarCarrito = () => {
-        if (!confirm("¿Estás seguro de que querés vaciar todo el presupuesto actual?")) return;
-        setCarrito([]); setCodigos([]); setDraftActivo(null);
+    const limpiarTodo = () => {
+        if (!confirm("⚠️ ATENCIÓN: ¿Estás seguro de que querés borrar TODO el presupuesto actual?\n\nSe borrarán los datos del paciente, los códigos de prestaciones, los medicamentos del carrito y las notas.\n\nEsta acción no se puede deshacer.")) return;
+
+        setFormKey(prev => prev + 1);
+        setPaciente({ ...PACIENTE_VACIO });
+        setOncoplan(false);
+        setEstado(null);
+        setBorradores([]);
+        setDraftActivo(null);
+        setCarrito([]);
+        setCodigos([]);
         setFormCodigo({ codigo: "", descripcion: "", monto: "", cantidad: "1", medico: "", esCX: false, cirujano: "", ayudante1: "", ayudante2: "", anestesista: "" });
-        setBusquedaCodigo(""); mostrarFlash("Carrito vaciado con éxito.");
+        setBusquedaCodigo("");
+        setPaso(1);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        if (onInitialLoaded) onInitialLoaded();
+        mostrarFlash("🗑️ Presupuesto borrado por completo. Podés empezar de nuevo.");
     };
 
     const limpiarCodigos = () => { if (!confirm("¿Vaciar la lista de prestaciones/códigos?")) return; setCodigos([]); };
@@ -218,6 +255,11 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         Object.keys(pacienteAGuardar).forEach(k => {
             if (typeof pacienteAGuardar[k] === 'string') pacienteAGuardar[k] = pacienteAGuardar[k].toUpperCase();
         });
+
+        // Nos aseguramos de guardar el estado actual de oncoplan
+        pacienteAGuardar.oncoplan = oncoplan;
+        pacienteAGuardar.oncoplanEstado = oncoplan ? "pendiente" : null;
+
         await asegurarPacientePami(aDb(pacienteAGuardar), { usuario: usuarioActual() });
         return key;
     };
@@ -272,7 +314,19 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
     const renderPaso1 = () => (
         <div className={styles.card}>
             <h3 className={styles.cardTitle}>Paso 1: Datos del Paciente</h3>
-            <PacienteFormBasico paciente={paciente} onChange={(p) => setPaciente({ ...paciente, ...p })} onDniBlur={() => buscarPaciente()} oncoplan={oncoplan} onOncoplanChange={setOncoplan} statusText={estado === "buscando" ? "Buscando..." : estado === "existente" ? "Paciente encontrado" : ""} pacientesDb={pacientesDb} />
+
+            {/* 👇 LE PASAMOS LA NUEVA FUNCIÓN AL FORMULARIO 👇 */}
+            <PacienteFormBasico
+                key={formKey}
+                paciente={paciente}
+                onChange={(p) => setPaciente({ ...paciente, ...p })}
+                onDniBlur={() => buscarPaciente()}
+                oncoplan={oncoplan}
+                onOncoplanChange={handleToggleOncoplanDB}
+                statusText={estado === "buscando" ? "Buscando..." : estado === "existente" ? "Paciente encontrado" : ""}
+                pacientesDb={pacientesDb}
+            />
+
             {borradores.length > 0 && (
                 <div style={{ marginTop: "2rem" }}>
                     <h4 className={styles.sub}>Borradores existentes</h4>
@@ -286,6 +340,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
         </div>
     );
 
+    // ... (Los pasos 2, 3 y 4 se mantienen exactamente igual que en tu código anterior) ...
     const renderPaso2 = () => (
         <div className={styles.card}>
             <h3 className={styles.cardTitle}>Paso 2: Prestaciones (Códigos)</h3>
@@ -341,7 +396,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                 <h4 style={{ margin: 0, fontSize: "0.9rem", color: "var(--muted)" }}>Códigos Agregados</h4>
                 {codigos.length > 0 && (
-                    <button type="button" className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: "auto", fontSize: "0.8rem" }} onClick={limpiarCodigos}>🗑️ Limpiar todos</button>
+                    <button type="button" className={styles.btn} style={{ color: "var(--danger)", borderColor: "transparent", padding: "0.25rem 0.5rem", minHeight: "auto", fontSize: "0.8rem" }} onClick={limpiarCodigos}>🗑️ Limpiar códigos</button>
                 )}
             </div>
 
@@ -447,17 +502,24 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", justifyContent: "space-between", flexWrap: "wrap" }}>
                 <div style={{ display: "flex", gap: "1rem" }}>
                     <button type="button" className={styles.btn} onClick={() => setPaso(3)}>← Volver</button>
-                    <button type="button" className={styles.btn} style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={limpiarCarrito} disabled={total === 0}>🗑️ Limpiar Carrito</button>
                 </div>
+
                 <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
                     <button type="button" className={styles.btn} onClick={imprimir} disabled={total === 0}>🖨️ Imprimir</button>
+
                     {draftActivo?.id ? (
                         <>
-                            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>{saving ? "Guardando..." : "Actualizar Borrador"}</button>
-                            <button type="button" className={styles.btn} onClick={() => guardarTodo(true)} disabled={saving || total === 0}>{saving ? "Guardando..." : "Guardar como Nuevo"}</button>
+                            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>
+                                {saving ? "Guardando..." : "Actualizar Borrador"}
+                            </button>
+                            <button type="button" className={styles.btn} onClick={() => guardarTodo(true)} disabled={saving || total === 0}>
+                                {saving ? "Guardando..." : "Guardar como Nuevo"}
+                            </button>
                         </>
                     ) : (
-                        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>{saving ? "Guardando..." : "Guardar Nuevo Borrador"}</button>
+                        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => guardarTodo(false)} disabled={saving || total === 0}>
+                            {saving ? "Guardando..." : "Guardar Nuevo Borrador"}
+                        </button>
                     )}
                 </div>
             </div>
@@ -484,6 +546,27 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
                 {paso === 2 && renderPaso2()}
                 {paso === 3 && renderPaso3()}
                 {paso === 4 && renderPaso4()}
+            </div>
+
+            <div style={{ marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "center", paddingBottom: "2rem" }}>
+                <button
+                    type="button"
+                    className={styles.btn}
+                    style={{
+                        color: "var(--danger)",
+                        borderColor: "var(--danger)",
+                        background: "rgba(229, 83, 75, 0.05)",
+                        padding: "0.75rem 2.5rem",
+                        fontSize: "0.95rem",
+                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}
+                    onClick={limpiarTodo}
+                >
+                    🗑️ Borrar todo y empezar de cero
+                </button>
             </div>
         </>
     );

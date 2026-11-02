@@ -45,7 +45,6 @@ export default function PacienteFormBasico({
             dni: p.dni || "",
             nombreCompleto: p.nombreCompleto || `${p.apellido || ""} ${p.nombre || ""}`.trim(),
             afiliado: p.afiliado || "",
-            // Traemos los dos números de HC (si es data vieja, guardada en 'historiaClinica', la usamos como fallback)
             hcPiso: p.historiaClinicaPiso || p.historiaClinica || "",
             hcUti: p.historiaClinicaUti || "",
             sexo: p.sexo || "",
@@ -66,6 +65,19 @@ export default function PacienteFormBasico({
 
     const handleBlur = () => {
         setTimeout(() => { setShowSuggestions(false); if (onDniBlur) onDniBlur(); }, 200);
+    };
+
+    // 👇 CONFIRMACIÓN Y ACTUALIZACIÓN 👇
+    const handleOncoplanToggle = (checked) => {
+        if (!onOncoplanChange) return;
+
+        if (checked) {
+            const ok = window.confirm("¿Estás seguro que este paciente es un ONCOPLAN activo?\n\nSe actualizará automáticamente su ficha personal en el sistema.");
+            if (ok) onOncoplanChange(true);
+        } else {
+            const ok = window.confirm("¿Quitar la marca de ONCOPLAN de este paciente?\n\nSe actualizará automáticamente su ficha personal en el sistema.");
+            if (ok) onOncoplanChange(false);
+        }
     };
 
     return (
@@ -100,7 +112,6 @@ export default function PacienteFormBasico({
                 <label className={styles.field}><span>DNI</span><input className={styles.input} inputMode="numeric" placeholder="Ej: 20.123.456" value={miles(paciente.dni)} onChange={(e) => { onChange({ dni: e.target.value.replace(/\D/g, "") }); setShowSuggestions(true); }} onBlur={handleBlur} disabled={readonly} /></label>
                 <label className={styles.field}><span>N° de afiliado PAMI</span><input className={styles.input} inputMode="numeric" placeholder="Ej: 1505000015/00" value={paciente.afiliado || ""} onChange={(e) => { onChange({ afiliado: sanitizeAfiliado(e.target.value) }); setShowSuggestions(true); }} onBlur={handleBlur} disabled={readonly} /></label>
 
-                {/* NUEVOS CAMPOS DE HISTORIA CLÍNICA SEPARADOS */}
                 <label className={styles.field}><span>N° HC PISO</span><input {...field("hcPiso")} placeholder="Ej: 123456" disabled={readonly} /></label>
                 <label className={styles.field}><span>N° HC UTI (Terapia)</span><input {...field("hcUti")} placeholder="Ej: 654321" disabled={readonly} /></label>
 
@@ -136,7 +147,8 @@ export default function PacienteFormBasico({
                 <label className={styles.field}><span>Ayudante 2</span><input {...field("ayudante2")} placeholder="Apellido y nombre" disabled={readonly} /></label>
             </div>
 
-            {showOncoplan && <OncoplanToggle checked={!!oncoplan} onChange={onOncoplanChange} disabled={readonly} />}
+            {showOncoplan && <OncoplanToggle checked={!!oncoplan} onChange={handleOncoplanToggle} disabled={readonly} />}
+
             {statusText && <p className={styles.hint} style={{ marginTop: ".75rem" }}>{statusText}</p>}
         </div>
     );

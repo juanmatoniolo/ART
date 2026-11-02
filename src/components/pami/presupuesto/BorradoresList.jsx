@@ -14,7 +14,6 @@ const fmtFechaHora = (ms) => {
     return `${d.toLocaleDateString("es-AR")} ${d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
-/** Chip con el contexto del borrador (OP/Internación/Cirugía) */
 function ContextoBadge({ b }) {
     const parts = [];
     if (b.opId) parts.push("OP");
@@ -76,10 +75,24 @@ export default function BorradoresList({
                         </div>
                     </div>
                     <div className={styles.draftActions}>
-                        <button type="button" className={`${styles.btn} ${styles.btnSm}`} onClick={() => onAbrir(b)}>
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnSm}`}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAbrir(b); }}
+                        >
                             Abrir
                         </button>
-                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnDangerSm}`} onClick={() => onEliminar(b)} aria-label="Eliminar borrador">
+
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnSm} ${styles.btnDangerSm}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onEliminar(b); // 👈 SÓLO DISPARA LA ACCIÓN EN EL PADRE
+                            }}
+                            aria-label="Eliminar borrador"
+                        >
                             ✕
                         </button>
                     </div>

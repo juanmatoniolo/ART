@@ -13,15 +13,10 @@ const fmtEdad = (fechaISO) => {
     return `${edad} años`;
 };
 
-// Helper para crear el link de WhatsApp Web (Desktop) directamente
 const getWhatsAppLink = (tel, nombre) => {
     if (!tel) return null;
     let clean = String(tel).replace(/\D/g, "");
-
-    if (!clean.startsWith("54")) {
-        clean = `549${clean}`;
-    }
-
+    if (!clean.startsWith("54")) clean = `549${clean}`;
     const texto = encodeURIComponent(`Hola ${nombre || ""}, le escribimos de Clínica de la Unión. 🏥`);
     return `https://web.whatsapp.com/send?phone=${clean}&text=${texto}`;
 };
@@ -32,12 +27,11 @@ export default function PacienteHeader({
     const [editando, setEditando] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
 
-    // Estado para el form de edición (con hcPiso y hcUti)
     const [form, setForm] = useState(() => ({
         apellido: paciente.apellido || "", nombre: paciente.nombre || "",
         dni: paciente.dni || "",
         afiliado: paciente.afiliado || "",
-        hcPiso: paciente.historiaClinicaPiso || paciente.historiaClinica || "", // Fallback por si tiene data vieja
+        hcPiso: paciente.historiaClinicaPiso || paciente.historiaClinica || "",
         hcUti: paciente.historiaClinicaUti || "",
         sexo: paciente.sexo || "", fechaNacimiento: paciente.fechaNacimiento || "",
         telefono: paciente.telefono || "", domicilio: paciente.domicilio || "",
@@ -114,7 +108,6 @@ export default function PacienteHeader({
                 </div>
             </div>
 
-            {/* DATOS GRANDES CON BOTONES DE COPIADO Y WHATSAPP */}
             {!editando && (
                 <>
                     <div className={styles.headerGrid} style={{ marginTop: "1rem" }}>
@@ -129,7 +122,6 @@ export default function PacienteHeader({
                             <button className={styles.btnCopiar} onClick={() => copiar(paciente.afiliado?.split('/')[0] || "", 'afil')}>{copiedField === 'afil' ? "✅" : "📋"}</button>
                         </div>
 
-                        {/* SEPARACIÓN DE HISTORIAS CLÍNICAS EN LA VISTA */}
                         <div className={styles.datoBox}>
                             <span className={styles.datoLabel}>HC PISO</span>
                             <span className={styles.datoValor}>{paciente.historiaClinicaPiso || paciente.historiaClinica || "—"}</span>
@@ -141,7 +133,6 @@ export default function PacienteHeader({
                             <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinicaUti, 'hcUti')}>{copiedField === 'hcUti' ? "✅" : "📋"}</button>
                         </div>
 
-                        {/* TELÉFONO PACIENTE CON BOTÓN NATIVO DE WHATSAPP */}
                         <div className={styles.datoBox}>
                             <span className={styles.datoLabel}>TELÉFONO PACIENTE</span>
                             <div className={styles.datoValorRow}>
@@ -164,7 +155,6 @@ export default function PacienteHeader({
                         </div>
                     </div>
 
-                    {/* FAMILIAR RESPONSABLE */}
                     {(paciente.familiar?.nombre || paciente.familiar?.telefono) && (
                         <div style={{ marginTop: "1.5rem" }}>
                             <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Familiar Responsable</h4>
@@ -188,7 +178,6 @@ export default function PacienteHeader({
                         </div>
                     )}
 
-                    {/* EQUIPO MÉDICO */}
                     {(paciente.cirujano || paciente.anestesista) && (
                         <div style={{ marginTop: "1.5rem" }}>
                             <h4 className={styles.datoLabel} style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Equipo Médico</h4>
@@ -203,20 +192,15 @@ export default function PacienteHeader({
                 </>
             )}
 
-            {/* FORMULARIO DE EDICIÓN EXPANDIDO */}
             {editando && (
                 <div className={styles.editPanel}>
                     <h3 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>Editar Datos del Paciente</h3>
                     <div className={styles.editGrid}>
                         <label className={styles.editField}><span>Apellido</span><input className={styles.input} value={form.apellido} onChange={onField("apellido")} /></label>
                         <label className={styles.editField}><span>Nombre</span><input className={styles.input} value={form.nombre} onChange={onField("nombre")} /></label>
-
-                        {/* CORREGIDO: DNI apuntando a su variable correcta */}
                         <label className={styles.editField}><span>DNI</span><input className={styles.input} value={form.dni} onChange={onField("dni")} /></label>
-
                         <label className={styles.editField}><span>N° Afiliado</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
 
-                        {/* ACTUALIZADO: Dos campos separados de HC */}
                         <label className={styles.editField}><span>HC PISO</span><input className={styles.input} value={form.hcPiso} onChange={onField("hcPiso")} /></label>
                         <label className={styles.editField}><span>HC UTI</span><input className={styles.input} value={form.hcUti} onChange={onField("hcUti")} /></label>
 
