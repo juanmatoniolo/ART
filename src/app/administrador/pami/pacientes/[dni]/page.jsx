@@ -95,14 +95,18 @@ export default function PacientePamiPage() {
         }
     };
 
-    // En handleEditar, asegurate de tener esto:
+    // 👇 ACTUALIZADO: Mapea hcPiso y hcUti para que se guarden bien en Firebase
     const handleEditar = async (form) => {
         try {
-            // Preparamos el objeto para la base de datos, armando el nodo familiar
-            const { famNombre, famParentezco, famTelefono, ...resto } = form;
+            // Extraemos los campos del familiar y las HC
+            const { famNombre, famParentezco, famTelefono, hcPiso, hcUti, ...resto } = form;
+
             const dataAGuardar = {
                 ...resto,
                 dni: pacienteKey,
+                // Mapeamos a los nombres exactos que espera la base de datos
+                historiaClinicaPiso: hcPiso || "",
+                historiaClinicaUti: hcUti || "",
                 familiar: {
                     nombre: famNombre || "",
                     parentezco: famParentezco || "",
@@ -118,6 +122,7 @@ export default function PacientePamiPage() {
             mostrarFlash("No se pudieron guardar los datos.");
         }
     };
+
     const handleEliminarPaciente = async () => {
         if (!confirm(`¿Eliminar el paciente ${paciente?.nombreCompleto || pacienteKey}?\nSe borrarán también todos sus datos.`)) return;
         try {
@@ -157,7 +162,6 @@ export default function PacientePamiPage() {
         }
     };
 
-    // --- NUEVA FUNCIÓN PARA ELIMINAR UN EVENTO INDIVIDUAL ---
     const handleEliminarEvento = async (tipo, id) => {
         if (!confirm(`¿Estás seguro de que querés eliminar este registro?`)) return;
 
@@ -260,7 +264,7 @@ export default function PacientePamiPage() {
                 onNuevaInternacionDesdeOP={canGenerarEventos ? handleNuevaInternacionDesdeOP : null}
                 onNuevaCirugiaDesdeOP={canGenerarEventos ? handleNuevaCirugiaDesdeOP : null}
                 onAsignarNroOP={handleAsignarNroOP}
-                onEliminarEvento={handleEliminarEvento} // <-- NUEVA PROP
+                onEliminarEvento={handleEliminarEvento}
             />
         </div>
     );

@@ -18,7 +18,6 @@ const getWhatsAppLink = (tel, nombre) => {
     if (!tel) return null;
     let clean = String(tel).replace(/\D/g, "");
 
-    // Si el número no empieza con 54 (Argentina), se lo agregamos junto al 9
     if (!clean.startsWith("54")) {
         clean = `549${clean}`;
     }
@@ -33,10 +32,13 @@ export default function PacienteHeader({
     const [editando, setEditando] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
 
-    // Estado para el form de edición
+    // Estado para el form de edición (con hcPiso y hcUti)
     const [form, setForm] = useState(() => ({
         apellido: paciente.apellido || "", nombre: paciente.nombre || "",
-        afiliado: paciente.afiliado || "", historiaClinica: paciente.historiaClinica || "",
+        dni: paciente.dni || "",
+        afiliado: paciente.afiliado || "",
+        hcPiso: paciente.historiaClinicaPiso || paciente.historiaClinica || "", // Fallback por si tiene data vieja
+        hcUti: paciente.historiaClinicaUti || "",
         sexo: paciente.sexo || "", fechaNacimiento: paciente.fechaNacimiento || "",
         telefono: paciente.telefono || "", domicilio: paciente.domicilio || "",
         localidad: paciente.localidad || "", provincia: paciente.provincia || "",
@@ -61,7 +63,6 @@ export default function PacienteHeader({
         setTimeout(() => setCopiedField(null), 2000);
     };
 
-    // Links de WhatsApp generados con el helper
     const waPaciente = getWhatsAppLink(paciente.telefono, paciente.nombre);
     const waFamiliar = getWhatsAppLink(paciente.familiar?.telefono, paciente.familiar?.nombre);
 
@@ -127,10 +128,17 @@ export default function PacienteHeader({
                             <span className={styles.datoValor}>{paciente.afiliado || "—"}</span>
                             <button className={styles.btnCopiar} onClick={() => copiar(paciente.afiliado?.split('/')[0] || "", 'afil')}>{copiedField === 'afil' ? "✅" : "📋"}</button>
                         </div>
+
+                        {/* SEPARACIÓN DE HISTORIAS CLÍNICAS EN LA VISTA */}
                         <div className={styles.datoBox}>
-                            <span className={styles.datoLabel}>HISTORIA CLÍNICA</span>
-                            <span className={styles.datoValor}>{paciente.historiaClinica || "—"}</span>
-                            <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinica, 'hc')}>{copiedField === 'hc' ? "✅" : "📋"}</button>
+                            <span className={styles.datoLabel}>HC PISO</span>
+                            <span className={styles.datoValor}>{paciente.historiaClinicaPiso || paciente.historiaClinica || "—"}</span>
+                            <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinicaPiso || paciente.historiaClinica, 'hcPiso')}>{copiedField === 'hcPiso' ? "✅" : "📋"}</button>
+                        </div>
+                        <div className={styles.datoBox}>
+                            <span className={styles.datoLabel}>HC UTI</span>
+                            <span className={styles.datoValor}>{paciente.historiaClinicaUti || "—"}</span>
+                            <button className={styles.btnCopiar} onClick={() => copiar(paciente.historiaClinicaUti, 'hcUti')}>{copiedField === 'hcUti' ? "✅" : "📋"}</button>
                         </div>
 
                         {/* TELÉFONO PACIENTE CON BOTÓN NATIVO DE WHATSAPP */}
@@ -165,8 +173,6 @@ export default function PacienteHeader({
                                     <span className={styles.datoLabel}>NOMBRE Y PARENTESCO</span>
                                     <span className={styles.datoValor}>{paciente.familiar?.nombre} ({paciente.familiar?.parentezco})</span>
                                 </div>
-
-                                {/* TELÉFONO FAMILIAR CON BOTÓN NATIVO DE WHATSAPP */}
                                 <div className={styles.datoBox}>
                                     <span className={styles.datoLabel}>TELÉFONO FAMILIAR</span>
                                     <div className={styles.datoValorRow}>
@@ -204,9 +210,16 @@ export default function PacienteHeader({
                     <div className={styles.editGrid}>
                         <label className={styles.editField}><span>Apellido</span><input className={styles.input} value={form.apellido} onChange={onField("apellido")} /></label>
                         <label className={styles.editField}><span>Nombre</span><input className={styles.input} value={form.nombre} onChange={onField("nombre")} /></label>
-                        <label className={styles.editField}><span>DNI</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
+
+                        {/* CORREGIDO: DNI apuntando a su variable correcta */}
+                        <label className={styles.editField}><span>DNI</span><input className={styles.input} value={form.dni} onChange={onField("dni")} /></label>
+
                         <label className={styles.editField}><span>N° Afiliado</span><input className={styles.input} value={form.afiliado} onChange={onField("afiliado")} /></label>
-                        <label className={styles.editField}><span>Historia Clínica</span><input className={styles.input} value={form.historiaClinica} onChange={onField("historiaClinica")} /></label>
+
+                        {/* ACTUALIZADO: Dos campos separados de HC */}
+                        <label className={styles.editField}><span>HC PISO</span><input className={styles.input} value={form.hcPiso} onChange={onField("hcPiso")} /></label>
+                        <label className={styles.editField}><span>HC UTI</span><input className={styles.input} value={form.hcUti} onChange={onField("hcUti")} /></label>
+
                         <label className={styles.editField}><span>Teléfono Paciente</span><input className={styles.input} value={form.telefono} onChange={onField("telefono")} /></label>
                         <label className={styles.editField}><span>Domicilio</span><input className={styles.input} value={form.domicilio} onChange={onField("domicilio")} /></label>
                         <label className={styles.editField}><span>Localidad</span><input className={styles.input} value={form.localidad} onChange={onField("localidad")} /></label>

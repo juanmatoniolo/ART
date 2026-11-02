@@ -24,6 +24,7 @@ export default function PacienteFormBasico({
         if (p.length === 1) return p[0];
         return `${p[0]}/${p.slice(1).join("").slice(0, 2)}`;
     };
+
     const miles = (v) => {
         const d = String(v || "").replace(/\D/g, "");
         return d.length <= 8 ? d.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : d;
@@ -44,7 +45,9 @@ export default function PacienteFormBasico({
             dni: p.dni || "",
             nombreCompleto: p.nombreCompleto || `${p.apellido || ""} ${p.nombre || ""}`.trim(),
             afiliado: p.afiliado || "",
-            historiaClinica: p.historiaClinica || "",
+            // Traemos los dos números de HC (si es data vieja, guardada en 'historiaClinica', la usamos como fallback)
+            hcPiso: p.historiaClinicaPiso || p.historiaClinica || "",
+            hcUti: p.historiaClinicaUti || "",
             sexo: p.sexo || "",
             fechaNacimiento: p.fechaNacimiento || "",
             telefono: p.telefono || "",
@@ -97,7 +100,10 @@ export default function PacienteFormBasico({
                 <label className={styles.field}><span>DNI</span><input className={styles.input} inputMode="numeric" placeholder="Ej: 20.123.456" value={miles(paciente.dni)} onChange={(e) => { onChange({ dni: e.target.value.replace(/\D/g, "") }); setShowSuggestions(true); }} onBlur={handleBlur} disabled={readonly} /></label>
                 <label className={styles.field}><span>N° de afiliado PAMI</span><input className={styles.input} inputMode="numeric" placeholder="Ej: 1505000015/00" value={paciente.afiliado || ""} onChange={(e) => { onChange({ afiliado: sanitizeAfiliado(e.target.value) }); setShowSuggestions(true); }} onBlur={handleBlur} disabled={readonly} /></label>
 
-                <label className={styles.field}><span>N° Historia Clínica</span><input {...field("historiaClinica")} disabled={readonly} /></label>
+                {/* NUEVOS CAMPOS DE HISTORIA CLÍNICA SEPARADOS */}
+                <label className={styles.field}><span>N° HC PISO</span><input {...field("hcPiso")} placeholder="Ej: 123456" disabled={readonly} /></label>
+                <label className={styles.field}><span>N° HC UTI (Terapia)</span><input {...field("hcUti")} placeholder="Ej: 654321" disabled={readonly} /></label>
+
                 <label className={styles.field}>
                     <span>Sexo</span>
                     <select className={styles.input} value={paciente.sexo || ""} onChange={(e) => onChange({ sexo: e.target.value })} disabled={readonly}>

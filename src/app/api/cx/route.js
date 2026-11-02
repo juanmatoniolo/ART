@@ -5,10 +5,14 @@ import { PDFDocument } from "pdf-lib";
 
 export const runtime = "nodejs";
 
-const TEMPLATE_FILENAME = "INT-UIT-FOJA.pdf"; // Unificamos la plantilla
+const TEMPLATES = {
+	Frente: "FRENTE-CX.pdf",
+	Dorso: "DORSO-CX.pdf",
+};
 
-function getTemplatePath() {
-	return path.join(process.cwd(), "public", "templates", TEMPLATE_FILENAME);
+function getTemplatePath(type) {
+	const name = TEMPLATES[type] || TEMPLATES.Frente;
+	return path.join(process.cwd(), "public", "templates", name);
 }
 
 /* ============================================================
@@ -107,16 +111,15 @@ function buildCxFields(payload) {
 	const nombre = cleanText(pd.nombre);
 	const nombreCompleto = `${apellido} ${nombre}`.trim();
 
-	/* ✅ AFILIADO / DNI */
 	const dniRaw = pd.dni || "";
 	const dniFormateado = formatAfiliado(dniRaw);
 
-	// NUEVO: Capturamos el N° de afiliado específico (ej PAMI)
 	const afiliadoRaw = cleanText(pd.afiliadoPaciente || "");
-	const afiliadoFinal = afiliadoRaw || dniFormateado; // Si hay afiliado, lo usamos.
+	const afiliadoFinal = afiliadoRaw || dniFormateado;
 
+	// 👇 AQUÍ ESTÁ EL CAMBIO: Ya no usa el DNI como fallback 👇
 	const hcRaw = cleanText(pd.historiaClinica);
-	const historiaClinicaFinal = hcRaw || dniFormateado;
+	const historiaClinicaFinal = hcRaw;
 
 	const art = cleanText(formulario.art || formulario.os || "");
 	const cx = cleanText(formulario.cx || "");
@@ -155,20 +158,17 @@ function buildCxFields(payload) {
 		nombres: nombreCompleto,
 		"nombre-completo": nombreCompleto,
 		"apellido-nombre": nombreCompleto,
-
 		edad: edad,
 		"edad-paciente": edad,
 		"paciente-edad": edad,
 		"edad-anios": edad,
 		"edad-años": edad,
-
 		"masculino-paciente": esMasculino,
 		"femenino-paciente": esFemenino,
 		masculino: esMasculino,
 		femenino: esFemenino,
 		sexo: cleanText(pd.sexo),
 		"paciente-sexo": cleanText(pd.sexo),
-
 		"dni-paciente": dniFormateado,
 		dni: dniFormateado,
 		documento: dniFormateado,
@@ -176,7 +176,6 @@ function buildCxFields(payload) {
 		"afiliado-paciente": afiliadoFinal,
 		afiliado: afiliadoFinal,
 		"nro-afiliado": afiliadoFinal,
-
 		dia: nac.dia,
 		mes: nac.mes,
 		año: nac.anio,
@@ -187,7 +186,6 @@ function buildCxFields(payload) {
 		"mes-int": cxFecha.mes,
 		"año-int": cxFecha.anio,
 		"anio-int": cxFecha.anio,
-
 		"localidad-paciente": localidad,
 		localidad: localidad,
 		"paciente-localidad": localidad,
@@ -202,20 +200,17 @@ function buildCxFields(payload) {
 		telefono: telefono,
 		"paciente-telefono": telefono,
 		celular: telefono,
-
 		"nacmiento-paciente": lugarNacimiento,
 		"nacimiento-paciente": lugarNacimiento,
 		"lugar-nacimiento": lugarNacimiento,
 		nacimientoPaciente: lugarNacimiento,
 		lugarNacimiento: lugarNacimiento,
-
 		"hc-paciente": historiaClinicaFinal,
 		hc: historiaClinicaFinal,
 		"hc-n": historiaClinicaFinal,
 		"hc-no": historiaClinicaFinal,
 		"historia-clinica": historiaClinicaFinal,
 		"nro-hc": historiaClinicaFinal,
-
 		art: art,
 		"a-r-t": art,
 		art_os: art,
@@ -226,22 +221,18 @@ function buildCxFields(payload) {
 		"o-social": art,
 		obrasocial: art,
 		mutual: art,
-
 		servicio: servicio,
 		"tipo-ingreso": servicio,
-
 		cx: cx,
 		"cx-0": cx,
 		diagnostico: cx,
 		"diagnostico-ingreso": cx,
 		"diagnostico-al-ingreso": cx,
-
 		"nombre-dr": doctorPrint,
 		"medico-solicitante": doctorPrint,
 		medico: doctorPrint,
 		doctor: doctorPrint,
 		"medico-cabecera": doctorPrint,
-
 		"familiar-nombre": famNombre,
 		"nombre-familiar": famNombre,
 		familiar: famNombre,
@@ -253,7 +244,6 @@ function buildCxFields(payload) {
 		"parentezco-familiar": famParentezco,
 		"familiar-telefono": famTelefono,
 		"telefono-familiar": famTelefono,
-
 		"habitacion-cama": habitacionCama,
 		habitacion: habitacionCama,
 		cama: habitacionCama,
@@ -325,12 +315,11 @@ export async function POST(req) {
 			);
 		}
 
+		const templatePath = getTemplatePath(type);
 		console.log(
-			"[CX-PDF] Generando PDF unificado desde:",
-			TEMPLATE_FILENAME,
+			`[CX-PDF] Generando ${type} desde: ${path.basename(templatePath)}`,
 		);
 
-		const templatePath = getTemplatePath();
 		const templateBytes = await fs.readFile(templatePath);
 		const pdfDoc = await PDFDocument.load(templateBytes);
 		const form = pdfDoc.getForm();
@@ -338,33 +327,13 @@ export async function POST(req) {
 		const fields = buildCxFields(payload);
 		fillFormFields(form, fields);
 
-		// ⚠️ ORDEN ESTRICTO DE PÁGINAS PARA CIRUGÍA: 1-2-13-3-4-5-14-6-7-8
-		const pageOrder = [1, 2, 13, 3, 4, 5, 14, 6, 7, 8];
-		const indices = pageOrder.map((n) => n - 1);
-
-		const totalPages = pdfDoc.getPageCount();
-		const validIndices = indices.filter((idx) => idx < totalPages);
-
-		if (validIndices.length < indices.length) {
-			console.warn(
-				`[CX-PDF] El template tiene ${totalPages} páginas. Se extraerán solo las disponibles.`,
-			);
-		}
-
-		const finalPdfDoc = await PDFDocument.create();
-		const copiedPages = await finalPdfDoc.copyPages(pdfDoc, validIndices);
-		copiedPages.forEach((page) => finalPdfDoc.addPage(page));
-
-		const finalForm = finalPdfDoc.getForm();
 		try {
-			finalForm.flatten();
+			form.flatten();
 		} catch (e) {
-			console.warn(
-				"[CX-PDF] Aviso: No se pudo aplanar el formulario al extraer páginas.",
-			);
+			console.warn("[CX-PDF] Aviso: No se pudo aplanar el formulario.");
 		}
 
-		const outBytes = await finalPdfDoc.save();
+		const outBytes = await pdfDoc.save();
 
 		const safeName = String(fileName || `CX_${type}.pdf`).replace(
 			/[^a-zA-Z0-9._-]/g,
@@ -399,19 +368,20 @@ export async function GET(req) {
 		if (!debug) {
 			return NextResponse.json({
 				ok: true,
-				template: TEMPLATE_FILENAME,
-				usage: "POST { payload, type, fileName } — GET ?debug=1",
+				templates: TEMPLATES,
+				usage: "POST { payload, type, fileName } — GET ?debug=1&type=Frente|Dorso",
 			});
 		}
 
-		const templatePath = getTemplatePath();
+		const type = url.searchParams.get("type") || "Frente";
+		const templatePath = getTemplatePath(type);
 		const bytes = await fs.readFile(templatePath);
 		const pdfDoc = await PDFDocument.load(bytes);
 		const form = pdfDoc.getForm();
 
 		return NextResponse.json({
 			ok: true,
-			template: TEMPLATE_FILENAME,
+			template: TEMPLATES[type],
 			totalPages: pdfDoc.getPageCount(),
 			fieldsCount: form.getFields().length,
 			fieldNames: form.getFields().map((f) => f.getName()),

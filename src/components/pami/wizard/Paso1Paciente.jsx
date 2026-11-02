@@ -51,6 +51,18 @@ export default function Paso1Paciente({ estado, actualizar }) {
         setTimeout(() => setCopiedField(null), 2000);
     };
 
+    // 👇 NUEVA FUNCIÓN PARA TILDEAR ONCOPLAN
+    const toggleOncoplan = (isChecked) => {
+        const pregunta = isChecked
+            ? "¿Estás seguro que este paciente es un Onco plan activo?"
+            : "¿Quitar la marca de ONCOPLAN de este paciente?";
+
+        if (window.confirm(pregunta)) {
+            // Actualizamos el estado local del wizard, para que se guarde al final
+            actualizar({ paciente: { ...estado.paciente, oncoplan: isChecked } });
+        }
+    };
+
     const guardarManual = () => {
         if (!manual.nombreCompleto || !manual.dni) return alert("Nombre y DNI son obligatorios");
         const partes = manual.nombreCompleto.trim().split(/\s+/);
@@ -89,7 +101,7 @@ export default function Paso1Paciente({ estado, actualizar }) {
                             <div>
                                 <div style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>Apellido y Nombre</div>
                                 <div style={{ fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                    {estado.paciente.apellido}, {estado.paciente.nombre} {estado.paciente.oncoplan && <OncoplanTag />}
+                                    {estado.paciente.apellido}, {estado.paciente.nombre}
                                 </div>
                             </div>
                             <button onClick={() => handleCopy(`${estado.paciente.apellido}, ${estado.paciente.nombre}`, 'nombre')} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem", color: "var(--text)" }} title="Copiar Nombre">
@@ -118,6 +130,33 @@ export default function Paso1Paciente({ estado, actualizar }) {
                                 {copiedField === 'afil' ? "✅" : "📋"}
                             </button>
                         </div>
+                    </div>
+
+                    {/* 👇 NUEVA SECCIÓN PARA MARCAR ONCOPLAN */}
+                    <div style={{
+                        marginTop: "0.5rem",
+                        padding: "1rem",
+                        background: estado.paciente.oncoplan ? "rgba(225, 29, 72, 0.1)" : "var(--surface)",
+                        border: estado.paciente.oncoplan ? "1px solid #e11d48" : "1px solid var(--border)",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "0.5rem"
+                    }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontWeight: 800 }}>
+                            <input
+                                type="checkbox"
+                                checked={!!estado.paciente.oncoplan}
+                                onChange={(e) => toggleOncoplan(e.target.checked)}
+                                style={{ width: "20px", height: "20px", accentColor: "#e11d48", cursor: "pointer" }}
+                            />
+                            <span style={{ color: estado.paciente.oncoplan ? "#e11d48" : "var(--text)" }}>
+                                Paciente ONCOPLAN Activo
+                            </span>
+                        </label>
+                        {estado.paciente.oncoplan && <OncoplanTag />}
                     </div>
                 </div>
             ) : modoManual ? (

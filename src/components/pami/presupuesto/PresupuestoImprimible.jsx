@@ -9,12 +9,6 @@ const miles = (v) => {
     return d.length <= 8 ? d.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : d;
 };
 
-const fmtFecha = (iso) => {
-    if (!iso) return "";
-    const [y, m, d] = String(iso).split("-");
-    return y && m && d ? `${d}/${m}/${y}` : iso;
-};
-
 const fmtCantidad = (n) => {
     const num = Number(n);
     if (!Number.isFinite(num) || num <= 0) return "0";
@@ -26,38 +20,22 @@ export default function PresupuestoImprimible({
 }) {
     const nombre = paciente.nombreCompleto || [paciente.apellido, paciente.nombre].filter(Boolean).join(", ");
 
+    // Solo los datos que sí importan para PAMI
     const datos = [
         { label: "Paciente", value: nombre },
         { label: "DNI", value: miles(paciente.dni) },
         { label: "Afiliado PAMI", value: paciente.afiliado },
-        { label: "Historia clínica", value: paciente.historiaClinica },
-        { label: "Nacimiento", value: fmtFecha(paciente.fechaNacimiento) },
-        { label: "Teléfono", value: paciente.telefono },
-        { label: "Domicilio", value: paciente.domicilio },
-        { label: "Localidad", value: paciente.localidad },
-        { label: "Provincia", value: paciente.provincia },
-    ].filter(({ value }) => value !== undefined && value !== null && value !== "");
-
-    const equipo = [
-        { label: "Cirujano", value: paciente.cirujano },
-        { label: "Ayudante 1", value: paciente.ayudante1 },
-        { label: "Ayudante 2", value: paciente.ayudante2 },
-        { label: "Anestesista", value: paciente.anestesista },
+        { label: "HC PISO", value: paciente.hcPiso },
+        { label: "HC UTI", value: paciente.hcUti },
     ].filter(({ value }) => value !== undefined && value !== null && value !== "");
 
     const fechaActual = new Date().toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
 
     return (
         <div ref={ref} className={styles.documento} style={{ width: "100%", backgroundColor: "#fff", color: "#202124" }}>
-            {/* ENCABEZADO */}
             <header className={styles.encabezado}>
                 <div className={styles.identidad}>
-                    <img
-                        src={LOGO_SRC}
-                        alt={CLINICA}
-                        className={styles.logo}
-                        style={{ maxWidth: "80px", height: "auto", maxHeight: "60px", objectFit: "contain" }}
-                    />
+                    <img src={LOGO_SRC} alt={CLINICA} className={styles.logo} style={{ maxWidth: "80px", height: "auto", maxHeight: "60px", objectFit: "contain" }} />
                     <div className={styles.nombreClinica}>
                         <strong>{CLINICA}</strong>
                         <span>Administración de prestaciones médicas</span>
@@ -76,27 +54,12 @@ export default function PresupuestoImprimible({
                 </div>
             </header>
 
-            {/* DATOS DEL PACIENTE */}
+            {/* DATOS DEL PACIENTE REDUCIDOS */}
             {datos.length > 0 && (
                 <section className={styles.seccion}>
                     <h2 className={styles.tituloSeccion}>Datos del paciente</h2>
                     <div className={styles.campos}>
                         {datos.map(({ label, value }) => (
-                            <div key={label} className={styles.campo}>
-                                <span className={styles.etiqueta}>{label}</span>
-                                <strong className={styles.valor}>{value}</strong>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {/* EQUIPO MÉDICO GENERAL */}
-            {equipo.length > 0 && (
-                <section className={styles.seccion}>
-                    <h2 className={styles.tituloSeccion}>Equipo médico</h2>
-                    <div className={styles.campos}>
-                        {equipo.map(({ label, value }) => (
                             <div key={label} className={styles.campo}>
                                 <span className={styles.etiqueta}>{label}</span>
                                 <strong className={styles.valor}>{value}</strong>
@@ -113,10 +76,10 @@ export default function PresupuestoImprimible({
                     <table className={styles.tabla} style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr>
-                                <th style={{ width: "10%", textAlign: "center" }}>Cant.</th>
-                                <th style={{ width: "25%" }}>Código</th>
-                                <th>Descripción / Médico</th>
-                                <th style={{ width: "20%", textAlign: "right" }}>Subtotal</th>
+                                <th style={{ width: "8%", textAlign: "center" }}>Cant.</th>
+                                <th style={{ width: "15%" }}>Código</th>
+                                <th>Descripción / Médicos</th>
+                                <th style={{ width: "18%", textAlign: "right" }}>Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -125,17 +88,21 @@ export default function PresupuestoImprimible({
                                 const subtotal = (Number(c.monto) || 0) * cant;
                                 return (
                                     <tr key={c.id ?? `cod-${i}`}>
-                                        <td style={{ textAlign: "center" }}>{cant}</td>
-                                        <td><span className={styles.codigoTxt}>{c.codigo || "—"}</span></td>
-                                        <td>
-                                            {/* FORMATEO CON MEDICO SI EXISTE */}
-                                            {c.medico ? (
-                                                <span><strong>Dr. {c.medico}</strong> - {c.descripcion}</span>
+                                        <td style={{ textAlign: "center", verticalAlign: "top", paddingTop: "6px" }}>{cant}</td>
+                                        <td style={{ verticalAlign: "top", paddingTop: "6px" }}><span className={styles.codigoTxt}>{c.codigo || "—"}</span></td>
+                                        <td style={{ verticalAlign: "top", paddingTop: "6px" }}>
+                                            <div style={{ fontWeight: 700, lineHeight: 1.2 }}>{c.descripcion || "Sin descripción"}</div>
+
+                                            {/* Médicos en una sola línea */}
+                                            {c.esCX ? (
+                                                <div style={{ fontSize: "9px", color: "#555b63", marginTop: "3px", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                    <b>Cir:</b> {c.cirujano || "-"} | <b>Ay1:</b> {c.ayudante1 || "-"} | <b>Ay2:</b> {c.ayudante2 || "-"} | <b>Anest:</b> {c.anestesista || "-"}
+                                                </div>
                                             ) : (
-                                                <span>{c.descripcion || "Sin descripción"}</span>
+                                                c.medico && <div style={{ fontSize: "9.5px", color: "#555b63", marginTop: "2px" }}><b>Dr. {c.medico}</b></div>
                                             )}
                                         </td>
-                                        <td style={{ textAlign: "right" }}>{subtotal > 0 ? formatCurrency(subtotal) : "—"}</td>
+                                        <td style={{ textAlign: "right", verticalAlign: "top", paddingTop: "6px" }}>{subtotal > 0 ? formatCurrency(subtotal) : "—"}</td>
                                     </tr>
                                 );
                             })}
@@ -174,7 +141,6 @@ export default function PresupuestoImprimible({
                 </section>
             )}
 
-            {/* TOTAL */}
             <footer className={styles.pie}>
                 <div className={styles.total}>
                     <span>TOTAL DEL PRESUPUESTO</span>
