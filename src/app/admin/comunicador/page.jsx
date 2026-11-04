@@ -34,8 +34,8 @@ export default function WhatsAppSender() {
   const [dia, setDia] = useState("");
   const [hora, setHora] = useState("");
   const [mensaje, setMensaje] = useState("1");
-  const [bioquimico, setBioquimico] = useState("confalonieri");
-  const [cardiologo, setCardiologo] = useState("percara");
+  const [bioquimico, setBioquimico] = useState("tabeni");
+  const [cardiologo, setCardiologo] = useState("capovilla");
   const [preview, setPreview] = useState("");
 
   const [art, setArt] = useState("");
