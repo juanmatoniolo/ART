@@ -3,8 +3,9 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Estadisticas.module.css';
-import { fmtDate } from './helpers';
+import { fmtDate, extraerValoresConvenio } from './helpers';
 import { buildStatsPrintHtml } from './statsPrint';
+import { calcularPractica, obtenerHonorariosAoter, parseNumber } from '@/app/admin/Facturacion/utils/calculos';
 
 // =====================================================================
 //  HELPERS
@@ -61,16 +62,95 @@ const LS_KEYS = {
     collapsed: 'rp_stats_filters_collapsed_v1',
 };
 
-const computeView = (r, codeSet, soloFiltradas) => {
+const normCodeStr = (c) => String(c ?? '').replace(/\D/g, '');
+
+// Helper central para calcular una práctica EXACTAMENTE como en utils/calculos.js
+const calcPractice = (p, convenios, nacional = [], aoter = [], rConvenio) => {
+    const convKey = rConvenio || Object.keys(convenios || {})[0];
+    const conv = convenios?.[convKey];
+    const valoresConvenio = extraerValoresConvenio(conv);
+    
+    const codeNorm = normCodeStr(p.codigo);
+    const nnItem = p.origen === 'nacional' ? p : nacional.find(x => normCodeStr(x.codigo) === codeNorm);
+    const aoterMatches = aoter.filter(x => normCodeStr(x.codigo) === codeNorm);
+    const aoterItem = p.origen === 'aoter' ? p : aoterMatches.sort((a,b) => (b.complejidad||0) - (a.complejidad||0))[0];
+
+    let nnCalc = null;
+    if (nnItem) {
+        const realNnItem = nacional.find(x => normCodeStr(x.codigo) === codeNorm) || nnItem;
+        nnCalc = calcularPractica(realNnItem, valoresConvenio);
+        
+        // Regla RX: Dividir gasto en 2 y sumar mitad a honorario
+        const isRx = realNnItem.capitulo === '34' || realNnItem.capitulo === 34 || nnCalc.meta?.gastoKey === 'Gasto_Rx';
+        if (isRx) {
+            const mitad = nnCalc.gastoSanatorial / 2;
+            nnCalc.honorarioMedico += mitad;
+            nnCalc.gastoSanatorial = mitad;
+            nnCalc.total = nnCalc.honorarioMedico + nnCalc.gastoSanatorial;
+        }
+    }
+
+    let aoterHonor = 0;
+    if (aoterItem) {
+        const { cirujano } = obtenerHonorariosAoter(aoterItem.complejidad, valoresConvenio);
+        aoterHonor = Number(cirujano) || 0;
+    }
+
+    let pHon = 0, pGto = 0;
+    if (aoterItem && nnItem) {
+        pHon = aoterHonor;
+        pGto = Number(nnCalc?.gastoSanatorial) || 0;
+    } else if (nnItem) {
+        pHon = Number(nnCalc?.honorarioMedico) || 0;
+        pGto = Number(nnCalc?.gastoSanatorial) || 0;
+    } else if (aoterItem) {
+        pHon = aoterHonor;
+    }
+
+    const totalInsumos = (p.insumos || []).reduce(
+        (a, x) => a + (Number(x.precioFacturacion) || 0) * parseNumber(x.cantidad || 1),
+        0
+    );
+    pGto += totalInsumos;
+
+    return { 
+        hon: pHon, 
+        gto: pGto, 
+        total: pHon + pGto, 
+        qgal: nnCalc?.meta?.qgal || p.qgal || p.q_gal || 0, 
+        gtoBase: nnCalc?.meta?.gto || p.gto || 0 
+    };
+};
+
+const getMontos = (r, convenios, nacional, aoter) => {
+    let hon = 0, gto = 0;
+    (r.practicas || []).forEach(p => {
+        const calc = calcPractice(p, convenios, nacional, aoter, r.convenio);
+        hon += calc.hon;
+        gto += calc.gto;
+    });
+    return { hon, gto, total: hon + gto };
+};
+
+const computeView = (r, codeSet, soloFiltradas, convenios, nacional, aoter) => {
     const practicasAll = Array.isArray(r.practicas) ? r.practicas : [];
     const labsAll = Array.isArray(r.estudiosLab) ? r.estudiosLab : [];
     const restrict = soloFiltradas && codeSet.size > 0;
     const practicas = restrict ? practicasAll.filter((p) => codeSet.has(String(p.codigo))) : practicasAll;
     const labs = restrict ? labsAll.filter((l) => codeSet.has(String(l.codigo))) : labsAll;
-    const sum = (k) => practicas.reduce((a, p) => a + (Number(p.costo?.[k]) || 0), 0);
-    const hon = !restrict && typeof r.totalHonorarios === 'number' ? r.totalHonorarios : sum('honorarioMedico');
-    const gto = !restrict && typeof r.totalGastos === 'number' ? r.totalGastos : sum('gastoSanatorial');
-    return { r, practicas, labs, hon, gto, total: hon + gto };
+    
+    if (restrict) {
+        let hon = 0, gto = 0;
+        practicas.forEach(p => {
+            const calc = calcPractice(p, convenios, nacional, aoter, r.convenio);
+            hon += calc.hon;
+            gto += calc.gto;
+        });
+        return { r, practicas, labs, hon, gto, total: hon + gto };
+    }
+
+    const m = getMontos(r, convenios, nacional, aoter);
+    return { r, practicas, labs, hon: m.hon, gto: m.gto, total: m.total };
 };
 
 const groupBy = (rows, keyFn, nameFn) => {
@@ -598,7 +678,7 @@ const PRINT_SECTIONS = [
 // =====================================================================
 //  PRINCIPAL
 // =====================================================================
-export default function Estadisticas({ historial }) {
+export default function Estadisticas({ historial, convenios = {}, nacional = [], aoter = [] }) {
     const [f, setF] = useState(FILTROS_INICIALES);
     const patch = (p) => setF((prev) => ({ ...prev, ...p }));
     const [vista, setVista] = useState('meses');
@@ -612,7 +692,7 @@ export default function Estadisticas({ historial }) {
         practicas: true, detalle: false,
     });
 
-    const [theme, setTheme] = useState('light');
+    const [theme, setTheme] = useState('dark'); // Por defecto MODO OSCURO
     const [collapsed, setCollapsed] = useState(false);
     const [compare, setCompare] = useState(false);
     const [tableSearch, setTableSearch] = useState('');
@@ -674,7 +754,7 @@ export default function Estadisticas({ historial }) {
         const tMin = toNum(filter.totMin), tMax = toNum(filter.totMax);
 
         return historial
-            .map((r) => computeView(r, codes, filter.soloFiltradas))
+            .map((r) => computeView(r, codes, filter.soloFiltradas, convenios, nacional, aoter))
             .filter((v) => {
                 const r = v.r;
                 if (filter.desde && (r.fecha || '') < filter.desde) return false;
@@ -700,7 +780,7 @@ export default function Estadisticas({ historial }) {
                 if (tMax != null && v.total > tMax) return false;
                 return true;
             });
-    }, [historial]);
+    }, [historial, convenios, nacional, aoter]);
 
     const rows = useMemo(() => applyFilter(f), [applyFilter, f]);
 
@@ -746,24 +826,23 @@ export default function Estadisticas({ historial }) {
         () => groupBy(rows, (v) => pacKey(v.r), (v) => pacName(v.r)).map((g) => ({ ...g, dni: g.rps[0]?.r.paciente?.dni || '' })),
         [rows]
     );
-    const convenios = useMemo(() => groupBy(rows, (v) => convName(v.r), (v) => convName(v.r)), [rows]);
+    const conveniosGroup = useMemo(() => groupBy(rows, (v) => convName(v.r), (v) => convName(v.r)), [rows]);
 
     const codigos = useMemo(() => {
         const map = new Map();
-        const add = (p, origen) => {
+        const add = (p, origen, rConv) => {
             const k = String(p.codigo || '—');
             if (!map.has(k)) map.set(k, { key: k, codigo: k, nombre: p.descripcion || '', origen, cantidad: 0, hon: 0, gto: 0, total: 0 });
             const g = map.get(k);
-            const h = Number(p.costo?.honorarioMedico) || 0;
-            const gt = Number(p.costo?.gastoSanatorial) || 0;
-            g.cantidad += 1; g.hon += h; g.gto += gt; g.total += h + gt;
+            const calc = calcPractice(p, convenios, nacional, aoter, rConv);
+            g.cantidad += 1; g.hon += calc.hon; g.gto += calc.gto; g.total += calc.total;
         };
         rows.forEach((v) => {
-            v.practicas.forEach((p) => add(p, p.origen || 'nacional'));
-            v.labs.forEach((l) => add(l, 'laboratorio'));
+            v.practicas.forEach((p) => add(p, p.origen || 'nacional', v.r.convenio));
+            v.labs.forEach((l) => add(l, 'laboratorio', v.r.convenio));
         });
         return [...map.values()];
-    }, [rows]);
+    }, [rows, convenios, nacional, aoter]);
 
     const totalVecesCodigos = codigos.reduce((a, c) => a + c.cantidad, 0);
     const topMedico = useMemo(() => [...medicos].sort((a, b) => b.total - a.total)[0] || null, [medicos]);
@@ -816,6 +895,34 @@ export default function Estadisticas({ historial }) {
         { key: 'gto', label: 'Gastos', num: true, sortValue: (v) => v.gto, render: (v) => peso(v.gto) },
         { key: 'total', label: 'Total', num: true, sortValue: (v) => v.total, render: (v) => <b>{peso(v.total)}</b> },
         { key: 'impreso', label: '🖨️', num: true, sortValue: (v) => (v.r.impreso ? 1 : 0), render: (v) => (v.r.impreso ? '✅' : '⬜') },
+    ];
+
+    const buildPracticaColumns = (rConvenio) => [
+        { key: 'codigo', label: 'Código', render: (p) => <span className={styles.codeCell}>{p.codigo}</span> },
+        { key: 'descripcion', label: 'Descripción', wrap: true, render: (p) => p.descripcion },
+        { key: 'hon', label: 'Honorarios', num: true, render: (p) => {
+            const calc = calcPractice(p, convenios, nacional, aoter, rConvenio);
+            return (
+                <div>
+                    {peso(calc.hon)}
+                    {calc.qgal > 0 && <div style={{ fontSize: '0.8em', opacity: 0.7 }}>Gal: {calc.qgal}</div>}
+                </div>
+            );
+        }},
+        { key: 'gto', label: 'Gastos', num: true, render: (p) => {
+            const calc = calcPractice(p, convenios, nacional, aoter, rConvenio);
+            return (
+                <div>
+                    {peso(calc.gto)}
+                    {calc.gtoBase > 0 && <div style={{ fontSize: '0.8em', opacity: 0.7 }}>Gto: {calc.gtoBase}</div>}
+                    {(p.insumos || []).length > 0 && <div style={{ fontSize: '0.8em', color: '#b45309' }}>+ Insumos</div>}
+                </div>
+            );
+        }},
+        { key: 'total', label: 'Total', num: true, render: (p) => {
+            const calc = calcPractice(p, convenios, nacional, aoter, rConvenio);
+            return <b>{peso(calc.total)}</b>;
+        }},
     ];
 
     const rpFooter = [
@@ -896,7 +1003,7 @@ export default function Estadisticas({ historial }) {
             rows: [...pacientes].sort((a, b) => b.total - a.total).map((g) => { const r = gRow(g); r[0] = g.dni ? `${g.nombre} (${g.dni})` : g.nombre; return r; }),
             footer: gFoot('Total'),
         });
-        if (printOpts.convenios) sections.push({ title: 'Por convenio', columns: gCols('Convenio'), rows: [...convenios].sort((a, b) => b.total - a.total).map(gRow), footer: gFoot('Total') });
+        if (printOpts.convenios) sections.push({ title: 'Por convenio', columns: gCols('Convenio'), rows: [...conveniosGroup].sort((a, b) => b.total - a.total).map(gRow), footer: gFoot('Total') });
         if (printOpts.practicas) sections.push({
             title: 'Por práctica / código',
             columns: [{ label: 'Código' }, { label: 'Descripción', wrap: true }, { label: 'Veces', num: true }, { label: 'Honorarios', num: true }, { label: 'Gastos', num: true }, { label: 'Total', num: true }, { label: '%', num: true }],
@@ -1173,14 +1280,46 @@ export default function Estadisticas({ historial }) {
                         columns={groupCols('Mes')} rows={meses} rowKey={(g) => g.key}
                         defaultSort={{ key: 'nombre', dir: 'desc' }} footer={groupFooter('Total')}
                         search={tableSearch}
-                        renderDetail={(g) => (<DataTable columns={rpColumns} rows={g.rps} rowKey={(v) => v.r.id} defaultSort={{ key: 'fecha', dir: 'desc' }} pageSize={50} />)}
+                        renderDetail={(g) => (
+                            <DataTable
+                                columns={rpColumns}
+                                rows={g.rps}
+                                rowKey={(v) => v.r.id}
+                                defaultSort={{ key: 'fecha', dir: 'desc' }}
+                                pageSize={50}
+                                renderDetail={(v) => (
+                                    <DataTable
+                                        columns={buildPracticaColumns(v.r.convenio)}
+                                        rows={v.practicas}
+                                        rowKey={(p) => p.id || `${p.codigo}-${Math.random()}`}
+                                        defaultSort={{ key: 'codigo', dir: 'asc' }}
+                                    />
+                                )}
+                            />
+                        )}
                     />
                 ) : vista === 'medicos' ? (
                     <DataTable
                         columns={groupCols('Médico')} rows={medicosTop} rowKey={(g) => g.key}
                         defaultSort={{ key: 'total', dir: 'desc' }} footer={groupFooter('Total')}
                         search={tableSearch}
-                        renderDetail={(g) => (<DataTable columns={rpColumns} rows={g.rps} rowKey={(v) => v.r.id} defaultSort={{ key: 'fecha', dir: 'desc' }} pageSize={50} />)}
+                        renderDetail={(g) => (
+                            <DataTable
+                                columns={rpColumns}
+                                rows={g.rps}
+                                rowKey={(v) => v.r.id}
+                                defaultSort={{ key: 'fecha', dir: 'desc' }}
+                                pageSize={50}
+                                renderDetail={(v) => (
+                                    <DataTable
+                                        columns={buildPracticaColumns(v.r.convenio)}
+                                        rows={v.practicas}
+                                        rowKey={(p) => p.id || `${p.codigo}-${Math.random()}`}
+                                        defaultSort={{ key: 'codigo', dir: 'asc' }}
+                                    />
+                                )}
+                            />
+                        )}
                     />
                 ) : vista === 'pacientes' ? (
                     <DataTable
@@ -1189,7 +1328,23 @@ export default function Estadisticas({ historial }) {
                         defaultSort={{ key: 'total', dir: 'desc' }}
                         footer={[<b key="a">Total</b>, '', <b key="b">{totales.rps}</b>, <b key="c">{peso(totales.hon)}</b>, <b key="d">{peso(totales.gto)}</b>, <b key="e">{peso(totales.total)}</b>, <b key="f">100%</b>]}
                         search={tableSearch}
-                        renderDetail={(g) => (<DataTable columns={rpColumns} rows={g.rps} rowKey={(v) => v.r.id} defaultSort={{ key: 'fecha', dir: 'desc' }} pageSize={50} />)}
+                        renderDetail={(g) => (
+                            <DataTable
+                                columns={rpColumns}
+                                rows={g.rps}
+                                rowKey={(v) => v.r.id}
+                                defaultSort={{ key: 'fecha', dir: 'desc' }}
+                                pageSize={50}
+                                renderDetail={(v) => (
+                                    <DataTable
+                                        columns={buildPracticaColumns(v.r.convenio)}
+                                        rows={v.practicas}
+                                        rowKey={(p) => p.id || `${p.codigo}-${Math.random()}`}
+                                        defaultSort={{ key: 'codigo', dir: 'asc' }}
+                                    />
+                                )}
+                            />
+                        )}
                     />
                 ) : vista === 'practicas' ? (
                     <DataTable
@@ -1209,7 +1364,22 @@ export default function Estadisticas({ historial }) {
                         search={tableSearch}
                     />
                 ) : (
-                    <DataTable columns={rpColumns} rows={rows} rowKey={(v) => v.r.id} defaultSort={{ key: 'fecha', dir: 'desc' }} footer={rpFooter} search={tableSearch} />
+                    <DataTable
+                        columns={rpColumns}
+                        rows={rows}
+                        rowKey={(v) => v.r.id}
+                        defaultSort={{ key: 'fecha', dir: 'desc' }}
+                        footer={rpFooter}
+                        search={tableSearch}
+                        renderDetail={(v) => (
+                            <DataTable
+                                columns={buildPracticaColumns(v.r.convenio)}
+                                rows={v.practicas}
+                                rowKey={(p) => p.id || `${p.codigo}-${Math.random()}`}
+                                defaultSort={{ key: 'codigo', dir: 'asc' }}
+                            />
+                        )}
+                    />
                 )}
             </div>
 

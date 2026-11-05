@@ -17,7 +17,6 @@ import {
   detectarEspecial,
 } from '@/app/admin/Facturacion/utils/calculos';
 
-// ... (el resto del código es igual al que ya tenés)
 const formatConvenioLabel = (s) =>
   String(s ?? '')
     .replace(/_+/g, ' ')
