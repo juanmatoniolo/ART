@@ -1,6 +1,6 @@
 import styles from "../page.module.css";
 
-export default function ResumenEnvio({ canSend, gmailUrl, faltantes, asunto, emailsActivos, paciente }) {
+export default function ResumenEnvio({ canSend, gmailUrl, faltantes, asunto, emailsActivos, paciente, onSend }) {
   return (
     <>
       {!canSend && faltantes.length > 0 && (
@@ -22,11 +22,22 @@ export default function ResumenEnvio({ canSend, gmailUrl, faltantes, asunto, ema
           <div className={styles.resumenLine}><span className={styles.resumenLabel}>Asunto:</span><span className={styles.resumenValue}>{asunto}</span></div>
         </div>
       )}
+      
       <a
         href={canSend ? gmailUrl : "#"}
         className={`${styles.sendBtn} ${!canSend ? styles.sendBtnOff : ""}`}
-        onClick={e => !canSend && e.preventDefault()}
-        target="_blank" rel="noopener noreferrer"
+        onClick={(e) => {
+          if (!canSend) {
+            e.preventDefault();
+          } else if (onSend) {
+            // 🟢 RETRASAMOS LA LIMPIEZA 300ms PARA QUE EL NAVEGADOR ABRA LA PESTAÑA PRIMERO
+            setTimeout(() => {
+              onSend();
+            }, 300);
+          }
+        }}
+        target="_blank" 
+        rel="noopener noreferrer"
       >
         {canSend ? "🚀 Abrir Gmail con mail listo" : "🔒 Completá los pasos"}
       </a>

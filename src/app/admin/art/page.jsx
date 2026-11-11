@@ -54,7 +54,6 @@ export default function ARTComunicador() {
     });
   }, [arts, tab]);
 
-  // ─── NUEVO: nombres de las ARTs seleccionadas ─────────────────────────
   const selectedArtsNames = useMemo(() => {
     if (selectedArts.size === 0) return [];
     const names = [];
@@ -99,6 +98,15 @@ export default function ARTComunicador() {
     setCuerpoEditado("");
     setCopiado(false);
     setResetKey((prev) => prev + 1);
+  };
+
+  // 🟢 NUEVA FUNCIÓN: Limpia solo las selecciones que pediste al enviar
+  const handleEmailSent = () => {
+    setSelectedArts(new Set());
+    setPaciente(null);
+    setMedico("");
+    setAtajosActivos([]);
+    setResetKey((prev) => prev + 1); // Fuerza el reseteo visual de los inputs de paciente y médico
   };
 
   const cuerpoEditadoPorUsuario = useRef(false);
@@ -361,7 +369,6 @@ export default function ARTComunicador() {
                   loading={loadingPacientes}
                   paciente={paciente}
                   setPaciente={setPaciente}
-                  // ─── NUEVAS PROPS ────────────────────────────────────
                   selectedArtsNames={selectedArtsNames}
                   selectedArtsLabel={selectedArtsLabel}
                 />
@@ -448,6 +455,7 @@ export default function ARTComunicador() {
             asunto={asunto}
             emailsActivos={emailsActivos}
             paciente={paciente}
+            onSend={handleEmailSent} // 🟢 Le pasamos la función
           />
         </aside>
       </div>
