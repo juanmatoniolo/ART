@@ -1,6 +1,4 @@
-/* ===== page.module.css ===== */
-
-/* ===== Contenedor principal ===== */
+/* ===== CONTENEDOR PRINCIPAL ===== */
 .container {
   min-height: calc(100vh - 70px);
   background:
@@ -12,7 +10,7 @@
   padding: clamp(16px, 3vw, 32px);
 }
 
-/* ===== Tarjeta principal ===== */
+/* ===== TARJETA PRINCIPAL ===== */
 .card {
   background: #111827;
   width: 100%;
@@ -23,7 +21,7 @@
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
 }
 
-/* ===== Header ===== */
+/* ===== HEADER ===== */
 .header {
   display: flex;
   align-items: center;
@@ -43,7 +41,6 @@
   font-size: 24px;
 }
 
-/* ===== Título ===== */
 .title {
   color: #f0f9ff;
   font-size: clamp(24px, 4vw, 30px);
@@ -59,7 +56,7 @@
   line-height: 1.4;
 }
 
-/* ===== Grid del formulario ===== */
+/* ===== GRID DEL FORMULARIO ===== */
 .formGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -67,7 +64,6 @@
   margin-bottom: 24px;
 }
 
-/* ===== Cada campo ===== */
 .field {
   display: flex;
   flex-direction: column;
@@ -75,7 +71,17 @@
   width: 100%;
 }
 
-/* ===== Etiquetas ===== */
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 .label {
   font-size: 14px;
   font-weight: 700;
@@ -85,18 +91,18 @@
   gap: 4px;
 }
 
+.labelStats {
+  font-weight: 400;
+  font-size: 12px;
+  color: #64748b;
+}
+
 .required {
   color: #f87171;
   font-size: 16px;
 }
 
-.helpText {
-  color: #94a3b8;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-/* ===== Inputs, selects, textarea ===== */
+/* ===== INPUTS ===== */
 .input {
   width: 100%;
   background: #1f2937;
@@ -105,10 +111,7 @@
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 15px;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s,
-    background 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -117,31 +120,219 @@
   color: #6b7280;
 }
 
-.input:hover {
-  border-color: #4b5563;
-}
-
 .input:focus {
   outline: none;
   border-color: #6fa17b;
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* Select con flecha personalizada */
-select.input {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 40px;
+.rowFields {
+  display: flex;
+  gap: 16px;
+  width: 100%;
 }
 
-/* ===== Área de preview ===== */
+.halfField {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ===== BUSCADOR DE PACIENTES ===== */
+.searchInputWrapper {
+  position: relative;
+  width: 100%;
+}
+.searchInputWrapper .input {
+  padding-right: 36px;
+}
+.clearBtn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+.clearBtn:hover {
+  color: #e2e8f0;
+}
+
+/* ===== PÍLDORAS (PACIENTES, MENSAJES, MÉDICOS) ===== */
+.pillsSection {
+  margin-top: 14px;
+}
+.pillsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.pillsSectionLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+.pillsGrid, .messagePillsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #334155;
+}
+.pillsGrid {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.messagePillsGrid {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  cursor: pointer;
+  font-size: 14px;
+  color: #e2e8f0;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.pill:hover {
+  border-color: #475569;
+  background: #273549;
+  transform: translateY(-1px);
+}
+.pillActive {
+  background: rgba(37, 211, 102, 0.15);
+  border-color: #25d366;
+  color: #86efac;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #25d366;
+}
+.pillInactive {
+  opacity: 0.4;
+}
+.pillInactive:hover {
+  opacity: 0.7;
+}
+.pillStatus {
+  font-size: 10px;
+}
+.pillName {
+  font-weight: 600;
+}
+.pillArt {
+  background: #334155;
+  color: #cbd5e1;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.pillDni {
+  font-size: 12px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+.pillCheck {
+  color: #25d366;
+  font-weight: 900;
+  margin-left: 2px;
+}
+
+/* Toggle y Skeletons */
+.toggleActivos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.toggleActivos input {
+  cursor: pointer;
+  accent-color: #25d366;
+}
+.pillsMore {
+  font-size: 12px;
+  color: #64748b;
+  margin: 8px 0 0;
+  font-style: italic;
+  text-align: right;
+}
+.pillSkeleton {
+  height: 34px;
+  width: 150px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  background-size: 200% 100%;
+  animation: pulseSkeleton 1.2s infinite;
+}
+@keyframes pulseSkeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.emptyMsg {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 10px;
+}
+
+/* Botones Pequeños */
+.tinyBtn {
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 600;
+}
+.tinyBtn:hover {
+  border-color: #25d366;
+  color: #fff;
+}
+.clearSelectionBtn {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.clearSelectionBtn:hover {
+  color: #ef4444;
+}
+
+/* ===== VISTA PREVIA (PREVIEW) ===== */
 .previewBox {
   margin: 24px 0 0;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
 }
-
 .previewHeader {
   display: flex;
   align-items: flex-start;
@@ -149,14 +340,12 @@ select.input {
   gap: 1rem;
   margin-bottom: 10px;
 }
-
 .previewSubtitle {
   margin: 4px 0 0;
   color: #94a3b8;
   font-size: 13px;
   line-height: 1.4;
 }
-
 .previewBadge {
   flex-shrink: 0;
   display: inline-flex;
@@ -170,7 +359,6 @@ select.input {
   font-size: 12px;
   font-weight: 850;
 }
-
 .textarea {
   width: 100%;
   min-height: 260px;
@@ -186,23 +374,20 @@ select.input {
   font-family: inherit;
   box-sizing: border-box;
 }
-
 .textarea:focus {
   outline: none;
   border-color: #6fa17b;
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
-/* ===== Botones ===== */
+/* ===== BOTONES DE ACCIÓN ===== */
 .actionsRow {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 18px;
 }
-
-.button,
-.secondaryButton {
+.button, .secondaryButton {
   flex: 1 1 240px;
   display: inline-flex;
   align-items: center;
@@ -214,49 +399,37 @@ select.input {
   font-size: 16px;
   font-weight: 850;
   text-decoration: none;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    transform 0.1s,
-    box-shadow 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.1s, box-shadow 0.2s;
   cursor: pointer;
   box-sizing: border-box;
 }
-
 .button {
   background: #25d366;
   color: #ffffff;
   border: 1px solid #25d366;
   box-shadow: 0 12px 24px rgba(37, 211, 102, 0.18);
 }
-
 .button:hover {
   background: #20bd5a;
   border-color: #20bd5a;
   transform: translateY(-1px);
 }
-
 .secondaryButton {
   background: #1f2937;
   color: #f0f9ff;
   border: 1px solid #374151;
 }
-
 .secondaryButton:hover {
   background: #273449;
   border-color: #6fa17b;
   transform: translateY(-1px);
 }
-
-.button:active,
-.secondaryButton:active {
+.button:active, .secondaryButton:active {
   transform: scale(0.98);
 }
-
 .buttonIcon {
   font-size: 17px;
 }
-
 .buttonDisabled {
   opacity: 0.5;
   pointer-events: none;
@@ -264,7 +437,6 @@ select.input {
   border-color: #4b5563;
   box-shadow: none;
 }
-
 .warningText {
   margin: 12px 0 0;
   color: #fcd34d;
@@ -273,255 +445,102 @@ select.input {
   text-align: center;
 }
 
-/* ===== Búsqueda de pacientes ===== */
-.searchContainer {
-  position: relative;
+/* ===== MODAL ===== */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 24px;
   width: 100%;
-}
-
-.suggestions {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 12px;
-  max-height: 260px;
-  overflow-y: auto;
-  z-index: 20;
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
-}
-
-.suggestionItem {
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  padding: 10px 14px;
-  border-bottom: 1px solid #374151;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s;
-  text-align: left;
-  border: none;
-  width: 100%;
-}
-
-.suggestionItem:last-child {
-  border-bottom: none;
-}
-
-.suggestionItem:hover {
-  background: #374151;
-}
-
-.suggestionMain {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.suggestionName {
-  font-weight: 700;
-  color: #f3f4f6;
-  font-size: 14px;
-  word-break: break-word;
-}
-
-.suggestionPhone {
-  font-size: 12px;
-  color: #9ca3af;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  flex-shrink: 0;
-}
-
-.suggestionMeta {
-  display: flex;
   gap: 16px;
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
 }
-
-.suggestionArt,
-.suggestionSiniestro {
-  background: #2d3748;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  color: #d1d5db;
+.modalTitle {
+  margin: 0;
+  font-size: 20px;
+  color: #f8fafc;
 }
-
-/* ===== Campos en fila ===== */
-.fullWidth {
-  grid-column: 1 / -1;
+.modalHint {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+  line-height: 1.5;
 }
-
-.rowFields {
+.modalBtns {
   display: flex;
-  gap: 1rem;
-  width: 100%;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+.btnCancel {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btnCancel:hover {
+  background: #334155;
+}
+.btnSave {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnSave:hover {
+  background: #2563eb;
 }
 
-.halfField {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ===== Responsive ===== */
+/* ===== RESPONSIVE ===== */
 @media (min-width: 760px) {
   .formGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .field:first-child,
-  .field:nth-child(4) {
-    grid-column: 1 / -1;
-  }
 }
-
-@media (max-width: 768px) {
-  .container {
-    padding: 16px;
-  }
-
-  .card {
-    border-radius: 20px;
-  }
-
-  .header {
-    align-items: flex-start;
-  }
-
-  .textarea {
-    min-height: 220px;
-  }
-}
-
 @media (max-width: 640px) {
   .container {
     padding: 12px;
-    min-height: 100vh;
   }
-
   .card {
     padding: 20px 16px;
     border-radius: 20px;
   }
-
   .header {
     flex-direction: column;
     margin-bottom: 22px;
   }
-
-  .iconCircle {
-    width: 48px;
-    height: 48px;
-  }
-
-  .previewHeader {
-    flex-direction: column;
-  }
-
-  .previewBadge {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .input {
-    padding: 12px 14px;
-    font-size: 16px;
-    border-radius: 10px;
-  }
-
-  .textarea {
-    min-height: 200px;
-    font-size: 14px;
-    padding: 12px;
-  }
-
   .actionsRow {
     flex-direction: column;
   }
-
-  .button,
-  .secondaryButton {
+  .button, .secondaryButton {
     width: 100%;
     flex-basis: auto;
-    font-size: 16px;
-  }
-
-  .suggestionItem {
-    padding: 10px 12px;
-  }
-
-  .suggestionName {
     font-size: 15px;
   }
-
-  .suggestionPhone {
-    font-size: 12px;
-  }
-
-  .suggestionMeta {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-}
-
-@media (max-width: 400px) {
-  .container {
-    padding: 8px;
-  }
-
-  .card {
-    padding: 16px 12px;
-    border-radius: 16px;
-  }
-
-  .title {
-    font-size: 21px;
-  }
-
-  .subtitle {
-    font-size: 13px;
-  }
-
-  .formGrid {
-    gap: 14px;
-  }
-
-  .input {
-    padding: 10px 12px;
-    font-size: 15px;
-    border-radius: 8px;
-  }
-
-  .label {
-    font-size: 12px;
-  }
-
-  .textarea {
-    min-height: 180px;
-    font-size: 13px;
-    padding: 10px;
-  }
-
-  .button,
-  .secondaryButton {
-    min-height: 50px;
-    padding: 13px;
-    border-radius: 12px;
-  }
-
-  .suggestionItem {
+  .rowFields {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .suggestionPhone {
-    font-size: 11px;
   }
 }
