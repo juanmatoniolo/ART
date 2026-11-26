@@ -18,6 +18,21 @@ const AUTH_ERRORS = {
     "auth/operation-not-allowed": "El ingreso con email no está habilitado en Firebase. Avisale al administrador.",
 };
 
+/**
+ * Mensaje para mostrar ante un error de login. Si es un error conocido usa el
+ * texto amigable; si no, agrega el código de Firebase para poder diagnosticar
+ * (ej. clave de API sin permiso para Authentication).
+ */
+function authErrorMessage(err) {
+    const code = String(err?.code || "");
+    if (AUTH_ERRORS[code]) return AUTH_ERRORS[code];
+    if (/api-key|requests-from-referer|permission|internal-error/i.test(code)) {
+        return `El servicio de inicio de sesión no está bien configurado. Avisale al administrador. (código: ${code})`;
+    }
+    const detalle = code || String(err?.message || "").slice(0, 120) || "desconocido";
+    return `No se pudo iniciar sesión. Intentá de nuevo. (código: ${detalle})`;
+}
+
 const STATUS_ERRORS = {
     suspended: "Tu usuario tiene el servicio cortado. Hablá con el administrador.",
     noprofile: "Tu cuenta todavía no tiene roles asignados. Hablá con el administrador.",
@@ -65,7 +80,7 @@ function LoginForm() {
             await login(identifier, password);
             // La redirección la hace el efecto cuando llega el perfil
         } catch (err) {
-            setError(AUTH_ERRORS[err?.code] || "No se pudo iniciar sesión. Intentá de nuevo.");
+            setError(authErrorMessage(err));
             setSubmitting(false);
         }
     };
