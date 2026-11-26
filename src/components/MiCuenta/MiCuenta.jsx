@@ -21,6 +21,7 @@ import { DATA_NODES, accessOf } from "@/lib/permissions";
 import { notify } from "@/lib/notify";
 import { singleFlight } from "@/lib/singleFlight";
 import styles from "./MiCuenta.module.css";
+import PasswordInput from "@/components/PasswordInput/PasswordInput";
 
 const AREA_INFO = {
   "/admin": { label: "Panel Root", href: "/admin" },
@@ -227,15 +228,15 @@ function CambiarClave({ email }) {
       <form className={styles.form} onSubmit={submit}>
         <label>
           <span>Contraseña actual</span>
-          <input type="password" value={actual} onChange={(e) => setActual(e.target.value)} autoComplete="current-password" required />
+          <PasswordInput value={actual} onChange={(e) => setActual(e.target.value)} autoComplete="current-password" required />
         </label>
         <label>
           <span>Nueva contraseña</span>
-          <input type="password" value={nueva} onChange={(e) => setNueva(e.target.value)} autoComplete="new-password" minLength={8} required />
+          <PasswordInput value={nueva} onChange={(e) => setNueva(e.target.value)} autoComplete="new-password" minLength={8} required />
         </label>
         <label>
           <span>Repetir nueva</span>
-          <input type="password" value={repetir} onChange={(e) => setRepetir(e.target.value)} autoComplete="new-password" minLength={8} required />
+          <PasswordInput value={repetir} onChange={(e) => setRepetir(e.target.value)} autoComplete="new-password" minLength={8} required />
         </label>
         <button type="submit" className={styles.btnPrimary}>
           <UserRound size={16} aria-hidden /> Guardar contraseña

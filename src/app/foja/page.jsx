@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { ref, push, onValue } from "firebase/database";
 import Header from "@/components/Header/Header";
+import Link from "next/link";
+import { useAreaAccess, MODO_CARGA_TEXTO } from "@/components/RoleGate/useAreaAccess";
 import styles from "./fojaqx.module.css";
 
 /* ───────────────────────────── Constantes ───────────────────────────── */
@@ -106,6 +108,9 @@ const buildFileName = (form) => {
 
 /* ───────────────────────────── Componente ───────────────────────────── */
 export default function Foja() {
+    // Pantalla pública: sin sesión solo se carga la foja y se descarga el PDF.
+    // Las plantillas (leer y guardar) requieren sesión con rol habilitado.
+    const autorizado = useAreaAccess("/foja");
     const [form, setForm] = useState(INITIAL_FORM);
     const [saveStatus, setSaveStatus] = useState("idle");
     const [pdfStatus, setPdfStatus] = useState("idle");
@@ -155,6 +160,11 @@ export default function Foja() {
 
     /* ─── Cargar plantillas ─── */
     useEffect(() => {
+        if (!autorizado) {
+            setTemplates([]);
+            setLoadingTemplates(false);
+            return undefined;
+        }
         const unsubscribe = onValue(
             plantillasRef,
             (snapshot) => {
@@ -176,7 +186,7 @@ export default function Foja() {
             }
         );
         return () => unsubscribe();
-    }, []);
+    }, [autorizado]);
 
     useEffect(() => {
         return () => {
@@ -473,8 +483,17 @@ export default function Foja() {
                         </div>
                     )}
 
+                    {!autorizado && (
+                        <div className={styles.templateBar} role="note">
+                            {MODO_CARGA_TEXTO}{" "}
+                            <Link href="/login?next=/foja" style={{ fontWeight: 700, textDecoration: "underline" }}>
+                                Iniciar sesión
+                            </Link>
+                        </div>
+                    )}
+
                     {/* Plantillas toggleables */}
-                    {templates.length > 0 && (
+                    {autorizado && templates.length > 0 && (
                         <div className={styles.templateBar}>
                             <div className={styles.templateBarHeader}>
                                 <span className={styles.templateBarLabel}>
@@ -766,7 +785,8 @@ export default function Foja() {
                             </Field>
                         </Section>
 
-                        {/* Guardar plantilla */}
+                        {/* Guardar plantilla (requiere sesión) */}
+                        {autorizado && (
                         <div className={styles.section}>
                             {!showTemplateSaver ? (
                                 <button
@@ -816,6 +836,7 @@ export default function Foja() {
                                 </>
                             )}
                         </div>
+                        )}
 
                         {/* Panel de éxito */}
                         {saveStatus === "saved" && pdfStatus === "done" && pdfUrl && (

@@ -8,6 +8,8 @@ import { db } from "@/lib/firebase";
 import { push, ref, set, get, child, update } from "firebase/database";
 import styles from "./SiniestroPage.module.css";
 import Header from "@/components/Header/Header";
+import Link from "next/link";
+import { useAreaAccess, MODO_CARGA_TEXTO } from "@/components/RoleGate/useAreaAccess";
 
 const STORAGE_KEY = "siniestro_form_v2";
 const THEME_KEY = "siniestro_theme";
@@ -198,6 +200,8 @@ function DatePartInput({ label, value, onChange, placeholder, maxLength, error, 
 
 // --- Componente principal ---
 export default function SiniestroPage() {
+  // Pantalla pública: sin sesión solo se puede cargar un siniestro nuevo (sin buscar ni editar)
+  const autorizado = useAreaAccess("/Siniestro");
   const [activeTab, setActiveTab] = useState("nuevo");
   // useState con función perezosa: se recalcula con la fecha actual cada vez que se inicializa
   const [form, setForm] = useState(() => getInitialForm());
@@ -293,10 +297,13 @@ export default function SiniestroPage() {
   }, [shouldFocusError, errors]);
 
   useEffect(() => {
-    if (activeTab === "buscar") {
+    if (activeTab === "buscar" && autorizado) {
       fetchAllPacientes();
     }
-  }, [activeTab]);
+  }, [activeTab, autorizado]);
+
+  // Si se pierde la sesión estando en "Buscar", volver a la carga
+  const tabVisible = autorizado ? activeTab : "nuevo";
 
   const fetchAllPacientes = async () => {
     setLoadingPacientes(true);
@@ -539,7 +546,7 @@ export default function SiniestroPage() {
 
       setEditingId(null);
       setCurrentEstado(null);
-      if (activeTab === "buscar") fetchAllPacientes();
+      if (autorizado && activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
       setPdfError("Error guardando o generando PDF. Revisá consola.");
@@ -566,7 +573,7 @@ export default function SiniestroPage() {
             <div>
               <h1 className={styles.title}>Gestión de Siniestros</h1>
               <p className={styles.subtitle}>
-                {activeTab === "nuevo"
+                {tabVisible === "nuevo"
                   ? editingId
                     ? "Editando paciente existente"
                     : "Nuevo registro de siniestro"
@@ -598,7 +605,7 @@ export default function SiniestroPage() {
               >
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
-              {activeTab === "nuevo" && (
+              {tabVisible === "nuevo" && (
                 <button
                   type="button"
                   className={styles.ghostBtn}
@@ -622,25 +629,31 @@ export default function SiniestroPage() {
             </div>
           </div>
 
-          <div className={styles.tabsContainer}>
-            <button
-              className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)}
-              onClick={() => setActiveTab("nuevo")}
-            >
-              📝 Nuevo / Editar
-            </button>
-            <button
-              className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)}
-              onClick={() => {
-                setActiveTab("buscar");
-                fetchAllPacientes();
-              }}
-            >
-              🔍 Buscar Pacientes
-            </button>
-          </div>
+          {autorizado ? (
+            <div className={styles.tabsContainer}>
+              <button
+                className={cx(styles.tab, tabVisible === "nuevo" && styles.tabActive)}
+                onClick={() => setActiveTab("nuevo")}
+              >
+                📝 Nuevo / Editar
+              </button>
+              <button
+                className={cx(styles.tab, tabVisible === "buscar" && styles.tabActive)}
+                onClick={() => setActiveTab("buscar")}
+              >
+                🔍 Buscar Pacientes
+              </button>
+            </div>
+          ) : (
+            <div className={styles.toastInfo} role="note">
+              {MODO_CARGA_TEXTO}{" "}
+              <Link href="/login?next=/Siniestro" style={{ fontWeight: 700, textDecoration: "underline" }}>
+                Iniciar sesión
+              </Link>
+            </div>
+          )}
 
-          {activeTab === "nuevo" ? (
+          {tabVisible === "nuevo" ? (
             <>
               {saving && <div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>}
 

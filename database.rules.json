@@ -9,7 +9,10 @@
     },
     "pacientes": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('OS').val() === true)",
-      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('OS').val() === true)"
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('OS').val() === true)",
+      "$id": {
+        ".write": "!data.exists() && newData.exists() && newData.hasChildren()"
+      }
     },
     "historias-clinicas": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('RECEPCION').val() === true)",
@@ -25,7 +28,10 @@
     },
     "ingresos-pacientes": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)",
-      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)"
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)",
+      "$id": {
+        ".write": "!data.exists() && newData.exists() && newData.hasChildren()"
+      }
     },
     "UTI": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('UTI').val() === true)",
@@ -33,7 +39,10 @@
     },
     "fojaqx": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('MEDICO').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)",
-      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('MEDICO').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)"
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('MEDICO').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADMINISTRADOR').val() === true)",
+      "$id": {
+        ".write": "!data.exists() && newData.exists() && newData.hasChildren()"
+      }
     },
     "plantillas_qx": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('activo').val() === true && (root.child('usuarios').child(auth.uid).child('roles').child('ROOT').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('ADM').val() === true || root.child('usuarios').child(auth.uid).child('roles').child('MEDICO').val() === true)",

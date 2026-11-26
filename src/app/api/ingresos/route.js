@@ -1,4 +1,4 @@
-import { requireUser, handle } from "@/lib/serverAuth";
+import { requireUser, handle, limitBody } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -882,7 +882,9 @@ export const GET = handle(async (request, ctx) => {
 	await requireUser(request, ["ADM"]);
 	return getHandler(request, ctx);
 });
+// POST público: lo usan las pantallas de carga sin login (/Siniestro, /ingresos, /foja).
+// Solo arma el PDF con los datos recibidos; no lee ni escribe la base.
 export const POST = handle(async (request, ctx) => {
-	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	limitBody(request);
 	return postHandler(request, ctx);
 });

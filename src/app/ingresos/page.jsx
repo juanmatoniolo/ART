@@ -11,6 +11,8 @@ import {
 import { getSession } from "@/utils/session";
 import { asegurarPacientePami } from "@/lib/pami"; // <-- IMPORTAMOS PARA GUARDAR EN PAMI
 import styles from "./ingresos.module.css";
+import Link from "next/link";
+import { useAreaAccess, MODO_CARGA_TEXTO } from "@/components/RoleGate/useAreaAccess";
 import DocumentosModal from "./DocumentosModal";
 import DocumentacionSection from "./DocumentacionSection";
 import { generarDorsoPDFBlob, openPDFBlob } from "./documentosHelpers";
@@ -47,8 +49,12 @@ function StepIndicator({ current, onGo }) { return (<div style={{ display: "flex
 function IngresosPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Pantalla pública: sin sesión solo se carga un ingreso nuevo. Buscar/editar,
+  // historias clínicas, documentación y sincronización con PAMI requieren sesión.
+  const autorizado = useAreaAccess("/ingresos");
 
   const [activeTab, setActiveTab] = useState("nuevo");
+  const tabVisible = autorizado ? activeTab : "nuevo";
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -82,7 +88,7 @@ function IngresosPageInner() {
     const preOs = searchParams.get("os");
     const preOpId = searchParams.get("opId");
 
-    if (preDni) {
+    if (preDni && autorizado) {
       setForm((prev) => ({
         ...prev,
         trabajadorDni: preDni,
@@ -107,7 +113,7 @@ function IngresosPageInner() {
         lookupDniInHC(onlyDigits(preDni), form.tipoIngreso);
       }, 500);
     }
-  }, [searchParams]);
+  }, [searchParams, autorizado]);
 
   useEffect(() => { const savedTheme = localStorage.getItem(THEME_KEY) || "dark"; setTheme(savedTheme); document.body.classList.toggle("light-mode", savedTheme === "light"); }, []);
   const toggleTheme = () => { const newTheme = theme === "dark" ? "light" : "dark"; setTheme(newTheme); localStorage.setItem(THEME_KEY, newTheme); document.body.classList.toggle("light-mode", newTheme === "light"); };
@@ -119,7 +125,7 @@ function IngresosPageInner() {
   useEffect(() => { if (form.tipoIngreso === "UTI" && form.camaLetra) { setForm((p) => ({ ...p, camaLetra: "" })); } }, [form.tipoIngreso]);
   useEffect(() => { const digits = onlyDigits(form.trabajadorDni); if (digits.length >= 7 && hcLookup.searched && hcLookup.tipo !== form.tipoIngreso) { lastLookupDniRef.current = ""; lookupDniInHC(digits, form.tipoIngreso); } }, [form.tipoIngreso]);
   useEffect(() => { if (shouldFocusError && Object.keys(errors).length > 0) { const timer = setTimeout(() => { const errorField = document.querySelector(`.${styles.inputError}`); if (errorField) { errorField.focus(); errorField.scrollIntoView({ behavior: "smooth", block: "center" }); } setShouldFocusError(false); }, 50); return () => clearTimeout(timer); } }, [shouldFocusError, errors]);
-  useEffect(() => { if (activeTab === "buscar") fetchAllPacientes(); }, [activeTab]);
+  useEffect(() => { if (activeTab === "buscar" && autorizado) fetchAllPacientes(); }, [activeTab, autorizado]);
 
   const fetchAllPacientes = async () => { setLoadingPacientes(true); try { const snapshot = await get(child(ref(db), DB_NODE)); if (snapshot.exists()) { const data = snapshot.val(); const arr = Object.entries(data).map(([id, value]) => ({ id, ...value, })); arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); setPacientes(arr); } else setPacientes([]); } catch (error) { console.error("Error cargando ingresos:", error); } finally { setLoadingPacientes(false); } };
   const canSubmit = useMemo(() => !saving, [saving]);
@@ -129,11 +135,11 @@ function IngresosPageInner() {
   const onChangeNacimiento = (part) => (e) => { const raw = onlyDigits(e.target.value); setForm((p) => { const next = { ...p, [`trabajadorNacimiento${part}`]: raw }; next.trabajadorNacimiento = buildNacimientoISO(next); return next; }); };
 
   const calcularProximoNumeroHC = async (tipo) => { const isUti = tipo === "UTI"; const hcPath = isUti ? HC_UTI_PATH : HC_PATH; const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH; const [snapHC, snapCounter] = await Promise.all([getShared(hcPath), get(child(ref(db), counterPath))]); let maxReal = 0; if (snapHC.exists()) { for (const item of Object.values(snapHC.val())) { const n = parseHCNumber(item); if (Number.isFinite(n) && n > maxReal) maxReal = n; } } const counterVal = snapCounter.exists() ? Number(snapCounter.val() || 0) : 0; return Math.max(maxReal, counterVal) + 1; };
-  const lookupDniInHC = async (dniDigits, tipo) => { if (!dniDigits || dniDigits.length < 7) return; const tipoNorm = tipo === "UTI" ? "UTI" : "PISO"; const cacheKey = `${tipoNorm}::${dniDigits}`; if (lastLookupDniRef.current === cacheKey) return; lastLookupDniRef.current = cacheKey; setHcLookup({ loading: true, searched: false, dni: dniDigits, tipo: tipoNorm, match: null, nextNumber: null, loadingNext: false, }); try { const hcPath = tipoNorm === "UTI" ? HC_UTI_PATH : HC_PATH; const snap = await getShared(hcPath); const matchesDni = (itemDniRaw) => { const itemDni = onlyDigits(itemDniRaw); if (!itemDni) return false; if (itemDni === dniDigits) return true; if (dniDigits.length === 11 && itemDni === dniDigits.slice(2, 10)) return true; if (itemDni.length === 11 && dniDigits === itemDni.slice(2, 10)) return true; return false; }; let match = null; if (snap.exists()) { for (const [id, v] of Object.entries(snap.val())) { if (matchesDni(v.dni || v.documento)) { match = { id, tipo: tipoNorm, nombre_apellido: v.nombre_apellido || v.nombre || "", dni: v.dni || v.documento || "", historia_clinica: v.historia_clinica || v.historia_clinica_1 || "", }; break; } } } setHcLookup({ loading: false, searched: true, dni: dniDigits, tipo: tipoNorm, match, nextNumber: null, loadingNext: !match, }); if (!match) { try { const next = await calcularProximoNumeroHC(tipoNorm); setHcLookup((prev) => ({ ...prev, nextNumber: next, loadingNext: false, })); } catch (err) { console.error("Error calculando próximo HC:", err); setHcLookup((prev) => ({ ...prev, loadingNext: false })); } } } catch (err) { console.error("Error buscando DNI en HC:", err); setHcLookup({ loading: false, searched: true, dni: dniDigits, tipo: tipoNorm, match: null, nextNumber: null, loadingNext: false, }); } };
+  const lookupDniInHC = async (dniDigits, tipo) => { if (!autorizado) return; if (!dniDigits || dniDigits.length < 7) return; const tipoNorm = tipo === "UTI" ? "UTI" : "PISO"; const cacheKey = `${tipoNorm}::${dniDigits}`; if (lastLookupDniRef.current === cacheKey) return; lastLookupDniRef.current = cacheKey; setHcLookup({ loading: true, searched: false, dni: dniDigits, tipo: tipoNorm, match: null, nextNumber: null, loadingNext: false, }); try { const hcPath = tipoNorm === "UTI" ? HC_UTI_PATH : HC_PATH; const snap = await getShared(hcPath); const matchesDni = (itemDniRaw) => { const itemDni = onlyDigits(itemDniRaw); if (!itemDni) return false; if (itemDni === dniDigits) return true; if (dniDigits.length === 11 && itemDni === dniDigits.slice(2, 10)) return true; if (itemDni.length === 11 && dniDigits === itemDni.slice(2, 10)) return true; return false; }; let match = null; if (snap.exists()) { for (const [id, v] of Object.entries(snap.val())) { if (matchesDni(v.dni || v.documento)) { match = { id, tipo: tipoNorm, nombre_apellido: v.nombre_apellido || v.nombre || "", dni: v.dni || v.documento || "", historia_clinica: v.historia_clinica || v.historia_clinica_1 || "", }; break; } } } setHcLookup({ loading: false, searched: true, dni: dniDigits, tipo: tipoNorm, match, nextNumber: null, loadingNext: !match, }); if (!match) { try { const next = await calcularProximoNumeroHC(tipoNorm); setHcLookup((prev) => ({ ...prev, nextNumber: next, loadingNext: false, })); } catch (err) { console.error("Error calculando próximo HC:", err); setHcLookup((prev) => ({ ...prev, loadingNext: false })); } } } catch (err) { console.error("Error buscando DNI en HC:", err); setHcLookup({ loading: false, searched: true, dni: dniDigits, tipo: tipoNorm, match: null, nextNumber: null, loadingNext: false, }); } };
   const onBlurTrabajadorDni = () => { const formatted = formatIdField(form.trabajadorDni); setForm((p) => ({ ...p, trabajadorDni: formatted })); const digits = onlyDigits(formatted); if (digits.length >= 7) lookupDniInHC(digits, form.tipoIngreso); };
   const forceLookupDni = () => { const digits = onlyDigits(form.trabajadorDni); if (digits.length < 7) { notify("Ingresá al menos 7 dígitos del DNI/CUIL"); return; } lastLookupDniRef.current = ""; lookupDniInHC(digits, form.tipoIngreso); };
   const aplicarHistoriaClinica = (hc) => { if (!hc) return; const { apellido, nombre } = splitNombreCompleto(hc.nombre_apellido || ""); const hcNum = String(hc.historia_clinica || "").trim(); setForm((p) => ({ ...p, trabajadorApellido: apellido || p.trabajadorApellido, trabajadorNombre: nombre || p.trabajadorNombre, trabajadorDni: hc.dni ? formatIdField(hc.dni) : p.trabajadorDni, historiaClinica: hcNum || p.historiaClinica, })); };
-  const crearHistoriaClinica = async () => { const tipo = form.tipoIngreso === "UTI" ? "UTI" : "PISO"; const isUti = tipo === "UTI"; const dniDigits = onlyDigits(form.trabajadorDni); if (dniDigits.length < 7) { notify("Ingresá al menos 7 dígitos del DNI/CUIL"); return; } if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) { notify("Completá apellido y nombre del paciente antes de crear la HC"); return; } const numeroPreview = hcLookup.nextNumber ? ` (se asignará el N° ${hcLookup.nextNumber})` : ""; const ok = window.confirm(`¿Crear una nueva historia clínica ${tipo} para "${form.trabajadorApellido} ${form.trabajadorNombre}" (DNI ${dniDigits})${numeroPreview}?`); if (!ok) return; setCreatingHc(tipo); try { const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH; const hcPath = isUti ? HC_UTI_PATH : HC_PATH; const snapshot = await getShared(hcPath); let maxReal = 0; if (snapshot.exists()) { for (const item of Object.values(snapshot.val())) { const n = parseHCNumber(item); if (Number.isFinite(n) && n > maxReal) maxReal = n; } } const counterRef = ref(db, counterPath); const tx = await runTransaction(counterRef, (currentValue) => Number(currentValue || 0) + 1,); if (!tx.committed) throw new Error("No se pudo reservar el número"); const reservedNumber = Number(tx.snapshot.val() || 0); let finalNumber = reservedNumber > maxReal ? reservedNumber : maxReal + 1; if (finalNumber !== reservedNumber) await set(counterRef, finalNumber); const newNumber = String(finalNumber); const session = (typeof getSession === "function" && getSession()) || {}; const userName = session.user || session.usuario || session.nombre || "sistema"; const userKey = session.id || session.key || ""; const now = Date.now(); const newRef = push(ref(db, hcPath)); const nombreCompleto = `${form.trabajadorApellido.trim()} ${form.trabajadorNombre.trim()}`.trim().toUpperCase(); if (isUti) { await set(newRef, { nombre: nombreCompleto, documento: dniDigits, historia_clinica_1: newNumber, alertas: [], createdBy: userName, createdByUserKey: userKey, createdAt: now, modifiedBy: userName, modifiedByUserKey: userKey, modifiedAt: now, }); } else { await set(newRef, { nombre_apellido: nombreCompleto, dni: dniDigits, historia_clinica: newNumber, alertas: [], createdBy: userName, createdByUserKey: userKey, createdAt: now, modifiedBy: userName, modifiedByUserKey: userKey, modifiedAt: now, }); } setForm((p) => ({ ...p, historiaClinica: newNumber })); lastLookupDniRef.current = ""; await lookupDniInHC(dniDigits, tipo); notify(`✅ HC ${tipo} #${newNumber} creada correctamente`); } catch (err) { console.error("Error creando HC:", err); notify("No se pudo crear la historia clínica. Revisá la consola."); } finally { setCreatingHc(null); } };
+  const crearHistoriaClinica = async () => { if (!autorizado) return; const tipo = form.tipoIngreso === "UTI" ? "UTI" : "PISO"; const isUti = tipo === "UTI"; const dniDigits = onlyDigits(form.trabajadorDni); if (dniDigits.length < 7) { notify("Ingresá al menos 7 dígitos del DNI/CUIL"); return; } if (!form.trabajadorApellido.trim() || !form.trabajadorNombre.trim()) { notify("Completá apellido y nombre del paciente antes de crear la HC"); return; } const numeroPreview = hcLookup.nextNumber ? ` (se asignará el N° ${hcLookup.nextNumber})` : ""; const ok = window.confirm(`¿Crear una nueva historia clínica ${tipo} para "${form.trabajadorApellido} ${form.trabajadorNombre}" (DNI ${dniDigits})${numeroPreview}?`); if (!ok) return; setCreatingHc(tipo); try { const counterPath = isUti ? COUNTER_UTI_PATH : COUNTER_GENERAL_PATH; const hcPath = isUti ? HC_UTI_PATH : HC_PATH; const snapshot = await getShared(hcPath); let maxReal = 0; if (snapshot.exists()) { for (const item of Object.values(snapshot.val())) { const n = parseHCNumber(item); if (Number.isFinite(n) && n > maxReal) maxReal = n; } } const counterRef = ref(db, counterPath); const tx = await runTransaction(counterRef, (currentValue) => Number(currentValue || 0) + 1,); if (!tx.committed) throw new Error("No se pudo reservar el número"); const reservedNumber = Number(tx.snapshot.val() || 0); let finalNumber = reservedNumber > maxReal ? reservedNumber : maxReal + 1; if (finalNumber !== reservedNumber) await set(counterRef, finalNumber); const newNumber = String(finalNumber); const session = (typeof getSession === "function" && getSession()) || {}; const userName = session.user || session.usuario || session.nombre || "sistema"; const userKey = session.id || session.key || ""; const now = Date.now(); const newRef = push(ref(db, hcPath)); const nombreCompleto = `${form.trabajadorApellido.trim()} ${form.trabajadorNombre.trim()}`.trim().toUpperCase(); if (isUti) { await set(newRef, { nombre: nombreCompleto, documento: dniDigits, historia_clinica_1: newNumber, alertas: [], createdBy: userName, createdByUserKey: userKey, createdAt: now, modifiedBy: userName, modifiedByUserKey: userKey, modifiedAt: now, }); } else { await set(newRef, { nombre_apellido: nombreCompleto, dni: dniDigits, historia_clinica: newNumber, alertas: [], createdBy: userName, createdByUserKey: userKey, createdAt: now, modifiedBy: userName, modifiedByUserKey: userKey, modifiedAt: now, }); } setForm((p) => ({ ...p, historiaClinica: newNumber })); lastLookupDniRef.current = ""; await lookupDniInHC(dniDigits, tipo); notify(`✅ HC ${tipo} #${newNumber} creada correctamente`); } catch (err) { console.error("Error creando HC:", err); notify("No se pudo crear la historia clínica. Revisá la consola."); } finally { setCreatingHc(null); } };
 
   const resetForm = () => { setForm(initialForm); setErrors({}); setCreatedId(null); setPdfError(null); if (pdfUrl) URL.revokeObjectURL(pdfUrl); setPdfUrl(null); setPdfFileName(null); setEditingId(null); setCurrentEstado(null); setCurrentStep(1); lastLookupDniRef.current = ""; setHcLookup({ loading: false, searched: false, dni: "", tipo: "PISO", match: null, nextNumber: null, loadingNext: false, }); setCreatingHc(null); setDocs([]); setShowValidationWarn(false); localStorage.removeItem(STORAGE_KEY); };
 
@@ -212,7 +218,7 @@ function IngresosPageInner() {
       setCreatedId(savedId);
 
       // --- NUEVO: SINCRONIZACIÓN CON PAMI ---
-      if (payload.OS === "PAMI" && payload.trabajador.dni) {
+      if (autorizado && payload.OS === "PAMI" && payload.trabajador.dni) {
         try {
           const session = (typeof getSession === "function" && getSession()) || {};
           const usuario = session.user || session.usuario || session.nombre || "sistema";
@@ -290,7 +296,7 @@ function IngresosPageInner() {
       setPdfFileName(finalFileName);
       setEditingId(null);
       setCurrentEstado(null);
-      if (activeTab === "buscar") fetchAllPacientes();
+      if (autorizado && activeTab === "buscar") fetchAllPacientes();
     } catch (err) {
       console.error(err);
       setPdfError("Error guardando o generando PDF. Revisá consola.");
@@ -314,22 +320,29 @@ function IngresosPageInner() {
           <div className={styles.header}>
             <div>
               <h1 className={styles.title}>Ingreso de Pacientes</h1>
-              <p className={styles.subtitle}>{activeTab === "nuevo" ? (editingId ? "Editando ingreso existente" : `Paso ${currentStep} de 4`) : "Buscar y gestionar ingresos"}</p>
+              <p className={styles.subtitle}>{tabVisible === "nuevo" ? (editingId ? "Editando ingreso existente" : `Paso ${currentStep} de 4`) : "Buscar y gestionar ingresos"}</p>
               {editingId && currentEstado && (<span style={{ display: "inline-block", marginTop: "0.5rem", padding: "0.25rem 0.75rem", borderRadius: "999px", fontSize: "0.85rem", fontWeight: 500, background: currentEstado === "abierto" ? "#dcfce7" : "#fee2e2", color: currentEstado === "abierto" ? "#166534" : "#991b1b", }}>{currentEstado === "abierto" ? "🟢 Abierto" : "🔴 Cerrado"}</span>)}
             </div>
             <div className={styles.headerActions}>
               <button type="button" className={styles.ghostBtn} onClick={toggleTheme}>{theme === "dark" ? "☀️" : "🌙"}</button>
-              {activeTab === "nuevo" && (<button type="button" className={styles.ghostBtn} disabled={saving} onClick={resetForm}>Limpiar</button>)}
+              {tabVisible === "nuevo" && (<button type="button" className={styles.ghostBtn} disabled={saving} onClick={resetForm}>Limpiar</button>)}
             </div>
           </div>
 
-          <div className={styles.tabsContainer}>
-            <button className={cx(styles.tab, activeTab === "nuevo" && styles.tabActive)} onClick={() => setActiveTab("nuevo")}>📝 Nuevo / Editar</button>
-            <button className={cx(styles.tab, activeTab === "buscar" && styles.tabActive)} onClick={() => { setActiveTab("buscar"); fetchAllPacientes(); }}>🔍 Buscar Pacientes</button>
-            <button className={styles.tab} onClick={() => router.push("/admin/historia-clinica")} title="Ir a Historias Clínicas">📋 Historias Clínicas</button>
-          </div>
+          {autorizado ? (
+            <div className={styles.tabsContainer}>
+              <button className={cx(styles.tab, tabVisible === "nuevo" && styles.tabActive)} onClick={() => setActiveTab("nuevo")}>📝 Nuevo / Editar</button>
+              <button className={cx(styles.tab, tabVisible === "buscar" && styles.tabActive)} onClick={() => setActiveTab("buscar")}>🔍 Buscar Pacientes</button>
+              <button className={styles.tab} onClick={() => router.push("/admin/historia-clinica")} title="Ir a Historias Clínicas">📋 Historias Clínicas</button>
+            </div>
+          ) : (
+            <div className={styles.hcBanner} role="note" style={{ marginBottom: 16 }}>
+              {MODO_CARGA_TEXTO}{" "}
+              <Link href="/login?next=/ingresos" style={{ fontWeight: 700, textDecoration: "underline" }}>Iniciar sesión</Link>
+            </div>
+          )}
 
-          {activeTab === "nuevo" ? (
+          {tabVisible === "nuevo" ? (
             <>
               {saving && (<div className={styles.toastInfo}>⏳ Guardando datos y generando PDF...</div>)}
               {showValidationWarn && Object.keys(errors).length > 0 && (
@@ -388,7 +401,7 @@ function IngresosPageInner() {
                           <label className={styles.label}>DNI <span style={{ color: "#ef4444" }}>*</span></label>
                           <div className={styles.dniRow}>
                             <input className={cx(styles.input, errors.trabajadorDni && styles.inputError)} value={form.trabajadorDni} onChange={onChange("trabajadorDni")} onBlur={onBlurTrabajadorDni} inputMode="numeric" placeholder="DNI" />
-                            <button type="button" className={styles.dniSearchBtn} onClick={forceLookupDni} disabled={hcLookup.loading}>{hcLookup.loading ? "⏳ Buscando" : "🔎 Buscar HC"}</button>
+                            {autorizado && <button type="button" className={styles.dniSearchBtn} onClick={forceLookupDni} disabled={hcLookup.loading}>{hcLookup.loading ? "⏳ Buscando" : "🔎 Buscar HC"}</button>}
                           </div>
                           {errors.trabajadorDni && (<div className={styles.errorText}>{errors.trabajadorDni}</div>)}
                         </div>
@@ -454,7 +467,9 @@ function IngresosPageInner() {
                     </Section>
                   )}
 
-                  {currentStep === 3 && (<DocumentacionSection docs={docs} setDocs={setDocs} form={form} />)}
+                  {currentStep === 3 && (autorizado
+                    ? <DocumentacionSection docs={docs} setDocs={setDocs} form={form} />
+                    : <div className={styles.hcBanner} role="note">📎 La documentación se adjunta con sesión iniciada. Podés seguir con el paso siguiente.</div>)}
 
                   {currentStep === 4 && (
                     <>

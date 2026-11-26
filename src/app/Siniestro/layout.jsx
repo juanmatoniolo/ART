@@ -1,9 +1,9 @@
 "use client";
 
-import RoleGate from "@/components/RoleGate/RoleGate";
-import { AREAS } from "@/lib/roles";
-
-// Exige sesión activa y un rol habilitado para esta área (ver lib/roles.js).
+// Pantalla PÚBLICA de carga (pedido del usuario): se abre sin login.
+// Sin sesión solo permite cargar un siniestro nuevo y descargar el PDF;
+// buscar y editar pacientes requieren sesión con rol habilitado
+// (ver useAreaAccess en la página y AREAS["/Siniestro"] en lib/roles.js).
 export default function Layout({ children }) {
-  return <RoleGate allowed={AREAS["/Siniestro"]}>{children}</RoleGate>;
+  return children;
 }

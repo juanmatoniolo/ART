@@ -1,10 +1,13 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogIn, LayoutGrid } from "lucide-react";
+import { LogIn, LayoutGrid, Mail, ArrowLeft } from "lucide-react";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useSession } from "@/context/SessionContext";
-import { AREAS, canUse, panelsFor } from "@/lib/roles";
+import { AREAS, canUse, panelsFor, isInternalEmail } from "@/lib/roles";
 import Header from "@/components/Header/Header";
+import PasswordInput from "@/components/PasswordInput/PasswordInput";
 import styles from "./login.module.css";
 
 const AUTH_ERRORS = {
@@ -50,6 +53,7 @@ function LoginForm() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [recuperando, setRecuperando] = useState(false);
     const router = useRouter();
     const params = useSearchParams();
     const { login, status, usuario } = useSession();
@@ -112,6 +116,15 @@ function LoginForm() {
     const busy = submitting && !statusError && !error;
     const shownError = error || statusError;
 
+    if (recuperando) {
+        return (
+            <RecuperarForm
+                inicial={identifier.includes("@") ? identifier.trim() : ""}
+                onVolver={() => setRecuperando(false)}
+            />
+        );
+    }
+
     return (
         <section className={styles.card} aria-labelledby="login-title">
             <h1 id="login-title" className={styles.title}>
@@ -144,9 +157,8 @@ function LoginForm() {
                     <label htmlFor="login-pass" className={styles.label}>
                         Contraseña
                     </label>
-                    <input
+                    <PasswordInput
                         id="login-pass"
-                        type="password"
                         className={styles.input}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -166,13 +178,130 @@ function LoginForm() {
                     <LogIn size={18} aria-hidden="true" />
                     {busy ? "Ingresando…" : "Ingresar"}
                 </button>
+
+                <button type="button" className={styles.linkBtn} onClick={() => setRecuperando(true)}>
+                    ¿Olvidaste tu contraseña?
+                </button>
             </form>
 
             <div className={styles.registerHint}>
-                <small className={styles.muted}>
-                    ¿No tenés usuario u olvidaste tu contraseña? Pedíselo al administrador.
-                </small>
+                <small className={styles.muted}>¿No tenés usuario? Pedíselo al administrador.</small>
             </div>
+        </section>
+    );
+}
+
+const RESET_ERRORS = {
+    "auth/invalid-email": "El correo no es válido.",
+    "auth/missing-email": "Ingresá tu correo.",
+    "auth/too-many-requests": "Demasiados intentos. Esperá unos minutos y volvé a probar.",
+    "auth/network-request-failed": "No hay conexión con el servidor. Revisá tu internet.",
+};
+
+/**
+ * Recuperar contraseña: Firebase envía un correo con un enlace para crear una
+ * contraseña nueva. Solo sirve para cuentas con correo real: las que entran con
+ * nombre de usuario tienen un correo interno que no recibe mails.
+ * Por seguridad el mensaje de éxito es el mismo exista o no la cuenta.
+ */
+function RecuperarForm({ inicial = "", onVolver }) {
+    const [email, setEmail] = useState(inicial);
+    const [error, setError] = useState("");
+    const [enviado, setEnviado] = useState(false);
+    const [enviando, setEnviando] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (enviando) return;
+        setError("");
+        const v = email.trim().toLowerCase();
+        if (!v) return setError("Ingresá el correo de tu cuenta.");
+        if (!v.includes("@") || isInternalEmail(v)) {
+            return setError(
+                "Si entrás con nombre de usuario, tu cuenta no tiene un correo para recuperar la contraseña. Pedile al administrador que te la cambie o que asocie tu email a la cuenta."
+            );
+        }
+        setEnviando(true);
+        try {
+            auth.languageCode = "es";
+            try {
+                // Al terminar, el enlace ofrece volver al login de la app
+                await sendPasswordResetEmail(auth, v, { url: `${window.location.origin}/login` });
+            } catch (err) {
+                // Dominio no autorizado en Firebase para la vuelta: se envía igual, sin botón de volver
+                if (!String(err?.code || "").includes("continue-uri")) throw err;
+                await sendPasswordResetEmail(auth, v);
+            }
+            setEnviado(true);
+        } catch (err) {
+            const code = String(err?.code || "");
+            if (code === "auth/user-not-found") setEnviado(true); // no revelar si la cuenta existe
+            else setError(RESET_ERRORS[code] || `No se pudo enviar el correo. (código: ${code || "desconocido"})`);
+        } finally {
+            setEnviando(false);
+        }
+    };
+
+    return (
+        <section className={styles.card} aria-labelledby="reset-title">
+            <h1 id="reset-title" className={styles.title}>
+                Recuperar contraseña
+            </h1>
+            <p className={styles.subtitle}>
+                Te enviamos un correo con un enlace para crear una contraseña nueva.
+            </p>
+
+            {enviado ? (
+                <div className={styles.form}>
+                    <div className={`${styles.alert} ${styles.alertSuccess}`} role="status">
+                        <span>
+                            Si <b>{email.trim()}</b> corresponde a una cuenta, en unos minutos te llega el correo.
+                            Revisá también la carpeta de spam o correo no deseado.
+                        </span>
+                    </div>
+                    <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={onVolver}>
+                        <ArrowLeft size={18} aria-hidden="true" />
+                        Volver a iniciar sesión
+                    </button>
+                </div>
+            ) : (
+                <form onSubmit={handleSubmit} className={styles.form} noValidate>
+                    <div className={styles.field}>
+                        <label htmlFor="reset-email" className={styles.label}>
+                            Correo de tu cuenta
+                        </label>
+                        <input
+                            id="reset-email"
+                            type="email"
+                            className={styles.input}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="nombre@ejemplo.com"
+                            autoComplete="email"
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            required
+                            autoFocus
+                        />
+                    </div>
+
+                    {error && (
+                        <div className={`${styles.alert} ${styles.alertDanger}`} role="alert">
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`} disabled={enviando}>
+                        <Mail size={18} aria-hidden="true" />
+                        {enviando ? "Enviando…" : "Enviar enlace"}
+                    </button>
+
+                    <button type="button" className={styles.linkBtn} onClick={onVolver}>
+                        Volver a iniciar sesión
+                    </button>
+                </form>
+            )}
         </section>
     );
 }

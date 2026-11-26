@@ -38,6 +38,15 @@ export async function requireUser(request, allowedRoles = []) {
   return { uid: decoded.uid, email: decoded.email, profile, roles };
 }
 
+/**
+ * Para rutas públicas: rechaza cuerpos más grandes que maxBytes (413).
+ * Usa Content-Length; sin ese encabezado, el handler igual valida el JSON.
+ */
+export function limitBody(request, maxBytes = 2 * 1024 * 1024) {
+  const len = Number(request.headers.get("content-length") || 0);
+  if (len > maxBytes) throw new HttpError(413, "Los datos enviados son demasiado grandes.");
+}
+
 /** Envuelve un handler y convierte errores en respuestas JSON. */
 export function handle(fn) {
   return async (request, ctx) => {

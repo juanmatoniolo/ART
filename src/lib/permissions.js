@@ -8,13 +8,16 @@ export const ANY = "*"; // cualquier usuario activo
 // nodo: { label, rw: roles que leen y escriben, r: roles que solo leen, publicCreate,
 //         indexOn: campos indexados para consultas (orderBy/equalTo) }
 export const DATA_NODES = {
-  pacientes: { label: "Pacientes", rw: ["ADMINISTRADOR", "OS"] },
+  // publicCreate: la pantalla pública /Siniestro crea pacientes sin login (no puede leer ni editar)
+  pacientes: { label: "Pacientes", rw: ["ADMINISTRADOR", "OS"], publicCreate: true },
   "historias-clinicas": { label: "Historias clínicas (piso)", rw: ["ADMINISTRADOR", "RECEPCION"] },
   "historias-clinica-uti": { label: "Historias clínicas (UTI)", rw: ["ADMINISTRADOR", "RECEPCION"] },
   counters: { label: "Numeradores de HC", rw: ["ADMINISTRADOR", "RECEPCION"] },
-  "ingresos-pacientes": { label: "Ingresos de pacientes", rw: ["ADMINISTRADOR"] },
+  // publicCreate: la pantalla pública /ingresos crea ingresos sin login
+  "ingresos-pacientes": { label: "Ingresos de pacientes", rw: ["ADMINISTRADOR"], publicCreate: true },
   UTI: { label: "UTI", rw: ["UTI"] },
-  fojaqx: { label: "Fojas quirúrgicas", rw: ["MEDICO", "ADMINISTRADOR"] },
+  // publicCreate: la pantalla pública /foja crea fojas sin login (las plantillas no: ya existen)
+  fojaqx: { label: "Fojas quirúrgicas", rw: ["MEDICO", "ADMINISTRADOR"], publicCreate: true },
   plantillas_qx: { label: "Plantillas de fojas", rw: ["MEDICO"] },
   cirugias: { label: "Cirugías programadas", rw: ["ADMINISTRADOR"], r: ["MEDICO"] },
   "solicitudes-cirugia": {

@@ -1,9 +1,9 @@
 "use client";
 
-import RoleGate from "@/components/RoleGate/RoleGate";
-import { AREAS } from "@/lib/roles";
-
-// Exige sesión activa y un rol habilitado para esta área (ver lib/roles.js).
+// Pantalla PÚBLICA de carga (pedido del usuario): /foja se abre sin login.
+// Sin sesión solo permite cargar la foja y descargar el PDF; las plantillas
+// requieren sesión (useAreaAccess en la página). /foja/medicos sigue protegida
+// con su propio layout (RoleGate).
 export default function Layout({ children }) {
-  return <RoleGate allowed={AREAS["/foja"]}>{children}</RoleGate>;
+  return children;
 }
