@@ -8,7 +8,6 @@ import NomencladorBioq from '@/components/bioquimica/page';
 import NomencladorAoter from '@/components/aoter/page';
 import NomencladorUnimedical from '@/components/unimedical/page'; // 👈 NUEVO IMPORT
 import styles from './page.module.css';
-import Link from 'next/link';
 
 export default function NomencladorGlobal() {
   const [activeTab, setActiveTab] = useState('nacional');
@@ -38,12 +37,8 @@ export default function NomencladorGlobal() {
         {/* Header (sobrio) */}
         <div className={styles.cardHeader}>
           <h1 className={styles.title}>Nomencladores</h1>
-
-          <span>
-            <Link href="nomencladores/editar" className={styles.subtitle}>
-              Edición
-            </Link>
-          </span>
+          {/* Panel OS: solo consulta. La edición queda en el panel ROOT. */}
+          <span className={styles.subtitle}>Solo consulta</span>
         </div>
 
         {/* Tabs */}

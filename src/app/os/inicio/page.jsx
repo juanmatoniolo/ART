@@ -1,6 +1,6 @@
 // app/os/inicio/page.jsx
 import Link from 'next/link';
-import { Receipt, Handshake, ChevronRight } from 'lucide-react';
+import { Receipt, Handshake, BookOpen, FolderTree, ChevronRight } from 'lucide-react';
 import styles from '../os.module.css';
 
 const ACCESOS = [
@@ -15,6 +15,18 @@ const ACCESOS = [
     title: 'Convenios',
     desc: 'Consultar y cargar convenios de obras sociales.',
     icon: Handshake,
+  },
+  {
+    href: '/os/nomencladores',
+    title: 'Nomencladores',
+    desc: 'Consultar códigos de los nomencladores (solo lectura).',
+    icon: BookOpen,
+  },
+  {
+    href: '/os/cx',
+    title: 'CX',
+    desc: 'Completar y descargar el formulario de cirugía (frente y dorso).',
+    icon: FolderTree,
   },
 ];
 

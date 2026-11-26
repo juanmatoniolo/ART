@@ -1,12 +1,14 @@
 'use client';
 
 import AppShell from '@/components/AppShell/AppShell';
-import { Receipt, Handshake } from 'lucide-react';
+import { Receipt, Handshake, BookOpen, FolderTree } from 'lucide-react';
 import styles from './os.module.css';
 
 const NAV_ITEMS = [
   { href: '/med-descartables', label: 'Facturación', icon: Receipt },
   { href: '/conveniosos', label: 'Convenios', icon: Handshake },
+  { href: '/nomencladores', label: 'Nomencladores', icon: BookOpen },
+  { href: '/cx', label: 'CX', icon: FolderTree },
 ];
 
 

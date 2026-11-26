@@ -401,6 +401,6 @@ export const GET = handle(async (request, ctx) => {
 	return getHandler(request, ctx);
 });
 export const POST = handle(async (request, ctx) => {
-	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	await requireUser(request, ["ADM", "ADMINISTRADOR", "OS"]);
 	return postHandler(request, ctx);
 });

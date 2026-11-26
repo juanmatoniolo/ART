@@ -19,6 +19,9 @@ export default function FormularioCX({
   saving, edadCalculada, hcLookup, onDNIBlur, onForceLookupDni,
   onAplicarHC, onCrearHC, creatingHc, downloadPdf,
   resetForm,
+  // sinDatos: formulario en blanco solo para generar el PDF (panel OS).
+  // Oculta todo lo que lee datos de pacientes: selector de pacientes y búsqueda de HC.
+  sinDatos = false,
 }) {
   function getCanonFieldType(canonName) {
     const internals = canonicalObj?.canonicalToInternal?.[canonName] || [];
@@ -106,16 +109,18 @@ export default function FormularioCX({
 
   return (
     <>
-      <div className={styles.modeSelector}>
-        <button className={`${styles.modeBtn} ${mode === "manual" ? styles.active : ""}`} onClick={() => setMode("manual")}>
-          Cargar manualmente
-        </button>
-        <button className={`${styles.modeBtn} ${mode === "paciente" ? styles.active : ""}`} onClick={() => setMode("paciente")}>
-          Desde paciente existente
-        </button>
-      </div>
+      {!sinDatos && (
+        <div className={styles.modeSelector}>
+          <button className={`${styles.modeBtn} ${mode === "manual" ? styles.active : ""}`} onClick={() => setMode("manual")}>
+            Cargar manualmente
+          </button>
+          <button className={`${styles.modeBtn} ${mode === "paciente" ? styles.active : ""}`} onClick={() => setMode("paciente")}>
+            Desde paciente existente
+          </button>
+        </div>
+      )}
 
-      {mode === "paciente" && (
+      {!sinDatos && mode === "paciente" && (
         <div className={styles.pacienteSection}>
           <h3>Seleccionar paciente</h3>
           <PacienteSelector
@@ -235,10 +240,12 @@ export default function FormularioCX({
             <div className={styles.field}>
               <label className={styles.fieldLabel}>DNI</label>
               <div style={{ display: "flex", gap: 6 }}>
-                <input className={styles.input} inputMode="numeric" autoComplete="off" value={form?.[canonDNI] || ""} onChange={handleDNIChange} onBlur={(e) => onDNIBlur && onDNIBlur(e.target.value)} placeholder="Ej: 20.123.456" style={{ flex: 1 }} />
-                <button type="button" className={styles.iconBtn} title="Buscar HC" onClick={onForceLookupDni} disabled={hcLookup?.loading} style={{ padding: "0 12px" }}>
-                  {hcLookup?.loading ? "⏳" : "🔎 HC"}
-                </button>
+                <input className={styles.input} inputMode="numeric" autoComplete="off" value={form?.[canonDNI] || ""} onChange={handleDNIChange} onBlur={(e) => !sinDatos && onDNIBlur && onDNIBlur(e.target.value)} placeholder="Ej: 20.123.456" style={{ flex: 1 }} />
+                {!sinDatos && (
+                  <button type="button" className={styles.iconBtn} title="Buscar HC" onClick={onForceLookupDni} disabled={hcLookup?.loading} style={{ padding: "0 12px" }}>
+                    {hcLookup?.loading ? "⏳" : "🔎 HC"}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -317,7 +324,7 @@ export default function FormularioCX({
       </section>
 
       {/* 3. FECHA DE CIRUGÍA Y FAMILIAR (FUSIONADOS EN UNA FILA PARA AHORRAR ESPACIO) */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "1rem", alignItems: "start" }}>
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>📅</span>
