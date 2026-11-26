@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -16,7 +17,7 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: "v3", auth });
 
-export async function GET() {
+async function getHandler() {
 	try {
 		const folderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
 		const res = await drive.files.get({
@@ -32,3 +33,9 @@ export async function GET() {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});

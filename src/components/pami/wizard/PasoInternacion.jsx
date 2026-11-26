@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState } from "react";
 import { getSession } from "@/utils/session";
 import { onlyDigits, formatIdField, getPdfPages } from "@/app/ingresos/helpers";
@@ -45,7 +46,7 @@ export default function PasoInternacion({ estado, actualizar, avanzar, volver })
     const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
     const guardar = async () => {
-        if (!form.diagnostico) return alert("El diagnóstico es obligatorio.");
+        if (!form.diagnostico) return notify("El diagnóstico es obligatorio.");
 
         setSaving(true);
         try {
@@ -86,7 +87,7 @@ export default function PasoInternacion({ estado, actualizar, avanzar, volver })
             actualizar({ internacion: res });
         } catch (err) {
             console.error(err);
-            alert("Error al guardar la internación: " + err.message);
+            notify("Error al guardar la internación: " + err.message);
         } finally {
             setSaving(false);
         }
@@ -110,7 +111,7 @@ export default function PasoInternacion({ estado, actualizar, avanzar, volver })
             setPdfUrl(URL.createObjectURL(blob));
         } catch (err) {
             console.error(err);
-            alert("No se pudo generar el PDF: " + err.message);
+            notify("No se pudo generar el PDF: " + err.message);
         } finally {
             setGenerandoPdf(false);
         }

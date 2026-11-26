@@ -1,4 +1,5 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
@@ -795,7 +796,7 @@ export default function FojaAdminPage() {
               </div>
             </header>
 
-            <form onSubmit={handleGuardar} className={styles.form} autoComplete="on" noValidate>
+            <form onSubmit={singleFlight("app/admin/cx/foja/medicos/page:handleGuardar", handleGuardar)} className={styles.form} autoComplete="on" noValidate>
               {/* Secciones del formulario (paciente, equipo, fecha, descripción) igual que antes */}
               <section className={styles.section}>
                 <div className={styles.sectionHeader}><span className={styles.sectionNumber}>01</span><h2 className={styles.sectionTitle}>Datos del Paciente</h2></div>
@@ -853,7 +854,7 @@ export default function FojaAdminPage() {
               <hr className={styles.divider} />
               <section className={`${styles.section} ${styles.templateSaveSection}`}>
                 <div className={styles.sectionHeader}><span className={styles.sectionNumber}>💾</span><h2 className={styles.sectionTitle}>Guardar como plantilla</h2></div>
-                <button type="button" className={styles.btnPrimary} onClick={saveTemplate}>Guardar plantilla actual</button>
+                <button type="button" className={styles.btnPrimary} onClick={singleFlight("app/admin/cx/foja/medicos/page:saveTemplate", saveTemplate)}>Guardar plantilla actual</button>
               </section>
 
               {errorMsg && <div className={styles.alertError}><span className={styles.alertIcon}>✕</span> {errorMsg}</div>}

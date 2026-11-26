@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -794,7 +795,7 @@ export default function FacturadoDetallePage() {
   });
 
   const onDownloadCsv = () => {
-    alert('Función CSV no implementada aún.');
+    notify('Función CSV no implementada aún.');
   };
 
   // ── Generar Script ARCA (MEJORADO) ──────────────────────────────────────
@@ -813,7 +814,7 @@ const generarARCA = useCallback(() => {
     practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
     medicamentos.length === 0 && descartables.length === 0
   ) {
-    alert('No hay datos para generar el script.');
+    notify('No hay datos para generar el script.');
     return;
   }
 
@@ -972,7 +973,7 @@ const generarARCA = useCallback(() => {
   const rowsData = [...rowsHonorarios, ...rowsGastos];
 
   if (rowsData.length === 0) {
-    alert('No se generaron filas.');
+    notify('No se generaron filas.');
     return;
   }
 
@@ -1043,10 +1044,10 @@ const generarARCA = useCallback(() => {
   }
 
   const table = getTable();
-  if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+  if (!table) { notify('No se encontró la tabla de detalles.'); return; }
 
   const addBtn = getAddButton();
-  if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
+  if (!addBtn) { notify('No se encontró el botón "Agregar línea descripción".'); return; }
 
   let dataRows = getDataRows(table);
   const targetCount = rowsData.length;
@@ -1069,7 +1070,7 @@ const generarARCA = useCallback(() => {
   }
 
   if (dataRows.length !== targetCount) {
-    alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+    notify('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
     return;
   }
 
@@ -1078,7 +1079,7 @@ const generarARCA = useCallback(() => {
   }
 
   console.log('✅ Se procesaron ' + targetCount + ' filas.');
-  alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+  notify('✅ Se procesaron ' + targetCount + ' filas correctamente.');
 })();
 `;
 
@@ -1092,7 +1093,7 @@ const generarARCA = useCallback(() => {
         setArcaCopied(true);
         setTimeout(() => setArcaCopied(false), 3000);
       })
-      .catch(() => alert('No se pudo copiar el texto.'));
+      .catch(() => notify('No se pudo copiar el texto.'));
   }, [arcaScript]);
 
   if (loading) {

@@ -1,10 +1,11 @@
 "use client";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 
 const messageTitles = {
   1: "🦵 Kinesiología aprobada",

@@ -2,28 +2,28 @@
    VARIABLES Y ESTILOS BASE (mobile‑first)
    ══════════════════════════════════════════════════════════════ */
 .page {
-  --verde: #44794d;
+  --verde: var(--cu-brand-600);
   --verde-osc: #2c5d36;
   --gold: #d97706;
-  --rojo: #ef4444;
-  --tinta: #e5e7eb;
-  --gris: #9ca3af;
+  --rojo: var(--cu-danger);
+  --tinta: var(--cu-slate-200);
+  --gris: var(--cu-slate-400);
   --linea: rgba(255, 255, 255, 0.07);
-  --bg: #0b1220;
-  --card-bg: #111827;
-  --input-bg: #1a2335;
+  --bg: var(--cu-slate-950);
+  --card-bg: var(--cu-slate-850);
+  --input-bg: var(--cu-slate-800);
   --input-border: #253348;
   --radio: 16px;
   --sombra: 0 1px 3px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .2);
   --highlight: rgba(37, 99, 235, 0.15);
   --highlight-border: rgba(96, 165, 250, 0.35);
 
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
   padding: 12px;
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--cu-slate-200);
+  font-family: var(--font-sans), var(--font-sans-fallback);
   background: var(--bg);
 }
 
@@ -59,7 +59,7 @@
 
 .topTitle {
   margin: 0;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   font-size: 24px;
   line-height: 1.1;
   font-weight: 900;
@@ -68,7 +68,7 @@
 
 .topSub {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -92,7 +92,7 @@
   border-radius: 10px;
   padding: 10px 8px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   font-weight: 800;
   text-align: center;
@@ -102,7 +102,7 @@
 
 .modeTabOn {
   color: #fff;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, var(--cu-info-strong), #1d4ed8);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -173,7 +173,7 @@
 
 .blockLabel {
   margin: 0 0 10px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
@@ -198,7 +198,7 @@
 }
 
 .blockHint {
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-size: 11px;
   font-weight: 800;
 }
@@ -213,7 +213,7 @@
   border: 1px solid rgba(71, 85, 105, 0.85);
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.86);
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   font-size: 14px;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -225,7 +225,7 @@
 
 .inpReadonly {
   background: rgba(15, 23, 42, 0.5);
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   cursor: default;
 }
 
@@ -240,7 +240,7 @@
 
 .inp::placeholder,
 .area::placeholder {
-  color: #64748b;
+  color: var(--cu-slate-500);
 }
 
 .inp:focus,
@@ -268,7 +268,7 @@
   border-radius: 999px;
   border: 1px solid rgba(51, 65, 85, 0.95);
   background: rgba(30, 41, 59, 0.9);
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
@@ -284,8 +284,8 @@
 
 .artChipOn {
   color: #fff;
-  border-color: var(--c, #3b82f6);
-  background: color-mix(in srgb, var(--c, #3b82f6) 22%, #111827);
+  border-color: var(--c, var(--cu-info));
+  background: color-mix(in srgb, var(--c, var(--cu-info)) 22%, var(--cu-slate-850));
 }
 
 .artDot {
@@ -347,7 +347,7 @@
 .fieldLabel {
   font-size: 12px;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -362,7 +362,7 @@
   border-radius: 10px;
   border: 1px solid rgba(71, 85, 105, 0.6);
   background: rgba(15, 23, 42, 0.7);
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   font-size: 14px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -380,7 +380,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 18px;
   cursor: pointer;
   padding: 4px 6px;
@@ -390,7 +390,7 @@
 
 .clearBtn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  color: var(--cu-slate-50);
 }
 
 .dropdown {
@@ -401,7 +401,7 @@
   z-index: 50;
   max-height: 240px;
   overflow-y: auto;
-  background: #0f172a;
+  background: var(--cu-slate-900);
   border: 1px solid rgba(96, 165, 250, 0.3);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -442,22 +442,22 @@
 
 .itemName {
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   font-size: 14px;
 }
 
 .itemMeta {
   flex-shrink: 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 11px;
-  font-family: monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   text-align: right;
   max-width: 50%;
 }
 
 .emptyState {
   padding: 14px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   text-align: center;
 }
@@ -522,7 +522,7 @@
 
 .categoriaLabel {
   margin: 0 0 5px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -539,7 +539,7 @@
 .tinyBtn {
   border: 1px solid rgba(71, 85, 105, 0.9);
   background: rgba(30, 41, 59, 0.86);
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   cursor: pointer;
   font-weight: 850;
   transition: transform 0.14s, background 0.14s, border-color 0.14s, color 0.14s;
@@ -647,7 +647,7 @@
   width: 16px;
   height: 16px;
   margin-top: 2px;
-  accent-color: #2563eb;
+  accent-color: var(--cu-info-strong);
   cursor: pointer;
 }
 
@@ -660,7 +660,7 @@
 }
 
 .recipientNombre {
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
@@ -669,9 +669,9 @@
 }
 
 .recipientEmail {
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 11px;
-  font-family: monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -703,7 +703,7 @@
   min-height: 52px;
   padding: 0 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #16a34a, #15803d);
+  background: linear-gradient(135deg, var(--cu-success-strong), #15803d);
   color: #fff;
   font-size: 15px;
   font-weight: 950;
@@ -726,7 +726,7 @@
 .sendBtnOff {
   pointer-events: none;
   background: rgba(30, 41, 59, 0.9);
-  color: #64748b;
+  color: var(--cu-slate-500);
   box-shadow: none;
 }
 
@@ -749,7 +749,7 @@
 
 .readyText {
   margin: 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -853,14 +853,14 @@
 }
 
 .resumenLabel {
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-weight: 700;
   flex-shrink: 0;
   min-width: 50px;
 }
 
 .resumenValue {
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   word-break: break-word;
 }
 
@@ -883,7 +883,7 @@
   border-radius: 8px;
   border: 1px solid rgba(71, 85, 105, 0.6);
   background: rgba(15, 23, 42, 0.7);
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   font-size: 13px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -895,7 +895,7 @@
 }
 
 .atajosFilter .searchInput::placeholder {
-  color: #64748b;
+  color: var(--cu-slate-500);
 }
 
 /* Lista con scroll interno (se muestra solo cuando el acordeón está abierto) */
@@ -914,7 +914,7 @@
 }
 
 .atajosAccordion::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--cu-slate-600);
   border-radius: 999px;
 }
 
@@ -937,7 +937,7 @@
 }
 
 .atajoCardActive {
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   background: rgba(37, 99, 235, 0.15);
   box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
 }
@@ -968,7 +968,7 @@
 .atajoNombre {
   font-size: 14px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -999,7 +999,7 @@
 .aplicarBtn:hover {
   background: rgba(37, 99, 235, 0.35);
   border-color: #60a5fa;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
 }
 
 .aplicarBtnActive {
@@ -1030,13 +1030,13 @@
 
 .atajoEdit:hover {
   background: rgba(22, 163, 74, 0.2);
-  border-color: #16a34a;
+  border-color: var(--cu-success-strong);
   color: #4ade80;
 }
 
 .atajoDelete:hover {
   background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
+  border-color: var(--cu-danger);
   color: #fca5a5;
 }
 
@@ -1051,12 +1051,12 @@
 .atajoPreview {
   margin: 2px 0;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   line-height: 1.4;
 }
 
 .atajoPreview strong {
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
 }
 
 .crearAtajoBtn {
@@ -1077,7 +1077,7 @@
 .crearAtajoBtn:hover {
   background: rgba(22, 163, 74, 0.2);
   border-style: solid;
-  border-color: #16a34a;
+  border-color: var(--cu-success-strong);
 }
 
 .desactivarAtajoBtn {
@@ -1096,12 +1096,12 @@
 
 .desactivarAtajoBtn:hover {
   background: rgba(239, 68, 68, 0.15);
-  border-color: #ef4444;
+  border-color: var(--cu-danger);
 }
 
 .emptyMsg {
   padding: 12px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   text-align: center;
 }
@@ -1122,11 +1122,11 @@
 }
 
 .formAtajo {
-  background: #1e293b;
+  background: var(--cu-slate-800);
   border-radius: 16px;
   padding: 18px;
-  width: min(94vw, 600px);
-  max-height: 90vh;
+  width: min(calc(94vw / var(--app-zoom, 1)), 600px);
+  max-height: calc(90vh / var(--app-zoom, 1));
   overflow-y: auto;
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
@@ -1135,7 +1135,7 @@
 .formAtajoTitle {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
   margin-bottom: 14px;
 }
 
@@ -1147,22 +1147,22 @@
   display: block;
   font-size: 13px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   margin-bottom: 5px;
 }
 
 .formAtajoHint {
   font-size: 11px;
-  color: #64748b;
+  color: var(--cu-slate-500);
   margin-top: 4px;
   font-style: italic;
 }
 
 .formAtajo .inp,
 .formAtajo .area {
-  background: #0f172a;
+  background: var(--cu-slate-900);
   border-color: rgba(71, 85, 105, 0.8);
-  color: #f8fafc;
+  color: var(--cu-slate-50);
 }
 
 .formAtajo .inp:focus,
@@ -1199,18 +1199,18 @@
 
 .formBtnSave:hover:not(:disabled) {
   background: rgba(22, 163, 74, 0.3);
-  border-color: #16a34a;
+  border-color: var(--cu-success-strong);
 }
 
 .formBtnCancel {
   background: rgba(100, 116, 139, 0.15);
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   border-color: rgba(100, 116, 139, 0.3);
 }
 
 .formBtnCancel:hover:not(:disabled) {
   background: rgba(100, 116, 139, 0.25);
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
 }
 
 .formBtnDelete {
@@ -1221,7 +1221,7 @@
 
 .formBtnDelete:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.25);
-  border-color: #ef4444;
+  border-color: var(--cu-danger);
 }
 
 .formBtnSave:disabled,
@@ -1265,7 +1265,7 @@
 .formAtajo::-webkit-scrollbar-thumb,
 .recipientsList::-webkit-scrollbar-thumb,
 .atajosAccordion::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--cu-slate-600);
   border-radius: 999px;
 }
 
@@ -1382,7 +1382,7 @@
   border-radius: 12px;
   max-width: 600px;
   width: 100%;
-  max-height: 90vh;
+  max-height: calc(90vh / var(--app-zoom, 1));
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
@@ -1391,7 +1391,7 @@
   display: flex;
   gap: 4px;
   margin-bottom: 12px;
-  background: #f3f4f6;
+  background: var(--cu-slate-100);
   border-radius: 8px;
   padding: 4px;
 }
@@ -1404,14 +1404,14 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--cu-slate-500);
   background: transparent;
   transition: all 0.2s;
 }
 
 .contactoTabActive {
   background: white;
-  color: #1f2937;
+  color: var(--cu-slate-800);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -1427,7 +1427,7 @@
 
 .contactoAddBtn {
   padding: 8px 16px;
-  background: #3b82f6;
+  background: var(--cu-info);
   color: white;
   border: none;
   border-radius: 6px;
@@ -1436,7 +1436,7 @@
 }
 
 .contactoAddBtn:hover {
-  background: #2563eb;
+  background: var(--cu-info-strong);
 }
 
 .contactoList {
@@ -1453,7 +1453,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: #f9fafb;
+  background: var(--cu-slate-50);
   border-radius: 6px;
   font-size: 13px;
 }
@@ -1461,19 +1461,19 @@
 .contactoItem button {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--cu-danger);
   cursor: pointer;
   font-size: 18px;
   padding: 0 4px;
 }
 
 .contactoItem button:hover {
-  color: #dc2626;
+  color: var(--cu-danger-strong);
 }
 
 .modalBtnSave {
   padding: 8px 20px;
-  background: #3b82f6;
+  background: var(--cu-info);
   color: white;
   border: none;
   border-radius: 6px;
@@ -1482,26 +1482,26 @@
 }
 
 .modalBtnSave:hover {
-  background: #2563eb;
+  background: var(--cu-info-strong);
 }
 
 .modalBtnCancel {
   padding: 8px 20px;
-  background: #f3f4f6;
+  background: var(--cu-slate-100);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .modalBtnCancel:hover {
-  background: #e5e7eb;
+  background: var(--cu-slate-200);
 }
 
 .modalBtnDelete {
   padding: 8px 20px;
-  background: #ef4444;
+  background: var(--cu-danger);
   color: white;
   border: none;
   border-radius: 6px;
@@ -1510,7 +1510,7 @@
 }
 
 .modalBtnDelete:hover {
-  background: #dc2626;
+  background: var(--cu-danger-strong);
 }
 
 
@@ -1591,7 +1591,7 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 10px;
-  background: #0B1220;
+  background: var(--cu-slate-950);
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
   border: 2px solid transparent;
@@ -1605,12 +1605,12 @@
 
 .artCardSelected {
   background: #1e3a6b;
-  box-shadow: 0 0 0 2px #3b82f6;
+  box-shadow: 0 0 0 2px var(--cu-info);
 }
 
 /* Borde izquierdo del grupo (se aplica dinámicamente desde JS) */
 .artCardGroup {
-  border-left: 6px solid var(--grupo-color, #6b7280);
+  border-left: 6px solid var(--grupo-color, var(--cu-slate-500));
 }
 
 /* === CONTENEDOR DEL LOGO === */
@@ -1671,7 +1671,7 @@
   text-transform: uppercase;
   letter-spacing: 0.8px;
   white-space: nowrap;
-  background-color: var(--grupo-color, #6b7280);
+  background-color: var(--grupo-color, var(--cu-slate-500));
   margin-left: auto;
   /* empuja la etiqueta a la derecha */
 }
@@ -1693,7 +1693,7 @@
   border-radius: 999px;
   border: 1.5px solid rgba(71, 85, 105, 0.6);
   background: rgba(30, 41, 59, 0.6);
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1708,8 +1708,8 @@
 
 .atajoChipActive {
   background: rgba(37, 99, 235, 0.25);
-  border-color: #3b82f6;
-  color: #f8fafc;
+  border-color: var(--cu-info);
+  color: var(--cu-slate-50);
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
 }
 
@@ -1728,7 +1728,7 @@
 .atajoChipDelete {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -1757,7 +1757,7 @@
   gap: 8px;
   padding: 10px 8px;
   border-radius: 10px;
-  background: #0B1220;
+  background: var(--cu-slate-950);
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
   border: 2px solid transparent;

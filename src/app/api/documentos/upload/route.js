@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { Readable } from "stream";
@@ -102,7 +103,7 @@ function detectFileType(file) {
 	return { ext: "bin", mimeType: "application/octet-stream", isPdf: false };
 }
 
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const formData = await req.formData();
 		const file = formData.get("file");
@@ -176,3 +177,9 @@ export async function POST(req) {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return postHandler(request, ctx);
+});

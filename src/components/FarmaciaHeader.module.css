@@ -13,7 +13,7 @@
   font-size: 1.5rem;
   font-weight: bold;
   text-decoration: none;
-  color: #1e293b;
+  color: var(--cu-slate-800);
 }
 .headerRight {
   display: flex;
@@ -27,10 +27,10 @@
 }
 .userName {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cu-slate-800);
 }
 .userLogin {
-  color: #64748b;
+  color: var(--cu-slate-500);
 }
 .userRole {
   background: #e3f2fd;
@@ -41,7 +41,7 @@
   font-weight: 600;
 }
 .logoutBtn {
-  background: #f1f5f9;
+  background: var(--cu-slate-100);
   border: none;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
@@ -49,10 +49,10 @@
   transition: all 0.2s;
 }
 .logoutBtn:hover {
-  background: #e2e8f0;
+  background: var(--cu-slate-200);
 }
 .loginLink {
-  color: #2563eb;
+  color: var(--cu-info-strong);
   text-decoration: none;
   font-weight: 600;
 }

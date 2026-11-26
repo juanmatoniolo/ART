@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -15,9 +16,12 @@ const PAGES_BY_TYPE = {
 };
 
 function getTemplatePath(templateName = DEFAULT_TEMPLATE) {
-	const file = templateName.toLowerCase().endsWith(".pdf")
-		? templateName
-		: `${templateName}.pdf`;
+	// Solo nombres de archivo simples: evita leer PDFs fuera de src/templates con "../"
+	const base = path.basename(String(templateName || DEFAULT_TEMPLATE));
+	const file = base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
+	if (!/^[A-Za-z0-9._-]+\.pdf$/.test(file)) {
+		return path.join(process.cwd(), "src", "templates", DEFAULT_TEMPLATE);
+	}
 	return path.join(process.cwd(), "src", "templates", file);
 }
 
@@ -270,7 +274,7 @@ function fillFormFields(form, fields) {
 /* ============================================================
    GET: debug del template
    ============================================================ */
-export async function GET(req) {
+async function getHandler(req) {
 	try {
 		const url = new URL(req.url);
 		const debug = url.searchParams.get("debug") === "1";
@@ -282,7 +286,7 @@ export async function GET(req) {
 			return NextResponse.json({
 				ok: true,
 				runtime: "nodejs",
-				template: pdfFile,
+				template: path.basename(pdfFile),
 			});
 		}
 
@@ -294,7 +298,7 @@ export async function GET(req) {
 		return NextResponse.json({
 			ok: true,
 			runtime: "nodejs",
-			template: pdfFile,
+			template: path.basename(pdfFile),
 			pages: pdfDoc.getPageCount(),
 			fieldsCount: fieldNames.length,
 			fieldNames,
@@ -314,7 +318,7 @@ export async function GET(req) {
 /* ============================================================
    POST: genera el PDF
    ============================================================ */
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const {
 			payload,
@@ -401,3 +405,13 @@ export async function POST(req) {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	return postHandler(request, ctx);
+});

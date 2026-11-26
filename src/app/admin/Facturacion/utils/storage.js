@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notify";
 // utils/storage.js - Funciones para manejar localStorage con soporte SSR y manejo de errores
 
 /**
@@ -124,7 +125,7 @@ export function exportarDatos() {
     return true;
   } catch (error) {
     console.error('Error exportando datos:', error);
-    alert('No se pudo exportar el archivo. Intente nuevamente.');
+    notify('No se pudo exportar el archivo. Intente nuevamente.');
     return false;
   }
 }
@@ -147,11 +148,11 @@ export function importarDatos(file, callback) {
       callback(datos);
     } catch (error) {
       console.error('Error importando archivo:', error);
-      alert('Error: El archivo seleccionado no es válido o está corrupto.');
+      notify('Error: El archivo seleccionado no es válido o está corrupto.');
     }
   };
   reader.onerror = () => {
-    alert('Error al leer el archivo.');
+    notify('Error al leer el archivo.');
   };
   reader.readAsText(file);
 }

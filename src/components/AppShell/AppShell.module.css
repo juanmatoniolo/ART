@@ -1,0 +1,470 @@
+/* Layout compartido de los paneles internos (admin, administrador). Mobile-first. */
+.layout {
+  min-height: calc(100vh / var(--app-zoom, 1));
+  min-height: calc(100dvh / var(--app-zoom, 1));
+  display: flex;
+  flex-direction: column;
+  background: var(--cu-slate-950);
+  color: var(--cu-slate-200);
+}
+
+/* ================= HEADER ================= */
+.header {
+  background: var(--cu-slate-850);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 0.75rem;
+  padding-top: env(safe-area-inset-top);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: #f0f9ff;
+  white-space: nowrap;
+}
+
+.desktopNav {
+  display: none;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.iconButton,
+.mobileMenuButton {
+  background: transparent;
+  border: none;
+  color: var(--cu-slate-300);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.iconButton:hover,
+.mobileMenuButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.logoutBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+}
+
+/* ================= MENÚ MÓVIL ================= */
+.mobileMenu {
+  position: sticky;
+  top: 60px;
+  z-index: 49;
+  max-height: calc(calc(100dvh / var(--app-zoom, 1)) - 60px);
+  overflow-y: auto;
+  background: var(--cu-slate-850);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.mobileNavLink {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 48px;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  color: var(--cu-slate-200);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mobileNavLink:hover {
+  background: rgba(111, 161, 123, 0.15);
+}
+
+.mobileNavLink.active {
+  background: linear-gradient(90deg, var(--cu-brand-600), var(--cu-brand-400));
+  color: #fff;
+}
+
+.mobileDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.4rem 0;
+}
+
+/* En celulares anchos / tablets chicas el menú usa 2 columnas */
+@media (min-width: 480px) {
+  .mobileMenu {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mobileDivider {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ================= CONTENIDO ================= */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--cu-slate-900);
+  min-width: 0;
+}
+
+.content {
+  flex: 1;
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--cu-slate-850);
+  color: var(--cu-slate-400);
+  text-align: center;
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  font-size: 0.75rem;
+}
+
+.loading {
+  min-height: calc(100vh / var(--app-zoom, 1));
+  min-height: calc(100dvh / var(--app-zoom, 1));
+  display: grid;
+  place-items: center;
+  color: var(--cu-slate-400);
+  background: var(--cu-slate-950);
+}
+
+.denied {
+  min-height: calc(100dvh / var(--app-zoom, 1));
+  display: grid;
+  place-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--cu-slate-950);
+  color: var(--cu-slate-200);
+}
+
+.deniedBtn {
+  min-height: 44px;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--cu-brand-600);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .content {
+    padding: 1.25rem;
+  }
+}
+
+/* ================= DESKTOP (el menú completo entra desde ~1200px) ================= */
+@media (min-width: 1200px) {
+  .header {
+    height: 70px;
+    padding: 0 1.5rem;
+  }
+
+  .desktopNav {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    justify-content: center;
+    margin: 0 1rem;
+    min-width: 0;
+  }
+
+  .navLink {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 30px;
+    color: var(--cu-slate-300);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.92rem;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+
+  .navLink:hover {
+    background: rgba(111, 161, 123, 0.15);
+    color: #fff;
+  }
+
+  .navLink.active {
+    background: linear-gradient(90deg, var(--cu-brand-600), var(--cu-brand-400));
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .mobileMenuButton,
+  .mobileMenu {
+    display: none;
+  }
+
+  .content {
+    padding: 1.5rem 2rem;
+  }
+}
+
+/* ================= USUARIO ================= */
+.userChip {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 220px;
+  padding: 0.3rem 0.6rem;
+  margin-right: 0.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  color: var(--cu-slate-200);
+}
+
+.userName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userRole {
+  flex-shrink: 0;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(111, 161, 123, 0.2);
+  color: var(--cu-brand-400);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.mobileUser {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.25rem;
+  color: var(--cu-slate-200);
+  font-size: 0.95rem;
+}
+
+@media (min-width: 640px) {
+  .userChip {
+    display: inline-flex;
+  }
+}
+
+/* Con el menú de escritorio completo, el chip solo entra en pantallas anchas */
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .userChip {
+    display: none;
+  }
+}
+
+/* ================= CAMBIO DE PANEL (usuarios con varios roles) ================= */
+.panelSwitch {
+  position: relative;
+}
+
+.panelSwitch > summary {
+  list-style: none;
+}
+
+.panelSwitch > summary::-webkit-details-marker {
+  display: none;
+}
+
+.panelMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  min-width: 220px;
+  padding: 0.4rem;
+  border-radius: var(--cu-radius-md);
+  background: var(--cu-slate-850);
+  border: 1px solid var(--cu-slate-700);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.panelLink {
+  display: block;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  color: var(--cu-slate-200);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.panelLink:hover {
+  background: rgba(111, 161, 123, 0.15);
+  color: #fff;
+}
+
+.mobileSection {
+  grid-column: 1 / -1;
+  padding: 0.2rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cu-slate-500);
+}
+
+/* ================= MENÚS AGRUPADOS ================= */
+.navGroup {
+  position: relative;
+}
+
+.navGroup > .navLink {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.navGroup > .navLink svg {
+  transition: transform 0.2s;
+}
+
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+.navMenu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 60;
+  min-width: 220px;
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.15rem;
+  border-radius: var(--cu-radius-md);
+  background: var(--cu-slate-850);
+  border: 1px solid var(--cu-slate-700);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+  animation: menuIn 0.15s ease-out;
+}
+
+.navMenuLink {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: var(--cu-slate-200);
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.navMenuLink:hover {
+  background: rgba(111, 161, 123, 0.15);
+  color: #fff;
+}
+
+.navMenuActive {
+  background: rgba(111, 161, 123, 0.22);
+  color: #fff;
+  font-weight: 600;
+}
+
+.navMenuActive svg {
+  color: var(--cu-brand-400);
+}
+
+.mobileGroup {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+@media (min-width: 480px) {
+  .mobileGroup {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* El logo funciona como botón de inicio */
+.headerLeft {
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: 14px;
+  transition: background 0.2s;
+}
+
+.headerLeft:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.homeActive {
+  background: rgba(111, 161, 123, 0.14);
+}

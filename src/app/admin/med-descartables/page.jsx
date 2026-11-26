@@ -1,4 +1,6 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
 
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
@@ -55,9 +57,8 @@ export default function PreciosPage() {
     });
 
     // ─── Leer TODOS los datos desde Firebase ─────────────────────
-    useEffect(() => {
-        const refItems = ref(db, "medydescartables");
-        const unsub = onValue(refItems, (snap) => {
+    useEffect(() => {
+        const unsub = onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) {
                 setItems([]);
                 return;
@@ -282,7 +283,7 @@ export default function PreciosPage() {
                     {seleccionados.size > 0 && (
                         <button
                             className={`${styles.btnDanger} ${styles.btnEliminarSeleccionados}`}
-                            onClick={eliminarSeleccionados}
+                            onClick={singleFlight("app/admin/med-descartables/page:eliminarSeleccionados", eliminarSeleccionados)}
                         >
                             🗑️ Eliminar seleccionados ({seleccionados.size})
                         </button>
@@ -364,7 +365,7 @@ export default function PreciosPage() {
                                                 </button>
                                                 <button
                                                     className={styles.btnAccionDanger}
-                                                    onClick={() => eliminarProducto(item.key, item.categoria)}
+                                                    onClick={singleFlight("app/admin/med-descartables/page:eliminarProducto", () => eliminarProducto(item.key, item.categoria))}
                                                     title="Eliminar"
                                                 >
                                                     🗑️
@@ -443,7 +444,7 @@ export default function PreciosPage() {
                         </div>
 
                         <div className={styles.modalFooter}>
-                            <button className={styles.btnPrimary} onClick={guardarEdicion}>
+                            <button className={styles.btnPrimary} onClick={singleFlight("app/admin/med-descartables/page:guardarEdicion", guardarEdicion)}>
                                 💾 Guardar
                             </button>
                             <button className={styles.btnDanger} onClick={cerrarModal}>

@@ -129,17 +129,40 @@ function cx(...cls) {
     return cls.filter(Boolean).join(" ");
 }
 
-function Section({ title, subtitle, children }) {
+// Cuenta cuántos de los campos indicados tienen valor
+function countFilled(form, keys) {
+    return keys.filter((k) => String(form[k] ?? "").trim() !== "").length;
+}
+
+const SECTION_FIELDS = {
+    art: ["ART", "nroSiniestro", "consultaTipo"],
+    fechas: ["diaIngreso", "mesIngreso", "anioIngreso", "diaDenuncia", "mesDenuncia", "anioDenuncia"],
+    empleador: ["empleadorNombre", "empleadorCuitDni"],
+    trabajador: [
+        "trabajadorApellido", "trabajadorNombre", "trabajadorDni", "trabajadorNacimiento",
+        "trabajadorSexo", "trabajadorTelefono", "trabajadorCalle", "trabajadorNumero",
+        "trabajadorPiso", "trabajadorDepto", "trabajadorLocalidad", "trabajadorProvincia", "trabajadorCP",
+    ],
+};
+
+/* Sección desplegable: se puede plegar para ver el formulario completo sin scroll */
+function Section({ title, subtitle, filled, total, hasError, children }) {
     return (
-        <section className={styles.section}>
-            <div className={styles.sectionHead}>
-                <div>
+        <details className={cx(styles.section, hasError && styles.sectionError)} open>
+            <summary className={styles.sectionHead}>
+                <div className={styles.sectionHeadText}>
                     <h3 className={styles.sectionTitle}>{title}</h3>
                     {subtitle && <div className={styles.sectionHint}>{subtitle}</div>}
                 </div>
-            </div>
-            {children}
-        </section>
+                {total != null && (
+                    <span className={cx(styles.sectionBadge, filled === total && styles.sectionBadgeDone)}>
+                        {filled}/{total}
+                    </span>
+                )}
+                <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
+            <div className={styles.sectionBody}>{children}</div>
+        </details>
     );
 }
 
@@ -357,7 +380,7 @@ export default function SiniestroPage() {
                 <form onSubmit={onSubmit} autoComplete="on">
                     <div className={styles.card}>
                         {/* Sección 1: ART + Motivo */}
-                        <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales">
+                        <Section title="1) ART + Motivo" subtitle="Todos los campos son opcionales" filled={countFilled(form, SECTION_FIELDS.art)} total={SECTION_FIELDS.art.length} hasError={Boolean(errors.ART)}>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>ART</label>
@@ -412,7 +435,7 @@ export default function SiniestroPage() {
                         </Section>
 
                         {/* Sección 2: Fechas (Ingreso y Denuncia) */}
-                        <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia">
+                        <Section title="2) Fechas" subtitle="Fecha de ingreso y fecha de denuncia" filled={countFilled(form, SECTION_FIELDS.fechas)} total={SECTION_FIELDS.fechas.length} hasError={Boolean(errors.ingresoDia || errors.ingresoMes || errors.ingresoAnio || errors.denunciaDia || errors.denunciaMes || errors.denunciaAnio)}>
                             <div className={styles.fechasWrapper}>
                                 {/* Fecha ingreso */}
                                 <div className={styles.fechaGroup}>
@@ -481,7 +504,7 @@ export default function SiniestroPage() {
                         </Section>
 
                         {/* Sección 3: Empleador */}
-                        <Section title="3) Empleador" subtitle="Todos los campos son opcionales">
+                        <Section title="3) Empleador" subtitle="Todos los campos son opcionales" filled={countFilled(form, SECTION_FIELDS.empleador)} total={SECTION_FIELDS.empleador.length} hasError={Boolean(errors.empleadorCuitDni)}>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>Nombre empresa</label>
@@ -508,7 +531,7 @@ export default function SiniestroPage() {
                         </Section>
 
                         {/* Sección 4: Trabajador */}
-                        <Section title="4) Trabajador" subtitle="Todos los campos son opcionales">
+                        <Section title="4) Trabajador" subtitle="Todos los campos son opcionales" filled={countFilled(form, SECTION_FIELDS.trabajador)} total={SECTION_FIELDS.trabajador.length} hasError={Boolean(errors.trabajadorDni || errors.trabajadorTelefono)}>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
                                     <label className={styles.label}>Apellido</label>

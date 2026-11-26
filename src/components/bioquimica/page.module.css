@@ -13,7 +13,7 @@
     flex-direction: column;
     gap: 1rem;
     overflow-x: hidden;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
 }
 
 /* ===== States ===== */
@@ -24,7 +24,7 @@
     border-radius: 16px;
     padding: 2rem 1rem;
     text-align: center;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -61,12 +61,12 @@
     font-size: 1.25rem;
     font-weight: 1000;
     letter-spacing: 0.01em;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
 }
 
 .subtitle {
     margin: 0.4rem 0 0;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     line-height: 1.45;
     font-size: 0.92rem;
 }
@@ -94,7 +94,7 @@
 
 .ubChipValue {
     font-weight: 1000;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-size: 1.02rem;
 }
 
@@ -125,7 +125,7 @@
     width: 100%;
     min-width: 0;
     background: rgba(255, 255, 255, 0.04);
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 0.85rem 1rem;
@@ -144,7 +144,7 @@
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     padding: 0.95rem 1rem;
     font-size: 1rem;
     outline: none;
@@ -171,14 +171,14 @@
     background: rgba(255, 255, 255, 0.03);
     cursor: pointer;
     user-select: none;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-weight: 900;
 }
 
 .checkbox input {
     width: 1.15rem;
     height: 1.15rem;
-    accent-color: #6fa17b;
+    accent-color: var(--cu-brand-400);
     cursor: pointer;
 }
 
@@ -224,7 +224,7 @@
     border-radius: 12px;
     background: rgba(111, 161, 123, 0.18);
     border: 1px solid rgba(111, 161, 123, 0.25);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: var(--font-mono), var(--font-mono-fallback);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -233,7 +233,7 @@
 .practice {
     margin-top: 0.75rem;
     line-height: 1.5;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     overflow-wrap: anywhere;
     font-size: 1rem;
 }
@@ -267,7 +267,7 @@
     display: block;
     margin-top: 0.2rem;
     font-weight: 1000;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-size: 0.95rem;
     overflow-wrap: anywhere;
 }
@@ -286,7 +286,7 @@
 .badgeGhost {
     opacity: 0.35;
     font-weight: 1000;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
 }
 
 /* valor (chip) */
@@ -350,7 +350,7 @@
 /* celdas */
 .codeCell {
     font-weight: 1000;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     white-space: nowrap;
 }
 
@@ -379,7 +379,7 @@
 /* ===== Highlight ===== */
 .highlight {
     background: rgba(111, 161, 123, 0.18);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     padding: 0.05rem 0.18rem;
     border-radius: 6px;
     font-weight: 1000;
@@ -390,13 +390,13 @@
     margin: 0.5rem 0 0;
     padding: 1rem;
     text-align: center;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     font-style: italic;
 }
 
 .footerNote strong {
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     font-weight: 1000;
 }
 
@@ -462,9 +462,9 @@
 
 .select {
     width: 100%;
-    background: #1f2937;        /* fondo oscuro */
-    color: #f9fafb;             /* texto claro */
-    border: 1px solid #4b5563;
+    background: var(--cu-slate-800);        /* fondo oscuro */
+    color: var(--cu-slate-50);             /* texto claro */
+    border: 1px solid var(--cu-slate-600);
     border-radius: 12px;
     padding: 0.85rem 1rem;
     font-size: 1rem;
@@ -479,11 +479,11 @@
 }
 
 .select option {
-    background: #1f2937;
-    color: #f9fafb;
+    background: var(--cu-slate-800);
+    color: var(--cu-slate-50);
 }
 
 .select:focus {
-    border-color: #6fa17b;
+    border-color: var(--cu-brand-400);
     box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }

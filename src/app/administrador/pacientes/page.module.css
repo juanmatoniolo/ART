@@ -1,74 +1,74 @@
 /* ===== Variables de tema (por defecto oscuro) ===== */
 .container {
-  --bg-page: #0f172a;
-  --bg-card: #1e293b;
-  --bg-header: #1e293b;
-  --border-color: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --input-bg: #1e293b;
-  --input-border: #334155;
-  --input-focus: #5b8c5a;
-  --tab-bg: #1e293b;
-  --tab-active-bg: #334155;
-  --tab-active-text: #f1f5f9;
-  --btn-primary: #5b8c5a;
+  --bg-page: var(--cu-slate-900);
+  --bg-card: var(--cu-slate-800);
+  --bg-header: var(--cu-slate-800);
+  --border-color: var(--cu-slate-700);
+  --text-primary: var(--cu-slate-100);
+  --text-secondary: var(--cu-slate-300);
+  --text-muted: var(--cu-slate-400);
+  --input-bg: var(--cu-slate-800);
+  --input-border: var(--cu-slate-700);
+  --input-focus: var(--cu-brand-500);
+  --tab-bg: var(--cu-slate-800);
+  --tab-active-bg: var(--cu-slate-700);
+  --tab-active-text: var(--cu-slate-100);
+  --btn-primary: var(--cu-brand-500);
   --btn-primary-hover: #477a46;
-  --btn-ghost-bg: #1e293b;
-  --btn-ghost-hover: #334155;
+  --btn-ghost-bg: var(--cu-slate-800);
+  --btn-ghost-hover: var(--cu-slate-700);
   --badge-abierto-bg: #14532d;
   --badge-abierto-text: #86efac;
   --badge-cerrado-bg: #7f1d1d;
   --badge-cerrado-text: #fca5a5;
-  --badge-total-bg: #1e293b;
-  --badge-total-text: #cbd5e1;
+  --badge-total-bg: var(--cu-slate-800);
+  --badge-total-text: var(--cu-slate-300);
   --badge-incompleto-bg: #78350f;
   --badge-incompleto-text: #fcd34d;
   --art-tag-bg: #1e3a8a;
   --art-tag-text: #bfdbfe;
-  --row-hover: #1e293b;
-  --empty-color: #64748b;
+  --row-hover: var(--cu-slate-800);
+  --empty-color: var(--cu-slate-500);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --bolita-verde: #22c55e;
-  --bolita-roja: #ef4444;
+  --bolita-verde: var(--cu-success);
+  --bolita-roja: var(--cu-danger);
 }
 
 /* Modo claro */
 :global(.lightMode) .container,
 .container.lightMode {
-  --bg-page: #f8fafc;
+  --bg-page: var(--cu-slate-50);
   --bg-card: #ffffff;
   --bg-header: #ffffff;
-  --border-color: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
+  --border-color: var(--cu-slate-200);
+  --text-primary: var(--cu-slate-900);
+  --text-secondary: var(--cu-slate-700);
+  --text-muted: var(--cu-slate-500);
   --input-bg: #ffffff;
-  --input-border: #cbd5e1;
-  --input-focus: #5b8c5a;
-  --tab-bg: #f1f5f9;
+  --input-border: var(--cu-slate-300);
+  --input-focus: var(--cu-brand-500);
+  --tab-bg: var(--cu-slate-100);
   --tab-active-bg: #ffffff;
-  --tab-active-text: #0f172a;
-  --btn-primary: #5b8c5a;
+  --tab-active-text: var(--cu-slate-900);
+  --btn-primary: var(--cu-brand-500);
   --btn-primary-hover: #477a46;
   --btn-ghost-bg: #ffffff;
-  --btn-ghost-hover: #f1f5f9;
+  --btn-ghost-hover: var(--cu-slate-100);
   --badge-abierto-bg: #dcfce7;
   --badge-abierto-text: #166534;
   --badge-cerrado-bg: #fee2e2;
   --badge-cerrado-text: #991b1b;
-  --badge-total-bg: #f1f5f9;
-  --badge-total-text: #334155;
+  --badge-total-bg: var(--cu-slate-100);
+  --badge-total-text: var(--cu-slate-700);
   --badge-incompleto-bg: #fef3c7;
   --badge-incompleto-text: #92400e;
   --art-tag-bg: #dbeafe;
   --art-tag-text: #1e40af;
-  --row-hover: #f8fafc;
-  --empty-color: #94a3b8;
+  --row-hover: var(--cu-slate-50);
+  --empty-color: var(--cu-slate-400);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --bolita-verde: #16a34a;
-  --bolita-roja: #dc2626;
+  --bolita-verde: var(--cu-success-strong);
+  --bolita-roja: var(--cu-danger-strong);
 }
 
 /* ===== Contenedor principal ===== */
@@ -76,10 +76,10 @@
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   background: var(--bg-page);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   transition: background 0.2s, color 0.2s;
 }
 
@@ -89,7 +89,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 40vh;
+  min-height: calc(40vh / var(--app-zoom, 1));
   gap: 1rem;
   color: var(--text-muted);
   font-size: 1rem;
@@ -109,7 +109,7 @@
 .errorScreen {
   text-align: center;
   padding: 3rem;
-  color: #ef4444;
+  color: var(--cu-danger);
 }
 
 /* ===== Page Header ===== */
@@ -305,7 +305,7 @@
 .patientName { font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
 .cellTextWrap { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
 .incompletoIcon { flex-shrink: 0; font-size: 1rem; cursor: help; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.82rem; }
+.mono { font-family: var(--font-mono), var(--font-mono-fallback); font-size: 0.82rem; }
 .artTag {
   display: inline-flex;
   align-items: center;
@@ -372,7 +372,7 @@
   border-radius: 1rem;
   box-shadow: var(--shadow);
 }
-.statsTitle { margin: 0; color: var(--text-primary); font-size: clamp(1.35rem, 2vw, 1.8rem); font-weight: 800; }
+.statsTitle { margin: 0; color: var(--text-primary); font-size: clamp(1.35rem, calc(2vw / var(--app-zoom, 1)), 1.8rem); font-weight: 800; }
 .statsSubtitle { margin: 0.35rem 0 0; color: var(--text-muted); font-size: 0.95rem; }
 .statsTotalBadge {
   flex-shrink: 0;
@@ -411,7 +411,7 @@
   font-size: 1.25rem;
 }
 .kpiLabel { display: block; color: var(--text-muted); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.kpiValue { display: block; margin-top: 0.2rem; color: var(--text-primary); font-size: clamp(1.45rem, 2.5vw, 2rem); font-weight: 900; line-height: 1; }
+.kpiValue { display: block; margin-top: 0.2rem; color: var(--text-primary); font-size: clamp(1.45rem, calc(2.5vw / var(--app-zoom, 1)), 2rem); font-weight: 900; line-height: 1; }
 .kpiValueSmall { display: block; margin-top: 0.25rem; color: var(--text-primary); font-size: 1rem; font-weight: 900; line-height: 1.25; overflow-wrap: anywhere; }
 .kpiHint { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.8rem; }
 .statsGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.7fr) minmax(280px, 0.7fr); gap: 1rem; align-items: start; }
@@ -472,7 +472,7 @@
 
 /* ===== Modal unión ===== */
 .unionOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 999; padding: 1rem; }
-.unionPanel { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border-color); }
+.unionPanel { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; max-width: 500px; width: 100%; max-height: calc(80vh / var(--app-zoom, 1)); overflow-y: auto; border: 1px solid var(--border-color); }
 .unionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .unionHeader h3 { margin: 0; color: var(--text-primary); }
 .closeBtn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
@@ -598,7 +598,7 @@
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.clearAllBtn:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #ef4444; }
+.clearAllBtn:hover { background: rgba(239,68,68,0.1); border-color: var(--cu-danger); color: var(--cu-danger); }
 .duplicadosBtnNew {
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--border-color);
@@ -639,7 +639,7 @@
   transition: background 0.15s, transform 0.1s;
   white-space: nowrap;
 }
-.filterChip:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #ef4444; transform: scale(1.03); }
+.filterChip:hover { background: rgba(239,68,68,0.1); border-color: var(--cu-danger); color: var(--cu-danger); transform: scale(1.03); }
 .chipClose { font-size: 0.7rem; font-weight: 800; opacity: 0.7; }
 
 .resultsSummary {
@@ -663,4 +663,11 @@
   border-radius: 0.75rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
+}
+
+/* Mobile: va al final para ganarle a las reglas base de arriba */
+@media (max-width: 768px) {
+  .dateRangeGroup { width: 100%; min-width: 0; flex-wrap: wrap; }
+  .dateInput { flex: 1 1 0; min-width: 0; }
+  .filterInputGroup { min-width: 0; max-width: 100%; }
 }

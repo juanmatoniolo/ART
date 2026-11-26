@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState, useEffect, useMemo } from "react";
 import { getSession } from "@/utils/session";
 import Fuse from "fuse.js";
@@ -95,13 +96,13 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
 
     const vincularManual = async () => {
         const nro = manualOP.trim();
-        if (!nro) return alert("Ingresá un número de OP.");
+        if (!nro) return notify("Ingresá un número de OP.");
 
         const opExistente = opsPaciente.find(o => o.nroOP === nro);
         if (opExistente) {
             setOpVinculada(opExistente.id);
             actualizar({ op: opExistente });
-            alert("✅ OP encontrada y vinculada correctamente.");
+            notify("✅ OP encontrada y vinculada correctamente.");
             setManualOP("");
             return;
         }
@@ -118,19 +119,19 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
             );
             setOpVinculada(nuevaOp.id);
             actualizar({ op: nuevaOp });
-            alert("✅ OP creada y vinculada.");
+            notify("✅ OP creada y vinculada.");
             setManualOP("");
             listarOPsPaciente(paciente.dni).then(setOpsPaciente);
         } catch (e) {
-            alert("Error al crear la OP: " + e.message);
+            notify("Error al crear la OP: " + e.message);
         } finally {
             setSaving(false);
         }
     };
 
     const guardarTodo = async () => {
-        if (esNuevaOP && !formOP.diagnostico) return alert("Completá el diagnóstico de la OP.");
-        if (requiereOPExistente && !opVinculada) return alert("Vinculá una OP existente para continuar.");
+        if (esNuevaOP && !formOP.diagnostico) return notify("Completá el diagnóstico de la OP.");
+        if (requiereOPExistente && !opVinculada) return notify("Vinculá una OP existente para continuar.");
 
         setSaving(true);
         try {
@@ -166,7 +167,7 @@ export default function Paso3TipoEvento({ estado, actualizar, avanzar, volver, i
             avanzar();
         } catch (e) {
             console.error(e);
-            alert("Error al guardar: " + e.message);
+            notify("Error al guardar: " + e.message);
         } finally {
             setSaving(false);
         }

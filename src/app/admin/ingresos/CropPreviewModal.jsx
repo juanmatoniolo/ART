@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 
 import { useCallback, useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
@@ -99,7 +100,7 @@ export default function CropPreviewModal({
             await onConfirm(cropped);
         } catch (err) {
             console.error(err);
-            alert("No se pudo recortar: " + err.message);
+            notify("No se pudo recortar: " + err.message);
         } finally {
             setUploading(false);
         }
@@ -134,6 +135,8 @@ export default function CropPreviewModal({
                 </header>
 
                 <div className={styles.cropEditorContainer}>
+                    {/* zoom-reset: el recorte calcula coordenadas del mouse, necesita escala 1 */}
+                    <div className={`zoom-reset ${styles.cropZoomReset}`}>
                     <Cropper
                         image={imageUrl}
                         crop={crop}
@@ -145,6 +148,7 @@ export default function CropPreviewModal({
                         showGrid
                         objectFit="contain"
                     />
+                    </div>
                 </div>
 
                 <div className={styles.cropControls}>

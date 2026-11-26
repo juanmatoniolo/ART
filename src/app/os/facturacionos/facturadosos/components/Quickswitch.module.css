@@ -19,7 +19,7 @@
     font-weight: 600;
     cursor: pointer;
     border: 1px solid transparent;
-    color: #64748b;
+    color: var(--cu-slate-500);
     background: transparent;
     transition: all 0.12s ease;
     line-height: 1;
@@ -27,17 +27,17 @@
 
 .tab:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #94a3b8;
+    color: var(--cu-slate-400);
 }
 
 .tabActive {
-    background: #3b82f6;
+    background: var(--cu-info);
     color: #fff;
-    border-color: #3b82f6;
+    border-color: var(--cu-info);
 }
 
 .tabActive:hover {
-    background: #2563eb;
+    background: var(--cu-info-strong);
 }
 
 /* Contador numérico */

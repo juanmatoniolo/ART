@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -63,7 +64,7 @@ export default function DetalleConvenioPage() {
       setEditMode(false);
     } catch (err) {
       console.error(err);
-      alert('Error al guardar');
+      notify('Error al guardar');
     } finally {
       setGuardando(false);
     }

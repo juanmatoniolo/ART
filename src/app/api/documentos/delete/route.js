@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -14,7 +15,7 @@ oauth2Client.setCredentials({
 
 const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const { fileId } = await req.json();
 
@@ -70,3 +71,9 @@ export async function POST(req) {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return postHandler(request, ctx);
+});

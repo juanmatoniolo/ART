@@ -4,23 +4,23 @@
 
 .tabContent {
     /* ── Design tokens ── */
-    --color-bg-primary:    #0b1220;
-    --color-bg-secondary:  #111827;
-    --color-bg-tertiary:   #1f2937;
+    --color-bg-primary:    var(--cu-slate-950);
+    --color-bg-secondary:  var(--cu-slate-850);
+    --color-bg-tertiary:   var(--cu-slate-800);
 
     --color-border:        rgba(255, 255, 255, 0.10);
 
-    --color-text-primary:  #f9fafb;
-    --color-text-secondary:#cbd5e1;
-    --color-text-tertiary: #64748b;
+    --color-text-primary:  var(--cu-slate-50);
+    --color-text-secondary:var(--cu-slate-300);
+    --color-text-tertiary: var(--cu-slate-500);
 
-    --color-primary:       #3b82f6;
-    --color-primary-hover: #2563eb;
+    --color-primary:       var(--cu-info);
+    --color-primary-hover: var(--cu-info-strong);
     --color-primary-dark:  #1d4ed8;
 
-    --color-success:       #22c55e;
-    --color-warning:       #f59e0b;
-    --color-danger:        #ef4444;
+    --color-success:       var(--cu-success);
+    --color-warning:       var(--cu-warning);
+    --color-danger:        var(--cu-danger);
 
     --border-radius-sm:    6px;
     --border-radius-md:    10px;
@@ -42,7 +42,7 @@
 }
 
 .tabContent h2 {
-    font-size: clamp(1.4rem, 3.6vw, 1.75rem);
+    font-size: clamp(1.4rem, calc(3.6vw / var(--app-zoom, 1)), 1.75rem);
     font-weight: 800;
     margin: 0 0 var(--spacing-xl);
     display: flex;
@@ -155,7 +155,7 @@
 .acAmount {
     background: rgba(148, 163, 184, 0.14);
     border: 1px solid rgba(148, 163, 184, 0.25);
-    color: #e2e8f0;
+    color: var(--cu-slate-200);
     padding: 4px 10px;
     border-radius: 999px;
     font-weight: 900;
@@ -669,7 +669,7 @@
 
 .inputDoctor {
     flex: 1;
-    min-width: 220px;
+    min-width: min(100%, 220px);
     height: 38px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -832,14 +832,14 @@
 
 .manualFooterLabel {
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--cu-slate-200);
 }
 
 .manualFooterNum {
     text-align: right;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
 }
 
 .manualAddRow {
@@ -892,7 +892,7 @@
 
     .printView {
         display: block;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: var(--font-sans), var(--font-sans-fallback);
         color: black;
         background: white;
         padding: 0.5in;
@@ -953,7 +953,7 @@
 
     .printNumber {
         text-align: right;
-        font-family: 'Courier New', monospace;
+        font-family: var(--font-mono), var(--font-mono-fallback);
     }
 
     .printTotales {
@@ -994,8 +994,8 @@
         font-size: 1rem;
         font-weight: 700;
         margin-bottom: 0.4rem;
-        color: #1f2937;
-        border-bottom: 1px solid #e5e7eb;
+        color: var(--cu-slate-800);
+        border-bottom: 1px solid var(--cu-slate-200);
         padding-bottom: 0.2rem;
     }
 }
@@ -1004,20 +1004,20 @@
 .table tbody td .manualInput,
 .table tbody td .manualInputNum {
     background-color: rgba(30, 41, 59, 0.6);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     border: 1px solid rgba(71, 85, 105, 0.6);
     font-weight: 500;
 }
 
 .table tbody td .manualInput::placeholder,
 .table tbody td .manualInputNum::placeholder {
-    color: #94a3b8;
+    color: var(--cu-slate-400);
     font-weight: normal;
 }
 
 .table tbody td .selectPrestador {
     background-color: rgba(30, 41, 59, 0.6);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     border: 1px solid rgba(71, 85, 105, 0.6);
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;

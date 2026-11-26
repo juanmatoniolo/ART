@@ -4,9 +4,9 @@
 
 /* ── Contenedor principal ── */
 .header {
-    background: #1e293b;
+    background: var(--cu-slate-800);
     border-radius: 20px;
-    border: 1px solid #334155;
+    border: 1px solid var(--cu-slate-700);
     overflow: hidden;
     margin-bottom: 16px;
 }
@@ -19,7 +19,7 @@
     gap: 12px;
     flex-wrap: wrap;
     padding: 16px 20px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--cu-slate-700);
 }
 
 /* Brand */
@@ -56,7 +56,7 @@
 .title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     letter-spacing: -0.2px;
     line-height: 1.2;
     margin: 0;
@@ -64,7 +64,7 @@
 
 .subtitle {
     font-size: 0.76rem;
-    color: #64748b;
+    color: var(--cu-slate-500);
     margin: 0;
 }
 
@@ -79,7 +79,7 @@
 .dividerV {
     width: 1px;
     height: 22px;
-    background: #334155;
+    background: var(--cu-slate-700);
     flex-shrink: 0;
 }
 
@@ -117,23 +117,23 @@
 
 .btnGhost {
     background: transparent;
-    color: #94a3b8;
-    border: 1px solid #334155;
+    color: var(--cu-slate-400);
+    border: 1px solid var(--cu-slate-700);
 }
 
 .btnGhost:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     border-color: #4b5565;
 }
 
 .btnPrimary {
-    background: #3b82f6;
+    background: var(--cu-info);
     color: #fff;
 }
 
 .btnPrimary:hover {
-    background: #2563eb;
+    background: var(--cu-info-strong);
 }
 
 .btnExport {
@@ -194,20 +194,20 @@
     font-weight: 600;
     cursor: pointer;
     border: 1px solid transparent;
-    color: #64748b;
+    color: var(--cu-slate-500);
     background: transparent;
     transition: all 0.12s ease;
 }
 
 .tab:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #94a3b8;
+    color: var(--cu-slate-400);
 }
 
 .tabActive {
-    background: #3b82f6;
+    background: var(--cu-info);
     color: #fff;
-    border-color: #3b82f6;
+    border-color: var(--cu-info);
 }
 
 .tabCount {
@@ -250,7 +250,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #3b82f6;
+    background: var(--cu-info);
     flex-shrink: 0;
 }
 

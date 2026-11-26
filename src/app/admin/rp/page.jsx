@@ -1,4 +1,6 @@
 'use client';
+import { getShared, onSharedValue } from "@/lib/dbCache";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { ref, set, get, remove, onValue } from 'firebase/database';
@@ -20,7 +22,10 @@ import {
     tipoCostoPorOrigen,
     getSubCodigoInfo,
     buildPrintHtml,
+    getFirmasDeRps,
+    getTodasLasFirmas,
 } from './helpers';
+import { getFirmaCargada, loadFirmas } from '@/lib/firmas';
 import { SaveAtajoModal, AtajosModal } from './AtajosModal';
 import { CartSection } from './CartSection';
 import Estadisticas from './Estadisticas.jsx';
@@ -748,7 +753,7 @@ export default function RPPage() {
             try {
                 const [convSnap, rpSnap, atajosSnap] = await Promise.all([
                     get(ref(db, 'convenios')),
-                    get(ref(db, 'rp')),
+                    getShared("rp"),
                     get(ref(db, 'rp/atajos')),
                 ]);
                 const conv = convSnap.exists() ? convSnap.val() : {};
@@ -796,8 +801,8 @@ export default function RPPage() {
     // Catálogo de insumos (live)
     useEffect(() => {
         if (!isClient) return;
-        const refItems = ref(db, 'medydescartables');
-        const unsub = onValue(refItems, (snap) => {
+
+        const unsub = onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) {
                 setInsumosCatalogo([]);
                 setLoadingInsumos(false);
@@ -845,7 +850,7 @@ export default function RPPage() {
         if (pacientes.length || loadingPacientes) return;
         setLoadingPacientes(true);
         try {
-            const snap = await get(ref(db, 'pacientes'));
+            const snap = await getShared("pacientes");
             if (snap.exists()) {
                 const data = snap.val();
                 const list = Object.entries(data).map(([id, v]) => ({ id, ...v }));
@@ -974,7 +979,7 @@ export default function RPPage() {
             setHistorial((prev) =>
                 prev.map((r) => (r.id === id ? { ...r, impreso: !nuevo } : r))
             );
-            alert('❌ No se pudo actualizar el estado de impresión');
+            notify('❌ No se pudo actualizar el estado de impresión');
         }
     }, [historial]);
 
@@ -1223,7 +1228,7 @@ export default function RPPage() {
             setSaveAtajoOpen(false);
         } catch (e) {
             console.error(e);
-            alert('❌ Error guardando atajo: ' + (e?.message || e));
+            notify('❌ Error guardando atajo: ' + (e?.message || e));
         }
     }, [rp.practicas, rp.estudiosLab, rp.esLab, rp.solicitaManual, rp.diagnostico]);
 
@@ -1234,7 +1239,7 @@ export default function RPPage() {
             setAtajos((prev) => prev.filter((a) => a.id !== id));
         } catch (e) {
             console.error(e);
-            alert('Error al eliminar atajo');
+            notify('Error al eliminar atajo');
         }
     }, []);
 
@@ -1317,16 +1322,31 @@ export default function RPPage() {
             ));
             setCarrito([]);
             clearSelection();
-            alert(`✅ ${carrito.length} RP guardadas.`);
+            notify(`✅ ${carrito.length} RP guardadas.`);
         } catch (e) {
             console.error(e);
-            alert('❌ Error guardando: ' + (e?.message || e));
+            notify('❌ Error guardando: ' + (e?.message || e));
         } finally { setSaving(false); }
     }, [carrito, convenioSel, convenios, clearSelection]);
 
     // ============ Impresión / Descarga ============
-    const openOutputWindow = useCallback((rps, mode) => {
+    // Firmas (API protegida): se precargan al abrir la pantalla para que la
+    // ventana de impresión salga al instante con ellas.
+    useEffect(() => {
+        loadFirmas(getTodasLasFirmas());
+    }, []);
+
+    const openOutputWindow = useCallback(async (rps, mode) => {
         if (!rps?.length) return;
+
+        // Si alguna firma todavía no llegó, se abre la ventana ya (para que el
+        // navegador no la bloquee) y se completa cuando terminan de bajar.
+        const faltan = getFirmasDeRps(rps).filter((f) => !getFirmaCargada(f));
+        let w = null;
+        if (faltan.length) {
+            w = window.open('', '_blank');
+            await loadFirmas(faltan);
+        }
 
         const logoSrc = `${window.location.origin}/logo.png`;
         const html = buildPrintHtml(rps, logoSrc, mode);
@@ -1334,10 +1354,11 @@ export default function RPPage() {
         const blob = new Blob([html], { type: 'text/html' });
         const blobUrl = URL.createObjectURL(blob);
 
-        const w = window.open(blobUrl, '_blank');
+        if (w) w.location.href = blobUrl;
+        else w = window.open(blobUrl, '_blank');
         if (!w) {
             URL.revokeObjectURL(blobUrl);
-            alert('⚠️ Habilitá las ventanas emergentes para poder imprimir.');
+            notify('⚠️ Habilitá las ventanas emergentes para poder imprimir.');
             return;
         }
         w.focus();
@@ -1382,7 +1403,7 @@ export default function RPPage() {
             await remove(ref(db, `rp/${id}`));
             setHistorial((prev) => prev.filter((r) => r.id !== id));
             setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-        } catch (e) { console.error(e); alert('Error al eliminar'); }
+        } catch (e) { console.error(e); notify('Error al eliminar'); }
     }, []);
 
     const deleteSelectedFromCart = useCallback(() => {
@@ -1402,7 +1423,7 @@ export default function RPPage() {
             clearSelection();
         } catch (e) {
             console.error(e);
-            alert('Error al eliminar: ' + (e?.message || e));
+            notify('Error al eliminar: ' + (e?.message || e));
         }
     }, [selectedIds, clearSelection]);
 

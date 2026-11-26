@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notify";
 import { useState } from 'react';
 import styles from '../page.module.css';
 
@@ -44,7 +45,7 @@ export default function GestionArts({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nombre.trim()) return alert('El nombre es obligatorio');
+    if (!form.nombre.trim()) return notify('El nombre es obligatorio');
     try {
       if (editingId) {
         await onUpdate(editingId, form);
@@ -55,7 +56,7 @@ export default function GestionArts({
       onSaved && onSaved();   // avisar al padre que hubo cambios
       onClose();
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      notify('Error al guardar: ' + err.message);
     }
   };
 
@@ -95,7 +96,7 @@ export default function GestionArts({
       onSaved && onSaved();
       onClose();
     } catch (err) {
-      alert('Error al eliminar: ' + err.message);
+      notify('Error al eliminar: ' + err.message);
     }
   };
 

@@ -1,8 +1,10 @@
 "use client";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useState } from "react";
+import { restCount, restGet, restLast, restWhere } from "@/lib/dbCache";
 import Link from "next/link";
-import styles from "./page.module.css";
+import styles from "@/app/admin/page.module.css";
 import {
   Users,
   Briefcase,
@@ -12,7 +14,7 @@ import {
   FolderTree,
 } from "lucide-react";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 
 const countObject = (value, filter = () => true) => {
   if (!value || typeof value !== "object") return 0;
@@ -63,12 +65,6 @@ const mapRecentFacturas = (facturas = {}) =>
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
 
-async function fetchJson(path) {
-  const res = await fetch(`${FIREBASE_URL}/${path}.json`);
-  if (!res.ok) throw new Error(`No se pudo leer ${path}`);
-  return res.json();
-}
-
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     pacientes: 0,
@@ -89,57 +85,60 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Carga liviana: conteos sin descargar los nodos (shallow), solo los últimos
+    // registros para "Actividad reciente" y caché en memoria entre visitas.
+    // Cada dato falla por separado: si un rol no puede leer algo, se muestra 0.
+    const safe = (p, fallback) => p.catch(() => fallback);
     const fetchStats = async () => {
       try {
         const [
           pacientes,
           empleados,
-          facturasData,
-          medData,
-          descData,
+          facturasCerradas,
+          facturasRecientes,
+          medN,
+          descN,
           cirugiasData,
           fojasData,
-          historiasData,
-          historiasUtiData,
-          farmaciaData,
-          siniestrosData,
+          hcN,
+          hcUtiN,
         ] = await Promise.all([
-          fetchJson("pacientes"),
-          fetchJson("users"),
-          fetchJson("Facturacion"),
-          fetchJson("medydescartables/medicamentos"),
-          fetchJson("medydescartables/descartables"),
-          fetchJson("cirugias"),
-          fetchJson("fojaqx"),
-          fetchJson("historias-clinicas"),
-          fetchJson("historias-clinica-uti"),
-          fetchJson("farmacia"),
-          fetchJson("siniestros"),
+          safe(restCount("pacientes"), 0),
+          safe(restCount("usuarios"), 0),
+          safe(restWhere("Facturacion", "estado", "cerrado"), {}),
+          safe(restLast("Facturacion", 30), {}),
+          safe(restCount("medydescartables/medicamentos"), 0),
+          safe(restCount("medydescartables/descartables"), 0),
+          safe(restGet("cirugias"), null),
+          safe(restGet("fojaqx"), {}),
+          safe(restCount("historias-clinicas", 10 * 60_000), 0),
+          safe(restCount("historias-clinica-uti", 10 * 60_000), 0),
+          
         ]);
 
         const cirugiasArray = Array.isArray(cirugiasData)
           ? cirugiasData
           : Object.values(cirugiasData || {});
 
-        setStats({
-          pacientes: countObject(pacientes),
-          empleados: countObject(empleados),
-          facturas: countObject(
-            facturasData,
-            (item, key) => key !== "siniestros" && item?.estado === "cerrado"
-          ),
-          medDesc: countObject(medData) + countObject(descData),
+        setStats((prev) => ({
+          ...prev,
+          pacientes,
+          empleados,
+          facturas: countObject(facturasCerradas, (item, key) => key !== "siniestros"),
+          medDesc: medN + descN,
           cxPendientes: cirugiasArray.filter((item) => item && item.realizada !== true).length,
           fojas: countObject(fojasData, (_item, key) => key !== "plantilla"),
-          historias: countObject(historiasData) + countObject(historiasUtiData),
-          farmacia: countObject(farmaciaData),
-          siniestros: countObject(siniestrosData),
-        });
+          historias: hcN + hcUtiN,
+          
+        }));
 
-        setRecent({
+        setRecent((prev) => ({
+          ...prev,
           fojas: mapRecentFojas(fojasData),
-          facturas: mapRecentFacturas(facturasData),
-        });
+          
+          facturas: mapRecentFacturas(facturasRecientes),
+          
+        }));
       } catch (error) {
         console.error("Error cargando estadisticas:", error);
       } finally {

@@ -1,4 +1,6 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
@@ -375,7 +377,7 @@ export default function FojaAdminPage() {
         await navigator.share({ title: "Foja Quirúrgica", text: "Adjunto PDF de la foja quirúrgica", files: [file] });
       } else {
         await navigator.clipboard.writeText(`Descargá el PDF aquí: ${pdfFileName}`);
-        alert("Tu navegador no soporta compartir archivos. Se copió un mensaje al portapapeles.");
+        notify("Tu navegador no soporta compartir archivos. Se copió un mensaje al portapapeles.");
       }
     } catch (err) {
       if (err.name !== "AbortError") setErrorMsg("No se pudo compartir el archivo.");
@@ -436,7 +438,7 @@ export default function FojaAdminPage() {
               </button>
             </div>
 
-            <form onSubmit={handleGuardar} className={styles.form} autoComplete="on" noValidate>
+            <form onSubmit={singleFlight("app/admin/cx/foja/page:handleGuardar", handleGuardar)} className={styles.form} autoComplete="on" noValidate>
               {/* Secciones del formulario (paciente, equipo, fecha, descripción) sin cambios */}
               <section className={styles.section}>
                 <SectionHeader num="01" title="Datos del Paciente" />

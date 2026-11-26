@@ -668,19 +668,19 @@ export default function CirugiasModule({
 
       return (
         <tr key={item.uniqueId} className={isRecent ? styles.recentRow : ''}>
-          <td className={styles.tdCodigo}>{highlight(item.codigo, q)}</td>
-          <td className={styles.tdDescripcion}>
+          <td className={styles.tdCodigo} data-label="Código">{highlight(item.codigo, q)}</td>
+          <td className={`${styles.tdDescripcion} rt-title`}>
             {highlight(item.descripcion, q)}
             <div className={styles.tdMeta}>
               {item.region} / Comp. {item.complejidad}
             </div>
           </td>
-          <td className={styles.tdHonorarios}>
+          <td className={styles.tdHonorarios} data-label="Honorarios">
             <div>Cir: {money(cirujano)}</div>
             <div>Ay1: {money(ayudante1)}</div>
             <div>Ay2: {money(ayudante2)}</div>
           </td>
-          <td className={styles.tdAccion}>
+          <td className={styles.tdAccion} data-label="Agregar">
             <div className={styles.tableAyudanteSelector}>
               <label>
                 <input
@@ -770,8 +770,8 @@ export default function CirugiasModule({
 
     return (
       <tr key={item.__key} className={lastAddedId && item.groupId === lastAddedId ? styles.recentRow : ''}>
-        <td className={styles.tdCodigo}>{highlight(item.codigo, q)}</td>
-        <td className={styles.tdDescripcion}>
+        <td className={styles.tdCodigo} data-label="Código">{highlight(item.codigo, q)}</td>
+        <td className={`${styles.tdDescripcion} rt-title`}>
           {highlight(item.descripcion, q)}
           <div className={styles.tdMeta}>
             {item.capitulo} – {item.capituloNombre}
@@ -814,14 +814,14 @@ export default function CirugiasModule({
             </div>
           )}
         </td>
-        <td className={styles.tdHonorarios}>
+        <td className={styles.tdHonorarios} data-label="Honorarios">
           {empiezaConLetra ? (
             <div>Hon: {money(honorario)}</div>
           ) : (
             <div>Gas: {money(gasto)}</div>
           )}
         </td>
-        <td className={styles.tdAccion}>
+        <td className={styles.tdAccion} data-label="Agregar">
           <button
             className={styles.btnAgregarTabla}
             onClick={() => handleAgregar(item)}
@@ -898,8 +898,8 @@ export default function CirugiasModule({
             )}
           </div>
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+          <div className={`${styles.tableWrapper} rt-wrap`}>
+            <table className={`${styles.table} rt-stack`}>
               <thead>
                 <tr>
                   <th>Código</th>
@@ -962,8 +962,8 @@ export default function CirugiasModule({
                       {filtradas.map((item) => renderCard(item, qLocal))}
                     </div>
 
-                    <div className={styles.tableWrapper}>
-                      <table className={styles.table}>
+                    <div className={`${styles.tableWrapper} rt-wrap`}>
+                      <table className={`${styles.table} rt-stack`}>
                         <thead>
                           <tr>
                             <th>Código</th>

@@ -1,7 +1,7 @@
 /* medicamentos.module.css - fondo sólido + UI compacta */
 
 .wrapper {
-    --bg: #0b1220;
+    --bg: var(--cu-slate-950);
     /* fondo principal sólido */
     --card: #0f1b2e;
     /* tarjetas */
@@ -14,14 +14,14 @@
     --text: #eaf2ff;
     --muted: rgba(234, 242, 255, 0.72);
 
-    --primary: #3b82f6;
-    --primary2: #2563eb;
+    --primary: var(--cu-info);
+    --primary2: var(--cu-info-strong);
 
-    --ok: #22c55e;
-    --ok2: #16a34a;
+    --ok: var(--cu-success);
+    --ok2: var(--cu-success-strong);
 
-    --warn: #f59e0b;
-    --danger: #ef4444;
+    --warn: var(--cu-warning);
+    --danger: var(--cu-danger);
 
     --shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 
@@ -87,7 +87,7 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    max-width: min(520px, calc(100vw - 32px));
+    max-width: min(520px, calc(calc(100vw / var(--app-zoom, 1)) - 32px));
 }
 
 .toastIcon {
@@ -675,7 +675,7 @@
 
 .modalCard {
     width: min(1050px, 100%);
-    max-height: min(86vh, 900px);
+    max-height: min(calc(86vh / var(--app-zoom, 1)), 900px);
     overflow: auto;
     border-radius: 18px;
     border: 1px solid var(--border);

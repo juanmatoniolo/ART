@@ -1,4 +1,6 @@
 "use client";
+import { getSession, hasRole } from "@/utils/session";
+import { notify } from "@/lib/notify";
 import { useState, useMemo } from "react";
 import Icon from "./Icon";
 import { formatCurrency } from "../utils/farmacia";
@@ -16,9 +18,8 @@ export default function MovimientosTab({
   const [busqueda, setBusqueda] = useState("");
   const [editMov, setEditMov] = useState(null);
 
-  // Permisos: solo Farmacia, ADM o ADM Farmacia pueden eliminar/editar
-  const puedeEliminar =
-    userRole === "Farmacia" || userRole === "ADM" || userRole === "ADM Farmacia";
+  // Permisos: Farmacia, ROOT o SUPERROOT pueden eliminar/editar (también con varios roles)
+  const puedeEliminar = hasRole(getSession(), "FARMACIA", "ADM", "ROOT") || userRole === "Farmacia";
   const puedeEditar = puedeEliminar;
 
   const movimientosFiltrados = useMemo(() => {
@@ -74,7 +75,7 @@ export default function MovimientosTab({
 
   const descargarCSV = () => {
     if (movimientosFiltrados.length === 0) {
-      alert("No hay movimientos para exportar con los filtros actuales.");
+      notify("No hay movimientos para exportar con los filtros actuales.");
       return;
     }
 
@@ -168,7 +169,7 @@ export default function MovimientosTab({
   const confirmarEliminar = async (mov) => {
     if (!puedeEliminar) return;
     if (mov.tipo === "ajuste") {
-      alert("Los ajustes no se pueden eliminar.");
+      notify("Los ajustes no se pueden eliminar.");
       return;
     }
     let mensaje = "";
@@ -184,7 +185,7 @@ export default function MovimientosTab({
       await onEliminarMovimiento(mov.id);
     } catch (error) {
       console.error("Error al eliminar:", error);
-      alert("No se pudo eliminar el movimiento.");
+      notify("No se pudo eliminar el movimiento.");
     }
   };
 
@@ -195,7 +196,7 @@ export default function MovimientosTab({
       await onEditarMovimiento(editMov.id, datosEditados);
       cerrarEditar();
     } catch (error) {
-      alert("No se pudo editar el movimiento.");
+      notify("No se pudo editar el movimiento.");
     }
   };
 
@@ -203,7 +204,7 @@ export default function MovimientosTab({
   const imprimirMovimiento = (mov) => {
     const printWindow = window.open("", "_blank", "width=900,height=650");
     if (!printWindow) {
-      alert("Permite las ventanas emergentes para imprimir.");
+      notify("Permite las ventanas emergentes para imprimir.");
       return;
     }
 
@@ -717,7 +718,7 @@ function ModalEditarMovimiento({ mov, onClose, onSave }) {
     } else {
       datos.stockNuevo = parseInt(datos.stockNuevo, 10);
       if (isNaN(datos.stockNuevo) || datos.stockNuevo < 0) {
-        alert("Stock nuevo debe ser un número mayor o igual a 0.");
+        notify("Stock nuevo debe ser un número mayor o igual a 0.");
         return;
       }
     }

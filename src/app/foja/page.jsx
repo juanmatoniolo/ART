@@ -1,4 +1,6 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
@@ -373,7 +375,7 @@ export default function Foja() {
                 await navigator.share({ title: "Foja Quirúrgica", files: [file] });
             } else {
                 await navigator.clipboard.writeText(pdfFileName);
-                alert("Tu navegador no permite compartir. Se copió el nombre del archivo.");
+                notify("Tu navegador no permite compartir. Se copió el nombre del archivo.");
             }
         } catch (err) {
             if (err.name !== "AbortError") {
@@ -518,7 +520,7 @@ export default function Foja() {
                         </div>
                     )}
 
-                    <form onSubmit={handleGuardar} autoComplete="on" noValidate>
+                    <form onSubmit={singleFlight("app/foja/page:handleGuardar", handleGuardar)} autoComplete="on" noValidate>
                         {/* 01 */}
                         <Section num="1" title="Paciente" done={secciones[0].ok}>
                             <Field

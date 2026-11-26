@@ -1,19 +1,19 @@
 /* src/app/admin/Facturacion/components/cirugias.module.css */
 
 .tabContent {
-  --color-bg-primary: #0b1220;
+  --color-bg-primary: var(--cu-slate-950);
   --color-bg-secondary: #1a1a1a;
   --color-bg-tertiary: #2a2a2a;
   --color-border: #404040;
   --color-text-primary: #ffffff;
   --color-text-secondary: #e0e0e0;
   --color-text-tertiary: #b0b0b0;
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-success: #22c55e;
-  --color-success-hover: #16a34a;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-primary: var(--cu-info);
+  --color-primary-hover: var(--cu-info-strong);
+  --color-success: var(--cu-success);
+  --color-success-hover: var(--cu-success-strong);
+  --color-warning: var(--cu-warning);
+  --color-danger: var(--cu-danger);
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -33,7 +33,7 @@
 }
 
 .tabContent h2 {
-  font-size: clamp(1.5rem, 4vw, 1.75rem);
+  font-size: clamp(1.5rem, calc(4vw / var(--app-zoom, 1)), 1.75rem);
   font-weight: 800;
   margin-bottom: var(--spacing-xl);
   display: flex;
@@ -60,7 +60,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  max-width: min(420px, calc(100vw - 32px));
+  max-width: min(420px, calc(calc(100vw / var(--app-zoom, 1)) - 32px));
 }
 
 .toastIcon {
@@ -397,7 +397,7 @@
 }
 
 .tdDescripcion {
-  min-width: 360px;
+  min-width: 0;
   word-break: break-word;
 }
 

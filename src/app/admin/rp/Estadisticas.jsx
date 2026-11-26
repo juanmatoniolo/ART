@@ -1,5 +1,6 @@
 // app/admin/rp/Estadisticas.jsx
 'use client';
+import { notify } from "@/lib/notify";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Estadisticas.module.css';
@@ -952,7 +953,7 @@ export default function Estadisticas({ historial, convenios = {}, nacional = [],
     const abrirBlob = (html, type = 'text/html;charset=utf-8') => {
         const url = URL.createObjectURL(new Blob([html], { type }));
         const w = window.open(url, '_blank');
-        if (!w) { URL.revokeObjectURL(url); alert('⚠️ Habilitá las ventanas emergentes para poder imprimir.'); return; }
+        if (!w) { URL.revokeObjectURL(url); notify('⚠️ Habilitá las ventanas emergentes para poder imprimir.'); return; }
         w.focus();
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
     };
@@ -1037,7 +1038,7 @@ export default function Estadisticas({ historial, convenios = {}, nacional = [],
 
     const abrirPreview = () => {
         const data = buildPrintData();
-        if (!data.sections.length && !data.kpis.length) { alert('Elegí al menos una sección para imprimir.'); return; }
+        if (!data.sections.length && !data.kpis.length) { notify('Elegí al menos una sección para imprimir.'); return; }
         setPrintPreview(data);
     };
 

@@ -1,21 +1,21 @@
 /* ===== CONTENEDOR PRINCIPAL ===== */
 .container {
-  min-height: calc(100vh - 70px);
+  min-height: calc(calc(100vh / var(--app-zoom, 1)) - 70px);
   background:
     radial-gradient(circle at top left, rgba(37, 211, 102, 0.08), transparent 34%),
-    #0f172a;
+    var(--cu-slate-900);
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: clamp(16px, 3vw, 32px);
+  padding: clamp(16px, calc(3vw / var(--app-zoom, 1)), 32px);
 }
 
 /* ===== TARJETA PRINCIPAL ===== */
 .card {
-  background: #111827;
+  background: var(--cu-slate-850);
   width: 100%;
   max-width: 760px;
-  padding: clamp(20px, 3vw, 36px);
+  padding: clamp(20px, calc(3vw / var(--app-zoom, 1)), 36px);
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
@@ -43,7 +43,7 @@
 
 .title {
   color: #f0f9ff;
-  font-size: clamp(24px, 4vw, 30px);
+  font-size: clamp(24px, calc(4vw / var(--app-zoom, 1)), 30px);
   font-weight: 850;
   margin: 0;
   letter-spacing: -0.03em;
@@ -51,7 +51,7 @@
 
 .subtitle {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -85,7 +85,7 @@
 .label {
   font-size: 14px;
   font-weight: 700;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -94,7 +94,7 @@
 .labelStats {
   font-weight: 400;
   font-size: 12px;
-  color: #64748b;
+  color: var(--cu-slate-500);
 }
 
 .required {
@@ -105,9 +105,9 @@
 /* ===== INPUTS ===== */
 .input {
   width: 100%;
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 15px;
@@ -117,12 +117,12 @@
 }
 
 .input::placeholder {
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .input:focus {
   outline: none;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
@@ -154,13 +154,13 @@
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-size: 16px;
   cursor: pointer;
   padding: 4px;
 }
 .clearBtn:hover {
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
 }
 
 /* ===== PÍLDORAS (PACIENTES, MENSAJES, MÉDICOS) ===== */
@@ -176,7 +176,7 @@
 .pillsSectionLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
@@ -188,7 +188,7 @@
   padding: 10px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid #334155;
+  border: 1px solid var(--cu-slate-700);
 }
 .pillsGrid {
   max-height: 280px;
@@ -205,16 +205,16 @@
   gap: 6px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid #334155;
-  background: #1e293b;
+  border: 1px solid var(--cu-slate-700);
+  background: var(--cu-slate-800);
   cursor: pointer;
   font-size: 14px;
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
   transition: all 0.15s ease;
   font-family: inherit;
 }
 .pill:hover {
-  border-color: #475569;
+  border-color: var(--cu-slate-600);
   background: #273549;
   transform: translateY(-1px);
 }
@@ -238,8 +238,8 @@
   font-weight: 600;
 }
 .pillArt {
-  background: #334155;
-  color: #cbd5e1;
+  background: var(--cu-slate-700);
+  color: var(--cu-slate-300);
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 6px;
@@ -248,7 +248,7 @@
 }
 .pillDni {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-variant-numeric: tabular-nums;
 }
 .pillCheck {
@@ -263,7 +263,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   cursor: pointer;
 }
 .toggleActivos input {
@@ -272,7 +272,7 @@
 }
 .pillsMore {
   font-size: 12px;
-  color: #64748b;
+  color: var(--cu-slate-500);
   margin: 8px 0 0;
   font-style: italic;
   text-align: right;
@@ -281,7 +281,7 @@
   height: 34px;
   width: 150px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  background: linear-gradient(90deg, var(--cu-slate-800) 0%, var(--cu-slate-700) 50%, var(--cu-slate-800) 100%);
   background-size: 200% 100%;
   animation: pulseSkeleton 1.2s infinite;
 }
@@ -290,7 +290,7 @@
   100% { background-position: -200% 0; }
 }
 .emptyMsg {
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-size: 14px;
   text-align: center;
   padding: 10px;
@@ -298,9 +298,9 @@
 
 /* Botones Pequeños */
 .tinyBtn {
-  background: #1f2937;
-  border: 1px solid #374151;
-  color: #cbd5e1;
+  background: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
+  color: var(--cu-slate-300);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 13px;
@@ -322,14 +322,14 @@
   font-weight: 500;
 }
 .clearSelectionBtn:hover {
-  color: #ef4444;
+  color: var(--cu-danger);
 }
 
 /* ===== VISTA PREVIA (PREVIEW) ===== */
 .previewBox {
   margin: 24px 0 0;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--cu-slate-900);
+  border: 1px solid var(--cu-slate-700);
   border-radius: 12px;
   padding: 16px;
 }
@@ -342,7 +342,7 @@
 }
 .previewSubtitle {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -362,9 +362,9 @@
 .textarea {
   width: 100%;
   min-height: 260px;
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
   border-radius: 14px;
   padding: 16px;
   font-size: 15px;
@@ -376,7 +376,7 @@
 }
 .textarea:focus {
   outline: none;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
@@ -415,13 +415,13 @@
   transform: translateY(-1px);
 }
 .secondaryButton {
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
 }
 .secondaryButton:hover {
   background: #273449;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   transform: translateY(-1px);
 }
 .button:active, .secondaryButton:active {
@@ -433,8 +433,8 @@
 .buttonDisabled {
   opacity: 0.5;
   pointer-events: none;
-  background: #4b5563;
-  border-color: #4b5563;
+  background: var(--cu-slate-600);
+  border-color: var(--cu-slate-600);
   box-shadow: none;
 }
 .warningText {
@@ -457,8 +457,8 @@
   z-index: 9999;
 }
 .modal {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
   border-radius: 16px;
   padding: 24px;
   width: 100%;
@@ -471,16 +471,16 @@
 .modalTitle {
   margin: 0;
   font-size: 20px;
-  color: #f8fafc;
+  color: var(--cu-slate-50);
 }
 .modalHint {
   margin: 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   background: rgba(59, 130, 246, 0.1);
   padding: 10px;
   border-radius: 8px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid var(--cu-info);
   line-height: 1.5;
 }
 .modalBtns {
@@ -491,18 +491,18 @@
 }
 .btnCancel {
   background: transparent;
-  border: 1px solid #475569;
-  color: #cbd5e1;
+  border: 1px solid var(--cu-slate-600);
+  color: var(--cu-slate-300);
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
 }
 .btnCancel:hover {
-  background: #334155;
+  background: var(--cu-slate-700);
 }
 .btnSave {
-  background: #3b82f6;
+  background: var(--cu-info);
   color: #fff;
   border: none;
   padding: 10px 16px;
@@ -511,7 +511,7 @@
   cursor: pointer;
 }
 .btnSave:hover {
-  background: #2563eb;
+  background: var(--cu-info-strong);
 }
 
 /* ===== RESPONSIVE ===== */

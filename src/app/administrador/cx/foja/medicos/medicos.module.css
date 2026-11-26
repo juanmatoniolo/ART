@@ -1,28 +1,26 @@
 /* ========== FOJA QX – TEMA OSCURO UNIFICADO (MÓDULO CSS) ========== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
-
 .page {
   /* Variables locales (heredables por los hijos) */
-  --verde: #44794d;
+  --verde: var(--cu-brand-600);
   --verde-osc: #2c5d36;
   --verde-claro: #1e2d24;
   --gold: #d97706;
-  --rojo: #ef4444;
-  --tinta: #e5e7eb;
-  --gris: #9ca3af;
+  --rojo: var(--cu-danger);
+  --tinta: var(--cu-slate-200);
+  --gris: var(--cu-slate-400);
   --linea: rgba(255, 255, 255, 0.07);
-  --bg: #0b1220;
-  --card-bg: #111827;
-  --input-bg: #1a2335;
+  --bg: var(--cu-slate-950);
+  --card-bg: var(--cu-slate-850);
+  --input-bg: var(--cu-slate-800);
   --input-border: #253348;
   --radio: 16px;
   --sombra: 0 1px 3px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .2);
 
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: var(--bg);
   color: var(--tinta);
   padding: 24px 16px 80px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
 }
 
 /* ── Botón volver ── */
@@ -46,7 +44,7 @@
 .backBtn:hover,
 .volverBtn:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
 }
 
 /* ── Pestañas de navegación ── */
@@ -72,8 +70,8 @@
 }
 
 .tab:hover {
-  background: #1e293b;
-  color: #e5e7eb;
+  background: var(--cu-slate-800);
+  color: var(--cu-slate-200);
 }
 
 .tabActive {
@@ -101,7 +99,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--verde), #6fa17b, #d4b87a);
+  background: linear-gradient(90deg, var(--verde), var(--cu-brand-400), #d4b87a);
 }
 
 .headerContent {
@@ -120,7 +118,7 @@
 }
 
 .title {
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-size: clamp(1.5rem, calc(5vw / var(--app-zoom, 1)), 2rem);
   font-weight: 800;
   color: #f0f9ff;
   margin: 0.2rem 0 0.3rem;
@@ -167,7 +165,7 @@
 }
 
 .sectionNumber {
-  font-family: 'Merriweather', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1rem;
   font-style: italic;
   color: #d4b87a;
@@ -230,7 +228,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
 }
 
 /* Inputs y selects */
@@ -247,7 +245,7 @@
   background: var(--input-bg);
   border: 1.5px solid var(--input-border);
   border-radius: 14px;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   transition: all 0.2s ease;
   width: 100%;
   box-sizing: border-box;
@@ -265,7 +263,7 @@
   border-color: var(--verde);
   outline: none;
   box-shadow: 0 0 0 3px rgba(68, 121, 77, 0.15);
-  background: #111827;
+  background: var(--cu-slate-850);
 }
 
 .select {
@@ -290,7 +288,7 @@
   border: 1.5px solid var(--input-border);
   border-radius: 14px;
   background-color: var(--input-bg);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   font: inherit;
   cursor: pointer;
 }
@@ -328,7 +326,7 @@
 .btnSecondary {
   background: transparent;
   border: 1.5px solid rgba(255, 255, 255, 0.2);
-  color: #d1d5db;
+  color: var(--cu-slate-300);
 }
 
 .btnSecondary:hover:not(:disabled) {
@@ -420,7 +418,7 @@
 
 .successKey {
   font-size: 0.7rem;
-  font-family: monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   color: var(--gris);
   margin: 0;
 }
@@ -489,7 +487,7 @@
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
 }
 
 .cardDate {
@@ -519,7 +517,7 @@
   align-items: center;
   gap: 6px;
   background: #1f2a33;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 5px 11px;
@@ -547,7 +545,7 @@
 .cardCollapsed {
   margin: 0;
   font-size: 0.88rem;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -585,7 +583,7 @@
 
 .expandedValue {
   font-size: 0.86rem;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -634,8 +632,8 @@
 }
 
 .btnDownload {
-  background: #1a2335;
-  color: #cbd5e1;
+  background: var(--cu-slate-800);
+  color: var(--cu-slate-300);
   border-color: var(--input-border);
 }
 
@@ -695,7 +693,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   margin: 0;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
 }
 
 .templateSubtitle {
@@ -747,7 +745,7 @@
   border: 1px solid var(--input-border);
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
 }
 
 .searchInput:focus {
@@ -886,7 +884,7 @@
 
 .confirmText {
   font-size: 0.92rem;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   line-height: 1.55;
   margin: 0 0 20px;
 }
@@ -902,7 +900,7 @@
   border-radius: 20px;
   width: 100%;
   max-width: 720px;
-  max-height: 90vh;
+  max-height: calc(90vh / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1000,7 +998,7 @@
 .modalLabel {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
 }
 
 .modalInput,
@@ -1012,7 +1010,7 @@
   border: 1px solid var(--input-border);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   font-family: inherit;
 }
 
@@ -1054,7 +1052,7 @@
 
 .btnCancel {
   background: transparent;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   border-color: var(--linea);
 }
 

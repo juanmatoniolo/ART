@@ -1,5 +1,8 @@
 "use client";
+import { getShared } from "@/lib/dbCache";
+import { notify } from "@/lib/notify";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -30,7 +33,7 @@ import {
 
 // ── Constantes ──
 const MAPPING_URL = "/mappings/cd-campos_fields_rects.json";
-const CIRUGIAS_DB_URL = "https://datos-clini-default-rtdb.firebaseio.com/cirugias";
+const CIRUGIAS_DB_URL = `${DB_URL}/cirugias`;
 
 const HC_PATH = "historias-clinicas";
 const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
@@ -265,7 +268,7 @@ export default function Page() {
   // HC LOOKUP
   // ══════════════════════════════════════════════════════════════
   const calcularProximoNumeroHC = async () => {
-    const [snapHC, snapCounter] = await Promise.all([get(child(ref(db), HC_PATH)), get(child(ref(db), COUNTER_GENERAL_PATH))]);
+    const [snapHC, snapCounter] = await Promise.all([getShared(HC_PATH), get(child(ref(db), COUNTER_GENERAL_PATH))]);
     let maxReal = 0;
     if (snapHC.exists()) {
       for (const item of Object.values(snapHC.val())) {
@@ -285,7 +288,7 @@ export default function Page() {
     setHcLookup({ loading: true, searched: false, dni: dniDigits, match: null, nextNumber: null, loadingNext: false });
 
     try {
-      const snap = await get(child(ref(db), HC_PATH));
+      const snap = await getShared(HC_PATH);
       const matchesDni = (itemDniRaw) => {
         const itemDni = onlyDigits(itemDniRaw);
         if (!itemDni) return false;
@@ -327,7 +330,7 @@ export default function Page() {
 
   const forceLookupDni = () => {
     const digits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
-    if (digits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+    if (digits.length < 7) return notify("Ingresá al menos 7 dígitos del DNI/CUIL");
     lastLookupDniRef.current = "";
     lookupDniInHC(digits);
   };
@@ -348,10 +351,10 @@ export default function Page() {
 
   const crearHistoriaClinica = async () => {
     const dniDigits = onlyDigits(canonDNI ? form?.[canonDNI] : "");
-    if (dniDigits.length < 7) return alert("Ingresá al menos 7 dígitos del DNI/CUIL");
+    if (dniDigits.length < 7) return notify("Ingresá al menos 7 dígitos del DNI/CUIL");
     const apellido = canonApellido ? form?.[canonApellido] : "";
     const nombre = canonNombre ? form?.[canonNombre] : "";
-    if (!apellido || !nombre) return alert("Completá apellido y nombre antes de crear la HC");
+    if (!apellido || !nombre) return notify("Completá apellido y nombre antes de crear la HC");
 
     const numeroPreview = hcLookup.nextNumber ? ` (se asignará el N° ${hcLookup.nextNumber})` : "";
     const ok = window.confirm(`¿Crear una nueva historia clínica PISO para "${apellido} ${nombre}" (DNI ${dniDigits})${numeroPreview}?`);
@@ -359,7 +362,7 @@ export default function Page() {
 
     setCreatingHc(true);
     try {
-      const snapshot = await get(child(ref(db), HC_PATH));
+      const snapshot = await getShared(HC_PATH);
       let maxReal = 0;
       if (snapshot.exists()) {
         for (const item of Object.values(snapshot.val())) {
@@ -401,7 +404,7 @@ export default function Page() {
       setTimeout(() => setMensajeExito(""), 4000);
     } catch (err) {
       console.error("Error creando HC:", err);
-      alert("No se pudo crear la historia clínica.");
+      notify("No se pudo crear la historia clínica.");
     } finally {
       setCreatingHc(false);
     }
@@ -496,7 +499,7 @@ export default function Page() {
 
     const apellido = canonApellido ? formData[canonApellido] : "";
     const nombre = canonNombre ? formData[canonNombre] : "";
-    if (!apellido || !nombre) return alert("Por favor complete al menos apellido y nombre del paciente");
+    if (!apellido || !nombre) return notify("Por favor complete al menos apellido y nombre del paciente");
 
     setSaving(true);
     try {
@@ -565,7 +568,7 @@ export default function Page() {
       setHcLookup({ loading: false, searched: false, dni: "", match: null, nextNumber: null, loadingNext: false });
       return true;
     } catch (err) {
-      console.error(err); alert("Error al guardar la cirugía");
+      console.error(err); notify("Error al guardar la cirugía");
       return false;
     } finally {
       setSaving(false);

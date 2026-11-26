@@ -1,4 +1,6 @@
 'use client';
+import { getShared } from "@/lib/dbCache";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -452,7 +454,7 @@ export default function FacturaContainer() {
         try {
           const dniDigits = onlyDigits(dni);
           if (dniDigits) {
-            const pacSnap = await get(ref(db, 'pacientes'));
+            const pacSnap = await getShared("pacientes");
             if (pacSnap.exists()) {
               const found = Object.entries(pacSnap.val()).find(([, p]) => {
                 return onlyDigits(p?.trabajador?.dni || '') === dniDigits;
@@ -538,7 +540,7 @@ export default function FacturaContainer() {
       const tieneSiniestro = curStro !== '';
       if (!dniDigits && !tieneSiniestro) return [];
 
-      const snap = await get(ref(db, 'Facturacion'));
+      const snap = await getShared("Facturacion");
       if (!snap.exists()) return [];
       const all = snap.val();
 
@@ -851,11 +853,11 @@ export default function FacturaContainer() {
     if (savingPacienteRef.current) return;
 
     if (!paciente.pacienteId) {
-      alert('Este paciente no está vinculado a un registro. Seleccionalo desde el buscador.');
+      notify('Este paciente no está vinculado a un registro. Seleccionalo desde el buscador.');
       return;
     }
     if (!paciente.nombreCompleto || !paciente.dni) {
-      alert('Completá nombre y DNI antes de actualizar.');
+      notify('Completá nombre y DNI antes de actualizar.');
       return;
     }
 
@@ -914,10 +916,10 @@ export default function FacturaContainer() {
         }
       }
 
-      alert('✅ Datos del paciente actualizados.');
+      notify('✅ Datos del paciente actualizados.');
     } catch (e) {
       console.error(e);
-      alert(e?.message || 'Error al actualizar los datos.');
+      notify(e?.message || 'Error al actualizar los datos.');
     } finally {
       savingPacienteRef.current = false;
       setSavingPaciente(false);
@@ -992,7 +994,7 @@ export default function FacturaContainer() {
           router.replace(`/admin/Facturacion/Nuevo?draft=${saved.id}`);
         } catch (e) {
           console.error(e);
-          alert(e?.message || 'Error al guardar la copia.');
+          notify(e?.message || 'Error al guardar la copia.');
         } finally {
           savingGuardarRef.current = false;
           setSavingGuardar(false);

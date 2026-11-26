@@ -10,7 +10,7 @@
 
     padding: 0 24px;
     background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--cu-slate-200);
 }
 
 .left {
@@ -18,7 +18,7 @@
     align-items: center;
     gap: 10px;
     font-weight: 600;
-    color: #111827;
+    color: var(--cu-slate-850);
 }
 
 .brand {
@@ -41,19 +41,19 @@
 
     font-size: 14px;
     font-weight: 500;
-    color: #374151;
+    color: var(--cu-slate-700);
     text-decoration: none;
 
     transition: background 0.15s ease, color 0.15s ease;
 }
 
 .navLink:hover {
-    background: #f3f4f6;
+    background: var(--cu-slate-100);
 }
 
 .active {
     background: #e6f0ea;
-    color: #44794d;
+    color: var(--cu-brand-600);
 }
 
 /* Responsive */

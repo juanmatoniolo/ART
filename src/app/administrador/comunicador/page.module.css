@@ -2,22 +2,22 @@
 
 /* ===== Contenedor principal ===== */
 .container {
-  min-height: calc(100vh - 70px);
+  min-height: calc(calc(100vh / var(--app-zoom, 1)) - 70px);
   background:
     radial-gradient(circle at top left, rgba(37, 211, 102, 0.08), transparent 34%),
-    #0f172a;
+    var(--cu-slate-900);
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: clamp(16px, 3vw, 32px);
+  padding: clamp(16px, calc(3vw / var(--app-zoom, 1)), 32px);
 }
 
 /* ===== Tarjeta principal ===== */
 .card {
-  background: #111827;
+  background: var(--cu-slate-850);
   width: 100%;
   max-width: 760px;
-  padding: clamp(20px, 3vw, 36px);
+  padding: clamp(20px, calc(3vw / var(--app-zoom, 1)), 36px);
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
@@ -46,7 +46,7 @@
 /* ===== Título ===== */
 .title {
   color: #f0f9ff;
-  font-size: clamp(24px, 4vw, 30px);
+  font-size: clamp(24px, calc(4vw / var(--app-zoom, 1)), 30px);
   font-weight: 850;
   margin: 0;
   letter-spacing: -0.03em;
@@ -54,7 +54,7 @@
 
 .subtitle {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -79,7 +79,7 @@
 .label {
   font-size: 14px;
   font-weight: 700;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -91,7 +91,7 @@
 }
 
 .helpText {
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -99,9 +99,9 @@
 /* ===== Inputs, selects, textarea ===== */
 .input {
   width: 100%;
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 15px;
@@ -114,16 +114,16 @@
 }
 
 .input::placeholder {
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .input:hover {
-  border-color: #4b5563;
+  border-color: var(--cu-slate-600);
 }
 
 .input:focus {
   outline: none;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
@@ -152,7 +152,7 @@ select.input {
 
 .previewSubtitle {
   margin: 4px 0 0;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -174,9 +174,9 @@ select.input {
 .textarea {
   width: 100%;
   min-height: 260px;
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
   border-radius: 14px;
   padding: 16px;
   font-size: 15px;
@@ -189,7 +189,7 @@ select.input {
 
 .textarea:focus {
   outline: none;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
@@ -237,14 +237,14 @@ select.input {
 }
 
 .secondaryButton {
-  background: #1f2937;
+  background: var(--cu-slate-800);
   color: #f0f9ff;
-  border: 1px solid #374151;
+  border: 1px solid var(--cu-slate-700);
 }
 
 .secondaryButton:hover {
   background: #273449;
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   transform: translateY(-1px);
 }
 
@@ -260,8 +260,8 @@ select.input {
 .buttonDisabled {
   opacity: 0.5;
   pointer-events: none;
-  background: #4b5563;
-  border-color: #4b5563;
+  background: var(--cu-slate-600);
+  border-color: var(--cu-slate-600);
   box-shadow: none;
 }
 
@@ -284,8 +284,8 @@ select.input {
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
   border-radius: 12px;
   max-height: 260px;
   overflow-y: auto;
@@ -298,7 +298,7 @@ select.input {
   flex-direction: column;
   align-items: stretch;
   padding: 10px 14px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--cu-slate-700);
   background: transparent;
   cursor: pointer;
   transition: background 0.15s;
@@ -312,7 +312,7 @@ select.input {
 }
 
 .suggestionItem:hover {
-  background: #374151;
+  background: var(--cu-slate-700);
 }
 
 .suggestionMain {
@@ -324,15 +324,15 @@ select.input {
 
 .suggestionName {
   font-weight: 700;
-  color: #f3f4f6;
+  color: var(--cu-slate-100);
   font-size: 14px;
   word-break: break-word;
 }
 
 .suggestionPhone {
   font-size: 12px;
-  color: #9ca3af;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--cu-slate-400);
+  font-family: var(--font-mono), var(--font-mono-fallback);
   flex-shrink: 0;
 }
 
@@ -340,17 +340,17 @@ select.input {
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   margin-top: 4px;
 }
 
 .suggestionArt,
 .suggestionSiniestro {
-  background: #2d3748;
+  background: var(--cu-slate-700);
   padding: 2px 10px;
   border-radius: 12px;
   font-size: 11px;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
 }
 
 /* ===== Campos en fila ===== */
@@ -402,7 +402,7 @@ select.input {
 @media (max-width: 640px) {
   .container {
     padding: 12px;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--app-zoom, 1));
   }
 
   .card {

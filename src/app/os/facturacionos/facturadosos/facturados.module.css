@@ -1,24 +1,24 @@
 .container {
-  --bg: #0b1220;
-  --panel: #1f2937;
-  --panel-soft: #111827;
+  --bg: var(--cu-slate-950);
+  --panel: var(--cu-slate-800);
+  --panel-soft: var(--cu-slate-850);
   --panel-muted: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.12);
-  --text: #f9fafb;
-  --muted: #cbd5e1;
-  --dim: #94a3b8;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --success: #22c55e;
-  --success-hover: #16a34a;
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-  --warning: #f59e0b;
+  --text: var(--cu-slate-50);
+  --muted: var(--cu-slate-300);
+  --dim: var(--cu-slate-400);
+  --primary: var(--cu-info);
+  --primary-hover: var(--cu-info-strong);
+  --success: var(--cu-success);
+  --success-hover: var(--cu-success-strong);
+  --danger: var(--cu-danger);
+  --danger-hover: var(--cu-danger-strong);
+  --warning: var(--cu-warning);
   --info: #06b6d4;
   --radius: 10px;
 
   width: 100%;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   padding: 16px;
   background: var(--bg);
   color: var(--text);
@@ -47,7 +47,7 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.35rem, 3vw, 1.9rem);
+  font-size: clamp(1.35rem, calc(3vw / var(--app-zoom, 1)), 1.9rem);
   font-weight: 900;
 }
 
@@ -142,12 +142,12 @@
 }
 
 .select option {
-  background: #111827;
+  background: var(--cu-slate-850);
   color: #fff;
 }
 
 .search::placeholder {
-  color: #94a3b8;
+  color: var(--cu-slate-400);
 }
 
 .search:focus,
@@ -490,12 +490,12 @@
 }
 
 .modal {
-  background: #1f2937;
+  background: var(--cu-slate-800);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   max-width: 700px;
   width: 100%;
-  max-height: 80vh;
+  max-height: calc(80vh / var(--app-zoom, 1));
   padding: 24px;
   overflow-y: auto;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
@@ -507,18 +507,18 @@
 }
 
 .modal p {
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   font-size: 0.9rem;
   margin-bottom: 12px;
 }
 
 .cmdScript {
-  background: #0b1220;
+  background: var(--cu-slate-950);
   color: #a5f3fc;
   padding: 16px;
   border-radius: 8px;
   font-size: 0.8rem;
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 280px;

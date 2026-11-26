@@ -5,7 +5,7 @@ export default function Loading() {
         <div
             style={{
                 display: "flex",
-                height: "100vh",
+                height: "calc(100vh / var(--app-zoom, 1))",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "var(--background)",

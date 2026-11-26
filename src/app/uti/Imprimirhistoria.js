@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notify";
 function imprimirHistoria(registro) {
 	if (!registro) return;
 
@@ -525,7 +526,7 @@ function imprimirHistoria(registro) {
 
 	const w = window.open("", "_blank", "width=860,height=720,scrollbars=yes");
 	if (!w) {
-		alert("Activar ventanas emergentes para imprimir.");
+		notify("Activar ventanas emergentes para imprimir.");
 		return;
 	}
 	w.document.open();

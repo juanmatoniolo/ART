@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 // src/app/api/cloudinary/delete/route.js
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
@@ -9,7 +10,7 @@ cloudinary.config({
   secure: true,
 });
 
-export async function POST(req) {
+async function postHandler(req) {
   try {
     const { publicId, resourceType = "image" } = await req.json();
     if (!publicId) {
@@ -31,3 +32,9 @@ export async function POST(req) {
     );
   }
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	return postHandler(request, ctx);
+});

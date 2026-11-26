@@ -1,4 +1,6 @@
 'use client';
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -37,7 +39,7 @@ export default function MedicoEditPage() {
       router.push('/admin/medicos');
     } catch (error) {
       console.error(error);
-      alert('Error al guardar');
+      notify('Error al guardar');
     }
   };
 
@@ -53,7 +55,7 @@ export default function MedicoEditPage() {
       <h1>{isNew ? 'Nuevo médico' : 'Editar médico'}</h1>
       <DoctorForm
         initialData={initialData || {}}
-        onSubmit={handleSubmit}
+        onSubmit={singleFlight("app/admin/medicos/[id]/page:handleSubmit", handleSubmit)}
         onCancel={() => router.push('/admin/medicos')}
       />
     </div>

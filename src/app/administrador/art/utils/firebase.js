@@ -1,1 +1,1 @@
-export const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+export { DB_URL as FIREBASE_URL } from "@/lib/config";

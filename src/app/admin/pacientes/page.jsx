@@ -1,12 +1,27 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
-import { useEffect, useMemo, useState } from "react";
+import { DB_URL } from "@/lib/config";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import styles from "./page.module.css";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
+
+// [clave de orden, etiqueta, clases de columna (optLg/optMd se ocultan en pantallas angostas)]
+const SORT_OPTIONS = [
+  ["nombre", "Paciente", "colPaciente"],
+  ["dni", "DNI", "colDni optMd"],
+  ["edad", "Edad", "colEdad optLg"],
+  ["art", "ART", "colArt"],
+  ["nroSiniestro", "N° Siniestro", "colSiniestro optLg"],
+  ["fechaIngreso", "Ingreso", "colIngreso optLg"],
+  ["estado", "Estado", "colEstado"],
+];
 
 function pacienteIncompleto(p) {
   const t = p.trabajador || {};
@@ -23,6 +38,53 @@ function pacienteIncompleto(p) {
   if (!fi.dia || !fi.mes || !fi.anio) faltan.push("Fecha Ingreso");
 
   return faltan.length > 0 ? faltan : false;
+}
+
+/* Panel de estadísticas colapsable */
+function StatsPanel({ title, subtitle, badge = null, large = false, defaultOpen = true, children }) {
+  return (
+    <details className={`${styles.statsPanel} ${large ? styles.statsPanelLarge : ""}`} open={defaultOpen}>
+      <summary className={styles.panelSummary}>
+        <div className={styles.panelSummaryText}>
+          <h3 className={styles.panelTitle}>{title}</h3>
+          {subtitle && <p className={styles.panelSubtitle}>{subtitle}</p>}
+        </div>
+        {badge != null && <span className={styles.panelBadge}>{badge}</span>}
+        <span className={styles.chevron} aria-hidden="true">▾</span>
+      </summary>
+      <div className={styles.panelBody}>{children}</div>
+    </details>
+  );
+}
+
+/* Fila desplegable: resumen arriba, detalle al abrir */
+function AccordionRow({ title, value, hint, pct, children }) {
+  const width = Math.max(0, Math.min(100, Number(pct) || 0));
+  return (
+    <details className={styles.accRow}>
+      <summary className={styles.accSummary}>
+        <span className={styles.accTitle}>{title}</span>
+        <span className={styles.accValue}>
+          {value}
+          {hint && <small className={styles.accHint}>{hint}</small>}
+        </span>
+        <span className={styles.chevron} aria-hidden="true">▾</span>
+        {pct != null && (
+          <span className={styles.accBar}><span className={styles.accBarFill} style={{ width: `${width}%` }} /></span>
+        )}
+      </summary>
+      <div className={styles.accBody}>{children}</div>
+    </details>
+  );
+}
+
+function AccMetric({ label, children }) {
+  return (
+    <div className={styles.accMetric}>
+      <span className={styles.accMetricLabel}>{label}</span>
+      <strong className={styles.accMetricValue}>{children}</strong>
+    </div>
+  );
 }
 
 export default function PacientesPage() {
@@ -46,6 +108,7 @@ export default function PacientesPage() {
 
   const [activeView, setActiveView] = useState("listado");
   const [printingId, setPrintingId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const [ordenColumna, setOrdenColumna] = useState("fechaIngreso");
   const [ordenDireccion, setOrdenDireccion] = useState("desc");
@@ -86,9 +149,7 @@ export default function PacientesPage() {
   };
 
   useEffect(() => {
-    const factRef = ref(db, "Facturacion");
-    const unsub = onValue(
-      factRef,
+    const unsub = onSharedValue("Facturacion",
       (snap) => setFacturacionData(snap.exists() ? snap.val() : {}),
       (err) => {
         console.error("Error al cargar facturación:", err);
@@ -478,7 +539,7 @@ export default function PacientesPage() {
       await fetchPacientes();
     } catch (error) {
       console.error(error);
-      alert("Error al cambiar el estado.");
+      notify("Error al cambiar el estado.");
     }
   };
 
@@ -500,7 +561,7 @@ export default function PacientesPage() {
       if (grupo.length > 1) grupos.push(grupo);
     }
     if (grupos.length === 0) {
-      alert("No se encontraron duplicados.");
+      notify("No se encontraron duplicados.");
       return;
     }
     const primerGrupo = grupos[0];
@@ -511,7 +572,7 @@ export default function PacientesPage() {
 
   const fusionarPacientes = async () => {
     if (!principalId) {
-      alert("Selecciona un paciente principal.");
+      notify("Selecciona un paciente principal.");
       return;
     }
     const principal = pacientesDuplicados.find((p) => p.id === principalId);
@@ -563,10 +624,10 @@ export default function PacientesPage() {
       await Promise.all(secundarios.map((sec) => fetch(`${FIREBASE_URL}/pacientes/${sec.id}.json`, { method: "DELETE" })));
       await fetchPacientes();
       setShowUnionModal(false);
-      alert("Pacientes fusionados correctamente.");
+      notify("Pacientes fusionados correctamente.");
     } catch (error) {
       console.error(error);
-      alert("Error al fusionar pacientes.");
+      notify("Error al fusionar pacientes.");
     }
   };
 
@@ -577,7 +638,7 @@ export default function PacientesPage() {
       await fetchPacientes();
     } catch (error) {
       console.error(error);
-      alert("Error al eliminar.");
+      notify("Error al eliminar.");
     }
   };
 
@@ -627,7 +688,7 @@ export default function PacientesPage() {
   const handlePrint = async (paciente, type = "art") => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("El navegador bloqueó la ventana de impresión.");
+      notify("El navegador bloqueó la ventana de impresión.");
       return;
     }
     printWindow.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8" /><title>Cargando...</title><style>html,body{margin:0;height:100%;display:grid;place-items:center;font-family:Arial,sans-serif;background:#f3f4f6}.loader{text-align:center;color:#111827}</style></head><body><div class="loader">Generando vista de impresión...</div></body></html>`);
@@ -701,7 +762,7 @@ export default function PacientesPage() {
       </header>
 
       {/* Tabs de vista + filtro de estado (switch) */}
-      <nav className={styles.viewTabs} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <nav className={styles.viewTabs} style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("listado")}>📋 Listado</button>
           <button className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("estadisticas")}>📊 Estadísticas</button>
@@ -792,6 +853,15 @@ export default function PacientesPage() {
 
           <div className={styles.resultsSummary}>
             <span>Mostrando <strong>{filteredPacientes.length}</strong> de <strong>{pacientes.length}</strong> pacientes</span>
+            <div className={styles.sortControls}>
+              <label className={styles.filterLabel} htmlFor="ordenPacientes">Ordenar</label>
+              <select id="ordenPacientes" value={ordenColumna} onChange={(e) => setOrdenColumna(e.target.value)} className={styles.sortSelect}>
+                {SORT_OPTIONS.map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
+              </select>
+              <button type="button" className={styles.iconBtn} title={ordenDireccion === "asc" ? "Ascendente" : "Descendente"} onClick={() => setOrdenDireccion((prev) => (prev === "asc" ? "desc" : "asc"))}>
+                {ordenDireccion === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
           </div>
 
           {filteredPacientes.length === 0 ? (
@@ -799,22 +869,17 @@ export default function PacientesPage() {
           ) : (
             <section className={styles.tableWrapper}>
               <table className={styles.table}>
-                <colgroup>
-                  <col className={styles.colPaciente} /><col className={styles.colDni} /><col className={styles.colEdad} />
-                  <col className={styles.colArt} /><col className={styles.colSiniestro} /><col className={styles.colIngreso} />
-                  <col className={styles.colEstado} /><col className={styles.colAcciones} />
-                </colgroup>
                 <thead>
                   <tr>
-                    {[["nombre","Paciente"],["dni","DNI"],["edad","Edad"],["art","ART"],["nroSiniestro","N° Siniestro"],["fechaIngreso","Ingreso"],["estado","Estado"]].map(([key,label]) => (
-                      <th key={key} className={styles.sortable}>
+                    {SORT_OPTIONS.map(([key, label, colClass]) => (
+                      <th key={key} className={`${styles.sortable} ${colClass.split(" ").map((c) => styles[c]).join(" ")}`}>
                         <button type="button" className={styles.sortButton} onClick={() => handleSort(key)}>
                           <span>{label}</span>
                           {ordenColumna === key && <span className={styles.sortArrow}>{ordenDireccion === "asc" ? "↑" : "↓"}</span>}
                         </button>
                       </th>
                     ))}
-                    <th className={styles.accionesHeader}>Acciones</th>
+                    <th className={`${styles.accionesHeader} ${styles.colAcciones} ${styles.optMd}`}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -825,27 +890,60 @@ export default function PacientesPage() {
                     const estado = paciente.estado || "abierto";
                     const incompleto = pacienteIncompleto(paciente);
                     const nombreCompleto = `${t.apellido || ""} ${t.nombre || ""}`.trim() || "—";
+                    const expanded = expandedId === paciente.id;
+                    const ingreso = fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—";
+                    const acciones = (
+                      <div className={styles.actionsCellContent}>
+                        <button className={styles.iconBtn} title="Editar" onClick={() => router.push(`/admin/pacientes/editar/${paciente.id}`)}>✏️</button>
+                        <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} title="Eliminar" onClick={singleFlight("app/admin/pacientes/page:handleDelete", () => handleDelete(paciente.id))}>🗑️</button>
+                        {t.telefono && <button className={`${styles.iconBtn} ${styles.iconBtnWa}`} title="WhatsApp" onClick={() => handleWhatsAppClick(paciente)}>📱</button>}
+                        <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="ART completo" onClick={() => handlePrint(paciente, "art")} disabled={printingId === `${paciente.id}-art`}>{printingId === `${paciente.id}-art` ? "⏳" : "🖨️"}</button>
+                        <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="Evolución" onClick={() => handlePrint(paciente, "evolucion")} disabled={printingId === `${paciente.id}-evolucion`}>{printingId === `${paciente.id}-evolucion` ? "⏳" : "📄"}</button>
+                      </div>
+                    );
                     return (
-                      <tr key={paciente.id} className={estado === "cerrado" ? styles.rowCerrado : ""}>
-                        <td data-label="Paciente"><div className={styles.cellNameContent}><span className={styles.patientName}>{nombreCompleto}</span>{incompleto && <span className={styles.incompletoIcon} title={`Faltan: ${incompleto.join(", ")}`}>⚠️</span>}</div></td>
-                        <td data-label="DNI"><span className={styles.cellTextWrap}>{t.dni || "—"}</span></td>
-                        <td data-label="Edad">{t.edad ? `${t.edad}` : "—"}</td>
+                      <Fragment key={paciente.id}>
+                      <tr className={`${estado === "cerrado" ? styles.rowCerrado : ""} ${expanded ? styles.rowExpanded : ""}`}>
+                        <td data-label="Paciente">
+                          <div className={styles.cellNameContent}>
+                            <button
+                              type="button"
+                              className={styles.rowToggle}
+                              aria-expanded={expanded}
+                              aria-label={expanded ? "Ocultar detalle" : "Ver detalle"}
+                              onClick={() => setExpandedId(expanded ? null : paciente.id)}
+                            >
+                              <span className={styles.chevron} aria-hidden="true">▾</span>
+                            </button>
+                            <span className={styles.patientName}>{nombreCompleto}</span>
+                            {incompleto && <span className={styles.incompletoIcon} title={`Faltan: ${incompleto.join(", ")}`}>⚠️</span>}
+                          </div>
+                        </td>
+                        <td data-label="DNI" className={styles.optMd}><span className={styles.cellTextWrap}>{t.dni || "—"}</span></td>
+                        <td data-label="Edad" className={styles.optLg}>{t.edad ? `${t.edad}` : "—"}</td>
                         <td data-label="ART"><span className={styles.artTag}>{(art.nombre || "—").toUpperCase()}</span></td>
-                        <td data-label="N° Siniestro" className={styles.mono}><span className={styles.cellTextWrap}>{art.nroSiniestro || "—"}</span></td>
-                        <td data-label="Ingreso" className={styles.mono}>{fi.dia && fi.mes && fi.anio ? `${fi.dia}/${fi.mes}/${fi.anio}` : "—"}</td>
+                        <td data-label="N° Siniestro" className={`${styles.mono} ${styles.optLg}`}><span className={styles.cellTextWrap}>{art.nroSiniestro || "—"}</span></td>
+                        <td data-label="Ingreso" className={`${styles.mono} ${styles.optLg}`}>{ingreso}</td>
                         <td data-label="Estado" onDoubleClick={() => handleToggleEstado(paciente.id, estado)} style={{ cursor: "pointer" }} title="Doble clic para cambiar estado">
                           <span className={estado === "abierto" ? styles.bolitaVerde : styles.bolitaRoja} />
                         </td>
-                        <td data-label="Acciones">
-                          <div className={styles.actionsCellContent}>
-                            <button className={styles.iconBtn} title="Editar" onClick={() => router.push(`/admin/pacientes/editar/${paciente.id}`)}>✏️</button>
-                            <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} title="Eliminar" onClick={() => handleDelete(paciente.id)}>🗑️</button>
-                            {t.telefono && <button className={`${styles.iconBtn} ${styles.iconBtnWa}`} title="WhatsApp" onClick={() => handleWhatsAppClick(paciente)}>📱</button>}
-                            <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="ART completo" onClick={() => handlePrint(paciente, "art")} disabled={printingId === `${paciente.id}-art`}>{printingId === `${paciente.id}-art` ? "⏳" : "🖨️"}</button>
-                            <button className={`${styles.iconBtn} ${styles.iconBtnPrint}`} title="Evolución" onClick={() => handlePrint(paciente, "evolucion")} disabled={printingId === `${paciente.id}-evolucion`}>{printingId === `${paciente.id}-evolucion` ? "⏳" : "📄"}</button>
-                          </div>
-                        </td>
+                        <td data-label="Acciones" className={styles.optMd}>{acciones}</td>
                       </tr>
+                      {expanded && (
+                        <tr className={styles.detailRow}>
+                          <td colSpan={8}>
+                            <div className={styles.detailGrid}>
+                              <div className={styles.accMetric}><span className={styles.accMetricLabel}>DNI</span><strong className={styles.accMetricValue}>{t.dni || "—"}</strong></div>
+                              <div className={styles.accMetric}><span className={styles.accMetricLabel}>Edad</span><strong className={styles.accMetricValue}>{t.edad || "—"}</strong></div>
+                              <div className={styles.accMetric}><span className={styles.accMetricLabel}>N° Siniestro</span><strong className={`${styles.accMetricValue} ${styles.mono}`}>{art.nroSiniestro || "—"}</strong></div>
+                              <div className={styles.accMetric}><span className={styles.accMetricLabel}>Ingreso</span><strong className={`${styles.accMetricValue} ${styles.mono}`}>{ingreso}</strong></div>
+                              {incompleto && <div className={`${styles.accMetric} ${styles.detailWide}`}><span className={styles.accMetricLabel}>⚠️ Faltan datos</span><strong className={styles.accMetricValue}>{incompleto.join(", ")}</strong></div>}
+                            </div>
+                            <div className={styles.detailActions}>{acciones}</div>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -894,30 +992,22 @@ export default function PacientesPage() {
           </div>
 
           <div className={styles.statsGrid}>
-            <section className={`${styles.statsPanel} ${styles.statsPanelLarge}`}>
-              <div className={styles.panelHeader}><div><h3 className={styles.panelTitle}>Resumen por ART</h3><p className={styles.panelSubtitle}>Cantidad, estado, completitud y promedio de edad.</p></div></div>
-              <div className={styles.statsTableScroll}>
-                <table className={styles.statsTable}>
-                  <thead><tr><th>ART</th><th>Total</th><th>%</th><th>Abiertos</th><th>Cerrados</th><th>Incompletos</th><th>Prom. edad</th></tr></thead>
-                  <tbody>
-                    {stats.porArtArray.length === 0 ? <tr><td colSpan={7}>No hay datos.</td></tr> :
-                      stats.porArtArray.map((item) => (
-                        <tr key={item.art}>
-                          <td><strong>{item.art.toUpperCase()}</strong></td><td>{item.total}</td><td>{item.porcentaje}%</td>
-                          <td><span className={styles.statusPillGreen}>{item.abiertos}</span></td>
-                          <td><span className={styles.statusPillRed}>{item.cerrados}</span></td>
-                          <td><span className={item.incompletos > 0 ? styles.statusPillYellow : styles.statusPillNeutral}>{item.incompletos}</span></td>
-                          <td>{item.promedioEdad === "—" ? "—" : `${item.promedioEdad} años`}</td>
-                        </tr>
-                      ))
-                    }
-                  </tbody>
-                </table>
+            <StatsPanel large title="Resumen por ART" subtitle="Tocá una ART para ver estado, completitud y edad.">
+              <div className={styles.accList}>
+                {stats.porArtArray.length === 0 ? <div className={styles.emptyMini}>No hay datos.</div> :
+                  stats.porArtArray.map((item) => (
+                    <AccordionRow key={item.art} title={item.art.toUpperCase()} value={item.total} hint={`${item.porcentaje}%`} pct={Number(item.porcentaje)}>
+                      <AccMetric label="Abiertos"><span className={styles.statusPillGreen}>{item.abiertos}</span></AccMetric>
+                      <AccMetric label="Cerrados"><span className={styles.statusPillRed}>{item.cerrados}</span></AccMetric>
+                      <AccMetric label="Incompletos"><span className={item.incompletos > 0 ? styles.statusPillYellow : styles.statusPillNeutral}>{item.incompletos}</span></AccMetric>
+                      <AccMetric label="Prom. edad">{item.promedioEdad === "—" ? "—" : `${item.promedioEdad} años`}</AccMetric>
+                    </AccordionRow>
+                  ))
+                }
               </div>
-            </section>
+            </StatsPanel>
 
-            <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Distribución por sexo</h3></div>
+            <StatsPanel title="Distribución por sexo">
               <div className={styles.compactList}>
                 <div className={styles.compactItem}><span>👨 Masculino</span><strong>{stats.sexos.m} <small>({stats.total ? ((stats.sexos.m / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
                 <div className={styles.compactItem}><span>👩 Femenino</span><strong>{stats.sexos.f} <small>({stats.total ? ((stats.sexos.f / stats.total) * 100).toFixed(1) : 0}%)</small></strong></div>
@@ -925,36 +1015,33 @@ export default function PacientesPage() {
                   <span>❔ Sin dato</span><strong>{stats.sexos.sinDato} <small>({stats.total ? ((stats.sexos.sinDato / stats.total) * 100).toFixed(1) : 0}%)</small></strong>
                 </div>
               </div>
-            </section>
+            </StatsPanel>
 
-            <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Rango etario</h3></div>
+            <StatsPanel title="Rango etario">
               <div className={styles.compactList}>
                 {Object.entries(stats.rangos).map(([rango, count]) => {
                   const pct = stats.total ? ((count / stats.total) * 100).toFixed(1) : 0;
                   return (<div key={rango} className={styles.compactItem}><span>{rango} años</span><strong>{count} <small>({pct}%)</small></strong></div>);
                 })}
               </div>
-            </section>
+            </StatsPanel>
 
-            <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Ingresos por mes</h3></div>
+            <StatsPanel title="Ingresos por mes" badge={stats.ingresosPorMesArray.length || null} defaultOpen={false}>
               <div className={styles.compactList}>
                 {stats.ingresosPorMesArray.length === 0 ? <div className={styles.emptyMini}>No hay datos.</div> :
                   stats.ingresosPorMesArray.map((item) => (<div key={item.mes} className={styles.compactItem}><span>{item.mes}</span><strong>{item.total}</strong></div>))
                 }
               </div>
-            </section>
+            </StatsPanel>
 
-            <section className={styles.statsPanel}>
-              <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Calidad de datos</h3></div>
+            <StatsPanel title="Calidad de datos">
               <div className={styles.compactList}>
                 <div className={styles.compactItem}><span>✅ Completos</span><strong>{stats.completos}</strong></div>
                 <div className={styles.compactItem}><span>⚠️ Incompletos</span><strong>{stats.incompletos}</strong></div>
                 <div className={styles.compactItem}><span>📱 Con teléfono</span><strong>{stats.conTelefono}</strong></div>
                 <div className={styles.compactItem}><span>📄 Con siniestro</span><strong>{stats.conSiniestro}</strong></div>
               </div>
-            </section>
+            </StatsPanel>
           </div>
 
           {/* Facturación */}
@@ -978,33 +1065,33 @@ export default function PacientesPage() {
                 <article className={styles.kpiCard}><span className={styles.kpiIcon}>📝</span><div><span className={styles.kpiLabel}>Borradores</span><strong className={styles.kpiValue}>${facturacionStats.totalBorradores.toLocaleString()}</strong></div></article>
               </div>
               <div className={styles.statsGrid}>
-                <section className={`${styles.statsPanel} ${styles.statsPanelLarge}`}>
-                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Facturación por ART</h3></div>
-                  <div className={styles.statsTableScroll}>
-                    <table className={styles.statsTable}>
-                      <thead><tr><th>ART</th><th>Facturado</th><th>Borradores</th><th>Total</th><th>% del total</th></tr></thead>
-                      <tbody>
-                        {facturacionStats.porArtArray.map((item) => {
-                          const pct = ((item.totalGeneral / facturacionStats.totalGeneral) * 100).toFixed(1);
-                          return (<tr key={item.art}><td><strong>{item.art.toUpperCase()}</strong></td><td>${item.cerrado.total.toLocaleString()} ({item.cerrado.count})</td><td>${item.borrador.total.toLocaleString()} ({item.borrador.count})</td><td>${item.totalGeneral.toLocaleString()}</td><td>{pct}%</td></tr>);
-                        })}
-                      </tbody>
-                    </table>
+                <StatsPanel large title="Facturación por ART" subtitle="Tocá una ART para ver facturado y borradores.">
+                  <div className={styles.accList}>
+                    {facturacionStats.porArtArray.length === 0 ? <div className={styles.emptyMini}>No hay datos.</div> :
+                      facturacionStats.porArtArray.map((item) => {
+                        const pct = facturacionStats.totalGeneral ? (item.totalGeneral / facturacionStats.totalGeneral) * 100 : 0;
+                        return (
+                          <AccordionRow key={item.art} title={item.art.toUpperCase()} value={`$${item.totalGeneral.toLocaleString()}`} hint={`${pct.toFixed(1)}%`} pct={pct}>
+                            <AccMetric label={`Facturado (${item.cerrado.count})`}>${item.cerrado.total.toLocaleString()}</AccMetric>
+                            <AccMetric label={`Borradores (${item.borrador.count})`}>${item.borrador.total.toLocaleString()}</AccMetric>
+                          </AccordionRow>
+                        );
+                      })
+                    }
                   </div>
-                </section>
-                <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Facturación mensual</h3></div>
-                  <div className={styles.statsTableScroll}>
-                    <table className={styles.statsTable}>
-                      <thead><tr><th>Mes</th><th>Facturado</th><th>Borradores</th><th>Total</th></tr></thead>
-                      <tbody>
-                        {facturacionStats.porMesArray.map((item) => (
-                          <tr key={item.mes}><td><strong>{item.mes}</strong></td><td>${item.cerrado.total.toLocaleString()}</td><td>${item.borrador.total.toLocaleString()}</td><td>${item.totalGeneral.toLocaleString()}</td></tr>
-                        ))}
-                      </tbody>
-                    </table>
+                </StatsPanel>
+                <StatsPanel title="Facturación mensual" badge={facturacionStats.porMesArray.length || null}>
+                  <div className={styles.accList}>
+                    {facturacionStats.porMesArray.length === 0 ? <div className={styles.emptyMini}>No hay datos.</div> :
+                      facturacionStats.porMesArray.map((item) => (
+                        <AccordionRow key={item.mes} title={item.mes} value={`$${item.totalGeneral.toLocaleString()}`}>
+                          <AccMetric label="Facturado">${item.cerrado.total.toLocaleString()}</AccMetric>
+                          <AccMetric label="Borradores">${item.borrador.total.toLocaleString()}</AccMetric>
+                        </AccordionRow>
+                      ))
+                    }
                   </div>
-                </section>
+                </StatsPanel>
               </div>
             </>
           )}
@@ -1014,24 +1101,22 @@ export default function PacientesPage() {
             <>
               <div className={styles.statsHeader} style={{ marginTop: "1rem" }}><div><h2 className={styles.statsTitle}>🩺 Atenciones</h2><p className={styles.statsSubtitle}>Prácticas más frecuentes y médicos que más atienden.</p></div></div>
               <div className={styles.statsGrid}>
-                <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Prácticas más usadas</h3></div>
+                <StatsPanel title="Prácticas más usadas">
                   <div className={styles.compactList}>
                     {consultasStats.topPracticas.map((p) => {
                       const pct = consultasStats.topPracticas[0].count > 0 ? ((p.count / consultasStats.topPracticas[0].count) * 100).toFixed(0) : 0;
                       return (<div key={p.nombre} className={styles.compactItem}><span>{p.nombre}</span><strong>{p.count} <small>({pct}%)</small></strong></div>);
                     })}
                   </div>
-                </section>
-                <section className={styles.statsPanel}>
-                  <div className={styles.panelHeader}><h3 className={styles.panelTitle}>Médicos con más atenciones</h3></div>
+                </StatsPanel>
+                <StatsPanel title="Médicos con más atenciones">
                   <div className={styles.compactList}>
                     {consultasStats.topMedicos.map((m) => {
                       const pct = consultasStats.topMedicos[0].count > 0 ? ((m.count / consultasStats.topMedicos[0].count) * 100).toFixed(0) : 0;
                       return (<div key={m.nombre} className={styles.compactItem}><span>{m.nombre}</span><strong>{m.count} <small>({pct}%)</small></strong></div>);
                     })}
                   </div>
-                </section>
+                </StatsPanel>
               </div>
             </>
           )}
@@ -1060,7 +1145,7 @@ export default function PacientesPage() {
             </div>
             <div className={styles.unionActions}>
               <button type="button" className={styles.cancelBtn} onClick={() => setShowUnionModal(false)}>Cancelar</button>
-              <button type="button" className={styles.saveBtn} onClick={fusionarPacientes}>Fusionar</button>
+              <button type="button" className={styles.saveBtn} onClick={singleFlight("app/admin/pacientes/page:fusionarPacientes", fusionarPacientes)}>Fusionar</button>
             </div>
           </div>
         </div>

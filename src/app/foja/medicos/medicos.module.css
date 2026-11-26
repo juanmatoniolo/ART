@@ -1,13 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
-
 /* ─── PAGE ────────────────────────────────────────────── */
 .page {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: #f5f3f0;
   background-image:
     radial-gradient(circle at 15% 25%, rgba(44, 122, 94, 0.06) 0%, transparent 55%),
     radial-gradient(circle at 85% 75%, rgba(212, 184, 122, 0.08) 0%, transparent 55%);
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   padding: 1rem;
 }
 
@@ -33,7 +31,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #2c7a5e, #7faa9a, #d4b87a);
+  background: linear-gradient(90deg, var(--cu-brand-700), #7faa9a, #d4b87a);
 }
 
 .headerTag {
@@ -41,14 +39,14 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   display: block;
   margin-bottom: 0.4rem;
 }
 
 .headerTitle {
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(1.5rem, 5vw, 1.9rem);
+  font-family: var(--font-sans), var(--font-sans-fallback);
+  font-size: clamp(1.5rem, calc(5vw / var(--app-zoom, 1)), 1.9rem);
   color: #1f2e2a;
   margin: 0.15rem 0 0.3rem;
   line-height: 1.15;
@@ -87,9 +85,9 @@
 }
 
 .statNum {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1.2rem;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   line-height: 1;
 }
 
@@ -134,7 +132,7 @@
   padding: 0.8rem 1rem 0.8rem 2.6rem;
   border: 1.5px solid #e8e2d9;
   border-radius: 0.85rem;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.95rem;
   background: #f5f3f0;
   color: #1f2e2a;
@@ -144,7 +142,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: #2c7a5e;
+  border-color: var(--cu-brand-700);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(44, 122, 94, 0.12);
 }
@@ -172,7 +170,7 @@
   padding: 0.7rem 2.2rem 0.7rem 0.9rem;
   border: 1.5px solid #e8e2d9;
   border-radius: 0.85rem;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.82rem;
   font-weight: 500;
   background: #f5f3f0;
@@ -187,7 +185,7 @@
 
 .filterSelect:focus {
   outline: none;
-  border-color: #2c7a5e;
+  border-color: var(--cu-brand-700);
   box-shadow: 0 0 0 3px rgba(44, 122, 94, 0.12);
 }
 
@@ -204,19 +202,19 @@
   align-items: center;
   gap: 0.4rem;
   background: #e8f4ef;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.3rem 0.7rem;
   border-radius: 40px;
   cursor: pointer;
   border: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filterTag:hover {
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   color: #ffffff;
 }
 
@@ -284,7 +282,7 @@
 
 .cardStripe {
   height: 3px;
-  background: linear-gradient(90deg, #2c7a5e, #d4b87a);
+  background: linear-gradient(90deg, var(--cu-brand-700), #d4b87a);
 }
 
 .cardInner {
@@ -300,7 +298,7 @@
 }
 
 .patientName {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1.1rem;
   color: #1f2e2a;
   margin: 0;
@@ -352,7 +350,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   flex-shrink: 0;
 }
 
@@ -423,10 +421,10 @@
 .btnToggle {
   background: none;
   border: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.78rem;
   font-weight: 600;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   cursor: pointer;
   padding: 0;
   display: inline-flex;
@@ -444,11 +442,11 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 1.1rem;
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   color: #ffffff;
   border: none;
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -473,10 +471,10 @@
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   background: #f0f7f4;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   border: 1.5px solid rgba(44, 122, 94, 0.4);
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -484,9 +482,9 @@
 }
 
 .btnDownload:hover:not(:disabled) {
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   color: #ffffff;
-  border-color: #2c7a5e;
+  border-color: var(--cu-brand-700);
   transform: translateY(-1px);
 }
 
@@ -509,7 +507,7 @@
   color: #b4453f;
   border: 1.5px solid rgba(180, 69, 63, 0.35);
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -543,7 +541,7 @@
   width: 36px;
   height: 36px;
   border: 3px solid #e8e2d9;
-  border-top-color: #2c7a5e;
+  border-top-color: var(--cu-brand-700);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -593,7 +591,7 @@
   border-radius: 1.5rem 1.5rem 0 0;
   padding: 0;
   width: 100%;
-  max-height: 90dvh;
+  max-height: calc(90dvh / var(--app-zoom, 1));
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -638,11 +636,11 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #2c7a5e, #d4b87a);
+  background: linear-gradient(90deg, var(--cu-brand-700), #d4b87a);
 }
 
 .modalTitle {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1.2rem;
   color: #1f2e2a;
   margin: 0.5rem 0 0.1rem;
@@ -682,7 +680,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #2c7a5e;
+  color: var(--cu-brand-700);
   padding-bottom: 0.4rem;
   border-bottom: 1px solid #e8f4ef;
 }
@@ -723,7 +721,7 @@
 .modalInput,
 .modalTextarea,
 .modalSelect {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.95rem;
   padding: 0.72rem 0.9rem;
   border: 1.5px solid #e8e2d9;
@@ -746,7 +744,7 @@
 .modalTextarea:focus,
 .modalSelect:focus {
   outline: none;
-  border-color: #2c7a5e;
+  border-color: var(--cu-brand-700);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(44, 122, 94, 0.12);
 }
@@ -767,7 +765,7 @@
   background: transparent;
   border: 1.5px solid #e8e2d9;
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.85rem;
   font-weight: 600;
   color: #6a7c74;
@@ -783,11 +781,11 @@
 
 .btnSave {
   padding: 0.7rem 1.6rem;
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   color: #ffffff;
   border: none;
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -823,7 +821,7 @@
   width: 13px;
   height: 13px;
   border: 2px solid rgba(44, 122, 94, 0.3);
-  border-top-color: #2c7a5e;
+  border-top-color: var(--cu-brand-700);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -872,7 +870,7 @@
 }
 
 .confirmTitle {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1.25rem;
   color: #1f2e2a;
   margin: 0 0 0.5rem;
@@ -906,7 +904,7 @@
   color: #ffffff;
   border: none;
   border-radius: 40px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -934,7 +932,7 @@
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #2c7a5e;
+  background: var(--cu-brand-700);
   color: #ffffff;
   padding: 0.75rem 1.4rem;
   border-radius: 40px;
@@ -944,7 +942,7 @@
   z-index: 2000;
   white-space: nowrap;
   animation: toastIn 0.3s ease both;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
 }
 
 @keyframes toastIn {
@@ -994,7 +992,7 @@
   .modal {
     border-radius: 1.5rem;
     max-width: 640px;
-    max-height: 85dvh;
+    max-height: calc(85dvh / var(--app-zoom, 1));
     width: 95%;
   }
 
@@ -1127,8 +1125,8 @@
 .templateName {
   margin: 0;
   color: #2d2640;
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(1.05rem, 3vw, 1.25rem);
+  font-family: var(--font-sans), var(--font-sans-fallback);
+  font-size: clamp(1.05rem, calc(3vw / var(--app-zoom, 1)), 1.25rem);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -1247,7 +1245,7 @@
 .templateName {
   margin: 0;
   color: #2b2b25;
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 1.15rem;
   line-height: 1.2;
 }
@@ -1295,7 +1293,7 @@
   border-radius: 0.8rem;
   background: #f0f7f4;
   color: #245f4b;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;

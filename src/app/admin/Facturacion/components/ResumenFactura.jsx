@@ -263,8 +263,8 @@ function SubAcordeon({ k, title, count, amount, children, open, setOpen }) {
 // ─── TablaPracticas ───────────────────────────────────────────────────────────
 function TablaPracticas({ items, mostrarInputDoctor, onUpdateItem, onUpdateQty, onDelete }) {
   return (
-    <div className={styles.tableContainer}>
-      <table className={styles.table}>
+    <div className={`${styles.tableContainer} rt-wrap`}>
+      <table className={`${styles.table} rt-stack`}>
         <thead>
           <tr>
             <th className={styles.thCode}>Código</th>
@@ -279,11 +279,11 @@ function TablaPracticas({ items, mostrarInputDoctor, onUpdateItem, onUpdateQty, 
             const artroLabel = getArtroscopiaLabel(p);
             return (
               <tr key={p.id} className={p?.esRX ? styles.rxRow : ''}>
-                <td className={styles.columnaCodigo}>
+                <td className={styles.columnaCodigo} data-label="Código">
                   <strong>{p.codigo}</strong>
                   {p?.esRX && <span className={styles.badgeRx}>RX</span>}
                 </td>
-                <td className={styles.columnaDescripcion}>
+                <td className={`${styles.columnaDescripcion} rt-title`}>
                   <div className={styles.descPrincipal}>
                     {p.descripcion}
                     {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
@@ -303,11 +303,11 @@ function TablaPracticas({ items, mostrarInputDoctor, onUpdateItem, onUpdateQty, 
                     </div>
                   )}
                 </td>
-                <td className={styles.columnaCantidad}>
+                <td className={styles.columnaCantidad} data-label="Cantidad">
                   <CantidadControl item={p} onUpdate={onUpdateQty} />
                 </td>
-                <td className={styles.columnaValor}><ValorStack item={p} /></td>
-                <td className={styles.columnaAcciones}>
+                <td className={styles.columnaValor} data-label="Valor"><ValorStack item={p} /></td>
+                <td className={styles.columnaAcciones} data-label="Acciones">
                   <button
                     type="button"
                     tabIndex={-1}
@@ -635,8 +635,8 @@ export default function ResumenFactura({
           {cirugias.length === 0 ? (
             <div className={styles.emptyBlock}>Sin cirugías.</div>
           ) : (
-            <div className={styles.tableContainer}>
-              <table className={styles.table}>
+            <div className={`${styles.tableContainer} rt-wrap`}>
+              <table className={`${styles.table} rt-stack`}>
                 <thead>
                   <tr>
                     <th className={styles.thCode}>Código</th>
@@ -651,10 +651,10 @@ export default function ResumenFactura({
                     const artroLabel = getArtroscopiaLabel(c);
                     return (
                       <tr key={c.id}>
-                        <td className={styles.columnaCodigo}>
+                        <td className={styles.columnaCodigo} data-label="Código">
                           <strong>{c.codigo || '—'}</strong>
                         </td>
-                        <td className={styles.columnaDescripcion}>
+                        <td className={`${styles.columnaDescripcion} rt-title`}>
                           <div className={styles.descPrincipal}>
                             {c.descripcion || c.nombre || 'Cirugía'}
                             {artroLabel && <span className={styles.artroBadge}> {artroLabel}</span>}
@@ -671,11 +671,11 @@ export default function ResumenFactura({
                             </div>
                           </div>
                         </td>
-                        <td className={styles.columnaCantidad}>
+                        <td className={styles.columnaCantidad} data-label="Cantidad">
                           <CantidadControl item={c} onUpdate={actualizarCantidad} />
                         </td>
-                        <td className={styles.columnaValor}><ValorStack item={c} /></td>
-                        <td className={styles.columnaAcciones}>
+                        <td className={styles.columnaValor} data-label="Valor"><ValorStack item={c} /></td>
+                        <td className={styles.columnaAcciones} data-label="Acciones">
                           <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(c.id)} title="Eliminar">🗑️</button>
                         </td>
                       </tr>
@@ -692,8 +692,8 @@ export default function ResumenFactura({
           {laboratorios.length === 0 ? (
             <div className={styles.emptyBlock}>Sin laboratorios.</div>
           ) : (
-            <div className={styles.tableContainer}>
-              <table className={styles.table}>
+            <div className={`${styles.tableContainer} rt-wrap`}>
+              <table className={`${styles.table} rt-stack`}>
                 <thead>
                   <tr>
                     <th className={styles.thCode}>Código</th>
@@ -706,8 +706,8 @@ export default function ResumenFactura({
                 <tbody>
                   {laboratorios.map((l) => (
                     <tr key={l.id}>
-                      <td className={styles.columnaCodigo}><strong>{l.codigo || '—'}</strong></td>
-                      <td className={styles.columnaDescripcion}>
+                      <td className={styles.columnaCodigo} data-label="Código"><strong>{l.codigo || '—'}</strong></td>
+                      <td className={`${styles.columnaDescripcion} rt-title`}>
                         <div className={styles.descPrincipal}>{l.descripcion || l.nombre || 'Laboratorio'}</div>
                         <div className={styles.doctorRow}>
                           <DoctorSelect
@@ -718,10 +718,10 @@ export default function ResumenFactura({
                           />
                         </div>
                       </td>
-                      <td className={styles.columnaCantidad}>
+                      <td className={styles.columnaCantidad} data-label="Cantidad">
                         <CantidadControl item={l} onUpdate={actualizarCantidad} />
                       </td>
-                      <td className={styles.columnaValor}>
+                      <td className={styles.columnaValor} data-label="Valor">
                         <div className={styles.valorStack}>
                           <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
                             <span className={styles.valorLabel}>Total</span>
@@ -730,7 +730,7 @@ export default function ResumenFactura({
                           {l?.formula && <div className={styles.formulaPequeña}>{l.formula}</div>}
                         </div>
                       </td>
-                      <td className={styles.columnaAcciones}>
+                      <td className={styles.columnaAcciones} data-label="Acciones">
                         <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(l.id)}>🗑️</button>
                       </td>
                     </tr>
@@ -753,8 +753,8 @@ export default function ResumenFactura({
           {(medicamentos.length + descartables.length) === 0 ? (
             <div className={styles.emptyBlock}>Sin medicación ni descartables.</div>
           ) : (
-            <div className={styles.tableContainer}>
-              <table className={styles.table}>
+            <div className={`${styles.tableContainer} rt-wrap`}>
+              <table className={`${styles.table} rt-stack`}>
                 <thead>
                   <tr>
                     <th className={styles.thDesc}>Descripción</th>
@@ -767,15 +767,15 @@ export default function ResumenFactura({
                 <tbody>
                   {[...medicamentos, ...descartables].map((item) => (
                     <tr key={item.id}>
-                      <td className={styles.columnaDescripcion}>
+                      <td className={`${styles.columnaDescripcion} rt-title`}>
                         <div className={styles.descPrincipal}><strong>{item.nombre}</strong></div>
                         <div className={styles.metaText}>{item.presentacion}</div>
                       </td>
-                      <td className={styles.columnaCantidad}>
+                      <td className={styles.columnaCantidad} data-label="Cantidad">
                         <CantidadControl item={item} onUpdate={actualizarCantidad} />
                       </td>
-                      <td className={styles.columnaUnidad}>$ {money(item.valorUnitario)}</td>
-                      <td className={styles.columnaValor}>
+                      <td className={styles.columnaUnidad} data-label="Unidad">$ {money(item.valorUnitario)}</td>
+                      <td className={styles.columnaValor} data-label="Valor">
                         <div className={styles.valorStack}>
                           <div className={`${styles.valorLine} ${styles.valorLineTotal}`}>
                             <span className={styles.valorLabel}>Total</span>
@@ -783,7 +783,7 @@ export default function ResumenFactura({
                           </div>
                         </div>
                       </td>
-                      <td className={styles.columnaAcciones}>
+                      <td className={styles.columnaAcciones} data-label="Acciones">
                         <button type="button" tabIndex={-1} className={styles.btnEliminar} onClick={() => eliminarItem(item.id)}>🗑️</button>
                       </td>
                     </tr>

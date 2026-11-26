@@ -2,10 +2,10 @@
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background-color: #0f172a;
-  color: #e2e8f0;
-  min-height: 100vh;
+  font-family: var(--font-sans), var(--font-sans-fallback);
+  background-color: var(--cu-slate-900);
+  color: var(--cu-slate-200);
+  min-height: calc(100vh / var(--app-zoom, 1));
 }
 
 .header {
@@ -18,7 +18,7 @@
 .header h1 {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   margin: 0;
 }
 
@@ -29,7 +29,7 @@
 }
 
 .btnPrimary {
-  background-color: #5b8c5a;
+  background-color: var(--cu-brand-500);
   color: white;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -46,8 +46,8 @@
 
 .btnSecondary {
   background-color: transparent;
-  color: #cbd5e1;
-  border: 1px solid #475569;
+  color: var(--cu-slate-300);
+  border: 1px solid var(--cu-slate-600);
   padding: 0.6rem 1.2rem;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -57,8 +57,8 @@
 }
 
 .btnSecondary:hover {
-  background-color: #1e293b;
-  color: #f1f5f9;
+  background-color: var(--cu-slate-800);
+  color: var(--cu-slate-100);
 }
 
 .searchBar {
@@ -68,22 +68,22 @@
 .searchInput {
   width: 100%;
   padding: 0.7rem 1rem;
-  background-color: #1e293b;
-  border: 1px solid #475569;
+  background-color: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-600);
   border-radius: 0.5rem;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .searchInput:focus {
-  border-color: #5b8c5a;
+  border-color: var(--cu-brand-500);
 }
 
 .tableWrapper {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
   border-radius: 0.75rem;
   overflow: hidden;
   overflow-x: auto;
@@ -95,21 +95,21 @@
 }
 
 .table th {
-  background-color: #0f172a;
-  color: #94a3b8;
+  background-color: var(--cu-slate-900);
+  color: var(--cu-slate-400);
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.85rem 1rem;
   text-align: left;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--cu-slate-700);
 }
 
 .table td {
   padding: 0.8rem 1rem;
-  border-bottom: 1px solid #334155;
-  color: #e2e8f0;
+  border-bottom: 1px solid var(--cu-slate-700);
+  color: var(--cu-slate-200);
 }
 
 .table tr:last-child td {
@@ -117,18 +117,18 @@
 }
 
 .table tbody tr:hover {
-  background-color: #334155;
+  background-color: var(--cu-slate-700);
 }
 
 .numCell {
-  font-family: monospace;
-  color: #94a3b8;
+  font-family: var(--font-mono), var(--font-mono-fallback);
+  color: var(--cu-slate-400);
   font-weight: 600;
 }
 
 .empty {
   text-align: center;
-  color: #64748b;
+  color: var(--cu-slate-500);
   padding: 2rem;
   font-style: italic;
 }
@@ -143,14 +143,14 @@
   border: none;
   font-size: 1.1rem;
   cursor: pointer;
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
   padding: 0.2rem;
   border-radius: 0.3rem;
   text-decoration: none;
 }
 
 .btnEdit:hover {
-  background-color: #475569;
+  background-color: var(--cu-slate-600);
 }
 
 .btnDelete {
@@ -158,7 +158,7 @@
   border: none;
   font-size: 1.1rem;
   cursor: pointer;
-  color: #ef4444;
+  color: var(--cu-danger);
   padding: 0.2rem;
   border-radius: 0.3rem;
 }
@@ -181,7 +181,7 @@
 .loading {
   text-align: center;
   padding: 3rem;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   font-size: 1.1rem;
 }
 
@@ -190,8 +190,8 @@
    FORMULARIO DE MÉDICO (DoctorForm)
    ================================================================ */
 .form {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
   border-radius: 0.875rem;
   padding: 1.75rem;
   max-width: 800px;
@@ -212,7 +212,7 @@
   display: block;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   margin-bottom: 0.35rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -223,26 +223,26 @@
 .formGrid select {
   width: 100%;
   padding: 0.65rem 0.85rem;
-  background-color: #0f172a;
-  border: 1px solid #475569;
+  background-color: var(--cu-slate-900);
+  border: 1px solid var(--cu-slate-600);
   border-radius: 0.5rem;
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   font-size: 0.95rem;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
 
 .formGrid input::placeholder,
 .formGrid textarea::placeholder {
-  color: #64748b;
+  color: var(--cu-slate-500);
 }
 
 .formGrid input:focus,
 .formGrid textarea:focus,
 .formGrid select:focus {
   outline: none;
-  border-color: #5b8c5a;
+  border-color: var(--cu-brand-500);
   box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.25);
 }
 
@@ -257,24 +257,24 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #0f172a;
-  border: 1px solid #475569;
+  background-color: var(--cu-slate-900);
+  border: 1px solid var(--cu-slate-600);
   border-radius: 0.5rem;
   padding: 0.5rem 0.9rem;
   cursor: pointer;
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   transition: background-color 0.15s, border-color 0.15s;
   user-select: none;
 }
 
 .checkboxLabel:hover {
-  background-color: #334155;
-  border-color: #5b8c5a;
+  background-color: var(--cu-slate-700);
+  border-color: var(--cu-brand-500);
 }
 
 .checkboxLabel input[type="checkbox"] {
-  accent-color: #5b8c5a;
+  accent-color: var(--cu-brand-500);
   width: 1rem;
   height: 1rem;
   margin: 0;
@@ -286,11 +286,11 @@
   gap: 0.75rem;
   margin-top: 2rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #334155;
+  border-top: 1px solid var(--cu-slate-700);
 }
 
 .btnPrimary {
-  background-color: #5b8c5a;
+  background-color: var(--cu-brand-500);
   color: white;
   border: none;
   padding: 0.65rem 1.5rem;
@@ -312,8 +312,8 @@
 
 .btnSecondary {
   background-color: transparent;
-  color: #cbd5e1;
-  border: 1px solid #475569;
+  color: var(--cu-slate-300);
+  border: 1px solid var(--cu-slate-600);
   padding: 0.65rem 1.5rem;
   border-radius: 0.5rem;
   font-size: 0.95rem;
@@ -323,7 +323,7 @@
 }
 
 .btnSecondary:hover {
-  background-color: #1e293b;
-  color: #f1f5f9;
-  border-color: #64748b;
+  background-color: var(--cu-slate-800);
+  color: var(--cu-slate-100);
+  border-color: var(--cu-slate-500);
 }

@@ -2,21 +2,21 @@
    TEMA CLARO (por defecto)
    ============================================================ */
 .container {
-  --bg: #f3f4f6;
+  --bg: var(--cu-slate-100);
   --card-bg: #ffffff;
-  --title: #111827;
-  --text: #374151;
-  --text-soft: #6b7280;
-  --border: #d1d5db;
-  --input-bg: #f9fafb;
+  --title: var(--cu-slate-850);
+  --text: var(--cu-slate-700);
+  --text-soft: var(--cu-slate-500);
+  --border: var(--cu-slate-300);
+  --input-bg: var(--cu-slate-50);
   --input-bg-focus: #ffffff;
-  --hover: #e5e7eb;
-  --accent: #44794d;
+  --hover: var(--cu-slate-200);
+  --accent: var(--cu-brand-600);
   --accent-hover: #356040;
   --accent-ring: rgba(68, 121, 77, 0.15);
-  --section-border: #e5e7eb;
-  --readonly-bg: #f3f4f6;
-  --readonly-text: #6b7280;
+  --section-border: var(--cu-slate-200);
+  --readonly-bg: var(--cu-slate-100);
+  --readonly-text: var(--cu-slate-500);
   --shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
   --ok-bg: #dcfce7;
   --ok-text: #166534;
@@ -26,13 +26,13 @@
   --err-border: #fecaca;
   color-scheme: light;
 
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  font-family: system-ui, "Segoe UI", sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   transition: background-color 0.25s ease;
 }
 
@@ -42,11 +42,11 @@
 .container[data-theme="oscuro"] {
   --bg: #0b1120;
   --card-bg: #151f32;
-  --title: #f1f5f9;
-  --text: #cbd5e1;
-  --text-soft: #94a3b8;
-  --border: #334155;
-  --input-bg: #1e293b;
+  --title: var(--cu-slate-100);
+  --text: var(--cu-slate-300);
+  --text-soft: var(--cu-slate-400);
+  --border: var(--cu-slate-700);
+  --input-bg: var(--cu-slate-800);
   --input-bg-focus: #243449;
   --hover: #293a52;
   --accent: #4f8f5b;
@@ -54,7 +54,7 @@
   --accent-ring: rgba(93, 163, 106, 0.25);
   --section-border: #263449;
   --readonly-bg: #1a2437;
-  --readonly-text: #94a3b8;
+  --readonly-text: var(--cu-slate-400);
   --shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.65);
   --ok-bg: #123024;
   --ok-text: #86efac;
@@ -69,21 +69,21 @@
    TEMA CLARO (por defecto)
    ============================================================ */
 .container {
-  --bg: #f3f4f6;
+  --bg: var(--cu-slate-100);
   --card-bg: #ffffff;
-  --title: #111827;
-  --text: #374151;
-  --text-soft: #6b7280;
-  --border: #d1d5db;
-  --input-bg: #f9fafb;
+  --title: var(--cu-slate-850);
+  --text: var(--cu-slate-700);
+  --text-soft: var(--cu-slate-500);
+  --border: var(--cu-slate-300);
+  --input-bg: var(--cu-slate-50);
   --input-bg-focus: #ffffff;
-  --hover: #e5e7eb;
-  --accent: #44794d;
+  --hover: var(--cu-slate-200);
+  --accent: var(--cu-brand-600);
   --accent-hover: #356040;
   --accent-ring: rgba(68, 121, 77, 0.15);
-  --section-border: #e5e7eb;
-  --readonly-bg: #f3f4f6;
-  --readonly-text: #6b7280;
+  --section-border: var(--cu-slate-200);
+  --readonly-bg: var(--cu-slate-100);
+  --readonly-text: var(--cu-slate-500);
   --shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
   --ok-bg: #dcfce7;
   --ok-text: #166534;
@@ -93,13 +93,13 @@
   --err-border: #fecaca;
   color-scheme: light;
 
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  font-family: system-ui, "Segoe UI", sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   transition: background-color 0.25s ease;
 }
 
@@ -109,11 +109,11 @@
 .container[data-theme="oscuro"] {
   --bg: #0b1120;
   --card-bg: #151f32;
-  --title: #f1f5f9;
-  --text: #cbd5e1;
-  --text-soft: #94a3b8;
-  --border: #334155;
-  --input-bg: #1e293b;
+  --title: var(--cu-slate-100);
+  --text: var(--cu-slate-300);
+  --text-soft: var(--cu-slate-400);
+  --border: var(--cu-slate-700);
+  --input-bg: var(--cu-slate-800);
   --input-bg-focus: #243449;
   --hover: #293a52;
   --accent: #4f8f5b;
@@ -121,7 +121,7 @@
   --accent-ring: rgba(93, 163, 106, 0.25);
   --section-border: #263449;
   --readonly-bg: #1a2437;
-  --readonly-text: #94a3b8;
+  --readonly-text: var(--cu-slate-400);
   --shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.65);
   --ok-bg: #123024;
   --ok-text: #86efac;
@@ -374,7 +374,7 @@
 }
 
 .submitBtn:disabled {
-  background: #9ca3af;
+  background: var(--cu-slate-400);
   cursor: not-allowed;
 }
 
@@ -411,11 +411,11 @@
   margin: -4px 0 16px;
   font-size: 0.85rem;
   line-height: 1.4;
-  color: #6b7280; /* gris claro */
+  color: var(--cu-slate-500); /* gris claro */
   opacity: 0.9;
 }
 
 /* Modo oscuro */
 :global([data-tema="oscuro"]) .sectionHint {
-  color: #9ca3af;
+  color: var(--cu-slate-400);
 }

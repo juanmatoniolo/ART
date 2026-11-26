@@ -1,3 +1,4 @@
+import { DB_URL } from "@/lib/config";
 import { useState, useEffect } from "react";
 import styles from "../cx-common.module.css";
 
@@ -9,7 +10,7 @@ export default function PacienteSelector({ onSelect, selectedPacienteId }) {
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
-        const res = await fetch("https://datos-clini-default-rtdb.firebaseio.com/pacientes.json");
+        const res = await fetch(`${DB_URL}/pacientes.json`);
         const data = await res.json();
         if (data) {
           const list = Object.entries(data).map(([id, value]) => ({

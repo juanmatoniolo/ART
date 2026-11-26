@@ -8,7 +8,7 @@
     padding: 1rem;                /* mobile: padding reducido */
     max-width: 1400px;
     margin: 0 auto;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
 }
 
 /* ===== Title ===== */
@@ -16,7 +16,7 @@
     font-size: 1.5rem;            /* mobile: un poco más pequeño */
     font-weight: 900;
     margin-bottom: 1rem;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     line-height: 1.2;
 }
 
@@ -42,11 +42,11 @@
 
 .input {
     width: 100%;                   /* mobile: ocupa todo el ancho */
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 10px;
     padding: 0.75rem 0.8rem;       /* mobile: mayor área táctil */
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-size: 1rem;               /* base 16px para evitar zoom */
     line-height: 1.5;
 }
@@ -76,8 +76,8 @@
 }
 
 .btnPrimary {
-    background: #6fa17b;
-    color: #0b1220;
+    background: var(--cu-brand-400);
+    color: var(--cu-slate-950);
 }
 
 .btnPrimary:hover {
@@ -86,8 +86,8 @@
 }
 
 .btnSecondary {
-    background: #1f2937;
-    color: #e5e7eb;
+    background: var(--cu-slate-800);
+    color: var(--cu-slate-200);
 }
 
 .btnSecondary:hover {
@@ -95,13 +95,13 @@
 }
 
 .btnDanger {
-    background: #ef4444;
+    background: var(--cu-danger);
     color: #fff;
 }
 
 .btnWarning {
     background: #facc15;
-    color: #0b1220;
+    color: var(--cu-slate-950);
 }
 
 /* ===== Button Row (fila de botones adicionales) ===== */
@@ -114,7 +114,7 @@
 
 /* ===== Table ===== */
 .tableWrapper {
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border-radius: 14px;
     overflow-x: auto;               /* mobile: scroll horizontal */
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -137,11 +137,11 @@
 }
 
 .table th {
-    background: #111827;
+    background: var(--cu-slate-850);
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.08em;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
 }
 
 .table tr:hover {
@@ -172,7 +172,7 @@
 /* ===== Editor ===== */
 .editorCard {
     margin-top: 2rem;
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 14px;
     padding: 1rem;                   /* mobile: menos padding */
@@ -181,7 +181,7 @@
 .editorCard h4 {
     margin-bottom: 1rem;
     font-size: 1.2rem;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
 }
 
 .editorHeader {
@@ -310,8 +310,8 @@
     padding: 0.75rem 0.8rem;        /* mobile: área táctil */
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    background: #0f172a;
-    color: #e5e7eb;
+    background: var(--cu-slate-900);
+    color: var(--cu-slate-200);
     font-size: 1rem;
     margin: 0.25rem 0 1rem;
 }
@@ -330,14 +330,14 @@
 
 /* ===== Modal base ===== */
 .modal {
-    background: #0b1220;
+    background: var(--cu-slate-950);
     border-radius: 20px;
     padding: 1.5rem 1.2rem;
     width: 100%;
     max-width: 480px;                  /* un poco más ancho para desktop */
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
-    max-height: 90vh;
+    max-height: calc(90vh / var(--app-zoom, 1));
     overflow-y: auto;                   /* seguro si hay mucho contenido */
 }
 
@@ -345,7 +345,7 @@
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.3rem;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
 }
 
 .modalBody {
@@ -368,27 +368,27 @@
 }
 
 .modalSolid {
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 /* Modal de aumento (específico) */
 .modalAumento {
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border-radius: 20px;
     padding: 1.5rem;
     width: 100%;
     max-width: 500px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    max-height: 90vh;
+    max-height: calc(90vh / var(--app-zoom, 1));
     overflow-y: auto;
 }
 
 .modalAumento h3 {
     margin-top: 0;
     margin-bottom: 1.2rem;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     font-size: 1.3rem;
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useEffect, useState } from "react";
 import { getSession } from "@/utils/session";
 import { crearOP, listarOPsPaciente, ESTADOS_OP } from "@/lib/pami/op";
@@ -100,14 +101,14 @@ export default function Paso4OP({ estado, actualizar, avanzar, volver }) {
             avanzar();
         } catch (err) {
             console.error(err);
-            alert("Error al guardar la OP: " + err.message);
+            notify("Error al guardar la OP: " + err.message);
         } finally {
             setSaving(false);
         }
     };
 
     const usarExistente = () => {
-        if (!opSeleccionada) return alert("Elegí una OP");
+        if (!opSeleccionada) return notify("Elegí una OP");
         const op = opsExistentes.find((o) => o.id === opSeleccionada);
         if (!op) return;
         actualizar({ op });

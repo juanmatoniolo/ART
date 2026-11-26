@@ -39,17 +39,17 @@
 }
 
 .cropModalContent {
-    background: #1e2436;
+    background: var(--cu-slate-800);
     border: 1px solid rgba(148, 163, 184, 0.3);
     border-radius: 16px;
     width: 100%;
     max-width: 560px;
-    max-height: 92vh;
+    max-height: calc(92vh / var(--app-zoom, 1));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
-    color: #e2e8f0;
+    color: var(--cu-slate-200);
     animation: modalSlideIn 0.18s ease;
 }
 
@@ -86,7 +86,7 @@
     border-radius: 10px;
     border: 1px solid rgba(148, 163, 184, 0.3);
     background: transparent;
-    color: #cbd5e1;
+    color: var(--cu-slate-300);
     cursor: pointer;
     font-size: 16px;
     display: inline-flex;
@@ -112,11 +112,16 @@
     position: relative;
     width: 100%;
     height: 380px;
-    background: #0f172a;
+    background: var(--cu-slate-900);
     border-radius: 10px;
     overflow: hidden;
     margin: 12px 18px;
     max-width: calc(100% - 36px);
+}
+
+.cropZoomReset {
+    position: absolute;
+    inset: 0;
 }
 
 .cropEditorContainer :global(.reactEasyCrop_Container) {
@@ -124,7 +129,7 @@
 }
 
 .cropEditorContainer :global(.reactEasyCrop_CropArea) {
-    border: 2px solid #3b82f6;
+    border: 2px solid var(--cu-info);
     box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.65);
 }
 
@@ -153,7 +158,7 @@
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.3);
     background: transparent;
-    color: #cbd5e1;
+    color: var(--cu-slate-300);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -168,7 +173,7 @@
 
 .cropRatioBtnActive {
     background: rgba(59, 130, 246, 0.2);
-    border-color: #3b82f6;
+    border-color: var(--cu-info);
     color: #93c5fd;
 }
 
@@ -190,13 +195,13 @@
 .cropZoomLabel {
     font-size: 13px;
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--cu-slate-300);
     flex-shrink: 0;
 }
 
 .cropZoomSlider {
     flex: 1;
-    accent-color: #3b82f6;
+    accent-color: var(--cu-info);
     height: 6px;
     cursor: pointer;
 }
@@ -213,7 +218,7 @@
 .sectionHint {
     margin-top: 4px;
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     text-align: center;
 }
 
@@ -223,7 +228,7 @@
     min-height: 48px;
     border-radius: 12px;
     border: none;
-    background: #5b8c5a;
+    background: var(--cu-brand-500);
     color: #ffffff;
     font-size: 15px;
     font-weight: 800;
@@ -244,11 +249,11 @@
     min-height: 48px;
     padding: 0 16px;
     border-radius: 12px;
-    border: 1px solid #2d3748;
+    border: 1px solid var(--cu-slate-700);
     background: #0f121f;
     font-size: 14px;
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--cu-slate-300);
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -266,12 +271,12 @@
 :global(body.light-mode) .cropModalContent {
     background: #ffffff;
     border-color: rgba(15, 23, 42, 0.15);
-    color: #0f172a;
+    color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .cropModalHeader {
     border-color: rgba(15, 23, 42, 0.1);
-    color: #0f172a;
+    color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .cropModalFooter {
@@ -279,16 +284,16 @@
 }
 
 :global(body.light-mode) .modalCloseBtn {
-    color: #0f172a;
+    color: var(--cu-slate-900);
     border-color: rgba(15, 23, 42, 0.15);
 }
 
 :global(body.light-mode) .cropEditorContainer {
-    background: #e5e7eb;
+    background: var(--cu-slate-200);
 }
 
 :global(body.light-mode) .cropRatioBtn {
-    color: #475569;
+    color: var(--cu-slate-600);
     border-color: rgba(15, 23, 42, 0.15);
 }
 
@@ -303,7 +308,7 @@
 }
 
 :global(body.light-mode) .cropZoomLabel {
-    color: #334155;
+    color: var(--cu-slate-700);
 }
 
 :global(body.light-mode) .sectionHint {
@@ -312,8 +317,8 @@
 
 :global(body.light-mode) .secondaryBtn {
     background: #ffffff;
-    border-color: #cbd5e0;
-    color: #2d3748;
+    border-color: var(--cu-slate-300);
+    color: var(--cu-slate-700);
 }
 
 :global(body.light-mode) .secondaryBtn:hover:not(:disabled) {
@@ -329,8 +334,8 @@
 
     .cropModalContent {
         max-width: 100%;
-        height: 100vh;
-        max-height: 100vh;
+        height: calc(100vh / var(--app-zoom, 1));
+        max-height: calc(100vh / var(--app-zoom, 1));
         border-radius: 0;
         border: none;
     }

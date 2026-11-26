@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useEffect, useMemo, useState } from "react";
 import { onValue, ref } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -64,7 +65,7 @@ export default function Paso1Paciente({ estado, actualizar }) {
     };
 
     const guardarManual = () => {
-        if (!manual.nombreCompleto || !manual.dni) return alert("Nombre y DNI son obligatorios");
+        if (!manual.nombreCompleto || !manual.dni) return notify("Nombre y DNI son obligatorios");
         const partes = manual.nombreCompleto.trim().split(/\s+/);
         actualizar({
             paciente: {

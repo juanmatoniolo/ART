@@ -1,11 +1,12 @@
 // datosPaciente.jsx
 'use client';
+import { DB_URL } from "@/lib/config";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import styles from './datosPaciente.module.css';
 
-const FIREBASE_URL = 'https://datos-clini-default-rtdb.firebaseio.com';
+const FIREBASE_URL = DB_URL;
 
 const ART_OPTIONS = [
   'Asociart',

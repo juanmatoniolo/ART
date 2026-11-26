@@ -1,9 +1,11 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
 
+import { DB_URL } from "@/lib/config";
 import { useState, useRef, useEffect, useMemo } from "react";
 import styles from "./page.module.css";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 const WHATSAPP_NUMBER = "5493456441580"; // Ajusta según formato correcto
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -311,7 +313,7 @@ export default function FormularioCirugia() {
           <div className={`${styles.mensaje} ${styles[mensaje.tipo]}`}>{mensaje.texto}</div>
         )}
 
-        <form ref={formRef} onSubmit={handleSubmit} className={styles.form} noValidate>
+        <form ref={formRef} onSubmit={singleFlight("app/cx/page:handleSubmit", handleSubmit)} className={styles.form} noValidate>
           {/* DATOS DEL PACIENTE */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Datos del paciente</h2>

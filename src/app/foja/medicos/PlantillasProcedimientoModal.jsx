@@ -1,4 +1,5 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
 import { ref, push, update, remove, onValue } from "firebase/database";
@@ -150,7 +151,7 @@ export default function PlantillasProcedimientoModal({ form = {}, onAplicar, onC
                                             </p>
                                         </div>
                                         <button className="pqx-btn ghost" onClick={() => aplicar(p)}>Usar</button>
-                                        <button className="pqx-trash" onClick={() => eliminar(p)} aria-label="Eliminar">🗑</button>
+                                        <button className="pqx-trash" onClick={singleFlight("app/foja/medicos/PlantillasProcedimientoModal:eliminar", () => eliminar(p))} aria-label="Eliminar">🗑</button>
                                     </div>
                                 ))}
                             </div>
@@ -166,7 +167,7 @@ export default function PlantillasProcedimientoModal({ form = {}, onAplicar, onC
             <style>{`
                 .pqx-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(31,46,42,.5);
                     display: flex; align-items: flex-end; justify-content: center; padding: 0; }
-                .pqx-modal { background: #fffdfa; width: 100%; max-width: 620px; max-height: 92vh;
+                .pqx-modal { background: #fffdfa; width: 100%; max-width: 620px; max-height: calc(92vh / var(--app-zoom, 1));
                     border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden;
                     font-family: 'Inter', system-ui, sans-serif; color: #1f2e2a; box-shadow: 0 -8px 40px rgba(0,0,0,.2); }
                 .pqx-head { display: flex; align-items: center; justify-content: space-between;

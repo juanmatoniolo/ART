@@ -1,4 +1,7 @@
 "use client";
+import { getShared } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -300,7 +303,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
   const fetchAllPacientes = async () => {
     setLoadingPacientes(true);
     try {
-      const snapshot = await get(child(ref(db), "pacientes"));
+      const snapshot = await getShared("pacientes");
       if (snapshot.exists()) {
         const data = snapshot.val();
         const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
@@ -403,7 +406,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("No se pudo generar el PDF.");
+      notify("No se pudo generar el PDF.");
     }
   };
 
@@ -1013,7 +1016,7 @@ export default function PacienteForm({ mode = "nuevo", initialData = null, pacie
                             <button
                               className={styles.iconBtn}
                               title="Imprimir PDF"
-                              onClick={() => handlePrintPaciente(p)}
+                              onClick={singleFlight("app/administrador/pacientes/_shared/PacienteForm:handlePrintPaciente", () => handlePrintPaciente(p))}
                             >
                               🖨️
                             </button>

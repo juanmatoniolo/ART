@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState } from "react";
 import { getSession } from "@/utils/session";
 import { guardarCirugiaPami } from "@/lib/pami/cirugias";
@@ -39,7 +40,7 @@ export default function PasoCirugia({ estado, actualizar, avanzar, volver }) {
     const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
     const guardar = async () => {
-        if (!form.diagnostico || !form.procedimiento) return alert("Completá el diagnóstico y procedimiento.");
+        if (!form.diagnostico || !form.procedimiento) return notify("Completá el diagnóstico y procedimiento.");
 
         setSaving(true);
         try {
@@ -78,7 +79,7 @@ export default function PasoCirugia({ estado, actualizar, avanzar, volver }) {
             actualizar({ cirugia: res });
         } catch (err) {
             console.error(err);
-            alert("Error al guardar la cirugía: " + err.message);
+            notify("Error al guardar la cirugía: " + err.message);
         } finally {
             setSaving(false);
         }
@@ -126,7 +127,7 @@ export default function PasoCirugia({ estado, actualizar, avanzar, volver }) {
             if (tipo === "Dorso") setPdfDorso(url);
         } catch (err) {
             console.error(err);
-            alert("No se pudo generar el PDF: " + err.message);
+            notify("No se pudo generar el PDF: " + err.message);
         } finally {
             setGenerandoPdf(false);
         }

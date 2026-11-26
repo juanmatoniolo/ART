@@ -11,11 +11,11 @@
   --text: #ffffff;
   --muted: #cfcfcf;
   --muted2: #a7a7a7;
-  --primary: #3b82f6;
-  --primaryHover: #2563eb;
-  --success: #22c55e;
-  --successHover: #16a34a;
-  --danger: #ef4444;
+  --primary: var(--cu-info);
+  --primaryHover: var(--cu-info-strong);
+  --success: var(--cu-success);
+  --successHover: var(--cu-success-strong);
+  --danger: var(--cu-danger);
   --search-bg: #1e1e1e;
   --search-border: #333;
   --result-hover: #2a2a2a;
@@ -45,7 +45,7 @@
 }
 
 .title {
-  font-size: clamp(1.4rem, 4vw, 1.8rem);
+  font-size: clamp(1.4rem, calc(4vw / var(--app-zoom, 1)), 1.8rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0;
@@ -222,7 +222,7 @@
 .btnPrimary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  background: #374151;
+  background: var(--cu-slate-700);
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -387,10 +387,10 @@
 }
 
 .osCod {
-  color: #6b7280;
+  color: var(--cu-slate-500);
   font-size: 0.75rem;
   margin-top: 4px;
-  font-family: monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
 }
 
 .osItemOtro {
@@ -415,7 +415,7 @@
 
 .osNoResult {
   padding: 0.8rem;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   text-align: center;
   font-style: italic;
 }
@@ -425,11 +425,11 @@
    ========================================================= */
 .diasInfo {
   background: rgba(47, 111, 78, 0.1);
-  border-left: 4px solid #2f6f4e;
+  border-left: 4px solid var(--cu-brand-700);
   padding: 0.75rem 1rem;
   border-radius: 8px;
   font-size: 1rem;
-  color: #2f6f4e;
+  color: var(--cu-brand-700);
   display: flex;
   align-items: center;
   gap: 0.5rem;

@@ -8,11 +8,11 @@
   --text: #ffffff;
   --muted: #cfcfcf;
   --muted2: #a7a7a7;
-  --primary: #3b82f6;
-  --primaryHover: #2563eb;
-  --success: #22c55e;
-  --successHover: #16a34a;
-  --danger: #ef4444;
+  --primary: var(--cu-info);
+  --primaryHover: var(--cu-info-strong);
+  --success: var(--cu-success);
+  --successHover: var(--cu-success-strong);
+  --danger: var(--cu-danger);
   --search-bg: #1e1e1e;
   --search-border: #333;
   --result-hover: #2a2a2a;
@@ -41,7 +41,7 @@
 }
 
 .title {
-  font-size: clamp(1.4rem, 4vw, 1.8rem);
+  font-size: clamp(1.4rem, calc(4vw / var(--app-zoom, 1)), 1.8rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0;
@@ -221,7 +221,7 @@
 .btnPrimary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  background: #374151;
+  background: var(--cu-slate-700);
   color: rgba(255, 255, 255, 0.7);
 }
 

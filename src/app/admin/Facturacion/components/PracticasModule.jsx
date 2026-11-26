@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Fuse from 'fuse.js';
@@ -223,7 +224,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
   //  AGREGAR PRÁCTICA
   // ============================================================
   const handleAgregar = useCallback((practica) => {
-    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+    if (!valoresConvenio) return notify('No hay valores de convenio disponibles');
 
     const calculo = getCalculo(practica);
     const esEco = isEcografia(practica);
@@ -643,8 +644,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         key={key}
         className={`${esRX ? styles.rxRow : ''} ${esSubs ? styles.subsiguienteRow : ''} ${isRecent ? styles.recentlyAddedRow : ''}`}
       >
-        <td className={styles.codeCell}>{highlight(item.codigo, q)}</td>
-        <td className={styles.descCell}>
+        <td className={styles.codeCell} data-label="Código">{highlight(item.codigo, q)}</td>
+        <td className={`${styles.descCell} rt-title`}>
           {highlight(item.descripcion, q)}
           {esEco18 && (
             <div className={styles.ecoNote}>
@@ -710,12 +711,12 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             </div>
           )}
         </td>
-        <td className={styles.capCell}>
+        <td className={styles.capCell} data-label="Capítulo">
           <span className={styles.capBadge}>{item.capitulo} – {item.capituloNombre}</span>
         </td>
 
         {/* Honorario */}
-        <td className={styles.numericCell}>
+        <td className={styles.numericCell} data-label="Honorario">
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gal:</span> {money(item.q_gal || 0)}</>
@@ -730,7 +731,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         </td>
 
         {/* Gasto */}
-        <td className={styles.numericCell}>
+        <td className={styles.numericCell} data-label="Gasto">
           <div className={styles.baseLine}>
             {es400101
               ? <><span className={styles.miniLabel}>Gto:</span> {money(item.gto || 0)}</>
@@ -745,11 +746,11 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
         </td>
 
         {/* Total */}
-        <td className={styles.numericCell}>
+        <td className={styles.numericCell} data-label="Total">
           <div className={styles.valueBig}>{money(total)}</div>
         </td>
 
-        <td className={styles.actionCell}>
+        <td className={styles.actionCell} data-label="Agregar">
           <button onClick={() => handleAgregar(item)} className={styles.btnAgregarTabla}>+</button>
         </td>
       </tr>
@@ -826,8 +827,8 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
             )}
           </div>
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+          <div className={`${styles.tableWrapper} rt-wrap`}>
+            <table className={`${styles.table} rt-stack`}>
               <thead>
                 <tr>
                   <th className={styles.thCode}>Código</th>

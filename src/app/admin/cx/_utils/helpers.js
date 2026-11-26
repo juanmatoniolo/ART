@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notify";
 // _utils/helpers.js
 
 // ── Constantes ──
@@ -410,6 +411,6 @@ export async function downloadCxPdf(cx, type = "Frente") {
     setTimeout(() => URL.revokeObjectURL(url), 1200);
   } catch (err) {
     console.error(err);
-    alert("Error al generar el PDF: " + err.message);
+    notify("Error al generar el PDF: " + err.message);
   }
 }

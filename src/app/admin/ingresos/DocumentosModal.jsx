@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
@@ -334,14 +335,14 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
         if (!file) return;
 
         if (file.type !== "application/pdf" && !isPdfName(file.name)) {
-            alert("Solo se permiten archivos PDF.");
+            notify("Solo se permiten archivos PDF.");
             return;
         }
 
         const maxBytes = PDF_MAX_MB * 1024 * 1024;
         if (file.size > maxBytes) {
             const mb = (file.size / 1024 / 1024).toFixed(2);
-            alert(
+            notify(
                 `El PDF no puede pesar más de ${PDF_MAX_MB} MB. ` +
                     `Este archivo pesa ${mb} MB.`,
             );
@@ -398,7 +399,7 @@ export default function DocumentosModal({ paciente, onClose, onUpdated }) {
        ========================================================= */
     const handlePrintDocumentacion = async () => {
         if (!docs.length) {
-            alert("No hay documentos para imprimir.");
+            notify("No hay documentos para imprimir.");
             return;
         }
         setPrinting("documentacion");

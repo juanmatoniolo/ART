@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { ref, onValue, off, update, remove } from "firebase/database";
-import { getSession, isAuthenticated } from "@/utils/session";
+import { getSession, isAuthenticated, hasRole } from "@/utils/session";
 import Header from "@/components/Header/Header";
 import styles from "./medicos.module.css";
 import PlantillasProcedimientoModal from "./PlantillasProcedimientoModal";
@@ -943,7 +943,7 @@ export default function MedicosPage() {
         const authed = await isAuthenticated();
         if (!authed) { router.push("/login"); return; }
         const session = getSession();
-        if (session?.TipoEmpleado !== "MEDICO") {
+        if (!hasRole(session, "MEDICO", "ADM", "ROOT")) {
           setErrorMsg("Acceso denegado. Solo médicos pueden ver esta página.");
           setTimeout(() => router.push("/"), 2000);
           return;

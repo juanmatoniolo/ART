@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState } from "react";
 import { ref, onValue } from "firebase/database";
@@ -118,7 +119,7 @@ export default function MedicacionyDescartables() {
     // Descargar CSV con los datos filtrados
     const descargarCSV = () => {
         if (filtrados.length === 0) {
-            alert("No hay datos para exportar.");
+            notify("No hay datos para exportar.");
             return;
         }
 

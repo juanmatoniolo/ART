@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState, useMemo } from "react";
 import { getSession } from "@/utils/session";
 import Fuse from "fuse.js";
@@ -49,7 +50,7 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver, items
     };
 
     const guardarTodo = async () => {
-        if (esNuevaOP && !formOP.diagnostico) return alert("Completá el diagnóstico.");
+        if (esNuevaOP && !formOP.diagnostico) return notify("Completá el diagnóstico.");
         setSaving(true);
 
         try {
@@ -85,7 +86,7 @@ export default function PasoDetalle({ estado, actualizar, avanzar, volver, items
             avanzar();
         } catch (e) {
             console.error(e);
-            alert("Error al guardar: " + e.message);
+            notify("Error al guardar: " + e.message);
         } finally {
             setSaving(false);
         }

@@ -1,5 +1,6 @@
 // LaboratoriosModule.jsx
 'use client';
+import { singleFlight } from "@/lib/singleFlight";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { ref, onValue, push, set, update, remove } from 'firebase/database';
@@ -544,8 +545,8 @@ export default function LaboratoriosModule({
           </div>
 
           {/* Desktop table */}
-          <div className={styles.labTableWrapper}>
-            <table className={styles.labTable}>
+          <div className={`${styles.labTableWrapper} rt-wrap`}>
+            <table className={`${styles.labTable} rt-stack`}>
               <thead>
                 <tr>
                   <th className={styles.labThCode}>Código</th>
@@ -570,17 +571,17 @@ export default function LaboratoriosModule({
 
                     return (
                       <tr key={rowKey} className={isRecent ? styles.labRowRecent : ''}>
-                        <td className={styles.labCodeCell}>{l.codigo}</td>
-                        <td className={styles.labDescCell}>{l.descripcion}</td>
-                        <td className={styles.labNumCell}>
+                        <td className={styles.labCodeCell} data-label="Código">{l.codigo}</td>
+                        <td className={`${styles.labDescCell} rt-title`}>{l.descripcion}</td>
+                        <td className={styles.labNumCell} data-label="U.B.">
                           <div className={styles.labBaseLine}>UB</div>
                           <div className={styles.labValueBig}>{money(ub)}</div>
                         </td>
-                        <td className={styles.labNumCell}>
+                        <td className={styles.labNumCell} data-label="Total">
                           <div className={styles.labBaseLine}>{formula}</div>
                           <div className={styles.labValueBig}>$ {money(total)}</div>
                         </td>
-                        <td className={styles.labActionCell}>
+                        <td className={styles.labActionCell} data-label="Agregar">
                           <button
                             onClick={() => handleAgregar(l, 1)}
                             className={styles.labAddRound}
@@ -655,7 +656,7 @@ export default function LaboratoriosModule({
                         </button>
                         <button
                           className={styles.btnDanger}
-                          onClick={() => deleteCombo(comboId)}
+                          onClick={singleFlight("app/admin/Facturacion/components/LaboratoriosModule:deleteCombo", () => deleteCombo(comboId))}
                           title="Eliminar"
                         >
                           🗑️ Borrar
@@ -851,7 +852,7 @@ export default function LaboratoriosModule({
               <button className={styles.btnGhost} onClick={() => { setModalOpen(false); resetModal(); }}>
                 Cancelar
               </button>
-              <button className={styles.btnPrimary} onClick={saveCombo}>
+              <button className={styles.btnPrimary} onClick={singleFlight("app/admin/Facturacion/components/LaboratoriosModule:saveCombo", saveCombo)}>
                 {editingId ? 'Guardar cambios' : 'Crear combo'}
               </button>
             </div>

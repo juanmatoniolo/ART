@@ -1,8 +1,8 @@
 /* ── Tarjeta base ── */
 .card {
-    background: #1e293b;
+    background: var(--cu-slate-800);
     border-radius: 16px;
-    border: 1px solid #334155;
+    border: 1px solid var(--cu-slate-700);
     overflow: hidden;
     transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
@@ -24,14 +24,14 @@
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--cu-slate-700);
     background: rgba(0, 0, 0, 0.15);
 }
 
 .chk {
     width: 16px;
     height: 16px;
-    accent-color: #3b82f6;
+    accent-color: var(--cu-info);
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -64,7 +64,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: #64748b;
+    color: var(--cu-slate-500);
     font-size: 0.7rem;
     font-weight: 500;
 }
@@ -87,7 +87,7 @@
 
 .totalLbl {
     display: block;
-    color: #475569;
+    color: var(--cu-slate-600);
     font-size: 0.58rem;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -96,7 +96,7 @@
 
 .totalVal {
     display: block;
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     font-size: 1rem;
     font-weight: 800;
     letter-spacing: -0.5px;
@@ -110,7 +110,7 @@
 }
 
 .name {
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     font-size: 0.95rem;
     font-weight: 700;
     margin-bottom: 8px;
@@ -134,10 +134,10 @@
     padding: 3px 8px;
     border-radius: 30px;
     background: rgba(0, 0, 0, 0.25);
-    color: #64748b;
+    color: var(--cu-slate-500);
     font-size: 0.7rem;
     font-weight: 500;
-    border: 1px solid #334155;
+    border: 1px solid var(--cu-slate-700);
 }
 
 .pill svg {
@@ -171,8 +171,8 @@
 
 .facturaMuted {
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid #334155;
-    color: #475569;
+    border: 1px solid var(--cu-slate-700);
+    color: var(--cu-slate-600);
 }
 
 /* ── Acciones ── */
@@ -206,24 +206,24 @@
 
 .btnView {
     background: rgba(255, 255, 255, 0.06);
-    color: #94a3b8;
-    border: 1px solid #334155;
+    color: var(--cu-slate-400);
+    border: 1px solid var(--cu-slate-700);
 }
 
 .btnView:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
 }
 
 .btnEdit {
     background: rgba(255, 255, 255, 0.06);
-    color: #94a3b8;
-    border: 1px solid #334155;
+    color: var(--cu-slate-400);
+    border: 1px solid var(--cu-slate-700);
 }
 
 .btnEdit:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
 }
 
 .btnArt {

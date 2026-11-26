@@ -1,4 +1,6 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useRef, useState } from "react";
 import stylesBase from "./ingresos.module.css";
@@ -225,7 +227,7 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
     const handlePdf = (file) => {
         if (!file) return;
         if (file.size > PDF_MAX_MB * 1024 * 1024) {
-            alert(`El PDF no puede pesar más de ${PDF_MAX_MB} MB.`);
+            notify(`El PDF no puede pesar más de ${PDF_MAX_MB} MB.`);
             return;
         }
         const tempId = newId("_pdf");
@@ -290,7 +292,7 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                 prev.filter((d) => d.publicId !== doc.publicId),
             );
         } catch (e) {
-            alert("No se pudo eliminar: " + e.message);
+            notify("No se pudo eliminar: " + e.message);
         }
     };
 
@@ -495,7 +497,7 @@ export default function DocumentacionSection({ docs, setDocs, form }) {
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={() => handleDelete(d)}
+                                    onClick={singleFlight("app/admin/ingresos/DocumentacionSection:handleDelete", () => handleDelete(d))}
                                     style={{
                                         background: "transparent",
                                         border: "none",

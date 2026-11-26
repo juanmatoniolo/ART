@@ -6,7 +6,7 @@
 
 .card {
     background: #ffffff;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--cu-slate-200);
     border-radius: 16px;
     padding: 12px;
     box-shadow: 0 1px 8px rgba(0, 0, 0, 0.07);
@@ -19,7 +19,7 @@
     justify-content: space-between;
     gap: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--cu-slate-200);
     margin-bottom: 12px;
     min-width: 0;
 }
@@ -32,13 +32,12 @@
 
 .hint {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--cu-slate-500);
     white-space: nowrap;
 }
 
 .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-        "Courier New", monospace;
+    font-family: var(--font-mono), var(--font-mono-fallback);
 }
 
 .form {
@@ -55,11 +54,11 @@
 .label {
     font-size: 12px;
     font-weight: 850;
-    color: #374151;
+    color: var(--cu-slate-700);
 }
 
 .input {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--cu-slate-300);
     border-radius: 12px;
     padding: 10px;
     font-size: 14px;
@@ -67,7 +66,7 @@
 }
 
 .textarea {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--cu-slate-300);
     border-radius: 12px;
     padding: 10px;
     font-size: 14px;
@@ -89,8 +88,8 @@
 }
 
 .primaryBtn {
-    background: #111827;
-    border: 1px solid #111827;
+    background: var(--cu-slate-850);
+    border: 1px solid var(--cu-slate-850);
     color: #ffffff;
     border-radius: 12px;
     padding: 10px 12px;
@@ -100,8 +99,8 @@
 
 .secondaryBtn {
     background: #ffffff;
-    border: 1px solid #d1d5db;
-    color: #111827;
+    border: 1px solid var(--cu-slate-300);
+    color: var(--cu-slate-850);
     border-radius: 12px;
     padding: 10px 12px;
     font-weight: 850;
@@ -110,7 +109,7 @@
 
 .error {
     background: #ffffff;
-    border: 1px solid #ef4444;
+    border: 1px solid var(--cu-danger);
     border-radius: 12px;
     padding: 10px;
     color: #7f1d1d;
@@ -125,7 +124,7 @@
 }
 
 .item {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--cu-slate-200);
     border-radius: 14px;
     padding: 10px;
 }
@@ -144,7 +143,7 @@
 
 .valueStrong {
     font-weight: 900;
-    color: #111827;
+    color: var(--cu-slate-850);
 }
 
 .itemActions {
@@ -154,8 +153,8 @@
 }
 
 .smallBtnPrimary {
-    background: #111827;
-    border: 1px solid #111827;
+    background: var(--cu-slate-850);
+    border: 1px solid var(--cu-slate-850);
     color: #ffffff;
     border-radius: 10px;
     padding: 8px 10px;
@@ -178,15 +177,15 @@
     padding: 6px 10px;
     font-size: 12px;
     font-weight: 900;
-    border: 1px solid #e5e7eb;
-    background: #f3f4f6;
-    color: #111827;
+    border: 1px solid var(--cu-slate-200);
+    background: var(--cu-slate-100);
+    color: var(--cu-slate-850);
 }
 
 .line {
     margin-top: 8px;
     font-size: 13px;
-    color: #111827;
+    color: var(--cu-slate-850);
 }
 
 .editBox {
@@ -196,10 +195,10 @@
 }
 
 .empty {
-    border: 1px dashed #d1d5db;
+    border: 1px dashed var(--cu-slate-300);
     border-radius: 14px;
     padding: 12px;
-    color: #6b7280;
+    color: var(--cu-slate-500);
     font-weight: 850;
 }
 

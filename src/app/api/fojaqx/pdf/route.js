@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -180,7 +181,7 @@ async function fillFormFields(form, fields) {
 }
 
 // GET: diagnóstico (lista de campos del template)
-export async function GET(req) {
+async function getHandler(req) {
 	try {
 		const templateBytes = await fs.readFile(TEMPLATE_PATH);
 		const pdfDoc = await PDFDocument.load(templateBytes);
@@ -197,7 +198,7 @@ export async function GET(req) {
 }
 
 // POST: generar PDF relleno
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const { payload, fileName } = await req.json();
 		if (!payload)
@@ -276,3 +277,13 @@ export async function POST(req) {
 		return NextResponse.json({ error: error.message }, { status: 500 });
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM", "ADMINISTRADOR", "MEDICO"]);
+	return postHandler(request, ctx);
+});

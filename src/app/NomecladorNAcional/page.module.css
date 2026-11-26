@@ -1,17 +1,17 @@
 /* === CONTENEDOR GENERAL === */
 .wrapper {
-    background: var(--content-bg, #0b1220);
-    min-height: 100vh;
+    background: var(--content-bg, var(--cu-slate-950));
+    min-height: calc(100vh / var(--app-zoom, 1));
     padding: 1rem;
     display: block;
-    color: var(--text-color, #f1f5f9);
+    color: var(--text-color, var(--cu-slate-100));
     overflow-x: hidden;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* === TARJETA PRINCIPAL === */
 .card {
-    background: var(--section-bg, #1e293b);
+    background: var(--section-bg, var(--cu-slate-800));
     border-radius: 1rem;
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     box-shadow: var(--shadow, 0 0 18px rgba(0, 0, 0, 0.4));
@@ -26,7 +26,7 @@
 .tabs {
     display: flex;
     align-items: center;
-    background: linear-gradient(90deg, var(--sidebar-bg, #111827) 0%, var(--section-bg, #1a1f2c) 100%);
+    background: linear-gradient(90deg, var(--sidebar-bg, var(--cu-slate-850)) 0%, var(--section-bg, #1a1f2c) 100%);
     border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     overflow-x: auto;
     scrollbar-width: none;
@@ -41,7 +41,7 @@
 
 .tabButton {
     flex: none;
-    color: var(--text-muted, #cbd5e1);
+    color: var(--text-muted, var(--cu-slate-300));
     font-weight: 500;
     background: transparent;
     border: none;
@@ -52,7 +52,7 @@
 }
 
 .tabButton:hover {
-    color: var(--color-primary-light, #6fa17b);
+    color: var(--color-primary-light, var(--cu-brand-400));
     background: rgba(68, 121, 77, 0.08);
 }
 
@@ -61,14 +61,14 @@
     color: var(--active-text, #fff);
     font-weight: 600;
     background: rgba(68, 121, 77, 0.12);
-    border-bottom: 3px solid var(--color-primary, #44794d);
+    border-bottom: 3px solid var(--color-primary, var(--cu-brand-600));
     position: relative;
 }
 
 /* === CONTENIDO === */
 .tabContent {
-    background-color: var(--content-bg, #0f172a);
-    color: var(--text-color, #e5e7eb);
+    background-color: var(--content-bg, var(--cu-slate-900));
+    color: var(--text-color, var(--cu-slate-200));
     padding: 1rem 0.5rem;
     min-height: auto;
     width: 100%;

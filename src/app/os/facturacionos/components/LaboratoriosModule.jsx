@@ -1,5 +1,6 @@
 // LaboratoriosModule.jsx
 'use client';
+import { singleFlight } from "@/lib/singleFlight";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { ref, onValue, push, set, update, remove } from 'firebase/database';
@@ -708,7 +709,7 @@ export default function LaboratoriosModule({
                         </button>
                         <button
                           className={styles.btnDanger}
-                          onClick={() => deleteCombo(comboId)}
+                          onClick={singleFlight("app/os/facturacionos/components/LaboratoriosModule:deleteCombo", () => deleteCombo(comboId))}
                           title="Eliminar"
                         >
                           🗑️ Borrar
@@ -903,7 +904,7 @@ export default function LaboratoriosModule({
               <button className={styles.btnGhost} onClick={() => { setModalOpen(false); resetModal(); }}>
                 Cancelar
               </button>
-              <button className={styles.btnPrimary} onClick={saveCombo}>
+              <button className={styles.btnPrimary} onClick={singleFlight("app/os/facturacionos/components/LaboratoriosModule:saveCombo", saveCombo)}>
                 {editingId ? 'Guardar cambios' : 'Crear combo'}
               </button>
             </div>

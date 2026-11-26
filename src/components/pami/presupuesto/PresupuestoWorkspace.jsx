@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useMemo, useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { getSession } from "@/utils/session";
@@ -45,7 +46,7 @@ export default function PresupuestoWorkspace({ items, paciente, oncoplan, contex
     };
 
     const guardar = async () => {
-        if (!paciente?.dni) return alert("Falta el paciente.");
+        if (!paciente?.dni) return notify("Falta el paciente.");
         setSaving(true);
         try {
             let pacienteKey = beforeSave ? await beforeSave() : String(paciente.dni).replace(/\D/g, "");
@@ -53,7 +54,7 @@ export default function PresupuestoWorkspace({ items, paciente, oncoplan, contex
             setEdicionId(res.id);
             onSaved?.({ id: res.id, items: carrito, codigos, total, oncoplan, ...contexto });
         } catch (e) {
-            console.error(e); alert("Error al guardar: " + e.message);
+            console.error(e); notify("Error al guardar: " + e.message);
         } finally { setSaving(false); }
     };
 

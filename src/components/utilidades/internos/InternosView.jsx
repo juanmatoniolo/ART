@@ -1,4 +1,5 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
 
 import React, { useMemo, useState } from "react";
 import styles from "./InternosView.module.css";
@@ -131,7 +132,7 @@ export default function InternosView() {
                     <div className={styles.hint}>Nodo: <span className={styles.mono}>{NODE}</span></div>
                 </div>
 
-                <form className={styles.form} onSubmit={create}>
+                <form className={styles.form} onSubmit={singleFlight("components/utilidades/internos/InternosView:create", create)}>
                     <div className={styles.row2}>
                         <div className={styles.field}>
                             <label className={styles.label}>Sector</label>

@@ -1,4 +1,7 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState } from "react";
 import { ref, onValue, push, set, update, runTransaction } from "firebase/database";
@@ -114,9 +117,8 @@ export default function HistoriasClinicasPage() {
     }
   }, []);
 
-  useEffect(() => {
-    const generalRef = ref(db, HC_PATH);
-    const unsubGeneral = onValue(generalRef, (snapshot) => {
+  useEffect(() => {
+    const unsubGeneral = onSharedValue(HC_PATH, (snapshot) => {
       const data = snapshot.val() || {};
       const items = Object.entries(data)
         .map(([id, values]) => mapHistoriaGeneral(id, values))
@@ -127,10 +129,8 @@ export default function HistoriasClinicasPage() {
         .filter((n) => Number.isFinite(n))
         .reduce((acc, curr) => Math.max(acc, curr), 0);
       setNextGeneralNumber(String(max + 1));
-    });
-
-    const utiRef = ref(db, HC_UTI_PATH);
-    const unsubUti = onValue(utiRef, (snapshot) => {
+    });
+    const unsubUti = onSharedValue(HC_UTI_PATH, (snapshot) => {
       const data = snapshot.val() || {};
       const items = Object.entries(data)
         .map(([id, values]) => mapHistoriaUti(id, values))
@@ -190,7 +190,7 @@ export default function HistoriasClinicasPage() {
     e.preventDefault();
     if (!isLogged) return;
     if (!formGeneral.nombre_apellido.trim() || !formGeneral.dni.trim()) {
-      alert("Nombre y DNI son obligatorios");
+      notify("Nombre y DNI son obligatorios");
       return;
     }
     setSubmitting(true);
@@ -214,7 +214,7 @@ export default function HistoriasClinicasPage() {
       setFormGeneral({ nombre_apellido: "", dni: "" });
     } catch (error) {
       console.error(error);
-      alert("Error al crear historia clínica");
+      notify("Error al crear historia clínica");
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +224,7 @@ export default function HistoriasClinicasPage() {
     e.preventDefault();
     if (!isLogged) return;
     if (!formUti.nombre_apellido.trim() || !formUti.dni.trim()) {
-      alert("Nombre y DNI son obligatorios");
+      notify("Nombre y DNI son obligatorios");
       return;
     }
     setSubmitting(true);
@@ -248,7 +248,7 @@ export default function HistoriasClinicasPage() {
       setFormUti({ nombre_apellido: "", dni: "" });
     } catch (error) {
       console.error(error);
-      alert("Error al crear historia clínica UTI");
+      notify("Error al crear historia clínica UTI");
     } finally {
       setSubmitting(false);
     }
@@ -297,7 +297,7 @@ export default function HistoriasClinicasPage() {
       cancelEdit();
     } catch (error) {
       console.error(error);
-      alert("Error al guardar");
+      notify("Error al guardar");
     }
   };
 
@@ -358,7 +358,7 @@ export default function HistoriasClinicasPage() {
         <div className={styles.formCard}>
           <h2 className={styles.formTitle}>Nueva historia clínica</h2>
 
-          <form onSubmit={handleCreateGeneral} className={styles.formGrid}>
+          <form onSubmit={singleFlight("app/administrador/historia-clinica/page:handleCreateGeneral", handleCreateGeneral)} className={styles.formGrid}>
             <input
               type="text"
               placeholder="Nombre y apellido"
@@ -413,7 +413,7 @@ export default function HistoriasClinicasPage() {
         <div className={styles.formCard}>
           <h2 className={styles.formTitle}>Nueva historia clínica UTI</h2>
 
-          <form onSubmit={handleCreateUti} className={styles.formGrid}>
+          <form onSubmit={singleFlight("app/administrador/historia-clinica/page:handleCreateUti", handleCreateUti)} className={styles.formGrid}>
             <input
               type="text"
               placeholder="Nombre y apellido"

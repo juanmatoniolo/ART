@@ -3,7 +3,7 @@
     padding: 2rem;
     background-color: #1e1e2f;
     color: #f0f0f0;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--app-zoom, 1));
 }
 
 /* Encabezado */

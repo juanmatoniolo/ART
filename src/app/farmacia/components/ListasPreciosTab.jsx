@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 
 import { useState, useMemo } from "react";
 import { formatCurrency, matchesAllTerms } from "../utils/farmacia";
@@ -86,7 +87,7 @@ export default function ListasPreciosTab({
 
     const guardarPrecios = async (item) => {
         if (!onActualizarItem) {
-            alert("Función para guardar no configurada.");
+            notify("Función para guardar no configurada.");
             return;
         }
 
@@ -111,7 +112,7 @@ export default function ListasPreciosTab({
             setGuardando(false);
         } catch (error) {
             console.error("Error guardando:", error);
-            alert("No se pudieron guardar los cambios.");
+            notify("No se pudieron guardar los cambios.");
             setGuardando(false);
         }
     };
@@ -120,14 +121,14 @@ export default function ListasPreciosTab({
     const descargarCSV = (modo) => {
         let listasExport = [];
         if (modo === 'activa') {
-            if (!listaActiva) { alert("No hay lista activa seleccionada."); return; }
+            if (!listaActiva) { notify("No hay lista activa seleccionada."); return; }
             listasExport = [listaActiva];
         } else {
             listasExport = listasActivas;
         }
 
         if (listasExport.length === 0 || filtrados.length === 0) {
-            alert("No hay datos para exportar.");
+            notify("No hay datos para exportar.");
             return;
         }
 

@@ -4,10 +4,10 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 1rem;
-  background: #0b1220;
+  background: var(--cu-slate-950);
   color: #fff;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100vh / var(--app-zoom, 1));
+  min-height: calc(100dvh / var(--app-zoom, 1));
   overflow-x: hidden;
   /* ← Elimina scroll lateral */
   box-sizing: border-box;
@@ -29,7 +29,7 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-size: clamp(1.6rem, calc(4vw / var(--app-zoom, 1)), 2.6rem);
   font-weight: 900;
   letter-spacing: -0.02em;
   color: #f0f9ff;
@@ -41,7 +41,7 @@
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.5;
   font-weight: 500;
-  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  font-size: clamp(0.9rem, calc(1.5vw / var(--app-zoom, 1)), 1.1rem);
   word-break: break-word;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .cardTitle {
-  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  font-size: clamp(1.1rem, calc(2.5vw / var(--app-zoom, 1)), 1.5rem);
   font-weight: 900;
   margin-bottom: 0.4rem;
   letter-spacing: -0.01em;
@@ -160,7 +160,7 @@
   color: rgba(255, 255, 255, 0.78);
   line-height: 1.5;
   font-weight: 500;
-  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-size: clamp(0.85rem, calc(1.2vw / var(--app-zoom, 1)), 1rem);
   word-break: break-word;
 }
 
@@ -171,7 +171,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-size: clamp(0.85rem, calc(1.2vw / var(--app-zoom, 1)), 1rem);
   transition: transform 0.2s;
 }
 
@@ -187,7 +187,7 @@
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
-  font-size: clamp(0.8rem, 1vw, 0.9rem);
+  font-size: clamp(0.8rem, calc(1vw / var(--app-zoom, 1)), 0.9rem);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   width: 100%;
   box-sizing: border-box;

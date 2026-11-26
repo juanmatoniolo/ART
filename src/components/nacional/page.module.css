@@ -12,7 +12,7 @@
   flex-direction: column;
   gap: 1rem;
   overflow-x: hidden;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
 }
 
 /* ===== Header ===== */
@@ -42,12 +42,12 @@
   font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: 0.01em;
-  color: #6fa17b;
+  color: var(--cu-brand-400);
 }
 
 .subtitle {
   margin: 0.4rem 0 0;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   line-height: 1.45;
   font-size: 0.92rem;
 }
@@ -56,7 +56,7 @@
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   padding: 0.8rem 1rem;
   border-radius: 12px;
   font-weight: 800;
@@ -88,7 +88,7 @@
 }
 .label {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   font-weight: 800;
   letter-spacing: 0.02em;
   margin-bottom: 0.5rem;
@@ -96,9 +96,9 @@
 
 .select {
   width: 100%;
-  background: #1f2937;
-  color: #f9fafb;
-  border: 1px solid #4b5563;
+  background: var(--cu-slate-800);
+  color: var(--cu-slate-50);
+  border: 1px solid var(--cu-slate-600);
   border-radius: 12px;
   padding: 0.85rem 1rem;
   font-size: 1rem;
@@ -113,7 +113,7 @@
   background-size: 1.2rem;
 }
 .select:focus {
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }
 
@@ -177,7 +177,7 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   padding: 0.95rem 1rem;
   font-size: 1rem;
   outline: none;
@@ -209,7 +209,7 @@
   border-color: rgba(111, 161, 123, 0.24);
   background: rgba(111, 161, 123, 0.05);
 }
-.rxCard { border-left: 5px solid #6fa17b; }
+.rxCard { border-left: 5px solid var(--cu-brand-400); }
 .subsiguienteCard { outline: 2px dashed rgba(255, 255, 255, 0.14); }
 
 .cardTop {
@@ -229,7 +229,7 @@
   border-radius: 12px;
   background: rgba(111, 161, 123, 0.18);
   border: 1px solid rgba(111, 161, 123, 0.25);
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -246,14 +246,14 @@
 .capMain {
   font-weight: 800;
   font-size: 0.85rem;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   line-height: 1.3;
   word-break: break-word;
 }
 .capSub {
   font-weight: 600;
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   line-height: 1.2;
   word-break: break-word;
 }
@@ -261,14 +261,14 @@
 .desc {
   margin-top: 0.7rem;
   line-height: 1.45;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   overflow-wrap: anywhere;
 }
 
 .costGrid {
   margin-top: 0.85rem;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.65rem;
 }
 .costBox {
@@ -277,6 +277,30 @@
   border-radius: 14px;
   padding: 0.85rem 0.5rem;
   text-align: center;
+  min-width: 0;
+}
+
+/* Celular: una caja por fila, etiqueta a la izquierda y monto a la derecha */
+@media (max-width: 480px) {
+  .costGrid {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+  .costBox {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    text-align: left;
+  }
+  .costBox .costValue {
+    margin-top: 0;
+    text-align: right;
+  }
+  .costBox > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
 }
 .costLabel {
   display: block;
@@ -353,7 +377,7 @@
 }
 
 .codeCell {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono), var(--font-mono-fallback);
   font-size: 0.85rem;
   font-weight: 800;
   color: #eaf7ef;
@@ -375,7 +399,7 @@
 
 .highlight {
   background: rgba(111, 161, 123, 0.18);
-  color: #f1f5f9;
+  color: var(--cu-slate-100);
   padding: 0.05rem 0.18rem;
   border-radius: 6px;
   font-weight: 900;
@@ -393,7 +417,7 @@
   cursor: pointer;
   padding: 0.95rem 1rem;
   font-weight: 900;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   background: rgba(17, 24, 39, 0.35);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -423,7 +447,7 @@
   background: transparent;
   border: none;
   outline: none;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -440,7 +464,7 @@
   flex: 0 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   padding: 0.6rem 0.85rem;
   border-radius: 12px;
   font-weight: 850;
@@ -482,7 +506,7 @@
 
 .baseLine {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   margin-top: 0.15rem;
   font-weight: 600;
 }

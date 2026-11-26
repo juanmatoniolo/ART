@@ -1,4 +1,6 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useState, useEffect } from "react";
 import { ref, set, remove, get, onValue } from "firebase/database";
@@ -258,17 +260,17 @@ export default function ConveniosAdmin() {
   /* ===== Confirmar aumento porcentual ===== */
   const confirmarAumentoPorcentaje = async () => {
     if (!newNamePercent.trim()) {
-      alert("Ingresá un nombre para el nuevo convenio");
+      notify("Ingresá un nombre para el nuevo convenio");
       return;
     }
     if (!percentSource) {
-      alert("Seleccioná un convenio origen");
+      notify("Seleccioná un convenio origen");
       return;
     }
     const pHonorarios = parseFloat(porcentajeHonorarios);
     const pGastos = parseFloat(porcentajeGastos);
     if (isNaN(pHonorarios) || isNaN(pGastos)) {
-      alert("Ingresá porcentajes válidos (pueden ser cero)");
+      notify("Ingresá porcentajes válidos (pueden ser cero)");
       return;
     }
     const sourceData = convenios[percentSource];
@@ -861,11 +863,11 @@ export default function ConveniosAdmin() {
   /* ===== Funciones de impresión ===== */
   const imprimirConvenioFormal = () => {
     if (!activo) {
-      alert("Seleccioná un convenio para imprimir");
+      notify("Seleccioná un convenio para imprimir");
       return;
     }
     if (!fechaImpresion) {
-      alert("Establecé la fecha de vigencia antes de imprimir.");
+      notify("Establecé la fecha de vigencia antes de imprimir.");
       return;
     }
     const printWindow = window.open("", "_blank");
@@ -878,7 +880,7 @@ export default function ConveniosAdmin() {
 
   const imprimirConvenioInterno = () => {
     if (!activo) {
-      alert("Seleccioná un convenio para imprimir");
+      notify("Seleccioná un convenio para imprimir");
       return;
     }
     const printWindow = window.open("", "_blank");
@@ -889,7 +891,7 @@ export default function ConveniosAdmin() {
 
   const imprimirConvenioFormalDesdeLista = (nombre) => {
     if (!fechaImpresion) {
-      alert("Establecé la fecha de vigencia antes de imprimir.");
+      notify("Establecé la fecha de vigencia antes de imprimir.");
       return;
     }
     const data = convenios[nombre];
@@ -1181,7 +1183,7 @@ export default function ConveniosAdmin() {
           <button className={styles.btnSecondary} onClick={() => setActivo(null)}>
             Cancelar
           </button>
-          <button className={styles.btnPrimary} onClick={guardar}>
+          <button className={styles.btnPrimary} onClick={singleFlight("app/admin/nomencladores/editar/page:guardar", guardar)}>
             Guardar
           </button>
         </div>
@@ -1232,7 +1234,7 @@ export default function ConveniosAdmin() {
           value={nuevoNombre}
           onChange={(e) => setNuevoNombre(e.target.value)}
         />
-        <button className={styles.btnPrimary} onClick={crearDesdePlantilla}>
+        <button className={styles.btnPrimary} onClick={singleFlight("app/admin/nomencladores/editar/page:crearDesdePlantilla", crearDesdePlantilla)}>
           ➕ Crear (desde plantilla)
         </button>
       </div>
@@ -1356,7 +1358,7 @@ export default function ConveniosAdmin() {
               </button>
               <button
                 className={styles.btnPrimary}
-                onClick={confirmarAumentoPorcentaje}
+                onClick={singleFlight("app/admin/nomencladores/editar/page:confirmarAumentoPorcentaje", confirmarAumentoPorcentaje)}
               >
                 Crear
               </button>

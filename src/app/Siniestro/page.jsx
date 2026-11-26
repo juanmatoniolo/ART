@@ -1,4 +1,7 @@
 "use client";
+import { getShared } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/firebase";
@@ -298,7 +301,7 @@ export default function SiniestroPage() {
   const fetchAllPacientes = async () => {
     setLoadingPacientes(true);
     try {
-      const snapshot = await get(child(ref(db), "pacientes"));
+      const snapshot = await getShared("pacientes");
       if (snapshot.exists()) {
         const data = snapshot.val();
         const arr = Object.entries(data).map(([id, value]) => ({ id, ...value }));
@@ -405,7 +408,7 @@ export default function SiniestroPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("No se pudo generar el PDF.");
+      notify("No se pudo generar el PDF.");
     }
   };
 
@@ -1074,7 +1077,7 @@ export default function SiniestroPage() {
                               <button
                                 className={styles.iconBtn}
                                 title="Imprimir PDF"
-                                onClick={() => handlePrintPaciente(p)}
+                                onClick={singleFlight("app/Siniestro/page:handlePrintPaciente", () => handlePrintPaciente(p))}
                               >
                                 🖨️
                               </button>

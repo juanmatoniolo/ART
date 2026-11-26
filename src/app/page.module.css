@@ -11,15 +11,15 @@ page.module.css
   --surface-2: #fbfbfc;
   --border: #e6e8ee;
 
-  --text: #111827;
-  --muted: #6b7280;
+  --text: var(--cu-slate-850);
+  --muted: var(--cu-slate-500);
 
-  --accent: #2f6f4e;
+  --accent: var(--cu-brand-700);
   --accent-weak: rgba(47, 111, 78, 0.10);
 
   --shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
 
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: var(--bg);
   color: var(--text);
   display: flex;

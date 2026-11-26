@@ -1,11 +1,8 @@
-import React from 'react'
+"use client";
 
-const page = () => {
-    return (
-        <div>
-            nada
-        </div>
-    )
+import MiCuenta from "@/components/MiCuenta/MiCuenta";
+
+// Configuración = datos del usuario y resumen de lo que puede hacer.
+export default function ConfiguracionPage() {
+  return <MiCuenta />;
 }
-
-export default page

@@ -1,4 +1,6 @@
+import { notify } from "@/lib/notify";
 // app/admin/rp/helpers.js
+import { getFirmaCargada } from "@/lib/firmas";
 
 // =====================================================================
 //  FECHAS / STRINGS / SANITIZACIÓN
@@ -92,24 +94,26 @@ export function getSubCodigoInfo(codigo) {
 
 // =====================================================================
 //  FIRMAS DE MÉDICOS
+//  Son datos sensibles: los valores son nombres de archivo que se piden a la
+//  API protegida /api/firmas/:archivo (ver lib/firmas.js). Nunca URLs públicas.
 // =====================================================================
 const FIRMAS_POR_APELLIDO = {
-	"BRARDA":     "/firmas/DR-BRARDA.jpeg",
-	"CANAGLIA":   "/firmas/DR-CANAGLIA.jpeg",
-	"CIANCIOSI":  "/firmas/DR-CIANCIOSI.jpeg",
-	"DEL PUERTO": "/firmas/DR-DEL-PUERTO.jpeg",
-	"FRESCO":     "/firmas/DR-FRESCO.jpeg",
-	"GIMENEZ":    "/firmas/DR-GIMENEZ.jpeg",
-	"LOVATTO":    "/firmas/DR-LOVATTO.jpeg",
-	"PERTUS":     "/firmas/DR-PERTUS.jpeg",
-	"SALOMON":    "/firmas/DR-SALOMON-ALEJANDRO.jpeg",
-	"ESPINOLA":   "/firmas/DRA-ESPINOLA.jpeg",
-	"GALLARDO":   "/firmas/DRA-GALLARDO.jpeg",
-	"ZABALLA":    "/firmas/DRA-ZABALLA.jpeg",
+	"BRARDA":     "DR-BRARDA.jpeg",
+	"CANAGLIA":   "DR-CANAGLIA.jpeg",
+	"CIANCIOSI":  "DR-CIANCIOSI.jpeg",
+	"DEL PUERTO": "DR-DEL-PUERTO.jpeg",
+	"FRESCO":     "DR-FRESCO.jpeg",
+	"GIMENEZ":    "DR-GIMENEZ.jpeg",
+	"LOVATTO":    "DR-LOVATTO.jpeg",
+	"PERTUS":     "DR-PERTUS.jpeg",
+	"SALOMON":    "DR-SALOMON-ALEJANDRO.jpeg",
+	"ESPINOLA":   "DRA-ESPINOLA.jpeg",
+	"GALLARDO":   "DRA-GALLARDO.jpeg",
+	"ZABALLA":    "DRA-ZABALLA.jpeg",
 };
 
 const FIRMAS_ESPECIALES = [
-	{ apellido: "PERCARA", nombreMatch: "JOSE", url: "/firmas/DR-PERCARA-JOSE.jpeg" },
+	{ apellido: "PERCARA", nombreMatch: "JOSE", url: "DR-PERCARA-JOSE.jpeg" },
 ];
 
 const _norm = (s) =>
@@ -119,6 +123,16 @@ const _norm = (s) =>
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "")
 		.replace(/\s+/g, " ");
+
+/** Archivos de firma de todos los médicos de estas RPs (para precargarlas). */
+export function getFirmasDeRps(rps = []) {
+	return (rps || []).map((rp) => getFirmaForMedico(rp?.medico)).filter(Boolean);
+}
+
+/** Todos los archivos de firma conocidos (para precargar al abrir la pantalla). */
+export function getTodasLasFirmas() {
+	return [...Object.values(FIRMAS_POR_APELLIDO), ...FIRMAS_ESPECIALES.map((f) => f.url)];
+}
 
 export function getFirmaForMedico(medico) {
 	if (!medico?.apellido) return null;
@@ -131,12 +145,6 @@ export function getFirmaForMedico(medico) {
 	return FIRMAS_POR_APELLIDO[ape] || null;
 }
 
-function _toAbsolute(url, origin) {
-	if (!url) return null;
-	if (/^https?:\/\//i.test(url)) return url;
-	if (!origin) return url;
-	return `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
-}
 
 // =====================================================================
 //  NOMBRE DE ARCHIVO PDF
@@ -268,8 +276,9 @@ function renderRpHtml(rp, logoSrc, origin) {
 			: `<div class="codes"><div class="code-row"><span class="code-desc italic">Sin prácticas cargadas</span></div></div>`;
 	}
 
-	const firmaRel = getFirmaForMedico(med);
-	const firmaUrl = _toAbsolute(firmaRel, origin);
+	// Firma ya descargada por la pantalla (data URL). Si no hay permiso o no
+	// cargó, el documento sale sin la imagen de la firma.
+	const firmaUrl = getFirmaCargada(getFirmaForMedico(med));
 
 	const firmaHtml = `
 		<div class="firma">
@@ -584,7 +593,7 @@ async function downloadPdf() {
         pdf.save(${JSON.stringify(pdfFileName)});
     } catch (err) {
         console.error(err);
-        alert('Error al generar PDF: ' + (err && err.message ? err.message : err));
+        notify('Error al generar PDF: ' + (err && err.message ? err.message : err));
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = originalText; }
     }

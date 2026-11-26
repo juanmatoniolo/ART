@@ -4,24 +4,24 @@
    ================================================================ */
 
 .stats {
-    --c-primary: #44794d;
+    --c-primary: var(--cu-brand-600);
     --c-primary-dark: #2f5a37;
-    --c-primary-light: #6fa17b;
+    --c-primary-light: var(--cu-brand-400);
     --c-primary-soft: #ecf5ee;
     --c-accent: #b45309;
     --c-accent-soft: #fef3e7;
     --c-cyan: #0e7490;
-    --c-danger: #dc2626;
+    --c-danger: var(--cu-danger-strong);
     --c-danger-soft: #fee2e2;
-    --c-text: #0f172a;
-    --c-text-soft: #334155;
-    --c-text-mute: #64748b;
-    --c-text-faint: #94a3b8;
-    --c-border: #e2e8f0;
-    --c-border-strong: #cbd5e1;
+    --c-text: var(--cu-slate-900);
+    --c-text-soft: var(--cu-slate-700);
+    --c-text-mute: var(--cu-slate-500);
+    --c-text-faint: var(--cu-slate-400);
+    --c-border: var(--cu-slate-200);
+    --c-border-strong: var(--cu-slate-300);
     --c-bg: #ffffff;
-    --c-bg-soft: #f8fafc;
-    --c-bg-hover: #f1f5f9;
+    --c-bg-soft: var(--cu-slate-50);
+    --c-bg-hover: var(--cu-slate-100);
     --c-overlay: rgba(15, 23, 42, 0.55);
     --radius-sm: 8px;
     --radius: 12px;
@@ -45,24 +45,24 @@
 
 /* ============ MODO OSCURO ============ */
 .stats[data-theme='dark'] {
-    --c-primary: #6fa17b;
+    --c-primary: var(--cu-brand-400);
     --c-primary-dark: #a7ceb0;
     --c-primary-light: #8ebd97;
     --c-primary-soft: rgba(68, 121, 77, 0.18);
-    --c-accent: #f59e0b;
+    --c-accent: var(--cu-warning);
     --c-accent-soft: rgba(245, 158, 11, 0.18);
     --c-cyan: #22d3ee;
     --c-danger: #f87171;
     --c-danger-soft: rgba(248, 113, 113, 0.15);
-    --c-text: #f1f5f9;
-    --c-text-soft: #cbd5e1;
-    --c-text-mute: #94a3b8;
-    --c-text-faint: #64748b;
-    --c-border: #334155;
-    --c-border-strong: #475569;
-    --c-bg: #1e293b;
-    --c-bg-soft: #0f172a;
-    --c-bg-hover: #334155;
+    --c-text: var(--cu-slate-100);
+    --c-text-soft: var(--cu-slate-300);
+    --c-text-mute: var(--cu-slate-400);
+    --c-text-faint: var(--cu-slate-500);
+    --c-border: var(--cu-slate-700);
+    --c-border-strong: var(--cu-slate-600);
+    --c-bg: var(--cu-slate-800);
+    --c-bg-soft: var(--cu-slate-900);
+    --c-bg-hover: var(--cu-slate-700);
     --c-overlay: rgba(0, 0, 0, 0.7);
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
@@ -714,7 +714,7 @@
 .insightsBox {
     padding: 16px 20px;
     border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, #f0fdf4, #f8fafc);
+    background: linear-gradient(135deg, #f0fdf4, var(--cu-slate-50));
     border: 1px solid #bbf7d0;
     box-shadow: var(--shadow-xs);
 }
@@ -739,7 +739,7 @@
     align-items: flex-start;
     gap: 10px;
     font-size: 13.5px;
-    color: #1e293b;
+    color: var(--cu-slate-800);
     line-height: 1.4;
     padding: 4px 0;
 }
@@ -1135,7 +1135,7 @@
     margin-top: 8px;
 }
 .codeCell {
-    font-family: 'Courier New', Consolas, monospace;
+    font-family: var(--font-mono), var(--font-mono-fallback);
     font-weight: 700;
     color: var(--c-primary-dark);
     background: var(--c-primary-soft);
@@ -1191,7 +1191,7 @@
     box-shadow: var(--shadow-lg);
     width: 100%;
     max-width: 560px;
-    max-height: 90vh;
+    max-height: calc(90vh / var(--app-zoom, 1));
     display: flex;
     flex-direction: column;
     animation: modalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -1,4 +1,6 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { notify } from "@/lib/notify";
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,7 +32,7 @@ function NuevoPamiInner() {
 
     // Cargar catálogo para el borrador de medicamentos (opcional en el paso)
     useEffect(() => {
-        const unsub = onValue(ref(db, "medydescartables"), (snap) => {
+        const unsub = onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) return setItems([]);
             const data = snap.val();
             const lista = [];
@@ -89,7 +91,7 @@ function NuevoPamiInner() {
             render: (props) => <Paso1Paciente {...props} />,
             onNext: (estado) => {
                 if (!estado.paciente || !estado.paciente.dni) {
-                    alert("Seleccioná o cargá un paciente antes de continuar.");
+                    notify("Seleccioná o cargá un paciente antes de continuar.");
                     return false;
                 }
             },

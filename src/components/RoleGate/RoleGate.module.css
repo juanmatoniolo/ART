@@ -1,0 +1,78 @@
+.screen {
+  min-height: calc(100vh / var(--app-zoom, 1));
+  min-height: calc(100dvh / var(--app-zoom, 1));
+  display: grid;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  background: var(--cu-slate-950);
+  color: var(--cu-slate-200);
+}
+
+.muted {
+  color: var(--cu-slate-400);
+  margin: 0;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.75rem 1.5rem;
+  border-radius: var(--cu-radius-lg);
+  background: var(--cu-slate-800);
+  border: 1px solid var(--cu-slate-700);
+  text-align: center;
+}
+
+.icon {
+  color: var(--cu-warning);
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+  color: var(--cu-slate-50);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: var(--cu-slate-300);
+  line-height: 1.5;
+}
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: var(--cu-radius-md);
+  background: var(--cu-brand-600);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--cu-brand-500);
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--cu-slate-600);
+  color: var(--cu-slate-200);
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}

@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { dniKey, asegurarPacientePami } from "@/lib/pami";
@@ -57,7 +58,7 @@ export default function NuevoPacientePage() {
             setTimeout(() => router.push("/admin/pami"), 1200);
         } catch (e) {
             console.error(e);
-            alert("Error al guardar el paciente: " + e.message);
+            notify("Error al guardar el paciente: " + e.message);
         } finally {
             setSaving(false);
         }

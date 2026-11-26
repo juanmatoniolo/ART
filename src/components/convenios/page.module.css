@@ -13,7 +13,7 @@
     flex-direction: column;
     gap: 1rem;
     overflow-x: hidden;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
 }
 
 /* ===== States ===== */
@@ -24,7 +24,7 @@
     border-radius: 16px;
     padding: 2rem 1rem;
     text-align: center;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -55,12 +55,12 @@
     font-size: 1.25rem;
     font-weight: 1000;
     letter-spacing: 0.01em;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
 }
 
 .subtitle {
     margin: 0.4rem 0 0;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     line-height: 1.45;
     font-size: 0.92rem;
 }
@@ -72,7 +72,7 @@
     gap: 0.55rem;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     padding: 0.5rem 0.65rem;
     border-radius: 999px;
     cursor: pointer;
@@ -100,7 +100,7 @@
     width: 16px;
     height: 16px;
     border-radius: 999px;
-    background: #9ca3af;
+    background: var(--cu-slate-400);
     position: absolute;
     top: 2px;
     left: 2px;
@@ -110,7 +110,7 @@
 .toggleText {
     font-size: 0.85rem;
     font-weight: 900;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
 }
 
 .toggleOn {
@@ -124,7 +124,7 @@
 
 .toggleOn .toggleKnob::after {
     transform: translateX(14px);
-    background: #f1f5f9;
+    background: var(--cu-slate-100);
 }
 
 /* ===== Toolbar ===== */
@@ -154,7 +154,7 @@
     width: 100%;
     min-width: 0;
     background: rgba(255, 255, 255, 0.04);
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 0.85rem 1rem;
@@ -173,7 +173,7 @@
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     padding: 0.95rem 1rem;
     font-size: 1rem;
     outline: none;
@@ -202,7 +202,7 @@
     margin: 0;
     padding-bottom: 0.6rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     font-weight: 1000;
 }
 
@@ -246,7 +246,7 @@
     font-weight: 1000;
     line-height: 1.25;
     font-size: 1rem;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -261,7 +261,7 @@
 
 .badgeOk {
     background: rgba(111, 161, 123, 0.22);
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     border: 1px solid rgba(111, 161, 123, 0.28);
     border-radius: 999px;
     padding: 0.15rem 0.45rem;
@@ -273,7 +273,7 @@
 .badgeGhost {
     opacity: 0.35;
     font-weight: 1000;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     flex: 0 0 auto;
 }
 
@@ -307,7 +307,7 @@
     margin-top: 0.2rem;
     font-weight: 1000;
     font-size: 0.88rem;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     overflow-wrap: anywhere;
 }
 
@@ -380,7 +380,7 @@
 /* ===== Highlight ===== */
 .highlight {
     background: rgba(111, 161, 123, 0.18);
-    color: #f1f5f9;
+    color: var(--cu-slate-100);
     padding: 0.05rem 0.18rem;
     border-radius: 6px;
     font-weight: 1000;
@@ -400,11 +400,11 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 12px;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
 }
 
 .condItem strong {
-    color: #6fa17b;
+    color: var(--cu-brand-400);
     font-weight: 1000;
 }
 
@@ -414,13 +414,13 @@
     padding: 1rem;
     font-size: 0.85rem;
     text-align: center;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .firma {
     font-weight: 1000;
-    color: #6fa17b;
+    color: var(--cu-brand-400);
 }
 
 /* =========================
@@ -480,9 +480,9 @@
 
 .select {
     width: 100%;
-    background: #1f2937;        /* fondo oscuro */
-    color: #f9fafb;             /* texto claro */
-    border: 1px solid #4b5563;
+    background: var(--cu-slate-800);        /* fondo oscuro */
+    color: var(--cu-slate-50);             /* texto claro */
+    border: 1px solid var(--cu-slate-600);
     border-radius: 12px;
     padding: 0.85rem 1rem;
     font-size: 1rem;
@@ -497,11 +497,11 @@
 }
 
 .select option {
-    background: #1f2937;
-    color: #f9fafb;
+    background: var(--cu-slate-800);
+    color: var(--cu-slate-50);
 }
 
 .select:focus {
-    border-color: #6fa17b;
+    border-color: var(--cu-brand-400);
     box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.3);
 }

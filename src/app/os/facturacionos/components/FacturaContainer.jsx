@@ -1,4 +1,5 @@
 'use client';
+import { getShared } from "@/lib/dbCache";
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -394,7 +395,7 @@ export default function FacturaContainer() {
       const tieneSiniestro = String(nroSiniestro).trim() !== '';
       if (!dniDigits && !tieneSiniestro) return [];
 
-      const snap = await get(ref(db, 'Facturacion'));
+      const snap = await getShared("Facturacion");
       if (!snap.exists()) return [];
       const all = snap.val();
 

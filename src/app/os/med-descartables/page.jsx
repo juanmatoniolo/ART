@@ -1,4 +1,5 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "@/lib/firebase";
@@ -204,7 +205,7 @@ export default function PresupuestoOSPage() {
 
     // ─── Catálogo desde Firebase ─────────────────────────────────
     useEffect(() => {
-        const unsub = onValue(ref(db, "medydescartables"), (snap) => {
+        const unsub = onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) return setItems([]);
             const data = snap.val();
             const lista = [];

@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,7 +69,7 @@ function TabClaves({ claves, onSave, onDelete }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.nombre.trim()) {
-            alert("El nombre es obligatorio (ej: PAMI GUERRICO).");
+            notify("El nombre es obligatorio (ej: PAMI GUERRICO).");
             return;
         }
         await onSave({ ...form, id: editingId });
@@ -252,7 +253,7 @@ function TabPacientes({ pacientesDb, ops, onAbrirPaciente, onEliminarPaciente, o
     }, [pacientesDb, ops, q, filtroPendientes]);
 
     const enviarWhatsApp = (paciente) => {
-        if (!paciente.telefono) return alert("El paciente no tiene un teléfono registrado.");
+        if (!paciente.telefono) return notify("El paciente no tiene un teléfono registrado.");
         let tel = String(paciente.telefono).replace(/\D/g, "");
         if (!tel.startsWith("54")) tel = `549${tel}`;
         const texto = encodeURIComponent(`Hola ${paciente.apellido}, ${paciente.nombre}, le escribimos de Clínica de la Unión. 🏥`);
@@ -467,8 +468,8 @@ export default function PamiDashboardPage() {
         try {
             const opRef = ref(db, `PAMI/pacientes/${dni}/ops/${opId}`);
             await update(opRef, { nroOP: nro.trim(), estado: "cargado", updatedAt: Date.now() });
-            alert("Número de OP asignado con éxito.");
-        } catch (e) { console.error(e); alert("Error al asignar el número de OP."); }
+            notify("Número de OP asignado con éxito.");
+        } catch (e) { console.error(e); notify("Error al asignar el número de OP."); }
     };
 
     const handleCambiarEstadoOP = async (dni, opId, nuevoEstado) => {
@@ -481,12 +482,12 @@ export default function PamiDashboardPage() {
             const payload = { nombre: (rest.nombre || "").trim(), usuario: (rest.usuario || "").trim(), password: rest.password || "", link: (rest.link || "").trim(), notas: (rest.notas || "").trim(), updatedAt: Date.now() };
             if (id) { await update(ref(db, `PAMI/claves/${id}`), payload); }
             else { const newRef = push(ref(db, "PAMI/claves")); await set(newRef, { ...payload, createdAt: Date.now() }); }
-        } catch (e) { console.error(e); alert("Error al guardar la clave."); }
+        } catch (e) { console.error(e); notify("Error al guardar la clave."); }
     };
 
     const handleDeleteClave = async (c) => {
         if (!confirm(`¿Eliminar la clave "${c.nombre}"?\nEsta acción no se puede deshacer.`)) return;
-        try { await remove(ref(db, `PAMI/claves/${c.id}`)); } catch (e) { console.error(e); alert("Error al eliminar la clave."); }
+        try { await remove(ref(db, `PAMI/claves/${c.id}`)); } catch (e) { console.error(e); notify("Error al eliminar la clave."); }
     };
 
     const confirmarEliminarBorrador = async () => {
@@ -495,7 +496,7 @@ export default function PamiDashboardPage() {
             await eliminarPresupuestoPami(borradorAEliminar.pacienteDni, borradorAEliminar.id);
         } catch (e) {
             console.error("Error al eliminar:", e);
-            alert("Hubo un error al intentar eliminar el presupuesto.");
+            notify("Hubo un error al intentar eliminar el presupuesto.");
         } finally {
             setBorradorAEliminar(null);
         }

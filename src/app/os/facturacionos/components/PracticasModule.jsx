@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Fuse from 'fuse.js';
@@ -283,7 +284,7 @@ export default function PracticasModule({ practicasAgregadas, agregarPractica, o
    *  AGREGAR
    * ============================================================ */
   const handleAgregar = useCallback((practica) => {
-    if (!valoresConvenio) return alert('No hay valores de convenio disponibles');
+    if (!valoresConvenio) return notify('No hay valores de convenio disponibles');
 
     const calculo = getCalculo(practica);
     const esEco = isEcografia(practica);

@@ -1,11 +1,2 @@
-import React from 'react'
-
-const page = () => {
-    return (
-        <div>
-            nada
-        </div>
-    )
-}
-
-export default page
+// Reutiliza la implementación compartida (antes era una copia idéntica).
+export { default } from "@/app/admin/configuracion/page.jsx";

@@ -1,4 +1,5 @@
 "use client";
+import { getShared, onSharedValue } from "@/lib/dbCache";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ref, push, update, remove, onValue, get } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -22,13 +23,13 @@ export default function useFarmacia(usuarioActual = null) {
   // ─── Suscripciones RTDB ────────────────────────────────────────────────
   useEffect(() => {
     const subs = [
-      onValue(ref(db, "medydescartables/medicamentos"), (s) =>
+      onSharedValue("medydescartables/medicamentos", (s) =>
         setMedicamentos(s.val() || {})
       ),
-      onValue(ref(db, "medydescartables/descartables"), (s) =>
+      onSharedValue("medydescartables/descartables", (s) =>
         setDescartables(s.val() || {})
       ),
-      onValue(ref(db, "movimientos"), (s) =>
+      onSharedValue("movimientos", (s) =>
         setMovimientos(s.val() || {})
       ),
       onValue(ref(db, "listas_precios"), (s) => {
@@ -147,7 +148,7 @@ export default function useFarmacia(usuarioActual = null) {
 
   // ─── Catálogo para Carga Masiva ───────────────────────────────────────
   const cargarCatalogo = useCallback(async () => {
-    const snap = await get(ref(db, "medydescartables"));
+    const snap = await getShared("medydescartables");
     const data = snap.val() || {};
     const map = (obj = {}, tipo) =>
       Object.entries(obj)

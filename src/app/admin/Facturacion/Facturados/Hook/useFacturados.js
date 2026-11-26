@@ -1,3 +1,5 @@
+import { onSharedValue } from "@/lib/dbCache";
+import { notify } from "@/lib/notify";
 // src/app/admin/Facturacion/Facturados/hooks/useFacturados.js
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
@@ -62,9 +64,8 @@ export default function useFacturados() {
 
   // Cargar datos de Facturación desde Firebase
   useEffect(() => {
-    const r = ref(db, 'Facturacion');
-    return onValue(
-      r,
+    return onSharedValue(
+      "Facturacion",
       (snap) => {
         setRaw(snap.exists() ? snap.val() : {});
         setLoading(false);
@@ -297,7 +298,7 @@ export default function useFacturados() {
   // Eliminar múltiples siniestros
   const deleteSelected = async () => {
     if (selectedIds.size === 0) {
-      alert('Seleccione al menos un siniestro.');
+      notify('Seleccione al menos un siniestro.');
       return;
     }
     const total = selectedIds.size;
@@ -330,11 +331,11 @@ export default function useFacturados() {
 
       await Promise.all(deletePromises);
 
-      alert(`Eliminación completada: ${successCount} exitosos, ${errorCount} fallidos.`);
+      notify(`Eliminación completada: ${successCount} exitosos, ${errorCount} fallidos.`);
       setSelectedIds(new Set());
     } catch (error) {
       console.error(error);
-      alert('Error en la eliminación: ' + error.message);
+      notify('Error en la eliminación: ' + error.message);
     } finally {
       setDeleting(false);
     }
@@ -346,7 +347,7 @@ export default function useFacturados() {
   const exportCompleto = () => {
     const selected = Array.from(selectedIds);
     if (selected.length === 0) {
-      alert('Seleccione al menos un siniestro.');
+      notify('Seleccione al menos un siniestro.');
       return;
     }
 
@@ -678,7 +679,7 @@ export default function useFacturados() {
   const exportJson = () => {
     const selected = Array.from(selectedIds);
     if (selected.length === 0) {
-      alert('Seleccione al menos un siniestro.');
+      notify('Seleccione al menos un siniestro.');
       return;
     }
 

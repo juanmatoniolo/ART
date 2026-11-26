@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useEffect, useState, useRef, useMemo } from "react";
 import Fuse from 'fuse.js';
 import { db } from "@/lib/firebase"; // Asegúrate de tener la importación de db
@@ -280,7 +281,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             setDraftActivo({ ...draftActivo, id: res.id, items: carritoAGuardar, codigos: codigosAGuardar, total, oncoplan });
             mostrarFlash(forceNew ? "¡Nuevo presupuesto guardado!" : (idAGuardar ? "¡Borrador actualizado!" : "¡Presupuesto guardado!"));
             localStorage.removeItem(LOCAL_STORAGE_KEY); setPaso(1);
-        } catch (e) { alert(e.message); } finally { setSaving(false); }
+        } catch (e) { notify(e.message); } finally { setSaving(false); }
     };
 
     const agregarCodigo = () => {
@@ -335,7 +336,7 @@ export default function PresupuestoTab({ items, pacientesDb = [], initialPacient
             )}
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", justifyContent: "flex-end" }}>
                 {borradores.length > 0 && <button type="button" className={styles.btn} onClick={iniciarNuevoBorrador}>+ Crear Nuevo Borrador</button>}
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => { if (!paciente.dni || paciente.dni.length < 7) return alert("Ingresá un DNI válido."); setPaso(2); }}>Ir a Prestaciones →</button>
+                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => { if (!paciente.dni || paciente.dni.length < 7) return notify("Ingresá un DNI válido."); setPaso(2); }}>Ir a Prestaciones →</button>
             </div>
         </div>
     );

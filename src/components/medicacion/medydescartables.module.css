@@ -11,17 +11,17 @@
     --surface-2: #fbfbfc;
     --border: #e6e8ee;
 
-    --text: #111827;
-    --muted: #6b7280;
-    --placeholder: #9ca3af;
-    --soft: #475569;
+    --text: var(--cu-slate-850);
+    --muted: var(--cu-slate-500);
+    --placeholder: var(--cu-slate-400);
+    --soft: var(--cu-slate-600);
 
-    --accent: #2f6f4e;
+    --accent: var(--cu-brand-700);
     --accent-weak: rgba(47, 111, 78, 0.10);
     --accent-border: rgba(47, 111, 78, 0.35);
     --accent-ring: rgba(47, 111, 78, 0.15);
 
-    --med-text: #2f6f4e;
+    --med-text: var(--cu-brand-700);
     --med-bg: rgba(47, 111, 78, 0.10);
     --med-border: rgba(47, 111, 78, 0.30);
 
@@ -214,7 +214,7 @@
 
 .priceCell {
     text-align: right;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--font-mono), var(--font-mono-fallback);
     font-weight: 800;
 }
 

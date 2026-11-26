@@ -1,4 +1,6 @@
 "use client";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
@@ -127,7 +129,7 @@ ${bloqueIngreso(registro, "")}
 </body></html>`;
 
   const w = window.open("", "_blank", "width=860,height=720,scrollbars=yes");
-  if (!w) { alert("Activar ventanas emergentes para imprimir."); return; }
+  if (!w) { notify("Activar ventanas emergentes para imprimir."); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
 
@@ -736,7 +738,7 @@ export default function UTIPage() {
                   <div className={s.pendientesContainer}>
                     {pends.map((p, i) => (
                       <div key={i} className={s.pendienteItem}>
-                        <div className={`${s.pendienteCheckbox} ${p.resuelto ? s.pendienteCheckboxResuelto : ""}`} style={{ cursor: "pointer" }} onClick={() => togglePendiente(i, regExp.id, pends)}>
+                        <div className={`${s.pendienteCheckbox} ${p.resuelto ? s.pendienteCheckboxResuelto : ""}`} style={{ cursor: "pointer" }} onClick={singleFlight("app/uti/page:togglePendiente", () => togglePendiente(i, regExp.id, pends))}>
                           {p.resuelto && <Ic d="M20 6L9 17l-5-5" size={11} style={{ color: "#fff" }} />}
                         </div>
                         <div className={s.pendienteContent}>
@@ -986,8 +988,8 @@ export default function UTIPage() {
                       <div className={s.pendientesContainer}>
                         <div className={s.pendientesSectionHeader}><p className={s.pendientesSectionTitle}>Pendientes activos</p>{pendientes.filter(p => !p.resuelto).length > 0 && <span className={s.pendientesCount}>{pendientes.filter(p => !p.resuelto).length}</span>}</div>
                         {pendientes.filter(p => !p.resuelto).length === 0 ? (<div className={s.pendientesEmpty}><div className={s.pendientesEmptyIcon}>✓</div><p className={s.pendientesEmptyTitle}>Sin pendientes</p><p className={s.pendientesEmptyDesc}>No hay tareas pendientes.</p></div>)
-                          : pendientes.filter(p => !p.resuelto).map(p => { const idx = pendientes.indexOf(p); return (<div key={idx} className={s.pendienteItem}><div className={s.pendienteCheckbox} style={{ cursor: "pointer" }} onClick={() => togglePendiente(idx, editId, pendientes)} /><div className={s.pendienteContent}><div className={s.pendienteHeader}><span className={`${s.pendienteTipoBadge} ${p.tipo === "examen" ? s.pendienteBadgeExamen : p.tipo === "evolucion" ? s.pendienteBadgeEvol : s.pendienteBadgeAlerta}`}>{p.tipo}</span></div><p className={s.pendienteDescripcion}>{p.descripcion}</p><div className={s.pendienteMeta}><span className={s.pendienteFecha}>{fmtTs(p.fechaCreacion)}</span></div></div></div>); })}
-                        {pendientes.filter(p => p.resuelto).length > 0 && (<><div className={s.pendientesSectionHeader}><p className={s.pendientesSectionTitle}>Resueltos</p><span style={{ fontSize: ".7rem", color: "var(--slate-400)" }}>{pendientes.filter(p => p.resuelto).length}</span></div>{pendientes.filter(p => p.resuelto).map(p => { const idx = pendientes.indexOf(p); return (<div key={idx} className={s.pendienteItem} style={{ opacity: .6 }}><div className={`${s.pendienteCheckbox} ${s.pendienteCheckboxResuelto}`} style={{ cursor: "pointer" }} onClick={() => togglePendiente(idx, editId, pendientes)}><Ic d="M20 6L9 17l-5-5" size={11} style={{ color: "#fff" }} /></div><div className={s.pendienteContent}><p className={`${s.pendienteDescripcion} ${s.pendienteResueltoText}`}>{p.descripcion}</p><div className={s.pendienteMeta}><span className={s.pendienteFecha} style={{ color: "var(--green-600)" }}>✓ {fmtTs(p.fechaResolucion)}</span></div></div></div>); })}</>)}
+                          : pendientes.filter(p => !p.resuelto).map(p => { const idx = pendientes.indexOf(p); return (<div key={idx} className={s.pendienteItem}><div className={s.pendienteCheckbox} style={{ cursor: "pointer" }} onClick={singleFlight("app/uti/page:togglePendiente", () => togglePendiente(idx, editId, pendientes))} /><div className={s.pendienteContent}><div className={s.pendienteHeader}><span className={`${s.pendienteTipoBadge} ${p.tipo === "examen" ? s.pendienteBadgeExamen : p.tipo === "evolucion" ? s.pendienteBadgeEvol : s.pendienteBadgeAlerta}`}>{p.tipo}</span></div><p className={s.pendienteDescripcion}>{p.descripcion}</p><div className={s.pendienteMeta}><span className={s.pendienteFecha}>{fmtTs(p.fechaCreacion)}</span></div></div></div>); })}
+                        {pendientes.filter(p => p.resuelto).length > 0 && (<><div className={s.pendientesSectionHeader}><p className={s.pendientesSectionTitle}>Resueltos</p><span style={{ fontSize: ".7rem", color: "var(--slate-400)" }}>{pendientes.filter(p => p.resuelto).length}</span></div>{pendientes.filter(p => p.resuelto).map(p => { const idx = pendientes.indexOf(p); return (<div key={idx} className={s.pendienteItem} style={{ opacity: .6 }}><div className={`${s.pendienteCheckbox} ${s.pendienteCheckboxResuelto}`} style={{ cursor: "pointer" }} onClick={singleFlight("app/uti/page:togglePendiente", () => togglePendiente(idx, editId, pendientes))}><Ic d="M20 6L9 17l-5-5" size={11} style={{ color: "#fff" }} /></div><div className={s.pendienteContent}><p className={`${s.pendienteDescripcion} ${s.pendienteResueltoText}`}>{p.descripcion}</p><div className={s.pendienteMeta}><span className={s.pendienteFecha} style={{ color: "var(--green-600)" }}>✓ {fmtTs(p.fechaResolucion)}</span></div></div></div>); })}</>)}
                       </div>
                       <div className={s.pendienteNuevoForm}>
                         <select className={s.fieldInput} value={pendienteForm.tipo} onChange={e => setPendienteForm(f => ({ ...f, tipo: e.target.value }))} style={{ minWidth: 110, maxWidth: 140, flex: "none" }}>

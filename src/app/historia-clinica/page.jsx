@@ -1,4 +1,7 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useMemo, useState } from "react";
 import { ref, onValue, push, set, update, runTransaction } from "firebase/database";
@@ -6,10 +9,11 @@ import Fuse from "fuse.js";
 import { db } from "../../lib/firebase";
 import styles from "./historias.module.css";
 import Header from "@/components/Header/Header";
+import { useRouter } from "next/navigation";
+import { getSession, cerrarSesion } from "@/utils/session";
 
 const ITEMS_PER_PAGE = 20;
 
-const USERS_PATH = "users";
 const HC_PATH = "historias-clinicas";
 const HC_UTI_PATH = "historias-clinica-uti";
 const COUNTER_GENERAL_PATH = "counters/historias-clinicas/lastNumber";
@@ -74,18 +78,6 @@ const mapHistoriaUti = (id, values = {}) => ({
   original: values,
 });
 
-const getUserEntries = (usersObj = {}) => {
-  return Object.entries(usersObj)
-    .filter(([key, value]) => key?.startsWith("usuario") && value && typeof value === "object")
-    .map(([key, value]) => ({
-      key,
-      user: String(value.user || value.usuario || "").trim(),
-      pass: String(value.pass || value.password || "").trim(),
-      nombre: String(value.nombre || value.user || value.usuario || "").trim(),
-      raw: value,
-    }))
-    .filter((item) => item.user && item.pass);
-};
 
 const filterItems = ({ items, searchTerm, searchField, showOnlyAlerts }) => {
   let results = items;
@@ -118,7 +110,6 @@ export default function HistoriasClinicasPage() {
 
   const [historiasGeneral, setHistoriasGeneral] = useState([]);
   const [historiasUti, setHistoriasUti] = useState([]);
-  const [usersList, setUsersList] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchField, setSearchField] = useState("all");
@@ -128,12 +119,7 @@ export default function HistoriasClinicasPage() {
   const [visibleUti, setVisibleUti] = useState(ITEMS_PER_PAGE);
 
   const [currentUser, setCurrentUser] = useState(null);
-  const [loginForm, setLoginForm] = useState({ user: "", pass: "" });
-  const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
 
-  /* 🆕 Modal de login */
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [nextGeneralNumber, setNextGeneralNumber] = useState("1");
   const [nextUtiNumber, setNextUtiNumber] = useState("1");
@@ -154,14 +140,7 @@ export default function HistoriasClinicasPage() {
   const [editValues, setEditValues] = useState({});
 
   useEffect(() => {
-    const usersRef = ref(db, USERS_PATH);
-    const unsubUsers = onValue(usersRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      setUsersList(getUserEntries(data));
-    });
-
-    const generalRef = ref(db, HC_PATH);
-    const unsubGeneral = onValue(generalRef, (snapshot) => {
+    const unsubGeneral = onSharedValue(HC_PATH, (snapshot) => {
       const data = snapshot.val() || {};
       const items = Object.entries(data)
         .map(([id, values]) => mapHistoriaGeneral(id, values))
@@ -176,9 +155,7 @@ export default function HistoriasClinicasPage() {
 
       setNextGeneralNumber(String(max + 1));
     });
-
-    const utiRef = ref(db, HC_UTI_PATH);
-    const unsubUti = onValue(utiRef, (snapshot) => {
+    const unsubUti = onSharedValue(HC_UTI_PATH, (snapshot) => {
       const data = snapshot.val() || {};
       const items = Object.entries(data)
         .map(([id, values]) => mapHistoriaUti(id, values))
@@ -197,30 +174,17 @@ export default function HistoriasClinicasPage() {
     setLoading(false);
 
     return () => {
-      unsubUsers();
       unsubGeneral();
       unsubUti();
     };
   }, []);
 
+  // Usuario de la sesión (Firebase Auth). El layout ya exige estar logueado.
+  const router = useRouter();
   useEffect(() => {
-    const savedUser = localStorage.getItem("historia_user_auth");
-    if (!savedUser) return;
-
-    try {
-      const parsed = JSON.parse(savedUser);
-      const match = usersList.find(
-        (u) =>
-          normalizeUser(u.user) === normalizeUser(parsed.user) &&
-          u.pass === parsed.pass
-      );
-
-      if (match) setCurrentUser(match);
-      else localStorage.removeItem("historia_user_auth");
-    } catch {
-      localStorage.removeItem("historia_user_auth");
-    }
-  }, [usersList]);
+    const session = getSession();
+    if (session) setCurrentUser({ user: session.user, key: session.uid, nombre: session.nombre });
+  }, []);
 
   const currentItems = tab === "general" ? historiasGeneral : historiasUti;
 
@@ -240,69 +204,12 @@ export default function HistoriasClinicasPage() {
 
   const isLogged = Boolean(currentUser);
 
-  /* Cierra el modal con Escape */
-  useEffect(() => {
-    if (!showLoginModal) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") closeLoginModal();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showLoginModal]);
+  const openLoginModal = () => router.push("/login?next=/historia-clinica");
 
-  const openLoginModal = () => {
-    setLoginForm({ user: "", pass: "" });
-    setLoginError("");
-    setShowLoginModal(true);
-  };
-
-  const closeLoginModal = () => {
-    setShowLoginModal(false);
-    setLoginForm({ user: "", pass: "" });
-    setLoginError("");
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    const user = loginForm.user.trim();
-    const pass = loginForm.pass.trim();
-
-    if (!user || !pass) {
-      setLoginError("Debes completar usuario y contraseña");
-      return;
-    }
-
-    setLoginLoading(true);
-    setLoginError("");
-
-    const match = usersList.find(
-      (item) =>
-        normalizeUser(item.user) === normalizeUser(user) && item.pass === pass
-    );
-
-    if (!match) {
-      setLoginError("Usuario o contraseña incorrectos");
-      setLoginLoading(false);
-      return;
-    }
-
-    setCurrentUser(match);
-    localStorage.setItem(
-      "historia_user_auth",
-      JSON.stringify({
-        user: match.user,
-        pass: match.pass,
-      })
-    );
-
-    setLoginLoading(false);
-    closeLoginModal();
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setCurrentUser(null);
-    localStorage.removeItem("historia_user_auth");
+    await cerrarSesion();
+    router.replace("/login");
   };
 
   const getNextHistoryNumber = async (counterPath) => {
@@ -339,7 +246,7 @@ export default function HistoriasClinicasPage() {
     if (!isLogged) return;
 
     if (!formGeneral.nombre_apellido.trim() || !formGeneral.dni.trim()) {
-      alert("Nombre y DNI son obligatorios");
+      notify("Nombre y DNI son obligatorios");
       return;
     }
 
@@ -368,7 +275,7 @@ export default function HistoriasClinicasPage() {
       setFormGeneral({ nombre_apellido: "", dni: "" });
     } catch (error) {
       console.error(error);
-      alert("Error al crear historia clínica");
+      notify("Error al crear historia clínica");
     } finally {
       setSubmitting(false);
     }
@@ -379,7 +286,7 @@ export default function HistoriasClinicasPage() {
     if (!isLogged) return;
 
     if (!formUti.nombre_apellido.trim() || !formUti.dni.trim()) {
-      alert("Nombre y DNI son obligatorios");
+      notify("Nombre y DNI son obligatorios");
       return;
     }
 
@@ -408,7 +315,7 @@ export default function HistoriasClinicasPage() {
       setFormUti({ nombre_apellido: "", dni: "" });
     } catch (error) {
       console.error(error);
-      alert("Error al crear historia clínica UTI");
+      notify("Error al crear historia clínica UTI");
     } finally {
       setSubmitting(false);
     }
@@ -461,7 +368,7 @@ export default function HistoriasClinicasPage() {
       cancelEdit();
     } catch (error) {
       console.error(error);
-      alert("Error al guardar");
+      notify("Error al guardar");
     }
   };
 
@@ -548,7 +455,7 @@ export default function HistoriasClinicasPage() {
           <div className={styles.formCard}>
             <h2 className={styles.formTitle}>Nueva historia clínica</h2>
 
-            <form onSubmit={handleCreateGeneral} className={styles.formGrid}>
+            <form onSubmit={singleFlight("app/historia-clinica/page:handleCreateGeneral", handleCreateGeneral)} className={styles.formGrid}>
               <input
                 type="text"
                 placeholder="Nombre y apellido"
@@ -603,7 +510,7 @@ export default function HistoriasClinicasPage() {
           <div className={styles.formCard}>
             <h2 className={styles.formTitle}>Nueva historia clínica UTI</h2>
 
-            <form onSubmit={handleCreateUti} className={styles.formGrid}>
+            <form onSubmit={singleFlight("app/historia-clinica/page:handleCreateUti", handleCreateUti)} className={styles.formGrid}>
               <input
                 type="text"
                 placeholder="Nombre y apellido"
@@ -839,87 +746,6 @@ export default function HistoriasClinicasPage() {
         )}
       </div>
 
-      {/* =========================================================
-          MODAL DE LOGIN
-         ========================================================= */}
-      {showLoginModal && (
-        <div
-          className={styles.modalOverlay}
-          onClick={closeLoginModal}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>🔐 Iniciar sesión</h2>
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={closeLoginModal}
-                title="Cerrar"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleLogin} className={styles.modalForm}>
-              <p className={styles.modalSubtitle}>
-                Ingresá tus credenciales para poder editar y crear historias clínicas.
-              </p>
-
-              <input
-                type="text"
-                placeholder="Usuario"
-                value={loginForm.user}
-                onChange={(e) =>
-                  setLoginForm((prev) => ({ ...prev, user: e.target.value }))
-                }
-                className={styles.formInput}
-                autoComplete="username"
-                autoFocus
-                disabled={loginLoading}
-              />
-
-              <input
-                type="password"
-                placeholder="Contraseña"
-                value={loginForm.pass}
-                onChange={(e) =>
-                  setLoginForm((prev) => ({ ...prev, pass: e.target.value }))
-                }
-                className={styles.formInput}
-                autoComplete="current-password"
-                disabled={loginLoading}
-              />
-
-              {loginError && (
-                <div className={styles.modalError}>❌ {loginError}</div>
-              )}
-
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.modalCancelButton}
-                  onClick={closeLoginModal}
-                  disabled={loginLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className={styles.modalSubmitButton}
-                  disabled={loginLoading}
-                >
-                  {loginLoading ? "Ingresando..." : "Ingresar"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 }

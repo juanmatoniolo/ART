@@ -11,11 +11,11 @@
     --surface-2: #fbfbfc;
     --border: #e6e8ee;
 
-    --text: #111827;
-    --muted: #6b7280;
-    --placeholder: #9ca3af;
+    --text: var(--cu-slate-850);
+    --muted: var(--cu-slate-500);
+    --placeholder: var(--cu-slate-400);
 
-    --accent: #2f6f4e;
+    --accent: var(--cu-brand-700);
     --accent-weak: rgba(47, 111, 78, 0.10);
     --accent-border: rgba(47, 111, 78, 0.35);
     --accent-ring: rgba(47, 111, 78, 0.15);
@@ -38,7 +38,7 @@
     padding: 1rem;
     color: var(--text);
     background-color: var(--bg);
-    min-height: 100vh;
+    min-height: calc(100vh / var(--app-zoom, 1));
     max-width: 1400px;
     margin: 0 auto;
     transition: background-color 0.3s ease, color 0.3s ease;

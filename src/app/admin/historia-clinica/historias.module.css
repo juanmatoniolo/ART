@@ -3,9 +3,9 @@
    ============================================================ */
 
 .container {
-  min-height: 100vh;
-  background: #0b1220;
-  color: #e5e7eb;
+  min-height: calc(100vh / var(--app-zoom, 1));
+  background: var(--cu-slate-950);
+  color: var(--cu-slate-200);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -25,7 +25,7 @@
 
 /* Caja de usuario logueado */
 .userLoggedBox {
-  background: #111827;
+  background: var(--cu-slate-850);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 0.75rem 1rem;
@@ -38,7 +38,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -52,11 +52,11 @@
 
 .tabButton {
   appearance: none;
-  background: #111827;
+  background: var(--cu-slate-850);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 0.75rem;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -69,14 +69,14 @@
 }
 
 .activeTab {
-  background: linear-gradient(90deg, #44794d, #6fa17b);
+  background: linear-gradient(90deg, var(--cu-brand-600), var(--cu-brand-400));
   color: #ffffff;
   border-color: transparent;
 }
 
 /* Formularios */
 .formCard {
-  background: #111827;
+  background: var(--cu-slate-850);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 1rem;
@@ -100,11 +100,11 @@
 .searchSelect,
 .editInput {
   width: 100%;
-  background: #0f172a;
+  background: var(--cu-slate-900);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   font-size: 1rem;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -114,14 +114,14 @@
 .searchInput:focus,
 .searchSelect:focus,
 .editInput:focus {
-  border-color: #6fa17b;
+  border-color: var(--cu-brand-400);
   box-shadow: 0 0 0 3px rgba(111, 161, 123, 0.2);
 }
 
 .formInput::placeholder,
 .searchInput::placeholder,
 .editInput::placeholder {
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .formInput:disabled,
@@ -139,8 +139,8 @@
 }
 
 .searchSelect {
-  background: #0f172a;
-  color: #e5e7eb;
+  background: var(--cu-slate-900);
+  color: var(--cu-slate-200);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
@@ -152,11 +152,11 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: #111827;
+  background: var(--cu-slate-850);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 0.75rem 1rem;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   font-size: 0.9rem;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
@@ -168,7 +168,7 @@
 }
 
 .checkboxInput {
-  accent-color: #6fa17b;
+  accent-color: var(--cu-brand-400);
   width: 18px;
   height: 18px;
 }
@@ -192,7 +192,7 @@
 }
 
 .submitButton {
-  background: linear-gradient(90deg, #44794d, #6fa17b);
+  background: linear-gradient(90deg, var(--cu-brand-600), var(--cu-brand-400));
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(68, 121, 77, 0.3);
 }
@@ -203,9 +203,9 @@
 }
 
 .loadMoreButton {
-  background: #111827;
+  background: var(--cu-slate-850);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   width: 100%;
 }
 
@@ -223,7 +223,7 @@
 }
 
 .cancelButton {
-  background: #64748b;
+  background: var(--cu-slate-500);
   color: white;
   min-height: 38px;
   padding: 0.5rem 0.8rem;
@@ -240,7 +240,7 @@
   overflow-x: auto;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #111827;
+  background: var(--cu-slate-850);
 }
 
 .tableInner {
@@ -263,18 +263,18 @@
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.03em;
-  color: #9ca3af;
+  color: var(--cu-slate-400);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
 
 .tableRow {
-  background: #111827;
+  background: var(--cu-slate-850);
   transition: background 0.2s;
 }
 
 .tableRow:nth-child(even) {
-  background: #0f172a;
+  background: var(--cu-slate-900);
 }
 
 .clickableRow {
@@ -288,7 +288,7 @@
 .tableCell {
   padding: 0.8rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #e5e7eb;
+  color: var(--cu-slate-200);
   font-size: 0.9rem;
   vertical-align: middle;
 }
@@ -302,13 +302,13 @@
 }
 
 .cellMuted {
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .dniCell {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: #d1d5db;
+  color: var(--cu-slate-300);
   white-space: nowrap;
 }
 
@@ -321,21 +321,21 @@
   background: #1a2230;
   border: 1px solid rgba(111, 161, 123, 0.3);
   border-radius: 999px;
-  color: #6fa17b;
+  color: var(--cu-brand-400);
   font-weight: 800;
   font-size: 0.9rem;
   white-space: nowrap;
 }
 
 .hcInput {
-  color: #6fa17b;
+  color: var(--cu-brand-400);
   font-weight: 700;
 }
 
 .emptyMessage {
   padding: 1.5rem;
   text-align: center;
-  color: #6b7280;
+  color: var(--cu-slate-500);
   font-style: italic;
 }
 
@@ -345,7 +345,7 @@
   gap: 0.3rem;
   padding: 0.3rem 0.7rem;
   background: #3b2f0e;
-  border: 1px solid #f59e0b;
+  border: 1px solid var(--cu-warning);
   border-radius: 999px;
   color: #fbbf24;
   font-size: 0.75rem;
@@ -442,7 +442,7 @@
 
 .deleteButton:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.15);
-  border-color: #ef4444;
+  border-color: var(--cu-danger);
   color: #fecaca;
 }
 
@@ -457,11 +457,11 @@
 
 .deleteButtonDisabled {
   border-color: rgba(148, 163, 184, 0.3);
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }
 
 .deleteButtonDisabled:hover {
   background: transparent;
   border-color: rgba(148, 163, 184, 0.3);
-  color: #6b7280;
+  color: var(--cu-slate-500);
 }

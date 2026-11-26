@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -561,7 +562,7 @@ function fillFormFields(form, fields) {
    GET
 ============================================================ */
 
-export async function GET(req) {
+async function getHandler(req) {
 	try {
 		const url = new URL(req.url);
 
@@ -574,7 +575,7 @@ export async function GET(req) {
 		if (!debug && !annotate) {
 			return NextResponse.json({
 				ok: true,
-				template: pdfFile,
+				template: path.basename(pdfFile),
 			});
 		}
 
@@ -642,7 +643,7 @@ export async function GET(req) {
 		if (debug) {
 			return NextResponse.json({
 				ok: true,
-				template: pdfFile,
+				template: path.basename(pdfFile),
 				totalPages: pdfDoc.getPageCount(),
 				fieldsCount: fieldsInfo.length,
 				fieldNames: fieldsInfo.map((f) => f.name),
@@ -718,7 +719,7 @@ export async function GET(req) {
    POST
 ============================================================ */
 
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const { payload, fileName, pages } = await req.json();
 
@@ -875,3 +876,13 @@ export async function POST(req) {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	return postHandler(request, ctx);
+});

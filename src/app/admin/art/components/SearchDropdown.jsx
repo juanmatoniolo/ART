@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { getRectScale } from "@/lib/pageZoom";
 import styles from "../page.module.css";
 
 export default function SearchDropdown({
@@ -33,10 +34,11 @@ export default function SearchDropdown({
   useEffect(() => {
     if (isOpen && inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
+      const scale = getRectScale(); // compensa la escala global de la interfaz
       setPosition({
-        top: rect.bottom + 6,
-        left: rect.left,
-        width: rect.width,
+        top: rect.bottom / scale + 6,
+        left: rect.left / scale,
+        width: rect.width / scale,
       });
     }
   }, [isOpen, query]);

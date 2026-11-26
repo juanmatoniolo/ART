@@ -1,4 +1,5 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
 import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
 import { ref, onValue } from "firebase/database";
@@ -21,7 +22,7 @@ export default function PresupuestoPamiPage() {
 
     /* Listeners */
     useEffect(() => {
-        return onValue(ref(db, "medydescartables"), (snap) => {
+        return onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) return setItems([]);
             const data = snap.val();
             const lista = [];

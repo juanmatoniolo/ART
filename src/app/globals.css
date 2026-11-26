@@ -1,3 +1,47 @@
+/* ============================================================ */
+/*  Design tokens globales (prefijo --cu- para no chocar con     */
+/*  las variables locales de cada módulo)                        */
+/* ============================================================ */
+:root {
+  /* Marca */
+  --cu-brand-50: #f0f7f2;
+  --cu-brand-100: #dcebe0;
+  --cu-brand-400: #6fa17b;
+  --cu-brand-500: #5b8c5a;
+  --cu-brand-600: #44794d;
+  --cu-brand-700: #2f6f4e;
+  --cu-brand-900: #0f3d26;
+  --cu-brand-gradient: linear-gradient(90deg, var(--cu-brand-600), var(--cu-brand-400));
+
+  /* Neutros (escala slate) */
+  --cu-slate-50: #f8fafc;
+  --cu-slate-100: #f1f5f9;
+  --cu-slate-200: #e2e8f0;
+  --cu-slate-300: #cbd5e1;
+  --cu-slate-400: #94a3b8;
+  --cu-slate-500: #64748b;
+  --cu-slate-600: #475569;
+  --cu-slate-700: #334155;
+  --cu-slate-800: #1e293b;
+  --cu-slate-850: #111827;
+  --cu-slate-900: #0f172a;
+  --cu-slate-950: #0b1220;
+
+  /* Semánticos */
+  --cu-success: #22c55e;
+  --cu-success-strong: #16a34a;
+  --cu-danger: #ef4444;
+  --cu-danger-strong: #dc2626;
+  --cu-warning: #f59e0b;
+  --cu-info: #3b82f6;
+  --cu-info-strong: #2563eb;
+
+  /* Forma */
+  --cu-radius-sm: 8px;
+  --cu-radius-md: 12px;
+  --cu-radius-lg: 16px;
+}
+
 :root {
   --bg: #f6f7f9;
   --surface: #ffffff;
@@ -12,11 +56,65 @@
 
   --shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
 
-  /* 👇 Fallbacks por si next/font no carga (raro, pero por las dudas) */
-  --font-sans-fallback: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  /* 👇 Fallbacks por si next/font no carga (raro, pero por las dudas).
+     "AppEmoji" va primero: solo cubre emojis (unicode-range), así se ven
+     iguales y a color en cualquier sistema, incluso Windows 7/8. */
+  --font-sans-fallback: "AppEmoji", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono-fallback: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  --font-mono-fallback: "AppEmoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+}
+
+/* ============================================================ */
+/*  Emojis propios (Twemoji Mozilla, ver public/fonts/twemoji)   */
+/*  unicode-range deja afuera letras, números, flechas y         */
+/*  símbolos de texto (▾ ✕ ↑ ●), que siguen con la fuente normal.  */
+/* ============================================================ */
+@font-face {
+  font-family: "AppEmoji";
+  src: url("/fonts/twemoji/Twemoji.Mozilla.woff2") format("woff2"),
+    url("/fonts/twemoji/Twemoji.Mozilla.ttf") format("truetype");
+  font-display: swap;
+  unicode-range: U+200D, U+203C, U+2049, U+20E3, U+2139, U+21A9-21AA,
+    U+231A-23FF, U+24C2, U+25FB-25FE, U+2600-27BF, U+2934-2935,
+    U+2B05-2B55, U+3030, U+303D, U+3297, U+3299, U+FE0F,
+    U+1F000-1FAFF, U+E0020-E007F;
+}
+
+/* ============================================================ */
+/*  Escala global de la interfaz (equivale al zoom 90% del       */
+/*  navegador). Las medidas vh/vw del proyecto se dividen por    */
+/*  --app-zoom para seguir ocupando toda la pantalla.            */
+/*  Navegadores sin soporte de `zoom` quedan al 100%.            */
+/* ============================================================ */
+:root {
+  --app-zoom: 1;
+}
+
+@supports (zoom: 0.9) {
+  :root {
+    --app-zoom: 0.9;
+  }
+
+  html {
+    zoom: var(--app-zoom);
+  }
+}
+
+/* Contenedor que anula la escala global (para librerías que
+   calculan coordenadas del mouse, ej. recorte de imágenes) */
+.zoom-reset {
+  zoom: calc(1 / var(--app-zoom, 1));
+}
+
+@media print {
+  :root {
+    --app-zoom: 1;
+  }
+
+  html {
+    zoom: 1;
+  }
 }
 
 /* ============================================================ */
@@ -150,6 +248,224 @@ pre {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ============================================================ */
+/*  Base responsive (mobile-first)                               */
+/* ============================================================ */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+/* Textos largos (mails, CUIT, URLs) no rompen el ancho */
+body {
+  overflow-wrap: break-word;
+}
+
+@media screen and (max-width: 768px) {
+  /* iOS hace zoom al enfocar campos con letra < 16px */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Tablas anchas: scroll horizontal propio en vez de romper la página */
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Áreas táctiles mínimas */
+  button,
+  [role="button"],
+  select {
+    min-height: 36px;
+  }
+}
+
+/* ============================================================ */
+/*  Tablas apilables (sin scroll horizontal)                     */
+/*  Uso: <div class="rt-wrap"><table class="rt-stack">           */
+/*  Cada <td data-label="..."> se muestra como "etiqueta: valor" */
+/*  cuando la tabla queda angosta. td.rt-title = ancho completo. */
+/* ============================================================ */
+.rt-wrap {
+  container-type: inline-size;
+  max-width: 100%;
+  /* visible: sin barra horizontal y sin recortar selectores desplegables */
+  overflow: visible !important;
+}
+
+.rt-stack {
+  display: table; /* anula el display:block global de tablas en <=768px */
+  width: 100%;
+  max-width: 100%;
+}
+
+.rt-stack td,
+.rt-stack th {
+  overflow-wrap: anywhere;
+}
+
+@container (max-width: 640px) {
+  .rt-stack,
+  .rt-stack tbody,
+  .rt-stack tr,
+  .rt-stack td {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .rt-stack {
+    table-layout: auto !important;
+  }
+
+  .rt-stack thead {
+    display: none !important;
+  }
+
+  .rt-stack tr {
+    display: flex !important;
+    flex-direction: column;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .rt-stack tr:last-child {
+    border-bottom: none;
+  }
+
+  /* La descripción/título va primero en la tarjeta */
+  .rt-stack td.rt-title {
+    order: -1;
+  }
+
+  .rt-stack td {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.3rem 0 !important;
+    border: none !important;
+    text-align: right !important;
+    white-space: normal !important;
+  }
+
+  .rt-stack td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.7;
+  }
+
+  .rt-stack td:not([data-label])::before,
+  .rt-stack td[data-label=""]::before {
+    content: none;
+  }
+
+  .rt-stack td.rt-title {
+    display: block !important;
+    text-align: left !important;
+    padding-bottom: 0.4rem !important;
+  }
+
+  .rt-stack td.rt-title::before {
+    content: none;
+  }
+
+  .rt-stack td[colspan] {
+    display: block !important;
+    text-align: center !important;
+  }
+}
+
+/* Respaldo para navegadores sin container queries */
+@supports not (container-type: inline-size) {
+  @media (max-width: 760px) {
+    .rt-stack,
+    .rt-stack tbody,
+    .rt-stack tr,
+    .rt-stack td {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    .rt-stack thead {
+      display: none !important;
+    }
+
+    .rt-stack tr {
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .rt-stack td {
+      display: flex !important;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.3rem 0 !important;
+      border: none !important;
+      text-align: right !important;
+    }
+
+    .rt-stack td::before {
+      content: attr(data-label);
+      text-align: left;
+      font-weight: 700;
+      opacity: 0.7;
+    }
+
+    .rt-stack td.rt-title {
+      display: block !important;
+      text-align: left !important;
+    }
+
+    .rt-stack td.rt-title::before,
+    .rt-stack td:not([data-label])::before {
+      content: none;
+    }
+  }
+}
+
+/* Acción en curso (singleFlight): evita repetir el envío */
+[data-busy="true"] {
+  opacity: 0.6;
+  cursor: progress !important;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  table {
+    display: table !important;
+  }
 }
 
 /* En pantallas grandes subimos un toque la base */

@@ -4,7 +4,7 @@
 
 /* ── Design tokens (scoped al contenedor) ── */
 .container {
-  --c-bg:          #0b1220;
+  --c-bg:          var(--cu-slate-950);
   --c-panel:       #1a1a1a;
   --c-panel-alt:   #2a2a2a;
   --c-border:      #404040;
@@ -14,14 +14,14 @@
   --c-text-2:      #e0e0e0;
   --c-text-3:      #b0b0b0;
 
-  --c-primary:     #3b82f6;
-  --c-primary-h:   #2563eb;
-  --c-success:     #22c55e;
-  --c-success-h:   #16a34a;
-  --c-warning:     #f59e0b;
-  --c-danger:      #ef4444;
+  --c-primary:     var(--cu-info);
+  --c-primary-h:   var(--cu-info-strong);
+  --c-success:     var(--cu-success);
+  --c-success-h:   var(--cu-success-strong);
+  --c-warning:     var(--cu-warning);
+  --c-danger:      var(--cu-danger);
   --c-info:        #06b6d4;
-  --c-disabled:    #4b5563;
+  --c-disabled:    var(--cu-slate-600);
 
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
   --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
@@ -33,7 +33,7 @@
   --sh-md: 0 4px 14px rgba(0,0,0,.55);
 
   width: 100%;
-  min-height: 100dvh;
+  min-height: calc(100dvh / var(--app-zoom, 1));
   background: var(--c-bg);
   color: var(--c-text);
   padding: var(--sp-3);
@@ -124,7 +124,7 @@
 .title {
   margin: 0;
   color: var(--c-text);
-  font-size: clamp(1.1rem, 3.5vw, 1.75rem);
+  font-size: clamp(1.1rem, calc(3.5vw / var(--app-zoom, 1)), 1.75rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   word-break: break-word;
@@ -283,7 +283,7 @@
   min-height: 40px;
 }
 .select option {
-  background-color: #0b1220;
+  background-color: var(--cu-slate-950);
   color: #fff;
 }
 .select:focus {
@@ -340,7 +340,7 @@
 .chipGtoOperatorio{ background: rgba(139,92,246,.15); color: #ddd6fe; border-color: rgba(139,92,246,.35); }
 .chipGalenoQuir   { background: rgba(245,158,11,.15); color: #fed7aa; border-color: rgba(245,158,11,.35); }
 .chipPension      { background: rgba(6,182,212,.15);  color: #99f6e4; border-color: rgba(6,182,212,.35); }
-.chipUb           { background: rgba(148,163,184,.2); color: #e2e8f0; border-color: rgba(148,163,184,.35); }
+.chipUb           { background: rgba(148,163,184,.2); color: var(--cu-slate-200); border-color: rgba(148,163,184,.35); }
 .chipOtros        { background: rgba(236,72,153,.15); color: #fbcfe8; border-color: rgba(236,72,153,.35); }
 
 /* ── Alerta de registros duplicados ── */
@@ -397,14 +397,11 @@
   transform: translateY(-1px);
 }
 
-/* ── Tabs de sección: SIEMPRE horizontal, scroll en mobile ── */
+/* ── Tabs de sección: se acomodan en varias filas (sin scroll horizontal) ── */
 .tabs {
   display: flex;
   flex-direction: row;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
+  flex-wrap: wrap;
   gap: 3px;
   padding: 4px;
   background: var(--c-panel);
@@ -412,11 +409,10 @@
   border: 1px solid var(--c-border);
   margin-bottom: var(--sp-5);
 }
-.tabs::-webkit-scrollbar { display: none; }
 
 .tab {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
+  flex: 1 1 120px;
+  min-width: 0;
   padding: 10px var(--sp-3);
   background: transparent;
   border: none;
@@ -431,7 +427,9 @@
   gap: var(--sp-1);
   min-height: 44px;
   border-radius: var(--r-md);
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 @media (min-width: 720px) {
   .tab {
@@ -518,7 +516,7 @@
 /* ── Padding extra en escritorio ── */
 @media (min-width: 1024px) {
   .container {
-    padding: var(--sp-5) clamp(var(--sp-5), 3vw, 40px);
+    padding: var(--sp-5) clamp(var(--sp-5), calc(3vw / var(--app-zoom, 1)), 40px);
   }
   .header {
     padding: var(--sp-5) var(--sp-6);

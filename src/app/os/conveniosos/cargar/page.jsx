@@ -1,12 +1,14 @@
 'use client';
+import { notify } from "@/lib/notify";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { ref as dbRef, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import styles from '../conveniosos.module.css';
 
-const FIREBASE_URL = 'https://datos-clini-default-rtdb.firebaseio.com';
+const FIREBASE_URL = DB_URL;
 
 // Función para limpiar texto y usarlo como clave
 const limpiarClave = (str) =>
@@ -181,11 +183,11 @@ export default function CargarConvenio() {
 
   const handleGuardar = async () => {
     if (!obraSocialSeleccionada || !datosParseados) {
-      alert('Seleccioná una obra social y cargá un archivo Excel válido.');
+      notify('Seleccioná una obra social y cargá un archivo Excel válido.');
       return;
     }
     if (!nombreConvenio.trim()) {
-      alert('Ingresá un nombre para el convenio.');
+      notify('Ingresá un nombre para el convenio.');
       return;
     }
 
@@ -225,7 +227,7 @@ export default function CargarConvenio() {
       setNombreConvenio('');
     } catch (err) {
       console.error('Error guardando convenio:', err);
-      alert('Error al guardar el convenio.');
+      notify('Error al guardar el convenio.');
     } finally {
       setGuardando(false);
     }

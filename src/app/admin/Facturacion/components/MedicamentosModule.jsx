@@ -1,4 +1,6 @@
 'use client';
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { ref, onValue, push, set, update, remove } from 'firebase/database';
@@ -229,12 +231,9 @@ export default function MedicamentosModule({
     setItems(arr);
   }, []);
 
-  useEffect(() => {
-    const refMeds = ref(db, 'medydescartables/medicamentos');
-    const refDesc = ref(db, 'medydescartables/descartables');
+  useEffect(() => {
 
-    const unsubMeds = onValue(
-      refMeds,
+    const unsubMeds = onSharedValue("medydescartables/medicamentos",
       (snap) => {
         medsDataRef.current = snap.exists() ? snap.val() : {};
         buildList();
@@ -246,8 +245,7 @@ export default function MedicamentosModule({
       }
     );
 
-    const unsubDesc = onValue(
-      refDesc,
+    const unsubDesc = onSharedValue("medydescartables/descartables",
       (snap) => {
         descDataRef.current = snap.exists() ? snap.val() : {};
         buildList();
@@ -785,7 +783,7 @@ export default function MedicamentosModule({
 
                         <button
                           className={styles.btnDanger}
-                          onClick={() => deleteCombo(comboId)}
+                          onClick={singleFlight("app/admin/Facturacion/components/MedicamentosModule:deleteCombo", () => deleteCombo(comboId))}
                           title="Eliminar"
                         >
                           🗑️ Borrar
@@ -1000,7 +998,7 @@ export default function MedicamentosModule({
               <button className={styles.btnGhost} onClick={() => { setModalOpen(false); resetModal(); }}>
                 Cancelar
               </button>
-              <button className={styles.btnPrimary} onClick={saveCombo}>
+              <button className={styles.btnPrimary} onClick={singleFlight("app/admin/Facturacion/components/MedicamentosModule:saveCombo", saveCombo)}>
                 {editingId ? 'Guardar cambios' : 'Crear combo'}
               </button>
             </div>

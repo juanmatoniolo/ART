@@ -1,10 +1,11 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { ref, onValue, push, update } from 'firebase/database';
-import { getSession, clearSession } from '@/utils/session';
+import { getSession, cerrarSesion, hasRole } from '@/utils/session';
 import {
   Activity, User, Calendar, FileText, Printer,
   Copy, Check, LogOut, Search, XCircle, Home,
@@ -653,7 +654,7 @@ function ExpedienteFullscreen({
       onReingresarDone();
     } catch (e) {
       console.error(e);
-      alert('Error al reingresar');
+      notify('Error al reingresar');
     } finally {
       setSavingReingreso(false);
     }
@@ -678,7 +679,7 @@ function ExpedienteFullscreen({
       onReingresarDone();
     } catch (e) {
       console.error(e);
-      alert('Error al guardar evolución');
+      notify('Error al guardar evolución');
     } finally {
       setSavingEvol(false);
     }
@@ -1023,7 +1024,7 @@ export default function AdminUtiPage() {
   useEffect(() => {
     const s = getSession();
 
-    if (!s || (s.TipoEmpleado !== 'ADM' && s.TipoEmpleado !== 'UTI')) {
+    if (!s || !hasRole(s, 'ADM', 'UTI', 'ROOT')) {
       router.push('/login');
       return;
     }
@@ -1272,7 +1273,7 @@ export default function AdminUtiPage() {
               type="button"
               className={styles.adminLogoutBtn}
               onClick={() => {
-                clearSession();
+                cerrarSesion();
                 router.push('/login');
               }}
             >

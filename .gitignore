@@ -41,3 +41,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backups de reglas de Firebase
+database.rules.backup-*.json
+
+# Documentación interna (incluye hallazgos de seguridad): no se sube al repo
+CLAUDE.md

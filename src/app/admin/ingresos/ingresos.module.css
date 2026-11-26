@@ -8,28 +8,28 @@
 /* ===== Variables de tema (oscuro por defecto) ===== */
 .page {
   --bg-page: #121826;
-  --bg-card: #1e2436;
+  --bg-card: var(--cu-slate-800);
   --bg-section: #0f121f;
-  --border-color: #2d3748;
+  --border-color: var(--cu-slate-700);
   --text-primary: #eef2ff;
-  --text-secondary: #cbd5e1;
-  --text-muted: #9ca3af;
+  --text-secondary: var(--cu-slate-300);
+  --text-muted: var(--cu-slate-400);
   --input-bg: #0f121f;
-  --input-border: #2d3748;
-  --input-focus: #5b8c5a;
+  --input-border: var(--cu-slate-700);
+  --input-focus: var(--cu-brand-500);
   --chip-bg: #0f121f;
-  --chip-border: #2d3748;
+  --chip-border: var(--cu-slate-700);
   --chip-active-bg: #1a2a1a;
-  --btn-ghost-bg: #1e2436;
-  --btn-ghost-border: #2d3748;
+  --btn-ghost-bg: var(--cu-slate-800);
+  --btn-ghost-border: var(--cu-slate-700);
   --btn-ghost-hover: #2a3247;
-  --primary-btn: #5b8c5a;
+  --primary-btn: var(--cu-brand-500);
   --primary-btn-hover: #477a46;
   --readonly-bg: #0a0e17;
   --readonly-text: #86efac;
-  --dropdown-bg: #1e2436;
+  --dropdown-bg: var(--cu-slate-800);
   --dropdown-hover: #2a3247;
-  --label-color: #cbd5e1;
+  --label-color: var(--cu-slate-300);
   --toast-info-bg: #1e2a3a;
   --toast-info-border: #2c5a6e;
   --toast-info-text: #9ec8e0;
@@ -44,27 +44,27 @@
 .lightMode {
   --bg-page: #f4f6f9;
   --bg-card: #ffffff;
-  --bg-section: #f9fafb;
-  --border-color: #e2e8f0;
+  --bg-section: var(--cu-slate-50);
+  --border-color: var(--cu-slate-200);
   --text-primary: #1a202c;
-  --text-secondary: #2d3748;
+  --text-secondary: var(--cu-slate-700);
   --text-muted: #4a5568;
   --input-bg: #ffffff;
-  --input-border: #cbd5e0;
-  --input-focus: #5b8c5a;
+  --input-border: var(--cu-slate-300);
+  --input-focus: var(--cu-brand-500);
   --chip-bg: #edf2f7;
-  --chip-border: #cbd5e0;
+  --chip-border: var(--cu-slate-300);
   --chip-active-bg: #c6f6d5;
   --btn-ghost-bg: #ffffff;
-  --btn-ghost-border: #cbd5e0;
+  --btn-ghost-border: var(--cu-slate-300);
   --btn-ghost-hover: #f7fafc;
-  --primary-btn: #5b8c5a;
+  --primary-btn: var(--cu-brand-500);
   --primary-btn-hover: #477a46;
   --readonly-bg: #f7fafc;
   --readonly-text: #2b6cb0;
   --dropdown-bg: #ffffff;
   --dropdown-hover: #f7fafc;
-  --label-color: #2d3748;
+  --label-color: var(--cu-slate-700);
   --toast-info-bg: #ebf8ff;
   --toast-info-border: #90cdf4;
   --toast-info-text: #2b6cb0;
@@ -78,7 +78,7 @@
 
 /* ===== Layout general ===== */
 .page {
-  min-height: calc(100vh - 64px);
+  min-height: calc(calc(100vh / var(--app-zoom, 1)) - 64px);
   background: var(--bg-page);
   padding: 20px 0;
   color: var(--text-primary);
@@ -687,13 +687,13 @@
 }
 
 .iconBtnDanger {
-  color: #ef4444;
+  color: var(--cu-danger);
   border-color: rgba(239, 68, 68, 0.4);
 }
 
 .iconBtnDanger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.15);
-  border-color: #ef4444;
+  border-color: var(--cu-danger);
 }
 
 /* ===== Estado / bolita ===== */
@@ -705,12 +705,12 @@
 }
 
 .estadoIndicador[data-estado="abierto"] {
-  background: #22c55e;
+  background: var(--cu-success);
   box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
 }
 
 .estadoIndicador[data-estado="cerrado"] {
-  background: #ef4444;
+  background: var(--cu-danger);
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
@@ -897,17 +897,17 @@
 }
 
 .modalContent {
-  background: #1e2436;
+  background: var(--cu-slate-800);
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 14px;
   width: 100%;
   max-width: 1000px;
-  max-height: 92vh;
+  max-height: calc(92vh / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
   animation: modalSlideIn 0.18s ease;
 }
 
@@ -930,7 +930,7 @@
   gap: 12px;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
   flex-shrink: 0;
 }
 
@@ -940,7 +940,7 @@
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.3);
   background: transparent;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   cursor: pointer;
   font-size: 16px;
   display: inline-flex;
@@ -960,7 +960,7 @@
   padding: 16px 18px;
   overflow-y: auto;
   flex: 1;
-  color: #cbd5e1;
+  color: var(--cu-slate-300);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -977,20 +977,20 @@
 :global(body.light-mode) .modalContent {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.15);
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .modalHeader {
   border-color: rgba(15, 23, 42, 0.1);
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .modalBody {
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .modalCloseBtn {
-  color: #0f172a;
+  color: var(--cu-slate-900);
   border-color: rgba(15, 23, 42, 0.15);
 }
 
@@ -1017,17 +1017,17 @@
 }
 
 .cropModalContent {
-  background: #1e2436;
+  background: var(--cu-slate-800);
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 16px;
   width: 100%;
   max-width: 560px;
-  max-height: 92vh;
+  max-height: calc(92vh / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
-  color: #e2e8f0;
+  color: var(--cu-slate-200);
   animation: modalSlideIn 0.18s ease;
 }
 
@@ -1062,16 +1062,16 @@
 :global(body.light-mode) .cropModalContent {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.15);
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .cropModalHeader {
   border-color: rgba(15, 23, 42, 0.1);
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .cropModalBody {
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 
 :global(body.light-mode) .cropModalFooter {
@@ -1349,8 +1349,8 @@
 
   .modalContent {
     max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
+    max-height: calc(100vh / var(--app-zoom, 1));
+    height: calc(100vh / var(--app-zoom, 1));
     border-radius: 0;
     border: none;
   }

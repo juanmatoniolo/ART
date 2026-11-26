@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -9,11 +10,13 @@ import { money, parseNumber } from '../../utils/calculos';
 import styles from './facturadoss.module.css';
 import { useReactToPrint } from 'react-to-print';
 import getArtImage from '../lib/artImages';
+import { useFirma } from '@/lib/firmas';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Ruta de la firma institucional (Clínica de la Unión)
 // ─────────────────────────────────────────────────────────────────────────────
-const FIRMA_CLINICA_URL = '/firmas/CLINICA.jpeg';
+// Archivo de la firma: se pide a la API protegida /api/firmas (ver lib/firmas.js)
+const FIRMA_CLINICA = 'CLINICA.jpeg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Función para formatear DNI con puntos o CUIL con guiones
@@ -133,8 +136,8 @@ function ScreenView({
   const renderTable = (items, columns) => {
     if (items.length === 0) return <div className={styles.emptySmall}>Sin datos.</div>;
     return (
-      <div className={styles.tableWrap}>
-        <table className={styles.plainTable}>
+      <div className={`${styles.tableWrap} rt-wrap`}>
+        <table className={`${styles.plainTable} rt-stack`}>
           <thead>
             <tr>
               {columns.map((col, idx) => (
@@ -150,7 +153,8 @@ function ScreenView({
                   if (col.field === 'desc') content = <ShortText text={content} max={45} />;
                   else if (col.field === 'total' || col.field === 'unit') content = `$ ${money(item[col.field])}`;
                   else if (col.field === 'unidades') content = item.unidades;
-                  return <td key={colIdx} className={col.className || ''}>{content || '—'}</td>;
+                  const titleCls = col.field === 'desc' ? 'rt-title' : '';
+                  return <td key={colIdx} data-label={col.field === 'desc' ? undefined : col.label} className={`${col.className || ''} ${titleCls}`}>{content || '—'}</td>;
                 })}
               </tr>
             ))}
@@ -217,56 +221,82 @@ function ScreenView({
       </div>
 
       {/* Honorarios Médicos */}
-      <section className={styles.plainSection}>
-        <div className={styles.sectionHeader}>
+      <details className={styles.plainSection} open>
+        <summary className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>HONORARIOS MÉDICOS</h3>
-          <div className={styles.sectionSubtotal}>Subtotal: $ {money(totalHonor)}</div>
-        </div>
+          <span className={styles.sectionHeaderRight}>
+            <span className={styles.sectionSubtotal}>Subtotal: $ {money(totalHonor)}</span>
+            <span className={styles.chevron} aria-hidden="true">▾</span>
+          </span>
+        </summary>
         {honorPracticas.length > 0 && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Prácticas</h4>
+          <details className={styles.subsection} open>
+            <summary className={styles.subsectionTitle}>
+              <span>Prácticas</span>
+              <span className={styles.subsectionCount}>{honorPracticas.length}</span>
+              <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
             {renderTable(honorPracticas, honorColumns)}
-          </div>
+          </details>
         )}
         {honorCirugias.length > 0 && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>CX</h4>
+          <details className={styles.subsection} open>
+            <summary className={styles.subsectionTitle}>
+              <span>CX</span>
+              <span className={styles.subsectionCount}>{honorCirugias.length}</span>
+              <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
             {renderTable(honorCirugias, honorColumns)}
-          </div>
+          </details>
         )}
         {honorLaboratorios.length > 0 && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Laboratorio</h4>
+          <details className={styles.subsection} open>
+            <summary className={styles.subsectionTitle}>
+              <span>Laboratorio</span>
+              <span className={styles.subsectionCount}>{honorLaboratorios.length}</span>
+              <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
             {renderTable(honorLaboratorios, honorColumns)}
-          </div>
+          </details>
         )}
         {honorPracticas.length === 0 && honorCirugias.length === 0 && honorLaboratorios.length === 0 && (
           <div className={styles.emptySmall}>Sin honorarios médicos.</div>
         )}
-      </section>
+      </details>
 
       {/* Gastos Clínicos */}
-      <section className={styles.plainSection}>
-        <div className={styles.sectionHeader}>
+      <details className={styles.plainSection} open>
+        <summary className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>GASTOS CLÍNICOS</h3>
-          <div className={styles.sectionSubtotal}>Subtotal: $ {money(totalGasto)}</div>
-        </div>
+          <span className={styles.sectionHeaderRight}>
+            <span className={styles.sectionSubtotal}>Subtotal: $ {money(totalGasto)}</span>
+            <span className={styles.chevron} aria-hidden="true">▾</span>
+          </span>
+        </summary>
         {gastoPracticas.length > 0 && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Prácticas</h4>
+          <details className={styles.subsection} open>
+            <summary className={styles.subsectionTitle}>
+              <span>Prácticas</span>
+              <span className={styles.subsectionCount}>{gastoPracticas.length}</span>
+              <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
             {renderTable(gastoPracticas, gastoPracticasColumns)}
-          </div>
+          </details>
         )}
         {(gastoMedicamentos.length > 0 || gastoDescartables.length > 0) && (
-          <div className={styles.subsection}>
-            <h4 className={styles.subsectionTitle}>Medicación y Descartables</h4>
+          <details className={styles.subsection} open>
+            <summary className={styles.subsectionTitle}>
+              <span>Medicación y Descartables</span>
+              <span className={styles.subsectionCount}>{gastoMedicamentos.length + gastoDescartables.length}</span>
+              <span className={styles.chevron} aria-hidden="true">▾</span>
+            </summary>
             {renderTable([...gastoMedicamentos, ...gastoDescartables], medDescColumns)}
-          </div>
+          </details>
         )}
         {gastoPracticas.length === 0 && gastoMedicamentos.length === 0 && gastoDescartables.length === 0 && (
           <div className={styles.emptySmall}>Sin gastos clínicos.</div>
         )}
-      </section>
+      </details>
 
       <div className={styles.totalBar}>
         <div className={styles.totalLabelBig}>TOTAL FACTURA</div>
@@ -462,6 +492,7 @@ const PrintMedDescLabView = React.forwardRef(({
   artNombre,
 }, ref) => {
   const artImageUrl = getArtImage(artNombre);
+  const firmaClinica = useFirma(FIRMA_CLINICA);
 
   const apellido = paciente?.apellido || '';
   const nombrePaciente = paciente?.nombre || paciente?.nombreCompleto || '';
@@ -605,8 +636,8 @@ const PrintMedDescLabView = React.forwardRef(({
             borderBottom: '1.5px solid #1e293b',
           }}
         >
-          <img
-            src={FIRMA_CLINICA_URL}
+          {firmaClinica && <img
+            src={firmaClinica}
             alt="Firma Clínica de la Unión"
             style={{
               position: 'absolute',
@@ -619,7 +650,7 @@ const PrintMedDescLabView = React.forwardRef(({
               pointerEvents: 'none',
             }}
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
+          />}
         </div>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>Firma y sello del responsable</div>
         <div style={{ fontWeight: 500 }}>Clínica de la Unión</div>
@@ -817,7 +848,7 @@ export default function FacturadoDetallePage() {
   });
 
   const onDownloadCsv = () => {
-    alert('Función CSV no implementada aún.');
+    notify('Función CSV no implementada aún.');
   };
 
   // ── Generar Script ARCA ─────────────────────────────────────────────────
@@ -835,7 +866,7 @@ export default function FacturadoDetallePage() {
       practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
       medicamentos.length === 0 && descartables.length === 0
     ) {
-      alert('No hay datos para generar el script.');
+      notify('No hay datos para generar el script.');
       return;
     }
 
@@ -990,7 +1021,7 @@ export default function FacturadoDetallePage() {
     const rowsData = [...rowsHonorarios, ...rowsGastos];
 
     if (rowsData.length === 0) {
-      alert('No se generaron filas.');
+      notify('No se generaron filas.');
       return;
     }
 
@@ -1061,10 +1092,10 @@ export default function FacturadoDetallePage() {
   }
 
   const table = getTable();
-  if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+  if (!table) { notify('No se encontró la tabla de detalles.'); return; }
 
   const addBtn = getAddButton();
-  if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
+  if (!addBtn) { notify('No se encontró el botón "Agregar línea descripción".'); return; }
 
   let dataRows = getDataRows(table);
   const targetCount = rowsData.length;
@@ -1087,7 +1118,7 @@ export default function FacturadoDetallePage() {
   }
 
   if (dataRows.length !== targetCount) {
-    alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+    notify('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
     return;
   }
 
@@ -1096,7 +1127,7 @@ export default function FacturadoDetallePage() {
   }
 
   console.log('✅ Se procesaron ' + targetCount + ' filas.');
-  alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+  notify('✅ Se procesaron ' + targetCount + ' filas correctamente.');
 })();
 `;
 
@@ -1110,7 +1141,7 @@ export default function FacturadoDetallePage() {
         setArcaCopied(true);
         setTimeout(() => setArcaCopied(false), 3000);
       })
-      .catch(() => alert('No se pudo copiar el texto.'));
+      .catch(() => notify('No se pudo copiar el texto.'));
   }, [arcaScript]);
 
   if (loading) {

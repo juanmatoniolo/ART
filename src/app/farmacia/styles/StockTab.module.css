@@ -89,7 +89,7 @@
 }
 
 .btn_reparto {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--cu-danger-strong), #b91c1c);
   color: #fff;
 }
 
@@ -498,5 +498,17 @@
 
   .filterSelect {
     flex: 0 0 auto;
+  }
+}
+
+/* El bloque de texto puede encogerse; en celular el nombre usa hasta 2 líneas */
+.stockCardInfo > div { min-width: 0; flex: 1; }
+@media (max-width: 640px) {
+  .stockCardName {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
   }
 }

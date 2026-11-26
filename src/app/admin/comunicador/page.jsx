@@ -1,11 +1,12 @@
 "use client";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import { normalize } from "../art/utils/generadores";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 const RECENT_KEY = "wa-recientes-v1";
 
 const BIOQUIMICOS = [

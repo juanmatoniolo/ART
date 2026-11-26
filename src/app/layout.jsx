@@ -1,6 +1,9 @@
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { SessionProvider } from '@/context/SessionContext';
+import Toaster from '@/components/Toaster/Toaster';
+import ImpersonationBar from '@/components/ImpersonationBar/ImpersonationBar';
+import DoubleSubmitGuard from '@/components/DoubleSubmitGuard';
 
 // 👇 Fuente principal — sans-serif moderna, excelente legibilidad
 const inter = Inter({
@@ -92,7 +95,12 @@ export default function RootLayout({ children }) {
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-bg text-text antialiased" suppressHydrationWarning>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <ImpersonationBar />
+        </SessionProvider>
+        <Toaster />
+        <DoubleSubmitGuard />
       </body>
     </html>
   );

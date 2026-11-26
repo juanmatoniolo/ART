@@ -1,12 +1,16 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import styles from "./page.module.css";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 
 function pacienteIncompleto(p) {
   const t = p.trabajador || {};
@@ -86,9 +90,7 @@ export default function PacientesPage() {
   };
 
   useEffect(() => {
-    const factRef = ref(db, "Facturacion");
-    const unsub = onValue(
-      factRef,
+    const unsub = onSharedValue("Facturacion",
       (snap) => setFacturacionData(snap.exists() ? snap.val() : {}),
       (err) => {
         console.error("Error al cargar facturación:", err);
@@ -481,7 +483,7 @@ export default function PacientesPage() {
       if (grupo.length > 1) grupos.push(grupo);
     }
     if (grupos.length === 0) {
-      alert("No se encontraron duplicados.");
+      notify("No se encontraron duplicados.");
       return;
     }
     const primerGrupo = grupos[0];
@@ -492,7 +494,7 @@ export default function PacientesPage() {
 
   const fusionarPacientes = async () => {
     if (!principalId) {
-      alert("Selecciona un paciente principal.");
+      notify("Selecciona un paciente principal.");
       return;
     }
     const principal = pacientesDuplicados.find((p) => p.id === principalId);
@@ -544,10 +546,10 @@ export default function PacientesPage() {
       await Promise.all(secundarios.map((sec) => fetch(`${FIREBASE_URL}/pacientes/${sec.id}.json`, { method: "DELETE" })));
       await fetchPacientes();
       setShowUnionModal(false);
-      alert("Pacientes fusionados correctamente.");
+      notify("Pacientes fusionados correctamente.");
     } catch (error) {
       console.error(error);
-      alert("Error al fusionar pacientes.");
+      notify("Error al fusionar pacientes.");
     }
   };
 
@@ -599,7 +601,7 @@ export default function PacientesPage() {
   const handlePrint = async (paciente, type = "art") => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("El navegador bloqueó la ventana de impresión.");
+      notify("El navegador bloqueó la ventana de impresión.");
       return;
     }
     printWindow.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8" /><title>Cargando...</title><style>html,body{margin:0;height:100%;display:grid;place-items:center;font-family:Arial,sans-serif;background:#f3f4f6}.loader{text-align:center;color:#111827}</style></head><body><div class="loader">Generando vista de impresión...</div></body></html>`);
@@ -673,7 +675,7 @@ export default function PacientesPage() {
       </header>
 
       {/* Tabs de vista SIN filtro de estado */}
-      <nav className={styles.viewTabs} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <nav className={styles.viewTabs} style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className={`${styles.viewTab} ${activeView === "listado" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("listado")}>📋 Listado</button>
           <button className={`${styles.viewTab} ${activeView === "estadisticas" ? styles.viewTabActive : ""}`} onClick={() => setActiveView("estadisticas")}>📊 Estadísticas</button>
@@ -1006,7 +1008,7 @@ export default function PacientesPage() {
             </div>
             <div className={styles.unionActions}>
               <button type="button" className={styles.cancelBtn} onClick={() => setShowUnionModal(false)}>Cancelar</button>
-              <button type="button" className={styles.saveBtn} onClick={fusionarPacientes}>Fusionar</button>
+              <button type="button" className={styles.saveBtn} onClick={singleFlight("app/administrador/pacientes/page:fusionarPacientes", fusionarPacientes)}>Fusionar</button>
             </div>
           </div>
         </div>

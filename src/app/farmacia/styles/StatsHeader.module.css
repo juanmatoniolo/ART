@@ -144,7 +144,7 @@
 }
 
 .btn_reparto {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--cu-danger-strong), #b91c1c);
   color: #fff;
 }
 
@@ -266,10 +266,9 @@
   /* Logout: en móvil lo mantenemos absoluto pero más pequeño y a la derecha */
   .logoutBtn {
    
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    min-height: 1em;
-    
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    min-height: 36px;
   }
 
   /* Aseguramos que el botón de logout no tape el título */
@@ -301,7 +300,8 @@
   }
 
   .logoutBtn {
-    font-size: 1.65rem;
-    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
+    min-height: 36px;
   }
 }

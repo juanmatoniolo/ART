@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notify";
 import { PDFDocument } from "pdf-lib";
 
 // ── Constantes ──
@@ -221,7 +222,7 @@ export async function buildPdfFromCX(cx, templateUrl, mapping, canonical) {
 
 export async function downloadCxPdf(cx, type, mapping, canonical) {
   if (!mapping || !canonical) {
-    alert("Los datos de mapeo aún no están listos.");
+    notify("Los datos de mapeo aún no están listos.");
     return;
   }
   const url = type === "Frente" ? "/templates/FRENTE-CX.pdf" : "/templates/DORSO-CX.pdf";
@@ -239,6 +240,6 @@ export async function downloadCxPdf(cx, type, mapping, canonical) {
     setTimeout(() => URL.revokeObjectURL(href), 1200);
   } catch (err) {
     console.error(err);
-    alert("Error al generar el PDF");
+    notify("Error al generar el PDF");
   }
 }

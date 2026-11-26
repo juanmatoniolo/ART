@@ -5,6 +5,9 @@ import TabNav from './components/TabNav';
 import s from './farmaciaDashboard.module.css';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import RoleGate from '@/components/RoleGate/RoleGate';
+import { AREAS } from '@/lib/roles';
+import { useSession } from '@/context/SessionContext';
 
 function FarmaciaLayoutContent({ children }) {
   const {
@@ -29,11 +32,11 @@ function FarmaciaLayoutContent({ children }) {
 
   const activeTab = getActiveTabFromPath();
 
-  const handleLogout = () => {
+  const { logout } = useSession();
+  const handleLogout = async () => {
     setLoadingLogout(true);
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 300);
+    await logout();
+    router.replace('/login');
   };
 
   if (cargandoUsuarios) {
@@ -82,8 +85,10 @@ function FarmaciaLayoutContent({ children }) {
 
 export default function FarmaciaLayout({ children }) {
   return (
-    <FarmaciaProvider>
-      <FarmaciaLayoutContent>{children}</FarmaciaLayoutContent>
-    </FarmaciaProvider>
+    <RoleGate allowed={AREAS['/farmacia']}>
+      <FarmaciaProvider>
+        <FarmaciaLayoutContent>{children}</FarmaciaLayoutContent>
+      </FarmaciaProvider>
+    </RoleGate>
   );
 }

@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
@@ -304,7 +305,7 @@ function fillFormFields(form, fields) {
    POST
 ============================================================ */
 
-export async function POST(req) {
+async function postHandler(req) {
 	try {
 		const { payload, type = "Frente", fileName } = await req.json();
 
@@ -360,7 +361,7 @@ export async function POST(req) {
 	}
 }
 
-export async function GET(req) {
+async function getHandler(req) {
 	try {
 		const url = new URL(req.url);
 		const debug = url.searchParams.get("debug") === "1";
@@ -393,3 +394,13 @@ export async function GET(req) {
 		);
 	}
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});
+export const POST = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM", "ADMINISTRADOR"]);
+	return postHandler(request, ctx);
+});

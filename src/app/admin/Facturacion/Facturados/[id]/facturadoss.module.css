@@ -3,9 +3,9 @@
    =========================== */
 .container {
     width: 100%;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--app-zoom, 1));
     padding: 16px;
-    background: #0b1220;
+    background: var(--cu-slate-950);
     color: rgba(255, 255, 255, 0.92);
 }
 
@@ -157,10 +157,55 @@
     margin-top: 12px;
 }
 .subsectionTitle {
-    margin: 8px 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 6px;
     font-size: 0.95rem;
     font-weight: 900;
     color: rgba(255, 255, 255, 0.9);
+}
+
+/* Secciones desplegables */
+.plainSection > summary,
+.subsection > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+.plainSection > summary::-webkit-details-marker,
+.subsection > summary::-webkit-details-marker {
+    display: none;
+}
+.plainSection:not([open]) > .sectionHeader {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.sectionHeaderRight {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.subsectionCount {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+}
+.chevron {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    transition: transform 0.2s;
+}
+details[open] > summary .chevron {
+    transform: rotate(180deg);
+}
+details[open] details:not([open]) > summary .chevron {
+    transform: none;
 }
 
 .tableWrap {
@@ -173,7 +218,6 @@
 .plainTable {
     width: 100%;
     border-collapse: collapse;
-    min-width: 760px;
     background: rgba(0, 0, 0, 0.20);
 }
 
@@ -295,7 +339,7 @@
     }
     .printRoot {
         display: block !important;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: var(--font-sans), var(--font-sans-fallback);
         font-size: 10pt;
         color: black;
         background: white;
@@ -358,7 +402,7 @@
     }
     .printTableCompact td.printNumber {
         text-align: right;
-        font-family: 'Courier New', monospace;
+        font-family: var(--font-mono), var(--font-mono-fallback);
     }
 
     /* Ajustes de ancho de columna (opcional, se puede modificar) */
@@ -393,7 +437,7 @@
 
 .printNumber {
     text-align: right;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono), var(--font-mono-fallback);
 }
 .badgeRx {
   background-color: #ff4444;
@@ -422,11 +466,11 @@
 .printPatientName {
   font-size: 12pt;
   font-weight: bold;
-  color: #0f172a;
+  color: var(--cu-slate-900);
 }
 .printPatientDni {
   font-size: 9pt;
-  color: #475569;
+  color: var(--cu-slate-600);
 }
 .printArtBlock {
   text-align: right;
@@ -469,7 +513,7 @@
 }
 
 .modal {
-  background: #0f172a;
+  background: var(--cu-slate-900);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 24px;
@@ -477,6 +521,6 @@
   width: 100%;
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
   color: rgba(255, 255, 255, 0.92);
-  max-height: 90vh;
+  max-height: calc(90vh / var(--app-zoom, 1));
   overflow-y: auto;
 }

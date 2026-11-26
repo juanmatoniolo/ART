@@ -1,10 +1,11 @@
 "use client";
 
+import { DB_URL } from "@/lib/config";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PacienteForm, { emptyFormData } from "../../_shared/PacienteForm";
 
-const FIREBASE_URL = "https://datos-clini-default-rtdb.firebaseio.com";
+const FIREBASE_URL = DB_URL;
 
 export default function EditarPacientePage() {
   const { id } = useParams();
@@ -33,7 +34,7 @@ export default function EditarPacientePage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40vh", gap: "1rem", color: "#6b7280" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "calc(40vh / var(--app-zoom, 1))", gap: "1rem", color: "#6b7280" }}>
         <div style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#44794d", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
         Cargando paciente...
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

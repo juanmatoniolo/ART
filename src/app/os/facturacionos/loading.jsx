@@ -1,10 +1,2 @@
-import Loading from '@/components/Loading/Loading'
-import React from 'react'
-
-export default function loading() {
-    return (
-        <div>
-            <Loading />
-        </div>
-    )
-}
+// Reutiliza la implementación compartida (antes era una copia idéntica).
+export { default } from "@/app/admin/Facturacion/loading.jsx";

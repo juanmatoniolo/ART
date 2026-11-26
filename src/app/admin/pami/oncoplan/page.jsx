@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -39,8 +40,8 @@ export default function SolicitudOncoplánPage() {
     }, [pacientesDb, busqueda]);
 
     const generarSolicitud = async () => {
-        if (!pacienteSeleccionado) return alert("Seleccioná un paciente.");
-        if (!diagnostico.trim() || !tipoCancer.trim()) return alert("Completá el diagnóstico y el tipo de cáncer.");
+        if (!pacienteSeleccionado) return notify("Seleccioná un paciente.");
+        if (!diagnostico.trim() || !tipoCancer.trim()) return notify("Completá el diagnóstico y el tipo de cáncer.");
 
         setSaving(true);
         try {
@@ -95,7 +96,7 @@ Chajarí, Entre Ríos`;
             mostrarFlash("Gmail abierto. No olvides ADJUNTAR la documentación antes de enviar. Una vez que PAMI responda, marcá el paciente como HABILITADO en el Dashboard.");
             setTimeout(() => router.push("/admin/pami"), 4000);
         } catch (e) {
-            alert("Error al guardar: " + e.message);
+            notify("Error al guardar: " + e.message);
         } finally {
             setSaving(false);
         }

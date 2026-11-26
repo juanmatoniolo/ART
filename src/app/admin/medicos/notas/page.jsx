@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -63,7 +64,7 @@ export default function NotasPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.tipoCirugia.trim() || !form.medico.trim()) {
-      alert('Completá los campos obligatorios: Cirugía y Médico');
+      notify('Completá los campos obligatorios: Cirugía y Médico');
       return;
     }
 

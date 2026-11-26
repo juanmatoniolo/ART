@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/lib/notify";
 import React, { useState, useEffect } from 'react';
 import getArtImage from '../lib/artImages';
 import styles from '../page.module.css';
@@ -147,7 +148,7 @@ export default function PasoArtes({
     localStorage.setItem('ordenArtes', JSON.stringify(orden));
     setModoEditarOrden(false);
     // Opcional: notificar al usuario
-    alert('Orden guardado correctamente');
+    notify('Orden guardado correctamente');
   };
 
   // Cancelar edición (volver al orden guardado o al original)

@@ -6,7 +6,7 @@
   padding: 1rem;
   color: var(--text);
   background-color: var(--bg);
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
 }
 
 .loading {
@@ -25,7 +25,7 @@
 }
 
 .title {
-  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-size: clamp(1.4rem, calc(4vw / var(--app-zoom, 1)), 2rem);
   font-weight: 800;
   margin: 0;
   color: var(--text);

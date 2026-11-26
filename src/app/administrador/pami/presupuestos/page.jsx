@@ -1,4 +1,5 @@
 "use client";
+import { onSharedValue } from "@/lib/dbCache";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ export default function PresupuestoPamiPage() {
     const mostrarFlash = (m, ms = 3200) => { setFlash(m); setTimeout(() => setFlash(""), ms); };
 
     useEffect(() => {
-        const unsubMed = onValue(ref(db, "medydescartables"), (snap) => {
+        const unsubMed = onSharedValue("medydescartables", (snap) => {
             if (!snap.exists()) return setItems([]);
             const data = snap.val();
             const lista = [];

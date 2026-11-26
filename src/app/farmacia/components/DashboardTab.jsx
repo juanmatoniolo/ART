@@ -115,8 +115,8 @@ export default function DashboardTab({ estadisticas, itemsBajoStockList, movimie
       {/* Estilos inline (se mantienen los existentes y se agrega el nuevo para el usuario) */}
       <style>{`
         .fxdash { display: flex; flex-direction: column; gap: 14px; color: var(--c-text); }
-        .fxdash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        .fxdash-card { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .fxdash-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .fxdash-card { background: var(--c-surface); border: 2px solid var(--c-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 0; overflow-wrap: anywhere; }
         .fxdash-card-ic { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
         .fxdash-card-val { font-size: 24px; font-weight: 800; }
         .fxdash-card-lbl { font-size: 14px; color: var(--c-muted); }

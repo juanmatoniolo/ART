@@ -1,4 +1,6 @@
 'use client';
+import { singleFlight } from "@/lib/singleFlight";
+import { notify } from "@/lib/notify";
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -37,7 +39,7 @@ export default function ConveniosPage() {
       setModalEliminar(null);
     } catch (err) {
       console.error('Error al eliminar:', err);
-      alert('No se pudo eliminar el convenio.');
+      notify('No se pudo eliminar el convenio.');
     } finally {
       setEliminandoId(null);
     }
@@ -130,7 +132,7 @@ export default function ConveniosPage() {
               <button className={styles.btnSecondary} onClick={() => setModalEliminar(null)}>
                 Cancelar
               </button>
-              <button className={styles.btnDanger} onClick={confirmarEliminacion}>
+              <button className={styles.btnDanger} onClick={singleFlight("app/os/conveniosos/page:confirmarEliminacion", confirmarEliminacion)}>
                 🗑️ Eliminar definitivamente
               </button>
             </div>

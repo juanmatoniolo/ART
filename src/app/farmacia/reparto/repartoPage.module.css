@@ -7,12 +7,12 @@
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background-color: #ffffff;
   /* fondo blanco opaco */
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), var(--font-sans-fallback);
   color: #1a1a2e;
 }
 
@@ -44,12 +44,12 @@
   font-size: 1.8rem;
   font-weight: 700;
   margin: 0;
-  color: #1e293b;
+  color: var(--cu-slate-800);
 }
 
 .dashboardSubtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-size: 0.95rem;
 }
 
@@ -74,17 +74,17 @@
 }
 
 .btnCancel {
-  background-color: #f1f5f9;
-  color: #334155;
+  background-color: var(--cu-slate-100);
+  color: var(--cu-slate-700);
 }
 
 .btnCancel:hover {
-  background-color: #e2e8f0;
+  background-color: var(--cu-slate-200);
   transform: translateY(-1px);
 }
 
 .btnPrimary {
-  background-color: #2563eb;
+  background-color: var(--cu-info-strong);
   color: #ffffff;
 }
 
@@ -129,7 +129,7 @@
 .fieldGroup label {
   font-weight: 600;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--cu-slate-600);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -137,17 +137,17 @@
 .formInput,
 .formTextarea {
   padding: 0.7rem 0.9rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--cu-slate-300);
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: #f8fafc;
+  background-color: var(--cu-slate-50);
 }
 
 .formInput:focus,
 .formTextarea:focus {
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   outline: none;
   background-color: #ffffff;
@@ -166,25 +166,25 @@
 }
 
 .destinoChip {
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background-color: var(--cu-slate-100);
+  border: 1px solid var(--cu-slate-200);
   border-radius: 20px;
   padding: 0.35rem 1rem;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
-  color: #334155;
+  color: var(--cu-slate-700);
 }
 
 .destinoChip:hover {
-  background-color: #e2e8f0;
+  background-color: var(--cu-slate-200);
   transform: translateY(-1px);
 }
 
 .destinoChipActive {
-  background-color: #2563eb;
+  background-color: var(--cu-info-strong);
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
@@ -195,7 +195,7 @@
   padding: 0.75rem 1rem;
   border-radius: 8px;
   font-size: 0.9rem;
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--cu-danger-strong);
   animation: fadeIn 0.3s ease;
 }
 
@@ -221,12 +221,12 @@
 
 /* ─── COLUMNA IZQUIERDA: DISPONIBLES ─── */
 .repartoDisponibles {
-  background-color: #f8fafc;
+  background-color: var(--cu-slate-50);
   border-radius: 10px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cu-slate-200);
 }
 
 .searchWrap {
@@ -239,14 +239,14 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
   padding: 0.7rem 2.5rem 0.7rem 2.6rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--cu-slate-300);
   border-radius: 8px;
   font-size: 0.95rem;
   background-color: #ffffff;
@@ -254,7 +254,7 @@
 }
 
 .searchInput:focus {
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   outline: none;
 }
@@ -266,7 +266,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
@@ -277,8 +277,8 @@
 }
 
 .searchClear:hover {
-  background-color: #e2e8f0;
-  color: #334155;
+  background-color: var(--cu-slate-200);
+  color: var(--cu-slate-700);
 }
 
 .listaDisponibles {
@@ -299,7 +299,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--cu-slate-200);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
   border-radius: 6px;
@@ -320,11 +320,11 @@
 
 .productoNombre {
   font-weight: 500;
-  color: #1e293b;
+  color: var(--cu-slate-800);
 }
 
 .productoPresentacion {
-  color: #64748b;
+  color: var(--cu-slate-500);
   font-size: 0.8rem;
 }
 
@@ -333,7 +333,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  color: #475569;
+  color: var(--cu-slate-600);
 }
 
 .stockIndicator {
@@ -352,7 +352,7 @@
 }
 
 .btnAgregar {
-  background-color: #2563eb;
+  background-color: var(--cu-info-strong);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -372,7 +372,7 @@
 }
 
 .emptyText {
-  color: #94a3b8;
+  color: var(--cu-slate-400);
   text-align: center;
   padding: 2rem 0;
   font-size: 0.95rem;
@@ -380,12 +380,12 @@
 
 /* ─── COLUMNA DERECHA: CARRITO ─── */
 .repartoSeleccionados {
-  background-color: #f8fafc;
+  background-color: var(--cu-slate-50);
   border-radius: 10px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cu-slate-200);
 }
 
 .resumenSeleccion {
@@ -393,7 +393,7 @@
   gap: 1.2rem;
   font-size: 0.95rem;
   padding-bottom: 0.6rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--cu-slate-200);
   margin-bottom: 0.6rem;
   flex-wrap: wrap;
 }
@@ -402,7 +402,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  color: #475569;
+  color: var(--cu-slate-600);
 }
 
 .valorTotal {
@@ -430,7 +430,7 @@
   margin-bottom: 0.5rem;
   background-color: #ffffff;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cu-slate-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
@@ -441,7 +441,7 @@
 }
 
 .itemMedicamento {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid var(--cu-info-strong);
 }
 
 .itemDescartable {
@@ -451,7 +451,7 @@
 .nombreProducto {
   flex: 1;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--cu-slate-800);
 }
 
 .controlesCantidad {
@@ -461,8 +461,8 @@
 }
 
 .controlesCantidad button {
-  background-color: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  background-color: var(--cu-slate-100);
+  border: 1px solid var(--cu-slate-300);
   border-radius: 6px;
   width: 28px;
   height: 28px;
@@ -470,12 +470,12 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #334155;
+  color: var(--cu-slate-700);
   transition: background 0.2s;
 }
 
 .controlesCantidad button:hover:not(:disabled) {
-  background-color: #e2e8f0;
+  background-color: var(--cu-slate-200);
 }
 
 .controlesCantidad button:disabled {
@@ -487,22 +487,22 @@
   width: 45px;
   text-align: center;
   padding: 0.2rem 0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--cu-slate-300);
   border-radius: 6px;
   background-color: #ffffff;
-  color: #1e293b;
+  color: var(--cu-slate-800);
   font-weight: 600;
   transition: border-color 0.2s;
 }
 
 .controlesCantidad input:focus {
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   outline: none;
 }
 
 .stockInfo {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--cu-slate-500);
   min-width: 70px;
   text-align: center;
   display: flex;
@@ -521,7 +521,7 @@
 .btnEliminar {
   background: transparent;
   border: none;
-  color: #ef4444;
+  color: var(--cu-danger);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -530,7 +530,7 @@
 
 .btnEliminar:hover {
   background-color: #fee2e2;
-  color: #dc2626;
+  color: var(--cu-danger-strong);
 }
 
 /* Acciones del carrito */
@@ -540,7 +540,7 @@
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 0.8rem;
-  border-top: 2px solid #e2e8f0;
+  border-top: 2px solid var(--cu-slate-200);
 }
 
 /* ─── RESPONSIVE ─── */
@@ -671,7 +671,7 @@
 }
 
 .controlesCantidad input:focus {
-  border-color: #2563eb;
+  border-color: var(--cu-info-strong);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
@@ -817,7 +817,7 @@
 
 .infoLimitada {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--cu-slate-500);
   margin: 0.5rem 0;
   text-align: center;
 }

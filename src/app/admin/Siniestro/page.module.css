@@ -1,12 +1,13 @@
 /* Tema oscuro consistente con el layout de admin */
 .page {
     min-height: 100%;
-    background: #0f172a;
-    color: #e5e7eb;
+    background: var(--cu-slate-900);
+    color: var(--cu-slate-200);
     padding: 20px 0;
 }
 
 .shell {
+    width: 100%;
     max-width: 980px;
     margin: 0 auto;
     padding: 0 20px;
@@ -15,6 +16,8 @@
 /* Header */
 .header {
     display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 24px;
@@ -29,7 +32,7 @@
 
 .subtitle {
     font-size: 14px;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     margin-top: 4px;
 }
 
@@ -41,16 +44,16 @@
 .ghostBtn {
     padding: 8px 16px;
     border-radius: 30px;
-    border: 1px solid #334155;
+    border: 1px solid var(--cu-slate-700);
     background: transparent;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .ghostBtn:hover {
-    background: #1e293b;
+    background: var(--cu-slate-800);
 }
 
 .ghostBtn:disabled {
@@ -60,8 +63,8 @@
 
 /* Card principal */
 .card {
-    background: #111827;
-    border: 1px solid #1e293b;
+    background: var(--cu-slate-850);
+    border: 1px solid var(--cu-slate-800);
     border-radius: 20px;
     padding: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -69,8 +72,8 @@
 
 /* Secciones */
 .section {
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: var(--cu-slate-800);
+    border: 1px solid var(--cu-slate-700);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
@@ -80,8 +83,66 @@
     margin-bottom: 0;
 }
 
+.section > summary { list-style: none; }
+.section > summary::-webkit-details-marker { display: none; }
+
 .sectionHead {
-    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 10px;
+}
+
+.sectionHead:focus-visible {
+    outline: 2px solid var(--cu-brand-600);
+    outline-offset: 4px;
+}
+
+.sectionHeadText {
+    flex: 1;
+    min-width: 0;
+}
+
+.sectionBody {
+    margin-top: 16px;
+    min-width: 0;
+}
+
+.sectionBadge {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--cu-slate-700);
+    background: var(--cu-slate-900);
+    color: var(--cu-slate-400);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sectionBadgeDone {
+    border-color: var(--cu-brand-600);
+    color: #86efac;
+}
+
+.sectionError {
+    border-color: var(--cu-danger);
+}
+
+.chevron {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    color: var(--cu-slate-400);
+    transition: transform 0.2s;
+}
+
+details[open] > summary > .chevron {
+    transform: rotate(180deg);
 }
 
 .sectionTitle {
@@ -97,13 +158,13 @@
     content: "";
     width: 6px;
     height: 24px;
-    background: #44794d;
+    background: var(--cu-brand-600);
     border-radius: 4px;
 }
 
 .sectionHint {
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--cu-slate-400);
     margin-top: 4px;
 }
 
@@ -116,12 +177,13 @@
 
 @media (min-width: 640px) {
     .grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
 
 .field,
 .fieldFull {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -134,37 +196,39 @@
 .label {
     font-size: 14px;
     font-weight: 600;
-    color: #d1d5db;
+    color: var(--cu-slate-300);
 }
 
 /* Inputs */
 .input {
+    width: 100%;
+    min-width: 0;
     height: 46px;
     border-radius: 10px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: #e5e7eb;
+    border: 1px solid var(--cu-slate-700);
+    background: var(--cu-slate-900);
+    color: var(--cu-slate-200);
     padding: 0 14px;
     font-size: 15px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input::placeholder {
-    color: #6b7280;
+    color: var(--cu-slate-500);
 }
 
 .input:focus {
     outline: none;
-    border-color: #44794d;
+    border-color: var(--cu-brand-600);
     box-shadow: 0 0 0 3px rgba(68, 121, 77, 0.3);
 }
 
 .inputError {
-    border-color: #ef4444 !important;
+    border-color: var(--cu-danger) !important;
 }
 
 .inputReadonly {
-    background: #0f172a !important;
+    background: var(--cu-slate-900) !important;
     /* Fondo oscuro, pero no tan profundo */
     /* Amarillo dorado, muy legible */
     cursor: default;
@@ -206,8 +270,8 @@
 }
 
 .fechaGroup {
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--cu-slate-900);
+    border: 1px solid var(--cu-slate-700);
     border-radius: 12px;
     padding: 14px 16px;
 }
@@ -215,7 +279,7 @@
 .fechaGroupLabel {
     font-size: 13px;
     font-weight: 700;
-    color: #94a3b8;
+    color: var(--cu-slate-400);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 12px;
@@ -252,9 +316,9 @@
     gap: 8px;
     padding: 8px 16px;
     border-radius: 999px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: #d1d5db;
+    border: 1px solid var(--cu-slate-700);
+    background: var(--cu-slate-900);
+    color: var(--cu-slate-300);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -262,12 +326,12 @@
 }
 
 .chip input {
-    accent-color: #44794d;
+    accent-color: var(--cu-brand-600);
     margin: 0;
 }
 
 .chipActive {
-    border-color: #44794d;
+    border-color: var(--cu-brand-600);
     background: #1e3a2a;
     color: #ffffff;
 }
@@ -278,7 +342,7 @@
     height: 52px;
     border-radius: 30px;
     border: none;
-    background: #44794d;
+    background: var(--cu-brand-600);
     color: white;
     font-size: 16px;
     font-weight: 700;
@@ -308,6 +372,7 @@
 }
 
 .pdfActionsRow {
+    overflow-wrap: anywhere;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -317,28 +382,29 @@
 
 .pdfActions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
 .secondaryBtn {
     padding: 8px 16px;
     border-radius: 30px;
-    border: 1px solid #334155;
+    border: 1px solid var(--cu-slate-700);
     background: transparent;
-    color: #e5e7eb;
+    color: var(--cu-slate-200);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .secondaryBtn:hover {
-    background: #1e293b;
+    background: var(--cu-slate-800);
 }
 
 /* Toasts */
 .toastInfo {
     background: #1e3a8a20;
-    border: 1px solid #3b82f6;
+    border: 1px solid var(--cu-info);
     color: #93c5fd;
     padding: 12px;
     border-radius: 12px;
@@ -347,8 +413,9 @@
 }
 
 .toastSuccess {
+    overflow-wrap: anywhere;
     background: #14532d20;
-    border: 1px solid #22c55e;
+    border: 1px solid var(--cu-success);
     color: #86efac;
     padding: 12px;
     border-radius: 12px;
@@ -357,7 +424,7 @@
 
 .toastDanger {
     background: #7f1d1d20;
-    border: 1px solid #ef4444;
+    border: 1px solid var(--cu-danger);
     color: #fca5a5;
     padding: 12px;
     border-radius: 12px;
@@ -372,8 +439,8 @@
 }
 
 .fechaGroup {
-    flex: 1;
-    min-width: 200px;
+    flex: 1 1 200px;
+    min-width: 0;
 }
 
 .fechaGroupLabel {
@@ -388,8 +455,8 @@
 }
 
 .datePartField {
-    flex: 1;
-    min-width: 60px;
+    flex: 1 1 60px;
+    min-width: 0;
 }
 
 .datePartWide {

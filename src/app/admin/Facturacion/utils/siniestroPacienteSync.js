@@ -1,3 +1,4 @@
+import { getShared } from "@/lib/dbCache";
 import { get, ref, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
 
@@ -72,7 +73,7 @@ export function findPacienteIdByFactura(pacientes = {}, factura = {}) {
 }
 
 export async function cerrarPacientePorFactura(factura = {}, facturaId = '') {
-  const pacientesSnap = await get(ref(db, 'pacientes'));
+  const pacientesSnap = await getShared("pacientes");
   if (!pacientesSnap.exists()) return null;
 
   const pacientes = pacientesSnap.val() || {};
@@ -92,7 +93,7 @@ export async function cerrarPacientePorFactura(factura = {}, facturaId = '') {
 }
 
 export async function cerrarPacientesPorFacturacion(facturacion = {}) {
-  const pacientesSnap = await get(ref(db, 'pacientes'));
+  const pacientesSnap = await getShared("pacientes");
   if (!pacientesSnap.exists()) return { matched: 0, updated: 0 };
 
   const pacientes = pacientesSnap.val() || {};

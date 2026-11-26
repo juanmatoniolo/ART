@@ -1,3 +1,4 @@
+import { requireUser, handle } from "@/lib/serverAuth";
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
@@ -34,7 +35,7 @@ function getDriveClient() {
    GET: /api/documentos/proxy?id=FILE_ID
 ============================================================ */
 
-export async function GET(req) {
+async function getHandler(req) {
   try {
     const url = new URL(req.url);
     const fileId = url.searchParams.get("id");
@@ -124,3 +125,9 @@ export async function GET(req) {
     );
   }
 }
+
+// Acceso: sesión activa + rol (ROOT/SUPERROOT siempre). Ver lib/serverAuth.js
+export const GET = handle(async (request, ctx) => {
+	await requireUser(request, ["ADM"]);
+	return getHandler(request, ctx);
+});

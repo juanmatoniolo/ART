@@ -1,4 +1,5 @@
 'use client';
+import { notify } from "@/lib/notify";
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -92,7 +93,7 @@ export default function FacturadosPage() {
     try {
       // ✅ RUTA ACTUALIZADA A facturacionOS
       const snap = await get(ref(db, `facturacionOS/${id}`));
-      if (!snap.exists()) return alert('Ya no existe este registro.');
+      if (!snap.exists()) return notify('Ya no existe este registro.');
       const prev = snap.val();
       const now = Date.now();
       const facturaNro = prev?.facturaNro || `FAC-${new Date().getFullYear()}-${now}`;
@@ -103,10 +104,10 @@ export default function FacturadosPage() {
       await cerrarPacientePorFactura(
         { id, ...prev, estado: 'cerrado', cerradoAt: now, facturaNro }, id
       );
-      alert(`✅ Marcado como CERRADO.\nFactura: ${facturaNro}`);
+      notify(`✅ Marcado como CERRADO.\nFactura: ${facturaNro}`);
     } catch (e) {
       console.error(e);
-      alert(e?.message || 'Error al marcar como facturado.');
+      notify(e?.message || 'Error al marcar como facturado.');
     } finally {
       setBusyId('');
     }
@@ -122,10 +123,10 @@ export default function FacturadosPage() {
       if (prev?.siniestroKey) {
         await remove(ref(db, `facturacionOS/siniestros/${prev.siniestroKey}`)).catch(() => { });
       }
-      alert('🗑️ Registro eliminado.');
+      notify('🗑️ Registro eliminado.');
     } catch (e) {
       console.error(e);
-      alert(e?.message || 'Error al eliminar.');
+      notify(e?.message || 'Error al eliminar.');
     } finally {
       setBusyId('');
     }
@@ -136,7 +137,7 @@ export default function FacturadosPage() {
     const ids = Array.from(selectedIds);
     const borradores = filtered.filter(it => ids.includes(it.id) && it.estado !== 'cerrado');
     if (borradores.length === 0) {
-      alert('Seleccioná al menos un borrador (no cerrado).');
+      notify('Seleccioná al menos un borrador (no cerrado).');
       return;
     }
     if (!window.confirm(`¿Facturar ${borradores.length} registro(s)?`)) return;
@@ -159,10 +160,10 @@ export default function FacturadosPage() {
         );
         count++;
       }
-      alert(`✅ ${count} registro(s) facturados correctamente.`);
+      notify(`✅ ${count} registro(s) facturados correctamente.`);
     } catch (e) {
       console.error(e);
-      alert(e?.message || 'Error al facturar seleccionados.');
+      notify(e?.message || 'Error al facturar seleccionados.');
     } finally {
       setBusyId('');
     }
@@ -171,7 +172,7 @@ export default function FacturadosPage() {
   const generarCarpetasIAPS = useCallback(() => {
     let items = filtered.filter(it => selectedIds.has(it.id) || selectedIds.size === 0);
     if (items.length === 0) {
-      alert('No hay registros para generar carpetas.');
+      notify('No hay registros para generar carpetas.');
       return;
     }
     items = items.sort((a, b) => (a.pacienteNombre || '').localeCompare(b.pacienteNombre || ''));
@@ -209,7 +210,7 @@ const generateArcaScript = useCallback((fullItem) => {
     practicas.length === 0 && cirugias.length === 0 && laboratorios.length === 0 &&
     medicamentos.length === 0 && descartables.length === 0
   ) {
-    alert('No hay datos para generar el script.');
+    notify('No hay datos para generar el script.');
     return '';
   }
 
@@ -425,10 +426,10 @@ const generateArcaScript = useCallback((fullItem) => {
   }
 
   const table = getTable();
-  if (!table) { alert('No se encontró la tabla de detalles.'); return; }
+  if (!table) { notify('No se encontró la tabla de detalles.'); return; }
 
   const addBtn = getAddButton();
-  if (!addBtn) { alert('No se encontró el botón "Agregar línea descripción".'); return; }
+  if (!addBtn) { notify('No se encontró el botón "Agregar línea descripción".'); return; }
 
   let dataRows = getDataRows(table);
   const targetCount = rowsData.length;
@@ -451,7 +452,7 @@ const generateArcaScript = useCallback((fullItem) => {
   }
 
   if (dataRows.length !== targetCount) {
-    alert('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
+    notify('No se pudo ajustar la cantidad de filas (' + dataRows.length + ' de ' + targetCount + ').');
     return;
   }
 
@@ -460,7 +461,7 @@ const generateArcaScript = useCallback((fullItem) => {
   }
 
   console.log('✅ Se procesaron ' + targetCount + ' filas.');
-  alert('✅ Se procesaron ' + targetCount + ' filas correctamente.');
+  notify('✅ Se procesaron ' + targetCount + ' filas correctamente.');
 })();
 `;
 }, []);
@@ -470,7 +471,7 @@ const generateArcaScript = useCallback((fullItem) => {
     try {
       const snap = await get(ref(db, `facturacionOS/${id}`));
       if (!snap.exists()) {
-        alert('No existe el registro.');
+        notify('No existe el registro.');
         return;
       }
       const fullItem = snap.val();
@@ -481,7 +482,7 @@ const generateArcaScript = useCallback((fullItem) => {
       }
     } catch (e) {
       console.error(e);
-      alert(e?.message || 'Error al obtener los datos.');
+      notify(e?.message || 'Error al obtener los datos.');
     } finally {
       setArcaLoadingId('');
     }
@@ -493,7 +494,7 @@ const generateArcaScript = useCallback((fullItem) => {
         setArcaCopied(true);
         setTimeout(() => setArcaCopied(false), 3000);
       })
-      .catch(() => alert('No se pudo copiar el texto.'));
+      .catch(() => notify('No se pudo copiar el texto.'));
   }, [arcaScript]);
 
   const handleCopy = useCallback(() => {
@@ -502,7 +503,7 @@ const generateArcaScript = useCallback((fullItem) => {
         setCopied(true);
         setTimeout(() => setCopied(false), 3000);
       })
-      .catch(() => alert('No se pudo copiar el texto.'));
+      .catch(() => notify('No se pudo copiar el texto.'));
   }, [cmdScript]);
 
   // --- Render ---
