@@ -154,7 +154,7 @@ export default function AdminDashboard() {
 
     { title: "Med + Descartables", value: stats.medDesc, icon: Pill, color: "#7c3aed", href: "/administrador/med-descartables" },
     { title: "Nomencladores", value: "4", icon: BookOpen, color: "#059669", href: "/administrador/nomencladores" },
-    { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/administrador/cx/programada" },
+    { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/administrador/cx" },
     { title: "Fojas quirurgicas", value: stats.fojas, icon: FileText, color: "#06b6d4", href: "/administrador/cx/foja/medicos" },
     { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "/administrador/historia-clinica" },
     { title: "Farmacia", value: stats.farmacia, icon: Pill, color: "#a855f7", href: "/administrador/med-descartables" },

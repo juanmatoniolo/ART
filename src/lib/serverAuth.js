@@ -54,8 +54,12 @@ export function handle(fn) {
       return await fn(request, ctx);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : mapFirebaseError(err)?.status || 500;
+      // err.expose: errores de configuración del servidor (ver lib/firebaseAdmin.js) con
+      // un mensaje pensado para mostrarse; no incluyen datos ni credenciales.
       const message =
-        err instanceof HttpError ? err.message : mapFirebaseError(err)?.message || "Error interno.";
+        err instanceof HttpError || err?.expose
+          ? err.message
+          : mapFirebaseError(err)?.message || "Error interno.";
       if (status >= 500) console.error("[api]", err);
       return Response.json({ error: message }, { status });
     }

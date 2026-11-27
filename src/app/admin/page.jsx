@@ -194,7 +194,7 @@ export default function AdminDashboard() {
     { title: "Facturacion", value: stats.facturas, icon: FileText, color: "#d97706", href: "/admin/Facturacion/Facturados?estado=cerrado" },
     { title: "Med + Descartables", value: stats.medDesc, icon: Pill, color: "#7c3aed", href: "/admin/med-descartables" },
     { title: "Nomencladores", value: "4", icon: BookOpen, color: "#059669", href: "/admin/nomencladores" },
-    { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/admin/cx/programada" },
+    { title: "CX", value: stats.cxPendientes, icon: FolderTree, color: "#b45309", href: "/admin/cx" },
     { title: "Fojas quirurgicas", value: stats.fojas, icon: FileText, color: "#06b6d4", href: "admin/cx/foja/medicos" },
     { title: "Historias clinicas", value: stats.historias, icon: BookOpen, color: "#14b8a6", href: "admin/historia-clinica" },
     // ⚠️ ELIMINADOS: "Farmacia" y "Siniestros"
