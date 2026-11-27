@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 const pending = new Map(); // archivo -> Promise<string|null>
 const ready = new Map(); // archivo -> data URL
+let ultimoError = ""; // motivo de la última firma que no se pudo cargar
 
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
@@ -26,11 +27,16 @@ export function loadFirma(archivo) {
   const p = (async () => {
     try {
       const res = await fetch(`/api/firmas/${encodeURIComponent(archivo)}`);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        ultimoError = data.error || `Error ${res.status}`;
+        return null;
+      }
       const url = await blobToDataUrl(await res.blob());
       ready.set(archivo, url);
       return url;
-    } catch {
+    } catch (e) {
+      ultimoError = e?.message || "Sin conexión con el servidor.";
       return null;
     } finally {
       pending.delete(archivo);
@@ -38,6 +44,11 @@ export function loadFirma(archivo) {
   })();
   pending.set(archivo, p);
   return p;
+}
+
+/** Motivo de la última firma que no se pudo cargar ("" si no hubo errores). */
+export function getErrorFirmas() {
+  return ultimoError;
 }
 
 /** Descarga varias firmas en paralelo. */

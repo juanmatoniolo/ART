@@ -20,11 +20,22 @@ export async function requireUser(request, allowedRoles = []) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) throw new HttpError(401, "Falta iniciar sesión.");
 
+  // Fuera del try: si firebase-admin o las credenciales del servidor fallan, el error
+  // sale con su motivo (err.expose) en vez de disfrazarse de "sesión inválida".
+  const adminAuth = getAdminAuth();
   let decoded;
   try {
-    decoded = await getAdminAuth().verifyIdToken(token, true); // true = rechaza tokens revocados
-  } catch {
-    throw new HttpError(401, "Sesión inválida o vencida. Volvé a iniciar sesión.");
+    decoded = await adminAuth.verifyIdToken(token, true); // true = rechaza tokens revocados
+  } catch (err) {
+    const code = err?.code || err?.errorInfo?.code || "";
+    const SESION_VENCIDA = ["auth/id-token-expired", "auth/id-token-revoked", "auth/user-disabled", "auth/user-not-found"];
+    if (SESION_VENCIDA.includes(code)) {
+      throw new HttpError(401, "Sesión inválida o vencida. Volvé a iniciar sesión.");
+    }
+    // Otros casos (token de otro proyecto, credenciales del servidor, red): mostrar el motivo.
+    // Los mensajes de firebase-admin no incluyen el token ni claves.
+    const motivo = String(err?.message || err).slice(0, 300);
+    throw new HttpError(401, `No se pudo verificar la sesión (${code || "sin código"}): ${motivo}`);
   }
 
   const snap = await getAdminDb().ref(`usuarios/${decoded.uid}`).get();

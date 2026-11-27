@@ -25,7 +25,7 @@ import {
     getFirmasDeRps,
     getTodasLasFirmas,
 } from './helpers';
-import { getFirmaCargada, loadFirmas } from '@/lib/firmas';
+import { getFirmaCargada, getErrorFirmas, loadFirmas } from '@/lib/firmas';
 import { SaveAtajoModal, AtajosModal } from './AtajosModal';
 import { CartSection } from './CartSection';
 import Estadisticas from './Estadisticas.jsx';
@@ -1346,6 +1346,12 @@ export default function RPPage() {
         if (faltan.length) {
             w = window.open('', '_blank');
             await loadFirmas(faltan);
+        }
+
+        // Si alguna firma no se pudo cargar, avisar el motivo (el documento sale sin esa firma)
+        const sinFirma = getFirmasDeRps(rps).filter((f) => !getFirmaCargada(f));
+        if (sinFirma.length) {
+            notify.warning(`No se pudo cargar la firma (${sinFirma.join(", ")}): ${getErrorFirmas() || "motivo desconocido"}`);
         }
 
         const logoSrc = `${window.location.origin}/logo.png`;
